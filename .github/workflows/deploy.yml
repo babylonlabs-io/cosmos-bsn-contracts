@@ -1,11 +1,11 @@
-name: babylonlabs/babylon-contract/deploy
+name: babylonlabs/cosmos-bsn-contracts/deploy
 on:
   push:
     tags:
       - 'v*.*.*'
 env:
   CARGO_TERM_COLOR: always
-  WORKSPACE: "/home/runner/work/babylon-contract/babylon-contract"
+  WORKSPACE: "/home/runner/work/cosmos-bsn-contracts/cosmos-bsn-contracts"
 jobs:
   build_and_upload_contracts:
     runs-on: ubuntu-latest

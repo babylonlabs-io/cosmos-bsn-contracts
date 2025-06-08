@@ -1,4 +1,4 @@
-module github.com/babylonlabs-io/babylon-contract/datagen
+module github.com/babylonlabs-io/cosmos-bsn-contracts/datagen
 
 go 1.23.1
 

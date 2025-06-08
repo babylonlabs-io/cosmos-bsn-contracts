@@ -1,6 +1,6 @@
 # Release Process
 
-This document describes the process for `babylon-contract` releases.
+This document describes the process for `cosmos-bsn-contracts` releases.
 
 ## Major / Minor Releases
 

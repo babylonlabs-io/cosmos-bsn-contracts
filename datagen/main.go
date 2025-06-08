@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/babylonlabs-io/babylon-contract/datagen/utils"
+	"github.com/babylonlabs-io/cosmos-bsn-contracts/datagen/utils"
 )
 
 const (
