@@ -4,7 +4,7 @@ version = "0.4.0"
 authors = ["Babylon Labs <admin@babylonlabs.io>"]
 edition = "2021"
 description = "Multitest (and other test helpers) support for Babylon-specific contracts"
-repository = "https://github.com/babylonlabs-io/babylon-contract"
+repository = "https://github.com/babylonlabs-io/cosmos-bsn-contracts"
 homepage = "https://babylonlabs.io"
 license = "Apache-2.0"
 

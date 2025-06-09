@@ -1,11 +1,11 @@
-name: babylonlabs/babylon-contract/wasm-tests-full
+name: babylonlabs/cosmos-bsn-contracts/wasm-tests-full
 on:
   pull_request:
     branches:
       - '**'
 env:
   CARGO_TERM_COLOR: always
-  WORKSPACE: "/home/runner/work/babylon-contract/babylon-contract"
+  WORKSPACE: "/home/runner/work/cosmos-bsn-contracts/cosmos-bsn-contracts"
 jobs:
   wasm-build-check-integration-full:
     runs-on: ubuntu-latest

@@ -1,4 +1,4 @@
-name: babylonlabs/babylon-contract/benchmarking-WIP
+name: babylonlabs/cosmos-bsn-contracts/benchmarking-WIP
 on:
   push:
     branches: [ "disabled" ]

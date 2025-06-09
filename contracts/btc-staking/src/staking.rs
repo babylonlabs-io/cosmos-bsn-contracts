@@ -359,7 +359,7 @@ pub fn process_expired_btc_delegations(
             // However, when we insert BSN base BTC header during instantiate, that will ensure
             // the tip can never be empty as the tip will be at most the base header.
             // We should propagate this error instead of silently returning.
-            // See https://github.com/babylonlabs-io/babylon-contract/issues/114
+            // See https://github.com/babylonlabs-io/cosmos-bsn-contracts/issues/114
             deps.api
                 .debug(&format!("Failed to get BTC tip height: {}", e));
             return Ok(Response::new()
