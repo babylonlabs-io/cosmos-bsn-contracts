@@ -15,7 +15,7 @@ flowchart TD
   D -. IBC .-> E;
 
   subgraph BSN
-  E[Babylon Contract] -- $BTC Restake --> U(Staking contract);
+  E(Babylon Contract) -- $BTC Restake --> U(Staking contract);
   U -- $BTC --> V(BSN Finality Provider);
   end
 ```
@@ -72,7 +72,104 @@ integration, and does not cover the full functionality of the contracts. It also
 does not cover the different queries that the contracts provide, which can be
 found in the contract's documentation.
 
-### `babylon` Contract
+### Messages
+
+There are four main message types that are used in the Babylon Staking
+integration.
+
+- IBC messages, which are used to communicate between the Babylon and BSN sides.
+- Execute messages, which are used to execute actions on the contracts.
+- Sudo messages, which are used by the `babylon` module which is part of
+  babylon-sdk to interact with the Babylon contracts; typically during begin /
+  end block processing.
+- Custom messages, which are used by the contracts to interact with the
+  `babylon` module and execute privileged actions through the Cosmos SDK.
+
+There are also instantiation messages, which are used to instantiate the
+contracts on the BSN side, and to set up the necessary channels for IBC
+communication between the Babylon and BSN sides.
+These messages are not covered in this document, as they are part of the
+contract's instantiation process and are typically handled by the integrator
+during the chain setup.
+
+There are also queries, that can be used to query the state of the contracts,
+that are not covered in this document either.
+The queries can be found in the contract's documentation, and are used to query
+the state of the contracts and the information related to the delegations,
+finality providers, and other information related to the Babylon Staking
+integration.
+
+### Messages Flow
+
+The following diagram outlines the flow of messages between the Babylon
+and BSN sides, as well as the contracts involved, and the babylon-sdk `babylon`
+module.
+```mermaid
+
+%%{init: {'theme': 'forest'}}%%
+flowchart TD
+    subgraph Babylon
+        A(Zoneconcierge);
+    end
+    A -. <b>IBC</b>
+        BtcStaking
+        BtcTimestamp
+        BtcHeaders .-> B;
+
+    B -. <b>IBC</b>
+        ConsumerSlashing .-> A;
+
+    subgraph BSN
+        B(Babylon);
+        C(BTC-Staking);
+        D(BTC-Finality);
+        E(BTC-Light-Client);
+    end
+
+    B -- <b>Execute</b>
+        BtcStaking
+        Slash
+    --> C;
+
+   B -- <b>Execute</b>
+      BtcHeaders
+   --> E;
+
+    D -- <b>Execute</b>
+        Slashing
+    --> B;
+
+    D -- <b>Execute</b>
+        DistributeRewards
+    --> C;
+
+    subgraph Other Actors
+        F[Staker];
+        G(Finality Provider);
+        H[Anyone];
+    end
+
+    F -- <b>Execute</b>
+        Unjail
+    --> C;
+
+    G -- <b>Execute</b>
+        CommitPublicRandomness
+        SubmitFinalitySignature
+    --> D;
+
+   H -- <b>Execute</b>
+      WithdrawRewards
+   --> C;
+
+   H -- <b>Execute</b>
+        BtcHeaders
+   --> E;
+```
+
+### Messages Overview
+
+#### `babylon` Contract Messages
 
 The `babylon` contract is the main entry point for the Babylon Staking
 integration.
@@ -118,15 +215,15 @@ This message is part of cascaded slashing, in which the slashing of a finality
 provider on a BSN chain results in the undelegation of the involved $BTC on the
 Babylon side and on other BSN chains as well.
 
-### `btc-staking` Contract
+#### `btc-staking` Contract Messages
 
 The `btc-staking` contract is responsible for managing the staking and
 unstaking of $BTC on the BSN. It provides the following interface:
 
-`BtcStaking` Message: This is the message received by the `babylon` contract
-over IBC, forwarded to the `btc-staking` contract. It contains the necessary
-information about the staking and unstaking requests, as well as the finality
-providers' information, and slashing events from other BSNs or Babylon.
+`BtcStaking` Execution Message: This is the message received by the `babylon`
+contract over IBC, forwarded to the `btc-staking` contract. It contains the
+necessary information about the staking and unstaking requests, as well as the
+finality providers' information, and slashing events from other BSNs or Babylon.
 
 ```rust
 /// BTC Staking operations
@@ -201,7 +298,7 @@ WithdrawRewards {
 },
 ```
 
-### `btc-finality` Contract
+#### `btc-finality` Contract Messages
 
 The `btc-finality` contract is responsible for handling the finality providers'
 block signatures, as well as the public randomness commitments associated with
@@ -281,4 +378,28 @@ Unjail {
 },
 ```
 
-### `btc-light-client` Contract
+#### `btc-light-client` Contract Messages
+
+The `btc-light-client` contract is responsible for maintaining the light client
+state of the Bitcoin network on the BSN.
+It provides the following interface:
+
+`BtcHeaders` Message:
+
+This is a message that can be called by the Babylon contract to add or update
+the Bitcoin headers in the light client.
+It contains a list of Bitcoin headers, as well as temporary fields that are used
+to initialize the light client with the first header's work and height.
+Notably, this message can be called by anyone as well, who can provide valid
+Bitcoin headers to extend or update the light client state.
+
+```rust
+/// Add BTC headers to the light client. If not initialized, this will initialize
+/// the light client with the provided headers. Otherwise, it will update the
+/// existing chain with the new headers.
+BtcHeaders {
+   headers: Vec<BtcHeader>,
+   first_work: Option<String>,
+   first_height: Option<u32>,
+},
+```
