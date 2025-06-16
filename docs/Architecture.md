@@ -148,6 +148,15 @@ flowchart TD
       MintRewards
     --> I;
 
+    I -- <b>Sudo</b>
+      BeginBlock
+    --> C;
+
+    I -- <b>Sudo</b>
+      BeginBlock
+      EndBlock
+    --> D;
+
     subgraph Other Actors
         F[Staker];
         G(Finality Provider);
@@ -156,6 +165,7 @@ flowchart TD
 
     F -- <b>Execute</b>
         Unjail
+        WithdrawRewards
     --> C;
 
     G -- <b>Execute</b>
