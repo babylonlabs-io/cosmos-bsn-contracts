@@ -1,0 +1,284 @@
+# Babylon Staking Integration Architecture
+
+This is an architectural overview of the various components of Babylon Staking
+integration.
+
+```mermaid
+%%{init: {'theme': 'forest'}}%%
+flowchart TD
+  subgraph Babylon
+  A{{$BTC}} -- Staking --> B(Babylon staking module);
+  B -- $BTC --> C(Local Finality Provider);
+  B -- $BTC Restaking --> D(Zoneconcierge module);
+  end
+
+  D -. IBC .-> E;
+
+  subgraph BSN
+  E[Babylon Contract] -- $BTC Restake --> U(Staking contract);
+  U -- $BTC --> V(BSN Finality Provider);
+  end
+```
+
+You can get a good overview of the whole system flow in the above diagram.
+The design allows Babylon to provide Bitcoin-based security to multiple chains.
+
+## Modules and Contracts
+
+### Babylon Side
+
+On the babylon side, the main module is the Babylon `btcstaking` module, which
+provides the functionality of Babylon Staking integration. It is responsible
+for managing the staking and unstaking of $BTC, as well as providing the
+finality providers with the necessary information to operate.
+There's also a `btcstkconsumer` module, which is responsible for managing the
+staking part that is specific to the Consumer chains.
+The `btcstkconsumer` module interacts with the `zoneconcierge` module, which is
+responsible for managing the restaking of $BTC on the Bitcoin Supercharged
+Networks (BSNs).
+The BSN is a network of Cosmos chains that are integrated with Babylon Staking,
+and receive economic security from Bitcoin.
+
+### BSN Side
+
+On the BSN side, the main contract is the `btc-staking` contract, which is
+responsible for managing the staking and unstaking of $BTC on the BSN. It has
+the necessary information related to delegations of Bitcoin on the BSN.
+The `btc-staking` contract interacts with Babylon through the `babylon`
+smart contract, which is responsible for managing the communication between
+Babylon and the BSN over IBC. The `babylon-contract` contract is responsible for
+handling the IBC messages and relaying them to the appropriate contracts on the
+BSN side.
+It also deals with contract's instantiation, and with storing the information of
+a transfer channel between the BSN and Babylon, for opt-in rewards transfer in
+the form of the BSN's native token, to Babylon.
+
+Another important contract on the BSN side is the `btc-finality` contract,
+which handles the information about signatures and public randomness sent by
+the finality providers operating on the BSN. It also deals with vote tallying,
+and defines the finalisation status of the blocks on the BSN.
+
+Finally, the `btc-light-client` contract is responsible for maintaining the
+light client state of the Bitcoin network on the BSN. It is used to verify
+the delegations and timestamping sent through Babylon, and to ensure that the
+BSN is in sync with the Bitcoin network.
+
+## Detailed Interfaces
+
+This section provides a detailed overview of the interfaces provided by the
+different contracts involved in the Babylon Staking integration.
+It only describes the interfaces that are relevant for the Babylon Staking
+integration, and does not cover the full functionality of the contracts. It also
+does not cover the different queries that the contracts provide, which can be
+found in the contract's documentation.
+
+### `babylon` Contract
+
+The `babylon` contract is the main entry point for the Babylon Staking
+integration.
+It is responsible for handling the IBC messages and relaying them to the 
+appropriate contract on the BSN side. It provides the following interface over
+IBC:
+
+`BtcStaking` Message:
+
+This IBC packet is used to send the staking and unstaking
+requests from the Babylon BTC staking module to the BSN side. It contains the
+necessary information about the amount of $BTC to be staked or unstaked, as well
+as the address of the delegator, the involved transactions on the Bitcoin
+network, their validation information, etc.
+It also sends information about finality providers entering the BSN network, and
+finality providers leaving the network due to slashing on other chains.
+
+`BtcTimestamp` Message:
+
+This IBC packet is used to send the timestamping information from the Babylon
+BTC timestamping module to the BSN side. It contains the necessary information
+about Bitcoin headers and their timestamps.
+This information is forwarded to the `btc-light-client` contract, which
+maintains the light client state of the Bitcoin network on the BSN.
+
+`BtcHeaders` Message:
+
+This IBC packet is used to send the Bitcoin headers from the Babylon BTC
+timestamping module to the BSN side. It contains the necessary information about
+the Bitcoin headers, their hashes, heights, and the associated proof of work.
+It's also forwarded to the `btc-light-client` contract, which maintains the
+light client state of the Bitcoin network on the BSN.
+
+`Slashing` (`ConsumerSlashing`) Message:
+
+The `babylon` contract also has an interface for handling the forwarding of
+slashing information and evidence upstream, from the BSN to Babylon. This is
+done through the `Slashing` execution handler, which handles the slashing
+information and evidence originated on the BSN side (in the  `btc-finality`
+contract), and forwards it to the Babylon `zonconcierge` module, through the
+`ConsumerSlashing` inbound (from Babylon's point of view) IBC packet.
+This message is part of cascaded slashing, in which the slashing of a finality
+provider on a BSN chain results in the undelegation of the involved $BTC on the
+Babylon side and on other BSN chains as well.
+
+### `btc-staking` Contract
+
+The `btc-staking` contract is responsible for managing the staking and
+unstaking of $BTC on the BSN. It provides the following interface:
+
+`BtcStaking` Message: This is the message received by the `babylon` contract
+over IBC, forwarded to the `btc-staking` contract. It contains the necessary
+information about the staking and unstaking requests, as well as the finality
+providers' information, and slashing events from other BSNs or Babylon.
+
+```rust
+/// BTC Staking operations
+BtcStaking {
+    new_fp: Vec<NewFinalityProvider>,
+    active_del: Vec<ActiveBtcDelegation>,
+    unbonded_del: Vec<UnbondedBtcDelegation>,
+    slashed_del: Vec<SlashedBtcDelegation>,
+},
+```
+
+`Slash` Message:
+
+This is a message sent by the Babylon contract to the `btc-staking` contract, to
+set the staking power of a finality provider to zero when it is found to be
+malicious by the finality contract. This is used to handle slashing events
+internally or locally on the BSN side, and to ensure that the slahed finality
+provider is no longer considered for voting and rewards distribution.
+
+```rust
+/// Slash finality provider staking power.
+/// Used by the babylon-contract only.
+/// The Babylon contract will call this message to set the finality provider's staking power to
+/// zero when the finality provider is found to be malicious by the finality contract.
+Slash {
+    fp_btc_pk_hex: String
+},
+```
+
+`DistributeRewards` Message:
+
+This is a message that is part of rewards distribution, sent by the
+`btc-finality` contract to the `btc-staking` contract. It contains the rewards
+information for the finality providers, which is used to distribute the rewards
+to the delegators. The `btc-staking` contract will then handle the distribution
+of the rewards to the delegators based on their staking power and the finality
+providers' rewards.
+
+```rust
+/// `DistributeRewards` is a message sent by the finality contract, to distribute rewards to
+/// delegators
+DistributeRewards {
+    /// `fp_distribution` is the list of finality providers and their rewards
+    fp_distribution: Vec<RewardInfo>,
+},
+```
+
+`WithdrawRewards` Message:
+
+This is a message that can be sent by anyone on behalf of the staker, to claim
+the rewards from the `btc-staking` contract. It contains the address of the
+staker, which is a Babylon address, and the public key of the finality provider
+to which the rewards are associated. The staker's address is used to compute the
+equivalent address in the Consumer chain, if the rewards are to be sent to a
+Consumer address. The `btc-staking` contract will then handle the withdrawal of
+the rewards and send them to the staker's address.
+If the rewards are to be sent to Babylon instead, the staker's address will be
+used in the `to_address` field of a ICS20 transfer (`IbcMsg::Transfer`) message,
+and the `btc-staking` contract will then send the rewards to the staker address
+over IBC.
+
+```rust
+/// `WithdrawRewards` is a message sent by anyone on behalf of the
+/// staker, to withdraw rewards from BTC staking via the given FP.
+///
+/// `staker_addr` is both the address to claim and receive the rewards.
+/// It's a Babylon address. If rewards are to be sent to a Consumer address, the
+/// staker's equivalent address in that chain will be computed and used.
+WithdrawRewards {
+    staker_addr: String,
+    fp_pubkey_hex: String,
+},
+```
+
+### `btc-finality` Contract
+
+The `btc-finality` contract is responsible for handling the finality providers'
+block signatures, as well as the public randomness commitments associated with
+such signatures verification.
+It provides the following interface:
+
+`CommitPublicRandomness` Message:
+
+This is a message that can be called by a finality provider to commit public
+randomness to the Consumer chain. It contains the necessary information about
+the finality provider's public key, the start height of the public randomness,
+the number of public randomness values committed, the commitment itself, and the
+signature on the commitment. The signature is used to prevent others from
+committing public randomness on behalf of the finality provider.
+
+```
+CommitPublicRandomness {
+    /// `fp_pubkey_hex` is the BTC PK of the finality provider that commits the public randomness
+    fp_pubkey_hex: String,
+    /// `start_height` is the start block height of the list of public randomness
+    start_height: u64,
+    /// `num_pub_rand` is the amount of public randomness committed
+    num_pub_rand: u64,
+    /// `commitment` is the commitment of these public randomness values.
+    /// Currently, it's the root of the Merkle tree that includes the public randomness
+    commitment: Binary,
+    /// `signature` is the signature on (start_height || num_pub_rand || commitment) signed by
+    /// the SK corresponding to `fp_pubkey_hex`.
+    /// This prevents others committing public randomness on behalf of `fp_pubkey_hex`
+    signature: Binary,
+},
+```
+
+`SubmitFinalitySignature` Message:
+
+This is the main message involved in the finality process. It is used to submit
+the finality signature of a block on the Consumer chain. It contains the
+necessary information about the finality provider's public key, the height of
+the block being signed, the public randomness value used, the singature's proof,
+the block app hash, and the signature itself.
+
+```
+/// Submit Finality Signature.
+///
+/// This is a message that can be called by a finality provider to submit their finality
+/// signature to the Consumer chain.
+/// The signature is verified by the Consumer chain using the finality provider's public key
+///
+/// This message is equivalent to the `MsgAddFinalitySig` message in the Babylon finality protobuf
+/// defs.
+SubmitFinalitySignature {
+    fp_pubkey_hex: String,
+    height: u64,
+    pub_rand: Binary,
+    proof: Proof,
+    // FIXME: Rename to block_app_hash for consistency / clarity
+    block_hash: Binary,
+    signature: Binary,
+},
+```
+
+`Unjail` Message:
+
+This message is used to unjail a finality provider that has been jailed due to
+offline detection or other reasons. It allows the finality provider to return to
+the active set of finality providers. The unjailing can be done by the admin at
+any time, or by the finality provider themselves after the jail period has passed. The
+`fp_pubkey_hex` field is used to identify the finality provider to be unjailed.
+
+```rust
+/// Unjails finality provider.
+/// Admin can unjail anyone anytime, others can unjail only themselves, and only if the jail
+/// period passed.
+Unjail {
+    /// FP to unjail
+    fp_pubkey_hex: String,
+},
+```
+
+### `btc-light-client` Contract
