@@ -124,6 +124,7 @@ flowchart TD
         C(BTC-Staking);
         D(BTC-Finality);
         E(BTC-Light-Client);
+        I[Babylon SDK];
     end
 
     B -- <b>Execute</b>
@@ -142,6 +143,10 @@ flowchart TD
     D -- <b>Execute</b>
         DistributeRewards
     --> C;
+
+    D -- <b>Custom</b>
+      MintRewards
+    --> I;
 
     subgraph Other Actors
         F[Staker];
@@ -169,7 +174,9 @@ flowchart TD
 
 ### Messages Overview
 
-#### `babylon` Contract Messages
+#### IBC Messages
+
+##### `babylon` Contract
 
 The `babylon` contract is the main entry point for the Babylon Staking
 integration.
@@ -205,6 +212,10 @@ light client state of the Bitcoin network on the BSN.
 
 `Slashing` (`ConsumerSlashing`) Message:
 
+#### Execution Messages
+
+##### `babylon` Contract
+
 The `babylon` contract also has an interface for handling the forwarding of
 slashing information and evidence upstream, from the BSN to Babylon. This is
 done through the `Slashing` execution handler, which handles the slashing
@@ -215,7 +226,7 @@ This message is part of cascaded slashing, in which the slashing of a finality
 provider on a BSN chain results in the undelegation of the involved $BTC on the
 Babylon side and on other BSN chains as well.
 
-#### `btc-staking` Contract Messages
+##### `btc-staking` Contract
 
 The `btc-staking` contract is responsible for managing the staking and
 unstaking of $BTC on the BSN. It provides the following interface:
@@ -298,7 +309,7 @@ WithdrawRewards {
 },
 ```
 
-#### `btc-finality` Contract Messages
+##### `btc-finality` Contract
 
 The `btc-finality` contract is responsible for handling the finality providers'
 block signatures, as well as the public randomness commitments associated with
@@ -378,7 +389,7 @@ Unjail {
 },
 ```
 
-#### `btc-light-client` Contract Messages
+##### `btc-light-client` Contract
 
 The `btc-light-client` contract is responsible for maintaining the light client
 state of the Bitcoin network on the BSN.
@@ -402,4 +413,80 @@ BtcHeaders {
    first_work: Option<String>,
    first_height: Option<u32>,
 },
+```
+
+#### Sudo Messages
+
+Sudo messages are used by the Babylon SDK `babylon` module to interact with the
+Babylon contracts. They are typically used during the begin and end block
+processing.
+
+##### `btc-staking` Contract
+
+`BeginBlock` Sudo Message:
+
+This message is called by the Babylon SDK to signal the beginning of a new block.
+It allows the staking module to index the BTC height, and update the power
+distribution of Finality Providers.
+
+```rust
+/// The SDK should call SudoMsg::BeginBlock{} once per block (in BeginBlock).
+/// It allows the staking module to index the BTC height, and update the power
+/// distribution of Finality Providers.
+BeginBlock {
+  hash_hex: String,
+  app_hash_hex: String,
+},
+```
+
+##### `btc-finality` Contract
+
+`BeginBlock` Sudo Message:
+
+This message is called by the Babylon SDK to signal the beginning of a new block.
+It allows the finality module to distribute rewards to the finality providers,
+and to compute the active finality provider set based on the current block height
+and the finality provider's staking power.
+
+```rust
+BeginBlock {
+  hash_hex: String,
+  app_hash_hex: String,
+},
+```
+
+`EndBlock` Sudo Message:
+
+This message is called by the Babylon SDK to signal the end of a new block.
+It allows the finality module to index blocks and tally the finality provider
+votes.
+
+```rust
+/// The SDK should call SudoMsg::EndBlock{} once per block (in EndBlock).
+/// It allows the finality module to index blocks and tally the finality provider votes
+EndBlock {
+  hash_hex: String,
+  app_hash_hex: String,
+},
+```
+
+#### Custom Messages
+
+Custom messages are used by the Babylon contracts to interact with the
+Babylon SDK `babylon` module.
+
+##### `btc-finality` Contract
+
+`MintRewards` Message:
+
+This privileged message is used to mint the requested block rewards for the
+finality providers.
+It can only be sent from the finality contract.
+
+```rust
+/// MintRewards mints the requested block rewards for the finality providers.
+/// It can only be sent from the finality contract.
+/// The rewards are minted to the staking contract address, so that they
+/// can be distributed across the active finality provider set
+MintRewards { amount: Coin, recipient: String },
 ```
