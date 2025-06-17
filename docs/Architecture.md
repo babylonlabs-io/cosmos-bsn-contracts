@@ -39,7 +39,7 @@ Networks (BSNs).
 The BSN is a network of Cosmos chains that are integrated with Babylon Staking,
 and receive economic security from Bitcoin.
 
-### BSN Side
+### Cosmos BSN Side
 
 On the BSN side, the main contract is the `btc-staking` contract, which is
 responsible for managing the staking and unstaking of $BTC on the BSN. It has
