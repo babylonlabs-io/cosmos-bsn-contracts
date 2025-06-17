@@ -32,7 +32,7 @@ provides the functionality of Babylon Staking integration. It is responsible
 for tracking the staking and unstaking of BTC, as well as providing the
 finality providers with the necessary information to operate.
 There's also a `x/btcstkconsumer` module, which is responsible for managing the
-staking part that is specific to the Consumer chains.
+staking part that is specific to the BSN chains.
 The `x/btcstkconsumer` module interacts with the `x/zoneconcierge` module, which
 is responsible for managing the restaking of BTC on the Bitcoin Supercharged
 Networks (BSNs).
@@ -300,8 +300,8 @@ This is a message that can be sent by anyone on behalf of the staker, to claim
 the rewards from the `btc-staking` contract. It contains the address of the
 staker, which is a Babylon address, and the public key of the finality provider
 to which the rewards are associated. The staker's address is used to compute the
-equivalent address in the Consumer chain, if the rewards are to be sent to a
-Consumer address. The `btc-staking` contract will then handle the withdrawal of
+equivalent address in the Cosmos BSN chain if the rewards are to be sent to a
+BSN address. The `btc-staking` contract will then handle the withdrawal of
 the rewards and send them to the staker's address.
 If the rewards are to be sent to Babylon Genesis instead, the staker's address
 will be used in the `to_address` field of a ICS20 transfer (`IbcMsg::Transfer`)
@@ -313,7 +313,7 @@ address over IBC.
 /// staker, to withdraw rewards from BTC staking via the given FP.
 ///
 /// `staker_addr` is both the address to claim and receive the rewards.
-/// It's a Babylon address. If rewards are to be sent to a Consumer address, the
+/// It's a Babylon address. If rewards are to be sent to a BSN address, the
 /// staker's equivalent address in that chain will be computed and used.
 WithdrawRewards {
     staker_addr: String,
@@ -331,11 +331,12 @@ It provides the following interface:
 `CommitPublicRandomness` Message:
 
 This is a message that can be called by a finality provider to commit public
-randomness to the Consumer chain. It contains the necessary information about
-the finality provider's public key, the start height of the public randomness,
-the number of public randomness values committed, the commitment itself, and the
-signature on the commitment. The signature is used to prevent others from
-committing public randomness on behalf of the finality provider.
+randomness to the BSN chain.
+It contains the necessary information about the finality provider's public key,
+the start height of the public randomness, the number of public randomness
+values committed, the commitment itself, and the signature on the commitment.
+The signature is used to prevent others from committing public randomness on
+behalf of the finality provider.
 
 ```
 CommitPublicRandomness {
@@ -358,17 +359,17 @@ CommitPublicRandomness {
 `SubmitFinalitySignature` Message:
 
 This is the main message involved in the finality process. It is used to submit
-the finality signature of a block on the Consumer chain. It contains the
-necessary information about the finality provider's public key, the height of
-the block being signed, the public randomness value used, the singature's proof,
-the block app hash, and the signature itself.
+the finality signature of a block on the BSN chain. It contains the necessary
+information about the finality provider's public key, the height of the block
+being signed, the public randomness value used, the signature's proof, the block
+app hash, and the signature itself.
 
 ```
 /// Submit Finality Signature.
 ///
 /// This is a message that can be called by a finality provider to submit their finality
-/// signature to the Consumer chain.
-/// The signature is verified by the Consumer chain using the finality provider's public key
+/// signature to the BSN chain.
+/// The signature is verified by the BSN chain using the finality provider's public key
 ///
 /// This message is equivalent to the `MsgAddFinalitySig` message in the Babylon finality protobuf
 /// defs.
