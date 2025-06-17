@@ -31,7 +31,7 @@ On the babylon side, the main module is the Babylon `btcstaking` module, which
 provides the functionality of Babylon Staking integration. It is responsible
 for managing the staking and unstaking of $BTC, as well as providing the
 finality providers with the necessary information to operate.
-There's also a `btcstkconsumer` module, which is responsible for managing the
+There's also a `x/btcstkconsumer` module, which is responsible for managing the
 staking part that is specific to the Consumer chains.
 The `btcstkconsumer` module interacts with the `zoneconcierge` module, which is
 responsible for managing the restaking of $BTC on the Bitcoin Supercharged
