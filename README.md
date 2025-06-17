@@ -1,11 +1,7 @@
 # Cosmos BSN Contracts
 
-This repository contains the CosmWasm smart contract for Babylon BTC Staking
-Integration.
-These contracts, along with the `babylon` module in `babylon-sdk`, provide the
-necessary functionality to integrate Babylon BTC Staking with a Cosmos chain
-(Cosmos Bitcoin Supercharged Network, or Cosmos BSN), allowing users to stake
-BTC and receive rewards in the native tokens of the Cosmos BSN.
+This repository contains the CosmWasm smart contracts that enable
+the integration of Cosmos BSNs with the Babylon BTC Staking protocol.
 
 ## Architecture
 
