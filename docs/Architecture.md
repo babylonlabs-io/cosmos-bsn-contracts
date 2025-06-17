@@ -9,7 +9,7 @@ flowchart TD
   subgraph Babylon
   A{{$BTC}} -- Staking --> B(Babylon staking module);
   B -- $BTC --> C(Local Finality Provider);
-  B -- $BTC Restaking --> D(Zoneconcierge module);
+  B -- $BTC Multi-staking --> D(Zoneconcierge module);
   end
 
   D -. IBC .-> E;
