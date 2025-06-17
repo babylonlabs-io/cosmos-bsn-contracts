@@ -1,4 +1,4 @@
-# Babylon Staking Integration Architecture
+# Cosmos BSN BTC Staking Integration Architecture
 
 This is an architectural overview of the various components of Babylon Staking
 integration.
