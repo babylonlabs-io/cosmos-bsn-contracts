@@ -13,7 +13,7 @@ through privileged calls (`sudo` messages) and custom messages.
 This thin layer is naturally written in Go, and uses the Cosmos SDK.
 
 An integrator can import the `babylon` module into their Cosmos SDK-based chain,
-and use the provided functionality to interact with the Babylon contracts,
+and use the provided functionality to interact with the Cosmos BSN contracts,
 following the demo app's guidelines and layout, which is provided in
 `babylon-sdk`](https://github.com/babylonlabs-io/babylon-sdk) as well.
 

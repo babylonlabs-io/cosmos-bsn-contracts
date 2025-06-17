@@ -80,7 +80,7 @@ integration.
 - IBC messages, which are used to communicate between the Babylon and BSN sides.
 - Execute messages, which are used to execute actions on the contracts.
 - Sudo messages, which are used by the `babylon` module which is part of
-  babylon-sdk to interact with the Babylon contracts; typically during begin /
+  babylon-sdk to interact with the Cosmos BSN contracts; typically during begin/
   end block processing.
 - Custom messages, which are used by the contracts to interact with the
   `babylon` module and execute privileged actions through the Cosmos SDK.
@@ -428,7 +428,7 @@ BtcHeaders {
 #### Sudo Messages
 
 Sudo messages are used by the Babylon SDK `babylon` module to interact with the
-Babylon contracts. They are typically used during the begin and end block
+Cosmos BSN contracts. They are typically used during the begin and end block
 processing.
 
 ##### `btc-staking` Contract
@@ -482,7 +482,7 @@ EndBlock {
 
 #### Custom Messages
 
-Custom messages are used by the Babylon contracts to interact with the
+Custom messages are used by the Cosmos BSN contracts to interact with the
 Babylon SDK `babylon` module.
 
 ##### `btc-finality` Contract
