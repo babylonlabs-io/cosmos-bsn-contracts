@@ -7,16 +7,16 @@ integration.
 %%{init: {'theme': 'forest'}}%%
 flowchart TD
   subgraph Babylon
-  A{{$BTC}} -- Staking --> B(Babylon Genesis staking module);
-  B -- $BTC --> C(Local Finality Provider);
-  B -- $BTC Multi-staking --> D(Zoneconcierge module);
+  A{{BTC}} -- Staking --> B(Babylon Genesis staking module);
+  B -- BTC --> C(Local Finality Provider);
+  B -- BTC Multi-staking --> D(Zoneconcierge module);
   end
 
   D -. IBC .-> E;
 
   subgraph BSN
-  E(Babylon Contract) -- $BTC Restake --> U(Staking contract);
-  U -- $BTC --> V(BSN Finality Provider);
+  E(Babylon Contract) -- BTC Restake --> U(Staking contract);
+  U -- BTC --> V(BSN Finality Provider);
   end
 ```
 
@@ -29,12 +29,12 @@ The design allows Babylon to provide Bitcoin-based security to multiple chains.
 
 On the babylon side, the main module is the Babylon `btcstaking` module, which
 provides the functionality of Babylon Staking integration. It is responsible
-for managing the staking and unstaking of $BTC, as well as providing the
+for managing the staking and unstaking of BTC, as well as providing the
 finality providers with the necessary information to operate.
 There's also a `x/btcstkconsumer` module, which is responsible for managing the
 staking part that is specific to the Consumer chains.
 The `btcstkconsumer` module interacts with the `zoneconcierge` module, which is
-responsible for managing the restaking of $BTC on the Bitcoin Supercharged
+responsible for managing the restaking of BTC on the Bitcoin Supercharged
 Networks (BSNs).
 The BSN is a network of Cosmos chains that are integrated with Babylon Staking,
 and receive economic security from Bitcoin.
@@ -42,8 +42,8 @@ and receive economic security from Bitcoin.
 ### Cosmos BSN Side
 
 On the BSN side, the main contract is the `btc-staking` contract, which is
-responsible for managing the staking and unstaking of $BTC on the BSN. It has
-the necessary information related to delegations of Bitcoin on the BSN.
+responsible for managing the staking and unstaking of BTC on the BSN.
+It has the necessary information related to delegations of Bitcoin on the BSN.
 The `btc-staking` contract interacts with Babylon through the `babylon`
 smart contract, which is responsible for managing the communication between
 Babylon and the BSN over IBC. The `babylon-contract` contract is responsible for
@@ -198,7 +198,7 @@ IBC:
 
 This IBC packet is used to send the staking and unstaking
 requests from the Babylon BTC staking module to the BSN side. It contains the
-necessary information about the amount of $BTC to be staked or unstaked, as well
+necessary information about the amount of BTC to be staked or unstaked, as well
 as the address of the delegator, the involved transactions on the Bitcoin
 network, their validation information, etc.
 It also sends information about finality providers entering the BSN network, and
@@ -233,13 +233,13 @@ information and evidence originated on the BSN side (in the  `btc-finality`
 contract), and forwards it to the Babylon `zonconcierge` module, through the
 `ConsumerSlashing` inbound (from Babylon's point of view) IBC packet.
 This message is part of cascaded slashing, in which the slashing of a finality
-provider on a BSN chain results in the undelegation of the involved $BTC on the
+provider on a BSN chain results in the undelegation of the involved BTC on the
 Babylon side and on other BSN chains as well.
 
 ##### `btc-staking` Contract
 
 The `btc-staking` contract is responsible for managing the staking and
-unstaking of $BTC on the BSN. It provides the following interface:
+unstaking of BTC on the BSN. It provides the following interface:
 
 `BtcStaking` Execution Message: This is the message received by the `babylon`
 contract over IBC, forwarded to the `btc-staking` contract. It contains the
