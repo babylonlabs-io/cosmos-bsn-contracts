@@ -23,7 +23,7 @@ The entire solution is designed to be modular and extensible, for ease of
 integration and future upgrades.
 
 A broad architecture diagram, along with the contracts' main interfaces, can be
-found in the [`docs/Architecture.md`](docs/Architecture.md) documentation.
+found in the [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) documentation.
 
 ## Development
 
