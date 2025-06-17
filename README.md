@@ -6,7 +6,7 @@ the integration of Cosmos BSNs with the Babylon BTC Staking protocol.
 ## Architecture
 
 The contracts are written in Rust, and use the CosmWasm framework to interact
-with the BSN's Cosmos SDK.
+with the BSN's Cosmos application layer.
 There's a thin layer, which adds a `babylon` module, which provides the necessary
 functionality to interact with the contracts through privileged calls (`sudo`
 messages) and custom messages.
