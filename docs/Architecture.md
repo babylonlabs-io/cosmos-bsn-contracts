@@ -7,7 +7,7 @@ integration.
 %%{init: {'theme': 'forest'}}%%
 flowchart TD
   subgraph Babylon
-  A{{$BTC}} -- Staking --> B(Babylon staking module);
+  A{{$BTC}} -- Staking --> B(Babylon Genesis staking module);
   B -- $BTC --> C(Local Finality Provider);
   B -- $BTC Multi-staking --> D(Zoneconcierge module);
   end
