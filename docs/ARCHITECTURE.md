@@ -1,29 +1,58 @@
 # Cosmos BSN BTC Staking Integration Architecture
 
-This is an architectural overview of the various components of Babylon Staking
-integration for Cosmos BSNs.
+## System architecture
 
-```mermaid
-%%{init: {'theme': 'forest'}}%%
-flowchart TD
-  subgraph Babylon Genesis
-  A{{BTC}} -- Staking --> B(Babylon Genesis staking module);
-  B -- BTC --> C(Local Finality Provider);
-  B -- BTC Multi-staking --> D(Zoneconcierge module);
-  end
+The following figure depicts the overall system architecture.
 
-  D -. IBC .-> E;
+![CosmosBSNIntegration.png](images/CosmosBSNIntegration.png)
 
-  subgraph BSN
-  E(Babylon Contract) -- BTC Restake --> U(Staking contract);
-  U -- BTC --> V(BSN Finality Provider);
-  end
-```
+## Modules and Contracts
+
+The design involves the following main parts:
+
+- **Finality provider:** a daemon program that receives BTC stake and keeps
+  submitting finality signatures over blocks to the consumer chain.
+  - It connects to a consumer chain node to query block metadata.
+  - It connects to the smart contracts on the Cosmos BSN chain for querying
+  voting power and submitting finality signatures.
+
+  Upon a new block in the Cosmos BSN chain:
+
+  - It Gets the block metadata.
+  - Queries the smart contracts on the BSN chain to determine whether it has
+    voting power at this height.
+  - If yes, it signs and submits a finality signature to the Babylon contracts.
+
+- **BSN smart contracts:** A set of CosmWasm smart contracts that maintain IBC
+  channels with Babylon Genesis, and handle finality signatures submitted from
+  finality providers.
+  - Will be deployed on the Cosmos BSN chain.
+  - Establishes an IBC channel with Babylon Genesis.
+  The IBC channel relays information about BTC headers, BTC timestamps and BTC
+  staking.
+  - Determines the voting power of BSN finality providers.
+
+  Upon a finality signature, the BSN contracts verify it:
+
+  - If invalid, reject.
+  - If valid and non-conflicting with any existing ones, accept.
+  - If valid but conflicting with an existing finality signature, it sends an
+  IBC packet to Babylon Genesis.
+  Babylon Genesis then emits an event, so that anyone can slash the finality
+  provider and the BTC stake under it.
+
+- **Babylon-SDK:** A Cosmos SDK module serving as a thin layer between the BSN
+  contracts and the Cosmos SDK of the Cosmos BSN chain.
+  - It sends a privileged (sudo) messages to the smart contracts upon each
+  `BeginBlock`, so that the contracts can update the voting power table, and
+  tally blocks.
+  - It moves part of the rewards from the fee collector account to the smart
+  contracts, so that the contracts can transfer the rewards to Babylon Genesis.
+
+![CosmosBSNModules.png](images/CosmosBSNModules.png)
 
 You can get a good overview of the whole system flow in the above diagram.
 The design allows Babylon to provide Bitcoin-based security to multiple chains.
-
-## Modules and Contracts
 
 ### Babylon Genesis Side
 
