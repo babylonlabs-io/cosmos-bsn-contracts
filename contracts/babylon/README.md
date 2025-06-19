@@ -15,6 +15,8 @@ It also does not cover the different queries.
 
 ### IBC Messages
 
+**TODO**: Add protobuf definitions for the messages.
+
 `BtcStaking` Message:
 
 This IBC packet is used to send the staking and unstaking requests from the
@@ -60,3 +62,12 @@ The `Slashing` execution handler handles the slashing information and evidence
 originated on the BSN side (in the  `btc-finality` contract), and forwards it to
 the Babylon Genesis `x/zonconcierge` module, through the `ConsumerSlashing`
 IBC message.
+
+### Message Flow
+
+A message flow diagram between all the contracts is depicted in the
+[message flow](../../docs/MESSAGE_FLOW.md) document.
+
+### Queries
+
+**TODO**.
