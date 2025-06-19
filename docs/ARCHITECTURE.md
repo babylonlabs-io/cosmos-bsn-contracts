@@ -1,6 +1,6 @@
 # Cosmos BSN BTC Staking Integration Architecture
 
-## System architecture
+## System Architecture
 
 The following figure depicts the overall system architecture.
 
