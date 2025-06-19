@@ -13,20 +13,22 @@ pub enum Network {
     Regtest,
 }
 
-pub fn get_chain_params(net: Network) -> Params {
-    match net {
-        Network::Mainnet => Params::new(bitcoin::Network::Bitcoin),
-        Network::Testnet => Params::new(bitcoin::Network::Testnet),
-        Network::Signet => Params::new(bitcoin::Network::Signet),
-        Network::Regtest => Params::new(bitcoin::Network::Regtest),
+impl Network {
+    pub fn chain_params(&self) -> Params {
+        match self {
+            Self::Mainnet => Params::new(bitcoin::Network::Bitcoin),
+            Self::Testnet => Params::new(bitcoin::Network::Testnet),
+            Self::Signet => Params::new(bitcoin::Network::Signet),
+            Self::Regtest => Params::new(bitcoin::Network::Regtest),
+        }
     }
-}
 
-pub fn get_bitcoin_network(net: Network) -> bitcoin::Network {
-    match net {
-        Network::Mainnet => bitcoin::Network::Bitcoin,
-        Network::Testnet => bitcoin::Network::Testnet,
-        Network::Signet => bitcoin::Network::Signet,
-        Network::Regtest => bitcoin::Network::Regtest,
+    pub fn bitcoin_network(&self) -> bitcoin::Network {
+        match self {
+            Self::Mainnet => bitcoin::Network::Bitcoin,
+            Self::Testnet => bitcoin::Network::Testnet,
+            Self::Signet => bitcoin::Network::Signet,
+            Self::Regtest => bitcoin::Network::Regtest,
+        }
     }
 }
