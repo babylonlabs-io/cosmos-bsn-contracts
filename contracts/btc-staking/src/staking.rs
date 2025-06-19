@@ -142,7 +142,7 @@ pub fn handle_active_delegation(
         }
     }
     // Get staking tx hash
-    let staking_tx_hash = staking_tx.txid();
+    let staking_tx_hash = staking_tx.compute_txid();
 
     // Check staking tx is not duplicated
     if BTC_DELEGATIONS.has(storage, staking_tx_hash.as_ref()) {

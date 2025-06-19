@@ -7,7 +7,7 @@ pub fn verify_merkle_proof(
     tx_index: usize,
     root: &sha256d::Hash,
 ) -> bool {
-    let mut current_hash = *tx.txid().as_raw_hash();
+    let mut current_hash = *tx.compute_txid().as_raw_hash();
 
     for (i, next_hash) in proof.iter().enumerate() {
         let mut concat = vec![];

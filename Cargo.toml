@@ -31,7 +31,7 @@ eots = { path = "./packages/eots" }
 ics23-commitment = { path = "./packages/ics23_commitment" }
 anyhow = "1.0.82"
 bech32 = "0.9.1"
-bitcoin = "0.31.1"
+bitcoin = "0.32.6"
 bitvec = "1"
 blst = "0.3.11"
 cosmos-sdk-proto = { version = "0.19.0", default-features = false, features = [
