@@ -163,7 +163,7 @@ pub fn init(
     first_height: u32,
 ) -> Result<(), ContractError> {
     let cfg = CONFIG.load(storage)?;
-    let btc_network = babylon_bitcoin::chain_params::get_chain_params(cfg.network);
+    let chain_params = cfg.network.chain_params();
 
     // ensure there are >=w+1 headers, i.e. a base header and at least w subsequent
     // ones as a w-deep proof
@@ -184,7 +184,7 @@ pub fn init(
         .map_err(|_| ContractError::BTCHeaderDecodeError {})?;
 
     // verify the base header's pow
-    if babylon_bitcoin::pow::verify_header_pow(&btc_network, &base_btc_header).is_err() {
+    if babylon_bitcoin::pow::verify_header_pow(&chain_params, &base_btc_header).is_err() {
         return Err(ContractError::BTCHeaderError {});
     }
 
@@ -201,7 +201,7 @@ pub fn init(
 
     // verify subsequent headers
     let new_headers = &processed_headers[1..];
-    verify_headers(&btc_network, &base_header, new_headers)?;
+    verify_headers(&chain_params, &base_header, new_headers)?;
 
     // initialise base header
     // NOTE: not changeable in the future
@@ -250,7 +250,7 @@ pub fn handle_btc_headers_from_babylon(
     new_headers: &[BtcHeaderInfo],
 ) -> Result<(), ContractError> {
     let cfg = CONFIG.load(storage)?;
-    let btc_network = babylon_bitcoin::chain_params::get_chain_params(cfg.network);
+    let chain_params = cfg.network.chain_params();
 
     let cur_tip = get_tip(storage)?;
     let cur_tip_hash = cur_tip.hash.clone();
@@ -267,7 +267,7 @@ pub fn handle_btc_headers_from_babylon(
         // Most common case: extending the current tip
 
         // Verify each new header after `current_tip` iteratively
-        verify_headers(&btc_network, &cur_tip.clone(), new_headers)?;
+        verify_headers(&chain_params, &cur_tip.clone(), new_headers)?;
 
         // All good, add all the headers to the BTC light client store
         insert_headers(storage, new_headers)?;
@@ -281,7 +281,7 @@ pub fn handle_btc_headers_from_babylon(
         let fork_parent = get_header_by_hash(storage, parent_hash)?;
 
         // Verify each new header after `fork_parent` iteratively
-        verify_headers(&btc_network, &fork_parent, new_headers)?;
+        verify_headers(&chain_params, &fork_parent, new_headers)?;
 
         let new_tip = new_headers.last().ok_or(ContractError::BTCHeaderEmpty {})?;
 

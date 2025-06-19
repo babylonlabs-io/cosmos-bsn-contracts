@@ -7,7 +7,7 @@ use std::str::{from_utf8, FromStr};
 /// verify_headers verifies whether `new_headers` are valid consecutive headers
 /// after the given `first_header`
 pub fn verify_headers(
-    btc_network: &babylon_bitcoin::chain_params::Params,
+    chain_params: &babylon_bitcoin::chain_params::Params,
     first_header: &BtcHeaderInfo,
     new_headers: &[BtcHeaderInfo],
 ) -> Result<(), error::ContractError> {
@@ -24,7 +24,7 @@ pub fn verify_headers(
             .map_err(|_| error::ContractError::BTCHeaderDecodeError {})?;
 
         // validate whether btc_header extends last_btc_header
-        babylon_bitcoin::pow::verify_next_header_pow(btc_network, &last_btc_header, &btc_header)
+        babylon_bitcoin::pow::verify_next_header_pow(chain_params, &last_btc_header, &btc_header)
             .map_err(|_| error::ContractError::BTCHeaderError {})?;
 
         let header_work = btc_header.work();
