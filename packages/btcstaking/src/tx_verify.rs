@@ -174,7 +174,7 @@ pub fn check_transactions(
     )?;
 
     // Check that slashing transaction input is pointing to staking transaction
-    let staking_tx_hash = funding_transaction.txid(); // Hash of the funding transaction
+    let staking_tx_hash = funding_transaction.compute_txid(); // Hash of the funding transaction
     if slashing_tx.input[0]
         .previous_output
         .txid

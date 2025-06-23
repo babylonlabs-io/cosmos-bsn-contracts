@@ -11,7 +11,7 @@ pub fn verify_header_pow(
 ) -> Result<(), String> {
     let target = header.target();
     // ensure the target <= pow_limit
-    if target > chain_params.pow_limit {
+    if target > chain_params.max_attainable_target {
         return Err("the header's target should be no larger than pow_limit".to_string());
     }
 
