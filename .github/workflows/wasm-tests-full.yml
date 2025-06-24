@@ -1,4 +1,4 @@
-name: babylonlabs/cosmos-bsn-contracts/wasm-tests-full
+name: Full Tests
 on:
   pull_request:
     branches:
