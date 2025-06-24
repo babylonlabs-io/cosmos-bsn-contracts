@@ -23,6 +23,7 @@ jobs:
     - name: Build contracts, check formats, and run unit tests (full validation)
       run: |
         rustup component add rustfmt
+        rustup component add clippy
         cargo fmt -- --check
         cargo clippy --all-targets -- -D warnings
         cargo test --lib --features full-validation
