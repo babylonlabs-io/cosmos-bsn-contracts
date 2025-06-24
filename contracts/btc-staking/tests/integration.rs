@@ -3,12 +3,19 @@ use cosmwasm_vm::testing::{instantiate, mock_env, mock_info, mock_instance};
 
 use btc_staking::msg::InstantiateMsg;
 
+#[cfg(clippy)]
+static WASM: &[u8] = &[];
+#[cfg(clippy)]
+static WASM_FULL: &[u8] = &[];
+
 // wasm binary lite version
+#[cfg(not(clippy))]
 static WASM: &[u8] = include_bytes!("../../../artifacts/btc_staking.wasm");
 /// Wasm size limit: https://github.com/CosmWasm/wasmd/blob/main/x/wasm/types/validation.go#L24-L25
 const MAX_WASM_SIZE: usize = 1024 * 1024; // 1 MB
 
 // wasm binary with full validation
+#[cfg(not(clippy))]
 static WASM_FULL: &[u8] = include_bytes!("../../../artifacts/btc_staking-full-validation.wasm");
 
 const CREATOR: &str = "creator";

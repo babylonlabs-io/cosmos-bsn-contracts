@@ -748,7 +748,7 @@ pub(crate) mod tests {
     // Compute staking tx hash of a delegation
     pub(crate) fn staking_tx_hash(del: &BtcDelegation) -> Txid {
         let staking_tx: Transaction = deserialize(&del.staking_tx).unwrap();
-        staking_tx.txid()
+        staking_tx.compute_txid()
     }
 
     #[test]

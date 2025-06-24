@@ -486,7 +486,7 @@ pub fn index_block(
 /// It ensures that at height `h`, the ancestor chain `[activated_height, h-1]` contains either
 /// - finalised blocks (i.e., blocks with a finality provider set AND QC of this finality provider set),
 /// - non-finalisable blocks (i.e. blocks with no active finality providers),
-/// but no blocks that have a finality provider set and do not receive a QC
+///   but no blocks that have a finality provider set and do not receive a QC
 ///
 /// It must be invoked only after the BTC staking protocol is activated.
 pub fn tally_blocks(

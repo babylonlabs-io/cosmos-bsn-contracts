@@ -9,7 +9,12 @@ use cosmwasm_vm::Instance;
 use babylon_contract::ibc::IBC_VERSION;
 use babylon_contract::msg::contract::InstantiateMsg;
 
+#[cfg(clippy)]
+static BABYLON_CONTRACT_WASM: &[u8] = &[];
+
+#[cfg(not(clippy))]
 static BABYLON_CONTRACT_WASM: &[u8] = include_bytes!("../../../artifacts/babylon_contract.wasm");
+
 /// Wasm size limit: https://github.com/CosmWasm/wasmd/blob/main/x/wasm/types/validation.go#L24-L25
 const MAX_WASM_SIZE: usize = 1024 * 1024; // 1 MB
 

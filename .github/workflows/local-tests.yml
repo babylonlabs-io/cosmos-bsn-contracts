@@ -22,9 +22,7 @@ jobs:
     - uses: actions/checkout@v4.1.0
     - name: Build contracts, check formats, and run unit tests (full validation)
       run: |
-        rustup component add rustfmt
-        rustup component add clippy
+        rustup component add rustfmt clippy
         cargo fmt -- --check
-        # Skip `babylon-proto` since it contains auto-generated code.
-        cargo clippy --all-targets --exclude babylon-proto -- -D warnings
+        cargo clippy --workspace --all-targets -- -D warnings
         cargo test --lib --features full-validation
