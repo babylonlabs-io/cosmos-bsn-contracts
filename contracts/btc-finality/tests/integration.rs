@@ -3,7 +3,10 @@ use cosmwasm_vm::testing::{instantiate, mock_env, mock_info, mock_instance};
 
 use btc_finality::msg::InstantiateMsg;
 
+#[cfg(clippy)]
+static WASM: &[u8] = &[];
 // wasm binary lite version
+#[cfg(not(clippy))]
 static WASM: &[u8] = include_bytes!("../../../artifacts/btc_finality.wasm");
 /// Wasm size limit: https://github.com/CosmWasm/wasmd/blob/main/x/wasm/types/validation.go#L24-L25
 const MAX_WASM_SIZE: usize = 800 * 1024; // 800 KB

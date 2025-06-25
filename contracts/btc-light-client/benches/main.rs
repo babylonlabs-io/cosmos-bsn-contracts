@@ -20,7 +20,11 @@ use babylon_bindings::BabylonMsg;
 use btc_light_client::msg::btc_header::BtcHeader;
 use btc_light_client::msg::contract::{ExecuteMsg, InstantiateMsg};
 
+#[cfg(clippy)]
+static WASM: &[u8] = &[];
+
 // Output of `cargo optimize`
+#[cfg(not(clippy))]
 static WASM: &[u8] = include_bytes!("../../../artifacts/btc_light_client.wasm");
 
 // From https://github.com/CosmWasm/wasmd/blob/7ea00e2ea858ed599141e322bd68171998a3259a/x/wasm/types/gas_register.go#L33

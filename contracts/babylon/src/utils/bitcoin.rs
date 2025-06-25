@@ -8,7 +8,7 @@ use babylon_proto::babylon::checkpointing::v1::{
 /// parse_tx_info checks whether the given tx_info is correct against the given btc_header, i.e.,
 /// - the BTC header hash in tx_info is same as the btc_header's hash
 /// - the Merkle proof in tx_info proves that the tx in tx_info is committed to btc_header
-/// If the checks passed, return the decoded tx
+///   If the checks passed, return the decoded tx
 pub fn parse_tx_info(
     tx_info: &TransactionInfo,
     btc_header: &BlockHeader,

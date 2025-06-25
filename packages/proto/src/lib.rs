@@ -1,4 +1,7 @@
 pub mod babylon {
+    // Skip for the auto-generated code.
+    #![allow(clippy::doc_lazy_continuation)]
+
     pub mod btccheckpoint {
         // @@protoc_insertion_point(attribute:babylon.btccheckpoint.v1)
         pub mod v1 {

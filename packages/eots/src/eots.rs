@@ -76,6 +76,7 @@ impl PubRand {
     ///   - A 33-byte compressed representation of an x coordinate (the y-coordinate is derived).
     ///   - A 65-byte uncompressed representation of an x-y coordinate pair (the y-coordinate is _also_
     ///     derived).
+    ///
     /// See https://crypto.stackexchange.com/a/108092/119110 for format / prefix details
     pub fn new(pr_bytes: &[u8]) -> Result<PubRand> {
         // Reject if the input is not 32 (naked), 33 (compressed) or 65 (uncompressed) bytes

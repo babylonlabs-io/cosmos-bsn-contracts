@@ -43,7 +43,7 @@ pub fn set_base_header(storage: &mut dyn Storage, base_header: &BtcHeaderInfo) -
 // getter/setter for chain tip
 pub fn get_tip(storage: &dyn Storage) -> Result<BtcHeaderInfo, ContractError> {
     let tip_bytes = BTC_TIP.load(storage)?;
-    // NOTE: if init is successful, then tip header is guaranteed to be correct
+    //  NOTE: if init is successful, then tip header is guaranteed to be correct
     BtcHeaderInfo::decode(tip_bytes.as_slice()).map_err(ContractError::DecodeError)
 }
 
@@ -243,8 +243,8 @@ pub fn init_from_babylon(
 ///   - BTC tip upon finalising epoch e-1
 ///   - BTC tip upon finalising epoch e,
 /// - BTC tip upon finalising epoch e
-/// such that Babylon contract maintains the same canonical BTC header chain
-/// as Babylon.
+///   such that Babylon contract maintains the same canonical BTC header chain
+///   as Babylon.
 pub fn handle_btc_headers_from_babylon(
     storage: &mut dyn Storage,
     new_headers: &[BtcHeaderInfo],
