@@ -149,7 +149,7 @@ pub fn reply(
             reply_init_callback_light_client(deps, reply.result.unwrap())
         }
         REPLY_ID_INSTANTIATE_STAKING => reply_init_callback_staking(deps, reply.result.unwrap()),
-        REPLY_ID_INSTANTIATE_FINALITY => reply_init_finality_callback(deps, reply.result.unwrap()),
+        REPLY_ID_INSTANTIATE_FINALITY => reply_init_callback_finality(deps, reply.result.unwrap()),
         _ => Err(ContractError::InvalidReplyId(reply.id)),
     }
 }
@@ -199,7 +199,7 @@ fn reply_init_callback_staking(
 }
 
 /// Store BTC finality address
-fn reply_init_finality_callback(
+fn reply_init_callback_finality(
     deps: DepsMut,
     reply: SubMsgResponse,
 ) -> Result<Response<BabylonMsg>, ContractError> {
