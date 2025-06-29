@@ -16,7 +16,7 @@ bench = false
 doctest = false
 
 [[bin]]
-name = "schema"
+name = "btc-light-client-schema"
 path = "src/bin/schema.rs"
 bench = false
 test = false
@@ -60,4 +60,4 @@ thousands              = { workspace = true }
 
 [[bench]]
 name = "main"
-harness = false 
+harness = false

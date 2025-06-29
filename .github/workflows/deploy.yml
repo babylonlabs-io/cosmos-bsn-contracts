@@ -102,11 +102,7 @@ jobs:
         asset_name: checksums.txt
         asset_content_type: text/plain
     - name: Build and run schema generator
-      run: |-
-        (cd ./contracts/babylon && cargo run --bin schema)
-        (cd ./contracts/btc-staking && cargo run --bin btc-staking-schema)
-        (cd ./contracts/btc-finality && cargo run --bin btc-finality-schema)
-        (cd ./contracts/btc-light-client && cargo run --bin btc-light-client-schema)
+      run: bash schema.sh
     - name: Consolidate schemas
       run: |-
         mkdir -p ./schemas

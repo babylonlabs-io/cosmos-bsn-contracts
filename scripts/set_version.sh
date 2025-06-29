@@ -42,9 +42,9 @@ FILES_MODIFIED+=("$CARGO_TOML")
 cargo build
 FILES_MODIFIED+=("Cargo.lock")
 
-for CONTRACT in ./contracts/*/
-do
-  (cd "$CONTRACT" && cargo schema)
+for CONTRACT in ./contracts/*/; do
+  CRATE_NAME=$(basename "$CONTRACT")
+  (cd "$CONTRACT" && cargo run --bin "$CRATE_NAME-schema")
   FILES_MODIFIED+=("$CONTRACT"/schema/)
 done
 
