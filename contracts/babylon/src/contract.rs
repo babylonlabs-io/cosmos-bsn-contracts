@@ -11,7 +11,9 @@ use btc_light_client::msg::contract::InstantiateMsg as BtcLightClientInstantiate
 
 use crate::error::ContractError;
 use crate::ibc::{ibc_packet, IBC_CHANNEL, IBC_TRANSFER};
-use crate::msg::contract::{ContractMsg, ExecuteMsg, InstantiateMsg, QueryMsg};
+use crate::msg::contract::{
+    BtcLightClientInitMsg, ContractMsg, ExecuteMsg, InstantiateMsg, QueryMsg,
+};
 use crate::queries;
 use crate::state::config::{Config, CONFIG};
 use crate::state::consumer_header_chain::CONSUMER_HEIGHT_LAST;
@@ -54,8 +56,13 @@ pub fn instantiate(
 
     // instantiate btc light client contract first
     // It has to be before btc staking and finality contracts which depend on it
-    if let Some(btc_light_client_code_id) = msg.btc_light_client_code_id {
-        let init_msg = match msg.btc_light_client_msg {
+    if let Some(lc_init_msg) = msg.btc_light_client_init_msg {
+        let BtcLightClientInitMsg {
+            btc_light_client_code_id,
+            btc_light_client_msg,
+        } = lc_init_msg;
+
+        let init_msg = match btc_light_client_msg {
             Some(lc_msg) => lc_msg,
             None => {
                 let btc_lc_init_msg = BtcLightClientInstantiateMsg {

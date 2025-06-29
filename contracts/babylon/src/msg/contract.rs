@@ -19,6 +19,14 @@ pub trait ContractMsg {
 }
 
 #[cw_serde]
+pub struct BtcLightClientInitMsg {
+    pub btc_light_client_code_id: u64,
+    /// This message is opaque to the Babylon contract, and depends on the specific light client
+    /// being instantiated
+    pub btc_light_client_msg: Option<Binary>,
+}
+
+#[cw_serde]
 pub struct InstantiateMsg {
     pub network: babylon_bitcoin::chain_params::Network,
     /// babylon_tag is a string encoding four bytes used for identification / tagging of the Babylon zone.
@@ -31,12 +39,8 @@ pub struct InstantiateMsg {
     /// NOTE: If set to true, then the Cosmos zone needs to integrate the corresponding message handler
     /// as well
     pub notify_cosmos_zone: bool,
-    /// If set, this will instantiate a BTC light client contract
-    pub btc_light_client_code_id: Option<u64>,
     /// If set, this will define the instantiation message for the BTC light client contract.
-    /// This message is opaque to the Babylon contract, and depends on the specific light client
-    /// being instantiated
-    pub btc_light_client_msg: Option<Binary>,
+    pub btc_light_client_init_msg: Option<BtcLightClientInitMsg>,
     /// If set, this will instantiate a BTC staking contract for BTC re-staking
     pub btc_staking_code_id: Option<u64>,
     /// If set, this will define the instantiation message for the BTC staking contract.
