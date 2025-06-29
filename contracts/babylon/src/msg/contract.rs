@@ -21,8 +21,7 @@ pub trait ContractMsg {
 #[cw_serde]
 pub struct BtcLightClientInitMsg {
     pub btc_light_client_code_id: u64,
-    /// This message is opaque to the Babylon contract, and depends on the specific light client
-    /// being instantiated
+    /// Instantiation message for the BTC light client contract.
     pub btc_light_client_msg: Option<Binary>,
 }
 
@@ -33,13 +32,14 @@ pub struct BtcStakingInitMsg {
     pub consumer_name: String,
     /// Description of the consumer
     pub consumer_description: String,
-    /// If set, this will define the instantiation message for the BTC staking contract.
+    /// Instantiation message for the BTC staking contract.
     pub btc_staking_msg: Option<Binary>,
 }
 
 #[cw_serde]
 pub struct BtcFinalityInitMsg {
     pub btc_finality_code_id: u64,
+    /// Instantiation message for the BTC finality contract.
     pub btc_finality_msg: Option<Binary>,
 }
 
@@ -51,19 +51,17 @@ pub struct InstantiateMsg {
     pub babylon_tag: String,
     pub btc_confirmation_depth: u32,
     pub checkpoint_finalization_timeout: u32,
-    /// notify_cosmos_zone indicates whether to send Cosmos zone messages notifying BTC-finalised
-    /// headers.
+    /// Whether to send Cosmos zone messages notifying BTC-finalised headers.
     /// NOTE: If set to true, then the Cosmos zone needs to integrate the corresponding message handler
     /// as well
     pub notify_cosmos_zone: bool,
-    /// If set, this will define the instantiation message for the BTC light client contract.
+    /// Initialization info for the BTC light client contract.
     pub btc_light_client_init_msg: Option<BtcLightClientInitMsg>,
-    /// If set, this will define the instantiation message for the BTC staking contract.
+    /// Initialization info for the BTC staking contract.
     pub btc_staking_init_msg: Option<BtcStakingInitMsg>,
-    /// If set, this will define the instantiation message for the BTC finality contract.
+    /// Initialization info for the BTC finality contract.
     pub btc_finality_init_msg: Option<BtcFinalityInitMsg>,
-    /// If set, this will be the Wasm migration / upgrade admin of the BTC staking contract and the
-    /// BTC finality contract
+    /// Wasm migration / upgrade admin of the BTC staking contract and the BTC finality contract.
     pub admin: Option<String>,
     /// IBC information for ICS-020 rewards transfer.
     /// If not set, distributed rewards will be native to the Consumer
@@ -78,7 +76,8 @@ impl ContractMsg for InstantiateMsg {
                 self.babylon_tag.len(),
             ));
         }
-        let _ = self.babylon_tag_to_bytes()?;
+
+        self.babylon_tag_to_bytes()?;
 
         if let Some(staking_init_msg) = &self.btc_staking_init_msg {
             if staking_init_msg.consumer_name.trim().is_empty() {
