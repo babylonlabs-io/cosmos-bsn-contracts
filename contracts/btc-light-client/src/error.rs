@@ -44,9 +44,6 @@ pub enum ContractError {
     #[error("The BTC header cannot be decoded")]
     BTCHeaderDecodeError {},
 
-    #[error("The BTC header cannot be encoded")]
-    BTCHeaderEncodeError {},
-
     #[error("The BTC header is not being sent")]
     BTCHeaderEmpty {},
 
