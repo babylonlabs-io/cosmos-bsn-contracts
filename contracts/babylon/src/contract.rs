@@ -12,7 +12,8 @@ use btc_light_client::msg::contract::InstantiateMsg as BtcLightClientInstantiate
 use crate::error::ContractError;
 use crate::ibc::{ibc_packet, IBC_CHANNEL, IBC_TRANSFER};
 use crate::msg::contract::{
-    BtcLightClientInitMsg, ContractMsg, ExecuteMsg, InstantiateMsg, QueryMsg,
+    BtcFinalityInitMsg, BtcLightClientInitMsg, BtcStakingInitMsg, ContractMsg, ExecuteMsg,
+    InstantiateMsg, QueryMsg,
 };
 use crate::queries;
 use crate::state::config::{Config, CONFIG};
@@ -84,16 +85,23 @@ pub fn instantiate(
         res = res.add_submessage(init_msg);
     }
 
-    if let Some(btc_staking_code_id) = msg.btc_staking_code_id {
+    if let Some(staking_init_msg) = msg.btc_staking_init_msg {
+        let BtcStakingInitMsg {
+            btc_staking_code_id,
+            consumer_name,
+            consumer_description,
+            btc_staking_msg,
+        } = staking_init_msg;
+
         // Update config with consumer information
-        cfg.consumer_name = msg.consumer_name;
-        cfg.consumer_description = msg.consumer_description;
+        cfg.consumer_name.replace(consumer_name);
+        cfg.consumer_description.replace(consumer_description);
 
         // Instantiate BTC staking contract
         let init_msg = WasmMsg::Instantiate {
             admin: msg.admin.clone(),
             code_id: btc_staking_code_id,
-            msg: msg.btc_staking_msg.unwrap_or(Binary::from(b"{}")),
+            msg: btc_staking_msg.unwrap_or(Binary::from(b"{}")),
             funds: vec![],
             label: "BTC Staking".into(),
         };
@@ -120,12 +128,17 @@ pub fn instantiate(
         CONSUMER_HEIGHT_LAST.save(deps.storage, &last_consumer_height)?;
     }
 
-    if let Some(btc_finality_code_id) = msg.btc_finality_code_id {
+    if let Some(finality_init_msg) = msg.btc_finality_init_msg {
+        let BtcFinalityInitMsg {
+            btc_finality_code_id,
+            btc_finality_msg,
+        } = finality_init_msg;
+
         // Instantiate BTC finality contract
         let init_msg = WasmMsg::Instantiate {
             admin: msg.admin,
             code_id: btc_finality_code_id,
-            msg: msg.btc_finality_msg.unwrap_or(Binary::from(b"{}")),
+            msg: btc_finality_msg.unwrap_or(Binary::from(b"{}")),
             funds: vec![],
             label: "BTC Finality".into(),
         };

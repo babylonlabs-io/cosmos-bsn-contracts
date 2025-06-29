@@ -27,6 +27,23 @@ pub struct BtcLightClientInitMsg {
 }
 
 #[cw_serde]
+pub struct BtcStakingInitMsg {
+    pub btc_staking_code_id: u64,
+    /// Name of the consumer
+    pub consumer_name: String,
+    /// Description of the consumer
+    pub consumer_description: String,
+    /// If set, this will define the instantiation message for the BTC staking contract.
+    pub btc_staking_msg: Option<Binary>,
+}
+
+#[cw_serde]
+pub struct BtcFinalityInitMsg {
+    pub btc_finality_code_id: u64,
+    pub btc_finality_msg: Option<Binary>,
+}
+
+#[cw_serde]
 pub struct InstantiateMsg {
     pub network: babylon_bitcoin::chain_params::Network,
     /// babylon_tag is a string encoding four bytes used for identification / tagging of the Babylon zone.
@@ -41,25 +58,13 @@ pub struct InstantiateMsg {
     pub notify_cosmos_zone: bool,
     /// If set, this will define the instantiation message for the BTC light client contract.
     pub btc_light_client_init_msg: Option<BtcLightClientInitMsg>,
-    /// If set, this will instantiate a BTC staking contract for BTC re-staking
-    pub btc_staking_code_id: Option<u64>,
     /// If set, this will define the instantiation message for the BTC staking contract.
-    /// This message is opaque to the Babylon contract, and depends on the specific staking contract
-    /// being instantiated
-    pub btc_staking_msg: Option<Binary>,
-    /// If set, this will instantiate a BTC finality contract
-    pub btc_finality_code_id: Option<u64>,
+    pub btc_staking_init_msg: Option<BtcStakingInitMsg>,
     /// If set, this will define the instantiation message for the BTC finality contract.
-    /// This message is opaque to the Babylon contract, and depends on the specific finality contract
-    /// being instantiated
-    pub btc_finality_msg: Option<Binary>,
+    pub btc_finality_init_msg: Option<BtcFinalityInitMsg>,
     /// If set, this will be the Wasm migration / upgrade admin of the BTC staking contract and the
     /// BTC finality contract
     pub admin: Option<String>,
-    /// Name of the consumer
-    pub consumer_name: Option<String>,
-    /// Description of the consumer
-    pub consumer_description: Option<String>,
     /// IBC information for ICS-020 rewards transfer.
     /// If not set, distributed rewards will be native to the Consumer
     pub ics20_channel_id: Option<String>,
@@ -75,21 +80,14 @@ impl ContractMsg for InstantiateMsg {
         }
         let _ = self.babylon_tag_to_bytes()?;
 
-        if self.btc_staking_code_id.is_some() {
-            if let (Some(consumer_name), Some(consumer_description)) =
-                (&self.consumer_name, &self.consumer_description)
-            {
-                if consumer_name.trim().is_empty() {
-                    return Err(StdError::generic_err("Consumer name cannot be empty"));
-                }
-                if consumer_description.trim().is_empty() {
-                    return Err(StdError::generic_err(
-                        "Consumer description cannot be empty",
-                    ));
-                }
-            } else {
+        if let Some(staking_init_msg) = &self.btc_staking_init_msg {
+            if staking_init_msg.consumer_name.trim().is_empty() {
+                return Err(StdError::generic_err("Consumer name cannot be empty"));
+            }
+
+            if staking_init_msg.consumer_description.trim().is_empty() {
                 return Err(StdError::generic_err(
-                    "Consumer name and description are required when btc_staking_code_id is set",
+                    "Consumer description cannot be empty",
                 ));
             }
         }
