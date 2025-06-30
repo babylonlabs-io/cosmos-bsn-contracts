@@ -8,44 +8,41 @@ use babylon_apis::{btc_staking_api, Bytes};
 
 #[cw_serde]
 pub struct BtcDelegation {
-    /// staker_addr is the address to receive rewards from BTC delegation
+    /// Address to receive rewards from BTC delegation.
     pub staker_addr: String,
-    /// btc_pk_hex is the Bitcoin secp256k1 PK of the BTC delegator.
+    /// Bitcoin secp256k1 PK of the BTC delegator.
     /// The PK follows encoding in BIP-340 spec in hex format
     pub btc_pk_hex: String,
-    /// fp_btc_pk_list is the list of BIP-340 PKs of the finality providers that
-    /// this BTC delegation delegates to
+    /// List of BIP-340 PKs of the finality providers that this BTC delegation delegates to.
     pub fp_btc_pk_list: Vec<String>,
-    /// start_height is the start BTC height of the BTC delegation.
+    /// Start height of the BTC delegation.
     /// It is the start BTC height of the time-lock
     pub start_height: u32,
-    /// end_height is the end height of the BTC delegation
-    /// it is the end BTC height of the time-lock - w
+    /// End height of the BTC delegation.
+    /// It is the end BTC height of the time-lock - w
     pub end_height: u32,
-    /// total_sat is the total BTC stakes in this delegation, quantified in satoshi
+    /// Total BTC stakes in this delegation, quantified in satoshi.
     pub total_sat: u64,
-    /// staking_tx is the staking tx
+    /// Staking tx in raw bytes.
     pub staking_tx: Bytes,
-    /// slashing_tx is the slashing tx
+    /// Slashing tx in raw bytes.
     pub slashing_tx: Bytes,
-    /// delegator_slashing_sig is the signature on the slashing tx
-    /// by the delegator (i.e. SK corresponding to btc_pk) as string hex.
+    /// Signature on the slashing tx by the delegator (i.e. SK corresponding to btc_pk) as string hex.
     /// It will be a part of the witness for the staking tx output.
     pub delegator_slashing_sig: Bytes,
-    /// covenant_sigs is a list of adaptor signatures on the slashing tx
-    /// by each covenant member.
+    /// List of adaptor signatures on the slashing tx by each covenant member.
     /// It will be a part of the witness for the staking tx output.
     pub covenant_sigs: Vec<CovenantAdaptorSignatures>,
-    /// staking_output_idx is the index of the staking output in the staking tx
+    /// Index of the staking output in the staking tx
     pub staking_output_idx: u32,
     /// unbonding_time is used in unbonding output time-lock path and in slashing transactions
     /// change outputs
     pub unbonding_time: u32,
-    /// undelegation_info is the undelegation info of this delegation.
+    /// Undelegation info of this delegation.
     pub undelegation_info: BtcUndelegationInfo,
-    /// params version used to validate the delegation
+    /// Params version used to validate the delegation.
     pub params_version: u32,
-    /// slashed is used to indicate whether a given delegation is related to a slashed FP
+    /// Whether a given delegation is related to a slashed FP.
     pub slashed: bool,
 }
 
@@ -136,27 +133,23 @@ impl From<btc_staking_api::CovenantAdaptorSignatures> for CovenantAdaptorSignatu
 
 #[cw_serde]
 pub struct BtcUndelegationInfo {
-    /// unbonding_tx is the transaction which will transfer the funds from staking
+    /// Transaction which will transfer the funds from staking
     /// output to unbonding output. Unbonding output will usually have lower timelock
     /// than staking output.
     pub unbonding_tx: Bytes,
-    /// delegator_unbonding_sig is the signature on the unbonding tx
-    /// by the delegator (i.e. SK corresponding to btc_pk).
+    /// Signature on the unbonding tx by the delegator (i.e. SK corresponding to btc_pk).
     /// It effectively proves that the delegator wants to unbond and thus
     /// Babylon will consider this BTC delegation unbonded. Delegator's BTC
     /// on Bitcoin will be unbonded after time-lock.
     pub delegator_unbonding_info: Option<DelegatorUnbondingInfo>,
-    /// covenant_unbonding_sig_list is the list of signatures on the unbonding tx
-    /// by covenant members
+    /// List of signatures on the unbonding tx by covenant members.
     pub covenant_unbonding_sig_list: Vec<SignatureInfo>,
-    /// slashing_tx is the unbonding slashing tx
+    /// Unbonding slashing tx.
     pub slashing_tx: Bytes,
-    /// delegator_slashing_sig is the signature on the slashing tx
-    /// by the delegator (i.e. SK corresponding to btc_pk).
+    /// Signature on the slashing tx by the delegator (i.e. SK corresponding to btc_pk).
     /// It will be a part of the witness for the unbonding tx output.
     pub delegator_slashing_sig: Bytes,
-    /// covenant_slashing_sigs is a list of adaptor signatures on the
-    /// unbonding slashing tx by each covenant member
+    /// List of adaptor signatures on the unbonding slashing tx by each covenant member.
     /// It will be a part of the witness for the staking tx output.
     pub covenant_slashing_sigs: Vec<CovenantAdaptorSignatures>,
 }

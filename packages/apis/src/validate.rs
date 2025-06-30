@@ -8,7 +8,7 @@ use crate::btc_staking_api::{
 };
 use crate::error::StakingApiError;
 
-/// A trait for validating the API structs / input.
+/// Trait for validating the API structs / input.
 pub trait Validate {
     fn validate(&self) -> Result<(), StakingApiError>;
 }

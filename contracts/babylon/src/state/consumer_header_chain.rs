@@ -45,7 +45,7 @@ fn set_last_consumer_header(
         .and(CONSUMER_HEIGHT_LAST.save(deps.storage, &last_consumer_header.height))
 }
 
-/// get_consumer_header gets a Consumer header of a given height
+/// Returns a Consumer header of a given height.
 pub fn get_consumer_header(
     deps: Deps,
     height: u64,
@@ -61,7 +61,7 @@ pub fn get_consumer_header(
     Ok(indexed_header)
 }
 
-/// verify_consumer_header verifies whether a Consumer header is committed to a Babylon epoch, including
+/// Verifies whether a Consumer header is committed to a Babylon epoch, including
 /// - The Babylon tx carrying this header is included in a Babylon block
 /// - The Babylon block's AppHash is committed to the AppHashRoot of the epoch
 fn verify_consumer_header(

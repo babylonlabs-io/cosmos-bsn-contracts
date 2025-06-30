@@ -3,7 +3,7 @@ use cosmwasm_schema::cw_serde;
 use cosmwasm_std::Timestamp;
 use hex::ToHex;
 
-/// ConsumerHeaderResponse is the metadata of a Consumer header.
+/// Metadata of a Consumer header.
 ///
 /// This struct is for use in RPC requests and responses. It has convenience helpers to convert
 /// from the internal representation (`IndexedHeader`).
@@ -11,33 +11,33 @@ use hex::ToHex;
 /// Adapted from `IndexedHeader`.
 #[cw_serde]
 pub struct ConsumerHeaderResponse {
-    /// consumer_id is the unique ID of the consumer
+    /// Unique ID of the consumer
     pub consumer_id: String,
-    /// hash is the hash of this header.
+    /// Hash of this header.
     /// Hex-encoded string of 32 bytes
     pub hash: String,
-    /// height is the height of this header in the Consumer's ledger.
+    /// Height of this header in the Consumer's ledger.
     /// (hash, height) jointly provides the position of the header on the Consumer ledger
     pub height: u64,
-    /// time is the timestamp of this header in the Consumer's ledger.
+    /// Timestamp of this header in the Consumer's ledger.
     /// It's necessary for the Consumer to unbond all mature validators/delegations before this
     /// timestamp when this header is BTC-finalised
     pub time: Option<Timestamp>,
-    /// babylon_header_hash is the hash of the babylon block that includes this Consumer header.
+    /// Hash of the babylon block that includes this Consumer header.
     /// Hex-encoded string of 32 bytes
     pub babylon_header_hash: String,
-    /// babylon_header_height is the height of the babylon block that includes this Consumer header
+    /// Height of the babylon block that includes this Consumer header
     pub babylon_header_height: u64,
-    /// epoch is the epoch number of this header in the Babylon ledger
+    /// Epoch number of this header in the Babylon ledger
     pub babylon_epoch: u64,
-    /// babylon_tx_hash is the hash of the tx that includes this header.
+    /// Hash of the tx that includes this header.
     /// (babylon_block_height, babylon_tx_hash) jointly provides the position of
-    /// the header in the Babylon ledger.
+    /// Header in the Babylon ledger.
     /// Hex-encoded string of 32 bytes
     pub babylon_tx_hash: String,
 }
 
-/// ConsumerHeightResponse is the metadata of a Consumer height.
+/// Metadata of a Consumer height.
 ///
 /// This struct is for use in RPC requests and responses. It is a convenience, efficient way to
 /// return the height of the last finalised Consumer header.

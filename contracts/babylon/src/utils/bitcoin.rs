@@ -5,7 +5,7 @@ use babylon_proto::babylon::checkpointing::v1::{
     CURRENT_VERSION, FIRST_PART_LEN, HEADER_LEN, MERKLE_PROOF_ELEM_SIZE, SECOND_PART_LEN, TAG_LEN,
 };
 
-/// parse_tx_info checks whether the given tx_info is correct against the given btc_header, i.e.,
+/// Checks whether the given `tx_info` is correct against the given btc_header, i.e.,
 /// - the BTC header hash in tx_info is same as the btc_header's hash
 /// - the Merkle proof in tx_info proves that the tx in tx_info is committed to btc_header
 ///   If the checks passed, return the decoded tx
@@ -48,7 +48,7 @@ pub fn parse_tx_info(
     Ok(btc_tx)
 }
 
-/// extract_checkpoint_data extracts the checkpoint data of the given tx
+/// Extracts the checkpoint data of the given tx.
 pub fn extract_checkpoint_data(
     btc_tx: &Transaction,
     tag: &[u8],

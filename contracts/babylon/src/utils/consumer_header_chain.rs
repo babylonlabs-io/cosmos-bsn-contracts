@@ -4,8 +4,7 @@ use babylon_proto::babylon::zoneconcierge::v1::IndexedHeader;
 use prost::Message;
 use tendermint_proto::crypto::ProofOps;
 
-/// verify_tx_in_block verifies whether a tx with tx_hash is committed to
-/// the Merkle root hash of a Tendermint block
+/// Verifies whether a tx with tx_hash is committed to the Merkle root hash of a Tendermint block.
 pub fn verify_consumer_header_in_epoch(
     consumer_header: &IndexedHeader,
     epoch: &Epoch,

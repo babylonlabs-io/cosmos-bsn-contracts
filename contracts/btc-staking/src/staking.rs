@@ -33,7 +33,7 @@ use std::str::FromStr;
 
 pub const DISTRIBUTION_POINTS_SCALE: Uint256 = Uint256::from_u128(1_000_000_000);
 
-/// handle_btc_staking handles the BTC staking operations
+/// Handles the BTC staking operations.
 pub fn handle_btc_staking(
     deps: DepsMut,
     env: Env,
@@ -76,7 +76,7 @@ pub fn handle_btc_staking(
     Ok(res)
 }
 
-/// handle_bew_fp handles registering a new finality provider
+/// Handles registering a new finality provider.
 pub fn handle_new_fp(
     storage: &mut dyn Storage,
     new_fp: &NewFinalityProvider,
@@ -242,7 +242,7 @@ pub fn handle_active_delegation(
     Ok(())
 }
 
-/// handle_undelegation handles undelegation from an active delegation
+/// Handles undelegation from an active delegation.
 fn handle_undelegation(
     storage: &mut dyn Storage,
     height: u64,
@@ -278,8 +278,7 @@ fn handle_undelegation(
     Ok(unbonding_event)
 }
 
-/// handle_slashed_delegation handles undelegation due to slashing from an active delegation
-///
+/// Handles undelegation due to slashing from an active delegation.
 fn handle_slashed_delegation(
     storage: &mut dyn Storage,
     height: u64,
@@ -333,7 +332,7 @@ fn handle_slashed_delegation(
     Ok(slashing_event)
 }
 
-/// handle_slash_fp handles FP slashing at the staking level
+/// Handles FP slashing at the staking level.
 pub fn handle_slash_fp(
     deps: DepsMut,
     env: Env,
@@ -577,7 +576,7 @@ pub fn handle_withdraw_rewards(
     Ok(resp)
 }
 
-/// `send_rewards_msg` sends the rewards to either the staker address on the Consumer or on Babylon,
+/// Sends the rewards to either the staker address on the Consumer or on Babylon,
 /// depending on the ICS-20 transfer info queried from the Babylon contract.
 fn send_rewards_msg(
     deps: &DepsMut,
@@ -652,8 +651,7 @@ pub(crate) fn calculate_reward(
     Ok(total - delegation.withdrawn_funds)
 }
 
-/// btc_undelegate adds the signature of the unbonding tx signed by the staker to the given BTC
-/// delegation
+/// Adds the signature of the unbonding tx signed by the staker to the given BTC delegation.
 fn btc_undelegate(
     storage: &mut dyn Storage,
     staking_tx_hash: &Txid,
@@ -670,7 +668,7 @@ fn btc_undelegate(
     Ok(())
 }
 
-/// `slash_finality_provider` slashes a finality provider with the given PK.
+/// Slashes a finality provider with the given PK.
 /// A slashed finality provider will not have voting power
 pub(crate) fn slash_finality_provider(
     deps: DepsMut,
@@ -712,7 +710,7 @@ pub(crate) fn slash_finality_provider(
     Ok(Response::new())
 }
 
-/// get_btc_tip_height queries the BTC light client for the latest BTC tip height
+/// Queries the BTC light client for the latest BTC tip height.
 fn get_btc_tip_height(deps: &DepsMut) -> Result<u32, ContractError> {
     // Get the BTC light client address from config
     let btc_light_client_addr = CONFIG.load(deps.storage)?.btc_light_client;

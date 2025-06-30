@@ -32,19 +32,16 @@ pub enum ExecuteMsg {
     /// The Babylon contract will call this message to set the finality provider's staking power to
     /// zero when the finality provider is found to be malicious by the finality contract.
     Slash { fp_btc_pk_hex: String },
-    /// `DistributeRewards` is a message sent by the finality contract, to distribute rewards to
-    /// delegators
+    /// Message sent by the finality contract, to distribute rewards to delegators.
     DistributeRewards {
-        /// `fp_distribution` is the list of finality providers and their rewards
+        /// List of finality providers and their rewards.
         fp_distribution: Vec<RewardInfo>,
     },
-    /// `WithdrawRewards` is a message sent by anyone on behalf of the
-    /// staker, to withdraw rewards from BTC staking via the given FP.
-    ///
-    /// `staker_addr` is both the address to claim and receive the rewards.
-    /// It's a Babylon address. If rewards are to be sent to a Consumer address, the
-    /// staker's equivalent address in that chain will be computed and used.
+    /// Message sent by anyone on behalf of the staker, to withdraw rewards from BTC staking via the given FP.
     WithdrawRewards {
+        /// Both the address to claim and receive the rewards.
+        /// It's a Babylon address. If rewards are to be sent to a Consumer address, the
+        /// staker's equivalent address in that chain will be computed and used.
         staker_addr: String,
         fp_pubkey_hex: String,
     },
@@ -58,18 +55,18 @@ pub struct RewardInfo {
 
 #[cw_serde]
 pub struct NewFinalityProvider {
-    /// description defines the description terms for the finality provider
+    /// Description terms for the finality provider.
     pub description: Option<FinalityProviderDescription>,
-    /// commission defines the commission rate of the finality provider.
+    /// Commission rate of the finality provider.
     pub commission: Decimal,
-    /// addr is the bech32 address identifier of the finality provider
+    /// Bech32 address identifier of the finality provider.
     pub addr: String,
-    /// btc_pk_hex is the Bitcoin secp256k1 PK of this finality provider
+    /// Bitcoin secp256k1 PK of this finality provider
     /// the PK follows encoding in BIP-340 spec in hex format
     pub btc_pk_hex: String,
-    /// pop is the proof of possession of the babylon_pk and btc_pk
+    /// Proof of possession of the babylon_pk and btc_pk
     pub pop: Option<ProofOfPossessionBtc>,
-    /// consumer_id is the ID of the consumer that the finality provider is operating on.
+    /// ID of the consumer that the finality provider is operating on.
     pub consumer_id: String,
 }
 
@@ -105,22 +102,22 @@ impl TryFrom<&babylon_proto::babylon::btcstaking::v1::NewFinalityProvider> for N
 
 #[cw_serde]
 pub struct FinalityProvider {
-    /// description defines the description terms for the finality provider
+    /// Description terms for the finality provider.
     pub description: Option<FinalityProviderDescription>,
-    /// commission defines the commission rate of the finality provider.
+    /// Commission rate of the finality provider.
     pub commission: Decimal,
-    /// addr is the bech32 address identifier of the finality provider
+    /// Bech32 address identifier of the finality provider.
     pub addr: String,
-    /// btc_pk_hex is the Bitcoin secp256k1 PK of this finality provider
+    /// Bitcoin secp256k1 PK of this finality provider
     /// the PK follows encoding in BIP-340 spec in hex format
     pub btc_pk_hex: String,
-    /// pop is the proof of possession of the babylon_pk and btc_pk
+    /// Proof of possession of the babylon_pk and btc_pk.
     pub pop: Option<ProofOfPossessionBtc>,
-    /// slashed_height is the height on which the finality provider is slashed
+    /// Height on which the finality provider is slashed.
     pub slashed_height: u64,
-    /// slashed_btc_height is the BTC height on which the finality provider is slashed
+    /// BTC height on which the finality provider is slashed.
     pub slashed_btc_height: u32,
-    /// consumer_id is the ID of the consumer that the finality provider is operating on.
+    /// ID of the consumer that the finality provider is operating on.
     pub consumer_id: String,
 }
 
@@ -141,15 +138,15 @@ impl From<&NewFinalityProvider> for FinalityProvider {
 
 #[cw_serde]
 pub struct FinalityProviderDescription {
-    /// moniker is the name of the finality provider
+    /// Name of the finality provider.
     pub moniker: String,
-    /// identity is the identity of the finality provider
+    /// Identity of the finality provider.
     pub identity: String,
-    /// website is the website of the finality provider
+    /// Website of the finality provider.
     pub website: String,
-    /// security_contact is the security contact of the finality provider
+    /// Security contact of the finality provider.
     pub security_contact: String,
-    /// details is the details of the finality provider
+    /// Details of the finality provider.
     pub details: String,
 }
 
@@ -162,7 +159,7 @@ impl FinalityProviderDescription {
     pub const MAX_DETAILS_LENGTH: usize = 280;
 }
 
-/// BTCSigType indicates the type of btc_sig in a pop
+/// Indicates the type of btc_sig in a pop
 #[cw_serde]
 pub enum BTCSigType {
     /// BIP340 means the btc_sig will follow the BIP-340 encoding
@@ -187,30 +184,30 @@ impl TryFrom<i32> for BTCSigType {
     }
 }
 
-/// ProofOfPossessionBtc is the proof of possession that a Babylon secp256k1
-/// secret key and a Bitcoin secp256k1 secret key are held by the same
-/// person
+/// Proof of possession that a Babylon secp256k1 secret key and a Bitcoin secp256k1 secret key are
+/// held by the same person.
 #[cw_serde]
 pub struct ProofOfPossessionBtc {
-    /// btc_sig_type indicates the type of btc_sig in the pop
+    /// Type of `btc_sig` in the pop.
     pub btc_sig_type: i32,
-    /// btc_sig is the signature generated via sign(sk_btc, babylon_sig)
-    /// the signature follows encoding in either BIP-340 spec or BIP-322 spec
+    /// Signature generated via sign(sk_btc, babylon_sig).
+    ///
+    /// The signature follows encoding in either BIP-340 spec or BIP-322 spec.
     pub btc_sig: Binary,
 }
 
-/// BTCDelegationStatus is the status of a delegation.
+/// Represents the status of a delegation.
 /// The state transition path is PENDING -> ACTIVE -> UNBONDED with two possibilities:
 ///     1. The typical path when time-lock of staking transaction expires.
 ///     2. The path when staker requests an early undelegation through a BtcStaking
 ///     UnbondedBtcDelegation message.
 #[cw_serde]
 pub enum BTCDelegationStatus {
-    /// PENDING defines a delegation waiting for covenant signatures to become active
+    /// A delegation waiting for covenant signatures to become active
     PENDING = 0,
-    /// ACTIVE defines a delegation that has voting power
+    /// A delegation that has voting power
     ACTIVE = 1,
-    /// UNBONDED defines a delegation that no longer has voting power:
+    /// A delegation that no longer has voting power:
     /// - Either reaching the end of staking transaction time-lock.
     /// - Or by receiving an unbonding tx with signatures from staker and covenant committee
     UNBONDED = 2,
@@ -218,46 +215,42 @@ pub enum BTCDelegationStatus {
     ANY = 3,
 }
 
-/// ActiveBTCDelegation is a message sent when a BTC delegation newly receives covenant signatures
-/// and thus becomes active
+/// Message sent when a BTC delegation newly receives covenant signatures and thus becomes active.
 #[cw_serde]
 pub struct ActiveBtcDelegation {
-    /// staker_addr is the address to receive rewards from BTC delegation
+    /// Address to receive rewards from BTC delegation.
     pub staker_addr: String,
-    /// btc_pk_hex is the Bitcoin secp256k1 PK of the BTC delegator.
+    /// Bitcoin secp256k1 PK of the BTC delegator.
     /// The PK follows encoding in BIP-340 spec in hex format
     pub btc_pk_hex: String,
-    /// fp_btc_pk_list is the list of BIP-340 PKs of the finality providers that
+    /// List of BIP-340 PKs of the finality providers that
     /// this BTC delegation delegates to
     pub fp_btc_pk_list: Vec<String>,
-    /// start_height is the start BTC height of the BTC delegation.
+    /// Start BTC height of the BTC delegation.
     /// It is the start BTC height of the time-lock
     pub start_height: u32,
-    /// end_height is the end height of the BTC delegation
-    /// it is the end BTC height of the time-lock - w
+    /// End height of the BTC delegation.
+    /// It is the end BTC height of the time-lock - w
     pub end_height: u32,
-    /// total_sat is the total BTC stakes in this delegation, quantified in satoshi
+    /// Total BTC stakes in this delegation, quantified in satoshi
     pub total_sat: u64,
-    /// staking_tx is the staking tx
+    /// Staking tx.
     pub staking_tx: Binary,
-    /// slashing_tx is the slashing tx
+    /// Slashing tx.
     pub slashing_tx: Binary,
-    /// delegator_slashing_sig is the signature on the slashing tx
-    /// by the delegator (i.e. SK corresponding to btc_pk) as string hex.
+    /// Signature on the slashing tx by the delegator (i.e. SK corresponding to btc_pk) as string hex.
     /// It will be a part of the witness for the staking tx output.
     pub delegator_slashing_sig: Binary,
-    /// covenant_sigs is a list of adaptor signatures on the slashing tx
-    /// by each covenant member.
+    /// List of adaptor signatures on the slashing tx by each covenant member.
     /// It will be a part of the witness for the staking tx output.
     pub covenant_sigs: Vec<CovenantAdaptorSignatures>,
-    /// staking_output_idx is the index of the staking output in the staking tx
+    /// Index of the staking output in the staking tx
     pub staking_output_idx: u32,
-    /// unbonding_time is used in unbonding output time-lock path and in slashing transactions
-    /// change outputs
+    /// Used in unbonding output time-lock path and in slashing transactions change outputs
     pub unbonding_time: u32,
-    /// undelegation_info is the undelegation info of this delegation.
+    /// Undelegation info of this delegation.
     pub undelegation_info: BtcUndelegationInfo,
-    /// params version used to validate the delegation
+    /// Params version used to validate the delegation
     pub params_version: u32,
 }
 
@@ -335,37 +328,37 @@ impl TryFrom<&babylon_proto::babylon::btcstaking::v1::ActiveBtcDelegation> for A
     }
 }
 
-/// CovenantAdaptorSignatures is a list adaptor signatures signed by the
+/// Represents a list adaptor signatures signed by the
 /// covenant with different finality provider's public keys as encryption keys
 #[cw_serde]
 pub struct CovenantAdaptorSignatures {
-    /// cov_pk is the public key of the covenant emulator, used as the public key of the adaptor signature
+    /// Public key of the covenant emulator, used as the public key of the adaptor signature
     pub cov_pk: Binary,
-    /// adaptor_sigs is a list of adaptor signatures, each encrypted by a restaked BTC finality provider's public key
+    /// List of adaptor signatures, each encrypted by a restaked BTC finality provider's public key
     pub adaptor_sigs: Vec<Binary>,
 }
 
-/// BTCUndelegationInfo provides all necessary info about the undelegation
+/// Provides all necessary info about the undelegation.
 #[cw_serde]
 pub struct BtcUndelegationInfo {
-    /// unbonding_tx is the transaction which will transfer the funds from staking
+    /// Transaction which will transfer the funds from staking
     /// output to unbonding output. Unbonding output will usually have lower timelock
     /// than staking output.
     pub unbonding_tx: Binary,
-    /// slashing_tx is the unbonding slashing tx
+    /// Unbonding slashing tx
     pub slashing_tx: Binary,
-    /// delegator_slashing_sig is the signature on the slashing tx
+    /// Signature on the slashing tx
     /// by the delegator (i.e. SK corresponding to btc_pk).
     /// It will be a part of the witness for the unbonding tx output.
     pub delegator_slashing_sig: Binary,
-    /// covenant_slashing_sigs is a list of adaptor signatures on the
+    /// List of adaptor signatures on the
     /// unbonding slashing tx by each covenant member
     /// It will be a part of the witness for the staking tx output.
     pub covenant_slashing_sigs: Vec<CovenantAdaptorSignatures>,
-    /// covenant_unbonding_sig_list is the list of signatures on the unbonding tx
+    /// List of signatures on the unbonding tx
     /// by covenant members
     pub covenant_unbonding_sig_list: Vec<SignatureInfo>,
-    /// delegator_unbonding_info is the information about transaction which spent
+    /// Information about transaction which spent
     /// the staking output
     pub delegator_unbonding_info: Option<DelegatorUnbondingInfo>,
 }
@@ -375,30 +368,30 @@ pub struct DelegatorUnbondingInfo {
     pub spend_stake_tx: Binary,
 }
 
-/// SignatureInfo is a BIP-340 signature together with its signer's BIP-340 PK
+/// A BIP-340 signature together with its signer's BIP-340 PK.
 #[cw_serde]
 pub struct SignatureInfo {
     pub pk: Binary,
     pub sig: Binary,
 }
 
-/// SlashedBTCDelegation is a packet sent from Babylon to the Consumer chain about a slashed BTC
+/// A packet sent from Babylon to the Consumer chain about a slashed BTC
 /// delegation re-staked to >=1 of the Consumer chain's finality providers
 #[cw_serde]
 pub struct SlashedBtcDelegation {
-    /// staking tx hash of the BTC delegation. It uniquely identifies a BTC delegation
+    /// Staking tx hash of the BTC delegation. It uniquely identifies a BTC delegation
     pub staking_tx_hash: String,
-    /// recovered_fp_btc_sk is the extracted BTC SK of the finality provider on this Consumer chain
+    /// Extracted BTC SK of the finality provider on this Consumer chain.
     pub recovered_fp_btc_sk: String,
 }
 
-/// UnbondedBTCDelegation is sent from Babylon to the Consumer chain upon an early unbonded BTC
-/// delegation
+/// Sent from Babylon to the Consumer chain upon an early unbonded BTC
+/// delegation.
 #[cw_serde]
 pub struct UnbondedBtcDelegation {
-    /// staking tx hash of the BTC delegation. It uniquely identifies a BTC delegation
+    /// Staking tx hash of the BTC delegation. It uniquely identifies a BTC delegation
     pub staking_tx_hash: String,
-    /// unbonding_tx_sig is the signature on the unbonding tx signed by the BTC delegator
+    /// Signature on the unbonding tx signed by the BTC delegator
     /// It proves that the BTC delegator wants to unbond
     pub unbonding_tx_sig: Binary,
 }

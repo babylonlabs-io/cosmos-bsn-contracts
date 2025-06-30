@@ -14,20 +14,21 @@ pub struct EpochResponse {
     pub epoch_number: u64,
     pub current_epoch_interval: u64,
     pub first_block_height: u64,
-    /// last_block_time is the time of the last block in this epoch.
+    /// The time of the last block in this epoch.
+    ///
     /// Babylon needs to remember the last header's time of each epoch to complete
     /// unbonding validators/delegations when a previous epoch's checkpoint is
-    /// finalised. The last_block_time field is nil in the epoch's beginning, and
+    /// finalised. The `last_block_time` field is nil in the epoch's beginning, and
     /// is set upon the end of this epoch
     pub last_block_time: Option<Timestamp>,
     /// sealer is the last block of the sealed epoch.
-    /// sealer_app_hash points to the sealer but stored in the first header of the next epoch.
+    /// `sealer_app_hash` points to the sealer but stored in the first header of the next epoch.
     /// Hex-encoded string
     pub sealer_app_hash: String,
-    /// sealer_block_hash is the hash of the sealer.
+    /// The hash of the sealer.
+    ///
     /// The validator set has generated a BLS multisig on the hash, i.e. the hash of the last block
-    /// in the epoch.
-    /// Hex-encoded string
+    /// in the epoch in hex-encoded string.
     pub sealer_block_hash: String,
 }
 
@@ -58,18 +59,14 @@ impl From<Epoch> for EpochResponse {
 /// Adapted from `RawCheckpoint`.
 #[cw_serde]
 pub struct CheckpointResponse {
-    /// epoch_num defines the epoch number the raw checkpoint is for
+    /// The epoch number the raw checkpoint is for.
     pub epoch_num: u64,
-    /// block_hash defines the 'BlockID.Hash', which is the hash of
-    /// the block that individual BLS sigs are signed on.
-    /// Hex-encoded string
+    /// Defines the 'BlockID.Hash', which is the hash of the block that individual BLS sigs
+    /// are signed on, in hex-encoded string.
     pub block_hash: String,
-    /// bitmap defines the bitmap that indicates the signers of the BLS multi sig.
-    /// Hex-encoded string
+    /// Defines the bitmap that indicates the signers of the BLS multi sig, in hex-encoded string.
     pub bitmap: String,
-    /// bls_multi_sig defines the multi sig that is aggregated from individual BLS
-    /// sigs.
-    /// Hex-encoded string
+    /// Defines the multi sig that is aggregated from individual BLS sigs, in hex-encoded string.
     pub bls_multi_sig: String,
 }
 

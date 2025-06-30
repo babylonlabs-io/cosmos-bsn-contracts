@@ -9,7 +9,7 @@ pub mod babylon_epoch_chain;
 pub mod config;
 pub mod consumer_header_chain;
 
-/// `handle_btc_timestamp` handles a BTC timestamp.
+/// Handles a BTC timestamp.
 /// It returns a tuple of (WasmMsg, BabylonMsg).
 /// The returned WasmMsg is a message to submit BTC headers to the BTC light client.
 /// The returned BabylonMsg is a message to notify of a newly finalised Consumer header, or None if
