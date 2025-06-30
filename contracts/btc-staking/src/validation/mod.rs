@@ -271,7 +271,7 @@ pub fn verify_active_delegation(
             .map_err(|_| ContractError::InvalidBtcTx(unbonding_slashing_tx.encode_hex()))?;
 
         // Check that the unbonding tx input is pointing to staking tx
-        if unbonding_tx.input[0].previous_output.txid != staking_tx.txid()
+        if unbonding_tx.input[0].previous_output.txid != staking_tx.compute_txid()
             || unbonding_tx.input[0].previous_output.vout != active_delegation.staking_output_idx
         {
             return Err(ContractError::InvalidBtcTx(

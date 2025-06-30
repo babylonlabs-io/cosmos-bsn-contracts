@@ -55,18 +55,21 @@ pub fn instantiate(
     // instantiate btc light client contract first
     // It has to be before btc staking and finality contracts which depend on it
     if let Some(btc_light_client_code_id) = msg.btc_light_client_code_id {
-        let btc_lc_init_msg = BtcLightClientInstantiateMsg {
-            network: msg.network.clone(),
-            btc_confirmation_depth: msg.btc_confirmation_depth,
-            checkpoint_finalization_timeout: msg.checkpoint_finalization_timeout,
+        let init_msg = match msg.btc_light_client_msg {
+            Some(lc_msg) => lc_msg,
+            None => {
+                let btc_lc_init_msg = BtcLightClientInstantiateMsg {
+                    network: msg.network.clone(),
+                    btc_confirmation_depth: msg.btc_confirmation_depth,
+                    checkpoint_finalization_timeout: msg.checkpoint_finalization_timeout,
+                };
+                to_json_binary(&btc_lc_init_msg)?
+            }
         };
-        // Instantiate BTC light client contract first
         let init_msg = WasmMsg::Instantiate {
             admin: msg.admin.clone(),
             code_id: btc_light_client_code_id,
-            msg: msg
-                .btc_light_client_msg
-                .unwrap_or(to_json_binary(&btc_lc_init_msg)?),
+            msg: init_msg,
             funds: vec![],
             label: "BTC Light Client".into(),
         };
@@ -146,7 +149,7 @@ pub fn reply(
             reply_init_callback_light_client(deps, reply.result.unwrap())
         }
         REPLY_ID_INSTANTIATE_STAKING => reply_init_callback_staking(deps, reply.result.unwrap()),
-        REPLY_ID_INSTANTIATE_FINALITY => reply_init_finality_callback(deps, reply.result.unwrap()),
+        REPLY_ID_INSTANTIATE_FINALITY => reply_init_callback_finality(deps, reply.result.unwrap()),
         _ => Err(ContractError::InvalidReplyId(reply.id)),
     }
 }
@@ -196,7 +199,7 @@ fn reply_init_callback_staking(
 }
 
 /// Store BTC finality address
-fn reply_init_finality_callback(
+fn reply_init_callback_finality(
     deps: DepsMut,
     reply: SubMsgResponse,
 ) -> Result<Response<BabylonMsg>, ContractError> {

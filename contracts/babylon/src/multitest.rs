@@ -61,15 +61,13 @@ fn initialization() {
 }
 
 mod instantiation {
+    use crate::state::config::Config;
+
     use super::*;
     use cosmwasm_std::to_json_string;
 
-    #[test]
-    fn instantiate_works() {
-        let suite = SuiteBuilder::new().build();
-
+    fn contract_should_be_instantiated(config: Config) {
         // Confirm the btc-light-client contract has been instantiated and set
-        let config = suite.get_config();
         assert_eq!(
             config.btc_light_client,
             Some(Addr::unchecked(BTC_LIGHT_CLIENT_CONTRACT_ADDR))
@@ -87,6 +85,12 @@ mod instantiation {
     }
 
     #[test]
+    fn instantiate_works() {
+        let suite = SuiteBuilder::new().build();
+        contract_should_be_instantiated(suite.get_config());
+    }
+
+    #[test]
     fn instantiate_light_client_msg_works() {
         let params = btc_light_client::msg::InstantiateMsg {
             network: babylon_bitcoin::chain_params::Network::Testnet,
@@ -97,22 +101,8 @@ mod instantiation {
             .with_light_client_msg(&to_json_string(&params).unwrap())
             .build();
 
-        // Confirm the btc-light-client contract has been instantiated and set
         let config = suite.get_config();
-        assert_eq!(
-            config.btc_light_client,
-            Some(Addr::unchecked(BTC_LIGHT_CLIENT_CONTRACT_ADDR))
-        );
-        // Confirm the btc-staking contract has been instantiated and set
-        assert_eq!(
-            config.btc_staking,
-            Some(Addr::unchecked(BTC_STAKING_CONTRACT_ADDR))
-        );
-        // Confirm the btc-finality contract has been instantiated and set
-        assert_eq!(
-            config.btc_finality,
-            Some(Addr::unchecked(BTC_FINALITY_CONTRACT_ADDR))
-        );
+        contract_should_be_instantiated(config);
 
         // Check that the btc-light-client contract was initialized correctly
         let btc_light_client_config = suite.get_btc_light_client_config();
@@ -146,22 +136,7 @@ mod instantiation {
             .with_staking_msg(&to_json_string(&staking_instantiation_msg).unwrap())
             .build();
 
-        // Confirm the btc-light-client contract has been instantiated and set
-        let config = suite.get_config();
-        assert_eq!(
-            config.btc_light_client,
-            Some(Addr::unchecked(BTC_LIGHT_CLIENT_CONTRACT_ADDR))
-        );
-        // Confirm the btc-staking contract has been instantiated and set
-        assert_eq!(
-            config.btc_staking,
-            Some(Addr::unchecked(BTC_STAKING_CONTRACT_ADDR))
-        );
-        // Confirm the btc-finality contract has been instantiated and set
-        assert_eq!(
-            config.btc_finality,
-            Some(Addr::unchecked(BTC_FINALITY_CONTRACT_ADDR))
-        );
+        contract_should_be_instantiated(suite.get_config());
     }
 
     #[test]
@@ -183,22 +158,7 @@ mod instantiation {
             .with_finality_msg(&to_json_string(&finality_instantiation_msg).unwrap())
             .build();
 
-        // Confirm the btc-light-client contract has been instantiated and set
-        let config = suite.get_config();
-        assert_eq!(
-            config.btc_light_client,
-            Some(Addr::unchecked(BTC_LIGHT_CLIENT_CONTRACT_ADDR))
-        );
-        // Confirm the btc-staking contract has been instantiated and set
-        assert_eq!(
-            config.btc_staking,
-            Some(Addr::unchecked(BTC_STAKING_CONTRACT_ADDR))
-        );
-        // Confirm the btc-finality contract has been instantiated and set
-        assert_eq!(
-            config.btc_finality,
-            Some(Addr::unchecked(BTC_FINALITY_CONTRACT_ADDR))
-        );
+        contract_should_be_instantiated(suite.get_config());
     }
 
     #[test]

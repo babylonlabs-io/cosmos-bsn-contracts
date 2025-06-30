@@ -11,24 +11,20 @@ const MAX_LIMIT: u32 = 30;
 const DEFAULT_LIMIT: u32 = 10;
 
 pub fn btc_base_header(deps: &Deps) -> Result<BtcHeaderResponse, ContractError> {
-    let header = get_base_header(deps.storage)?;
-    BtcHeaderResponse::try_from(&header)
+    get_base_header(deps.storage)?.try_into()
 }
 
 pub fn btc_tip_header(deps: &Deps) -> Result<BtcHeaderResponse, ContractError> {
-    let header = get_tip(deps.storage)?;
-    BtcHeaderResponse::try_from(&header)
+    get_tip(deps.storage)?.try_into()
 }
 
 pub fn btc_header(deps: &Deps, height: u32) -> Result<BtcHeaderResponse, ContractError> {
-    let header = get_header(deps.storage, height)?;
-    BtcHeaderResponse::try_from(&header)
+    get_header(deps.storage, height)?.try_into()
 }
 
 pub fn btc_header_by_hash(deps: &Deps, hash: &str) -> Result<BtcHeaderResponse, ContractError> {
-    let hash = BlockHash::from_str(hash).map_err(ContractError::HashError)?;
-    let header = get_header_by_hash(deps.storage, hash.as_ref())?;
-    BtcHeaderResponse::try_from(&header)
+    let hash = BlockHash::from_str(hash)?;
+    get_header_by_hash(deps.storage, hash.as_ref())?.try_into()
 }
 
 pub fn btc_headers(
@@ -38,8 +34,7 @@ pub fn btc_headers(
     reverse: Option<bool>,
 ) -> Result<BtcHeadersResponse, ContractError> {
     let limit = limit.unwrap_or(DEFAULT_LIMIT).min(MAX_LIMIT);
-    let headers = get_headers(deps.storage, start_after, Some(limit), reverse)?;
-    BtcHeadersResponse::try_from(headers)
+    get_headers(deps.storage, start_after, Some(limit), reverse)?.try_into()
 }
 
 #[cfg(test)]
