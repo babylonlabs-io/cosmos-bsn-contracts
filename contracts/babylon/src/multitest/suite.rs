@@ -8,7 +8,9 @@ use babylon_bitcoin::chain_params::Network;
 use cosmwasm_std::{Addr, Binary, Empty};
 use cw_multi_test::{AppResponse, Contract, ContractWrapper, Executor};
 
-use crate::msg::contract::{InstantiateMsg, QueryMsg};
+use crate::msg::contract::{
+    BtcFinalityInitMsg, BtcLightClientInitMsg, BtcStakingInitMsg, InstantiateMsg, QueryMsg,
+};
 use crate::multitest::{
     BTC_FINALITY_CONTRACT_ADDR, BTC_LIGHT_CLIENT_CONTRACT_ADDR, BTC_STAKING_CONTRACT_ADDR,
 };
@@ -126,15 +128,21 @@ impl SuiteBuilder {
                     btc_confirmation_depth: 1,
                     checkpoint_finalization_timeout: 10,
                     notify_cosmos_zone: false,
-                    btc_light_client_code_id: Some(btc_light_client_code_id),
-                    btc_light_client_msg: light_client_msg,
-                    btc_staking_code_id: Some(btc_staking_code_id),
-                    btc_staking_msg: staking_msg,
-                    btc_finality_code_id: Some(btc_finality_code_id),
-                    btc_finality_msg: finality_msg,
+                    btc_light_client_init_msg: Some(BtcLightClientInitMsg {
+                        btc_light_client_code_id,
+                        btc_light_client_msg: light_client_msg,
+                    }),
+                    btc_staking_init_msg: Some(BtcStakingInitMsg {
+                        btc_staking_code_id,
+                        btc_staking_msg: staking_msg,
+                        consumer_name: "TestConsumer".to_string(),
+                        consumer_description: "Test Consumer Description".to_string(),
+                    }),
+                    btc_finality_init_msg: Some(BtcFinalityInitMsg {
+                        btc_finality_code_id,
+                        btc_finality_msg: finality_msg,
+                    }),
                     admin: Some(owner.to_string()),
-                    consumer_name: Some("TestConsumer".to_string()),
-                    consumer_description: Some("Test Consumer Description".to_string()),
                     ics20_channel_id: self.ics20_channel_id,
                 },
                 &[],
