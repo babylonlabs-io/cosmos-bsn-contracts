@@ -144,12 +144,17 @@ pub fn reply(
     _env: Env,
     reply: Reply,
 ) -> Result<Response<BabylonMsg>, ContractError> {
+    let response = || {
+        reply
+            .result
+            .into_result()
+            .expect("TODO: why it's okay to not handle error here")
+    };
+
     match reply.id {
-        REPLY_ID_INSTANTIATE_LIGHT_CLIENT => {
-            reply_init_callback_light_client(deps, reply.result.unwrap())
-        }
-        REPLY_ID_INSTANTIATE_STAKING => reply_init_callback_staking(deps, reply.result.unwrap()),
-        REPLY_ID_INSTANTIATE_FINALITY => reply_init_callback_finality(deps, reply.result.unwrap()),
+        REPLY_ID_INSTANTIATE_LIGHT_CLIENT => reply_init_callback_light_client(deps, response()),
+        REPLY_ID_INSTANTIATE_STAKING => reply_init_callback_staking(deps, response()),
+        REPLY_ID_INSTANTIATE_FINALITY => reply_init_callback_finality(deps, response()),
         _ => Err(ContractError::InvalidReplyId(reply.id)),
     }
 }

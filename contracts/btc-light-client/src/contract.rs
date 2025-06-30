@@ -107,12 +107,17 @@ fn handle_btc_headers(
 ) -> Result<Response<BabylonMsg>, ContractError> {
     // Check if the BTC light client has been initialized
     if !is_initialized(deps.storage) {
-        // Check if base work and height are provided
-        if first_work.is_none() || first_height.is_none() {
+        let Some(first_work_hex) = first_work else {
             return Err(ContractError::InitError {
-                msg: "base work or height is not provided".to_string(),
+                msg: "base work is not provided".to_string(),
             });
-        }
+        };
+
+        let Some(first_height) = first_height else {
+            return Err(ContractError::InitError {
+                msg: "base height is not provided".to_string(),
+            });
+        };
 
         // Check if there are enough headers for initialization
         let cfg = CONFIG.load(deps.storage)?;
@@ -120,11 +125,10 @@ fn handle_btc_headers(
             return Err(ContractError::InitErrorLength(cfg.btc_confirmation_depth));
         }
 
-        let first_work_hex = first_work.unwrap();
         let first_work_bytes = hex::decode(first_work_hex)?;
         let first_work = total_work(&first_work_bytes)?;
 
-        init(deps.storage, &headers, &first_work, first_height.unwrap())?;
+        init(deps.storage, &headers, &first_work, first_height)?;
         Ok(Response::new().add_attribute("action", "init_btc_light_client"))
     } else {
         handle_btc_headers_from_user(deps.storage, &headers)?;
