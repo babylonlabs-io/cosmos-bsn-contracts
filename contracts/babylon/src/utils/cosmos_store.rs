@@ -48,8 +48,7 @@ pub fn verify_store(
     // convert tendermint_proto::crypto::ProofOps to ics23 proof
     let proofs = proof
         .ops
-        .clone()
-        .into_iter()
+        .iter()
         .map(|op| CommitmentProof::decode(op.data.as_slice()))
         .collect::<Result<_, _>>()
         .map_err(|err| format!("failed to convert tendermint proof to ics23 proof: {err:?}"))?;
