@@ -3,7 +3,7 @@ use crate::specs::ProofSpecs;
 use ics23::commitment_proof::Proof;
 use ics23::{calculate_existence_root, verify_membership, CommitmentProof};
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct MerkleProof {
     pub proofs: Vec<CommitmentProof>,
 }

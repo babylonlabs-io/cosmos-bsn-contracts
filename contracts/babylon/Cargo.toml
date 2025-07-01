@@ -44,6 +44,7 @@ cw2              = { workspace = true }
 cw-storage-plus  = { workspace = true }
 cw-utils         = { workspace = true }
 hex              = { workspace = true }
+ibc-proto        = { workspace = true }
 tendermint-proto = { workspace = true }
 cosmos-sdk-proto = { workspace = true }
 thiserror        = { workspace = true }
