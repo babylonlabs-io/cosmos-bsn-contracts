@@ -1,4 +1,4 @@
-use cosmos_sdk_proto::ibc::core::channel::v1::{acknowledgement::Response, Acknowledgement};
+use ibc_proto::ibc::core::channel::v1::{acknowledgement::Response, Acknowledgement};
 
 use cosmwasm_schema::cw_serde;
 

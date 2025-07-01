@@ -4,7 +4,7 @@ use ics23::ProofSpec as Ics23ProofSpec;
 ///
 /// This type encapsulates different types of proof specifications, mostly predefined, e.g., for
 /// Cosmos-SDK.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct ProofSpecs(Vec<Ics23ProofSpec>);
 
 impl ProofSpecs {
