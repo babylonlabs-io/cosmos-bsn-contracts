@@ -52,7 +52,7 @@ pub fn set_tip(storage: &mut dyn Storage, tip: &BtcHeaderInfo) -> StdResult<()> 
     BTC_TIP.save(storage, tip_bytes)
 }
 
-// insert_headers inserts BTC headers that have passed the verification to the header chain
+// Inserts BTC headers that have passed the verification to the header chain
 // storages, including
 // - insert all headers
 // - insert all hash-to-height indices
@@ -68,7 +68,7 @@ pub fn insert_headers(storage: &mut dyn Storage, new_headers: &[BtcHeaderInfo]) 
     Ok(())
 }
 
-// remove_headers removes BTC headers from the header chain storages, including
+// Removes BTC headers from the header chain storages, including
 // - remove all hash-to-height indices
 pub fn remove_headers(
     storage: &mut dyn Storage,
@@ -86,7 +86,7 @@ pub fn remove_headers(
     Ok(())
 }
 
-// get_header retrieves the BTC header of a given height
+// Retrieves the BTC header of a given height.
 pub fn get_header(storage: &dyn Storage, height: u32) -> Result<BtcHeaderInfo, ContractError> {
     // Try to find the header with the given hash
     let header_bytes = BTC_HEADERS
@@ -96,7 +96,7 @@ pub fn get_header(storage: &dyn Storage, height: u32) -> Result<BtcHeaderInfo, C
     BtcHeaderInfo::decode(header_bytes.as_slice()).map_err(ContractError::DecodeError)
 }
 
-// get_header_by_hash retrieves the BTC header of a given hash
+// Retrieves the BTC header of a given hash.
 pub fn get_header_by_hash(
     storage: &dyn Storage,
     hash: &[u8],
@@ -112,7 +112,7 @@ pub fn get_header_by_hash(
     get_header(storage, height)
 }
 
-// get_header height retrieves the BTC header height of a given BTC hash
+// Retrieves the BTC header height of a given BTC hash
 pub fn get_header_height(storage: &dyn Storage, hash: &[u8]) -> Result<u32, ContractError> {
     let height =
         BTC_HEIGHTS
@@ -123,7 +123,7 @@ pub fn get_header_height(storage: &dyn Storage, hash: &[u8]) -> Result<u32, Cont
     Ok(height)
 }
 
-// get_headers retrieves BTC headers in a given range
+// Retrieves BTC headers in a given range.
 pub fn get_headers(
     storage: &dyn Storage,
     start_after: Option<u32>,

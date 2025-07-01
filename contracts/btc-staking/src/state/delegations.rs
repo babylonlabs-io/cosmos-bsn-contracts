@@ -41,7 +41,7 @@ pub struct Delegations<'a> {
 
 impl Delegations<'_> {
     fn deserialize_pk(pk: &[u8]) -> (Vec<u8>, String) {
-        <(Vec<u8>, String)>::from_slice(pk).unwrap() // mustn't fail
+        <(Vec<u8>, String)>::from_slice(pk).expect("TODO: why must not fail")
     }
 
     pub fn new(

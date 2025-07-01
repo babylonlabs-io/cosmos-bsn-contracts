@@ -43,8 +43,7 @@ pub fn get_pub_rand_commit_for_height(
     }
 }
 
-// `get_timestamped_pub_rand_commit_for_height` finds the public randomness commitment that includes
-// the given height for the given finality provider
+// Finds the public randomness commitment that includes the given height for the given finality provider.
 pub fn get_timestamped_pub_rand_commit_for_height(
     deps: &Deps,
     fp_btc_pk_hex: &str,
@@ -70,9 +69,9 @@ pub fn get_timestamped_pub_rand_commit_for_height(
     Ok(pr_commit)
 }
 
-// `has_timestamped_pub_rand_commit_for_height` checks that the FP has timestamped public
-// randomness commitment for the given height and (optionally given) last finalized height.
-// If the last finalized height is not given, it will be queried from the babylon contract.
+// Checks that the FP has timestamped public randomness commitment for the given height
+// and (optionally given) last finalized height. If the last finalized height is not given,
+// it will be queried from the babylon contract.
 pub fn has_timestamped_pub_rand_commit_for_height(
     deps: &Deps,
     fp_btc_pk_hex: &str,

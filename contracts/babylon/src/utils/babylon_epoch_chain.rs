@@ -7,8 +7,7 @@ use prost::Message;
 
 pub const NUM_BTC_TXS: usize = 2;
 
-/// verify_epoch_sealed ensures the given raw checkpoint is sealed, i.e., BLS-signed,
-/// by the validator set of the given epoch
+/// Ensures the given raw checkpoint is sealed, i.e., BLS-signed, by the validator set of the given epoch.
 /// reference implementation: https://github.com/babylonlabs-io/babylon/blob/v0.5.0/x/zoneconcierge/keeper/proof_epoch_sealed.go
 pub fn verify_epoch_sealed(
     epoch: &Epoch,
@@ -96,8 +95,7 @@ pub fn verify_epoch_sealed(
     Ok(())
 }
 
-/// verify_checkpoint_submitted ensures the given raw checkpoint is submitted, i.e.,
-/// whose two txs are in the given 2 BTC headers.
+/// Ensures the given raw checkpoint is submitted, i.e., whose two txs are in the given 2 BTC headers.
 /// reference implementation: https://github.com/babylonlabs-io/babylon/blob/v0.5.0/x/zoneconcierge/keeper/proof_epoch_submitted.go
 pub fn verify_checkpoint_submitted(
     raw_ckpt: &RawCheckpoint,

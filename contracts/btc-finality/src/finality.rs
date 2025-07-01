@@ -451,7 +451,7 @@ fn verify_finality_signature(
     Ok(())
 }
 
-/// `msg_to_sign` returns the message for an EOTS signature.
+/// Returns the message for an EOTS signature.
 ///
 /// The EOTS signature on a block will be (block_height || block_app_hash)
 fn msg_to_sign(height: u64, block_app_hash: &[u8]) -> Vec<u8> {
@@ -479,7 +479,7 @@ pub fn index_block(
     Ok(ev)
 }
 
-/// TallyBlocks tries to finalise all blocks that are non-finalised AND have a non-nil
+/// Tries to finalise all blocks that are non-finalised AND have a non-nil
 /// finality provider set, from the earliest to the latest.
 ///
 /// This function is invoked upon each `EndBlock`, after the BTC staking protocol is activated.
@@ -570,8 +570,7 @@ pub fn tally_blocks(
     Ok((msg, events))
 }
 
-/// `tally` checks whether a block with the given finality provider set and votes reaches a quorum
-/// or not
+/// Checks whether a block with the given finality provider set and votes reaches a quorum or not.
 fn tally(fp_set: &[FinalityProviderInfo], voters: &[String]) -> bool {
     let voters: HashSet<String> = voters.iter().cloned().collect();
     let mut total_power = 0;
@@ -585,8 +584,7 @@ fn tally(fp_set: &[FinalityProviderInfo], voters: &[String]) -> bool {
     voted_power * 3 > total_power * 2
 }
 
-/// `finalize_block` sets a block to be finalised, and distributes rewards to finality providers
-/// and delegators
+/// Sets a block to be finalised, and distributes rewards to finality providers and delegators.
 fn finalize_block(
     store: &mut dyn Storage,
     block: &mut IndexedBlock,
@@ -606,7 +604,7 @@ fn finalize_block(
     Ok(ev)
 }
 
-/// `compute_block_rewards` computes the block rewards for the finality providers
+/// Computes the block rewards for the finality providers.
 fn compute_block_rewards(
     deps: &mut DepsMut,
     cfg: &Config,
@@ -633,8 +631,8 @@ fn compute_block_rewards(
 
 const QUERY_LIMIT: Option<u32> = Some(30);
 
-/// `compute_active_finality_providers` sorts all finality providers, counts the total voting
-/// power of top finality providers, and records them in the contract state
+/// Sorts all finality providers, counts the total voting power of top finality providers, and records them
+/// in the contract state.
 pub fn compute_active_finality_providers(
     deps: &mut DepsMut,
     env: &Env,
@@ -745,7 +743,7 @@ pub fn list_fps_by_power(
     Ok(res.fps)
 }
 
-/// `distribute_rewards_fps` distributes rewards to finality providers who are in the active set at `height`
+/// Distributes rewards to finality providers who are in the active set at `height`.
 pub fn distribute_rewards_fps(deps: &mut DepsMut, env: &Env) -> Result<(), ContractError> {
     // Try to use the finality provider set at the previous height
     let active_fps = FP_SET.may_load(deps.storage, env.block.height - 1)?;

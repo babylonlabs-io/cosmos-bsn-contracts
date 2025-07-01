@@ -54,7 +54,7 @@ impl From<tendermint_proto::crypto::Proof> for Proof {
 impl Proof {
     pub const MAX_AUNTS: usize = 100;
 
-    /// `validate_basic` performs basic validation.
+    /// Performs basic validation.
     ///
     /// NOTE: it expects the `leaf_hash` and the elements of `aunts` to be of size `HASH_SIZE`,
     /// and it expects at most `MAX_AUNTS` elements in `aunts`.
@@ -89,7 +89,7 @@ impl Proof {
         Ok(())
     }
 
-    /// `verify` verifies that the Proof proves the root hash.
+    /// Verifies that the Proof proves the root hash.
     ///
     /// Adapted from `cometbft/crypto/bft/proof.go`
     pub fn verify(&self, root_hash: &[u8], leaf: &[u8]) -> Result<bool, MerkleError> {

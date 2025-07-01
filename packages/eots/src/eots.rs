@@ -33,7 +33,7 @@ pub struct SecRand {
 }
 
 impl SecRand {
-    /// `new` parses the given bytes into a new secret randomness.
+    /// Parses the given bytes into a new secret randomness.
     /// The given byte slice has to be a 32-byte scalar.
     /// NOTE: we enforce the secret randomness to correspond to a point
     /// with even y-coordinate
@@ -70,7 +70,7 @@ pub struct PubRand {
 }
 
 impl PubRand {
-    /// `new` parses the given bytes into a new public randomness value on the secp256k1 curve.
+    /// Parses the given bytes into a new public randomness value on the secp256k1 curve.
     /// The given byte slice can be:
     ///   - A 32-byte representation of an x coordinate (the y-coordinate is derived as even).
     ///   - A 33-byte compressed representation of an x coordinate (the y-coordinate is derived).
@@ -136,7 +136,7 @@ pub struct Signature {
 }
 
 impl Signature {
-    /// `new` parses the given bytes into a new signature.
+    /// Parses the given bytes into a new signature.
     /// The given byte slice has to be a 32-byte scalar
     pub fn new(r: &[u8]) -> Result<Signature> {
         let array: [u8; 32] = r
@@ -189,14 +189,13 @@ impl SecretKey {
         SecretKey::from_bytes(&x)
     }
 
-    /// pubkey gets the public key corresponding to the secret key
+    /// Gets the public key corresponding to the secret key.
     pub fn pubkey(&self) -> PublicKey {
         let pk = self.inner.public_key();
         PublicKey { inner: pk }
     }
 
-    /// sign creates a signature with the given secret randomness
-    /// and message hash
+    /// Creates a signature with the given secret randomness and message hash.
     pub fn sign(&self, sec_rand: &[u8], msg_hash: &[u8]) -> Result<Signature> {
         let msg_hash: [u8; 32] = msg_hash
             .try_into()
@@ -218,7 +217,7 @@ impl SecretKey {
         Ok(Signature::from(*r + c * *x))
     }
 
-    /// to_bytes converts the secret key into bytes
+    /// Converts the secret key into bytes.
     pub fn to_bytes(&self) -> Vec<u8> {
         self.inner.to_bytes().to_vec()
     }
@@ -268,13 +267,12 @@ impl PublicKey {
         PublicKey::from_bytes(&p)
     }
 
-    /// to_bytes converts the public key into bytes
+    /// Converts the public key into bytes.
     pub fn to_bytes(&self) -> Vec<u8> {
         point_to_bytes(&self.inner.to_projective()).to_vec()
     }
 
-    /// verify verifies whether the given signature w.r.t. the
-    /// public key, public randomness and message hash
+    /// Verifies whether the given signature w.r.t. the public key, public randomness and message hash.
     pub fn verify(&self, pub_rand: &[u8], msg_hash: &[u8], sig: &[u8]) -> Result<bool> {
         let msg_hash: [u8; 32] = msg_hash
             .try_into()
@@ -297,7 +295,7 @@ impl PublicKey {
         Ok(recovered_r.eq(&*r))
     }
 
-    /// `extract_secret_key` extracts the secret key from the public key, public randomness,
+    /// Extracts the secret key from the public key, public randomness,
     /// and two pairs of message hashes and signatures.
     pub fn extract_secret_key(
         &self,

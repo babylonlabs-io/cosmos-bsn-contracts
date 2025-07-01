@@ -1,6 +1,7 @@
 //! babylon_epoch_chain is the storage for the chain of **finalised** Babylon epochs.
 //! It maintains a chain of finalised Babylon epochs.
 //! NOTE: the Babylon epoch chain is always finalised, i.e. w-deep on BTC.
+
 use babylon_bitcoin::BlockHeader;
 use btc_light_client::msg::btc_header::BtcHeaderResponse;
 use prost::Message;
@@ -27,7 +28,7 @@ pub const BABYLON_EPOCH_BASE: Item<Vec<u8>> = Item::new("babylon_epoch_base");
 pub const BABYLON_EPOCH_EPOCH_LAST_FINALIZED: Item<Vec<u8>> = Item::new("babylon_epoch_last");
 pub const BABYLON_CHECKPOINTS: Map<u64, Vec<u8>> = Map::new("babylon_checkpoints");
 
-// is_initialized checks if the BTC light client has been initialised or not
+// Checks if the BTC light client has been initialised or not
 // the check is done by checking existence of base epoch
 pub fn is_initialized(deps: &DepsMut) -> bool {
     BABYLON_EPOCH_BASE.load(deps.storage).is_ok()
@@ -60,7 +61,7 @@ fn set_last_finalized_epoch(deps: &mut DepsMut, last_finalized_epoch: &Epoch) ->
     BABYLON_EPOCH_EPOCH_LAST_FINALIZED.save(deps.storage, last_finalized_epoch_bytes)
 }
 
-/// get_epoch retrieves the metadata of a given epoch
+/// Retrieves the metadata of a given epoch.
 pub fn get_epoch(deps: Deps, epoch_number: u64) -> Result<Epoch, BabylonEpochChainError> {
     // try to find the epoch metadata of the given epoch
     let epoch_bytes = BABYLON_EPOCHS
@@ -73,7 +74,7 @@ pub fn get_epoch(deps: Deps, epoch_number: u64) -> Result<Epoch, BabylonEpochCha
     Ok(epoch)
 }
 
-/// get_checkpoint retrieves the checkpoint of a given epoch
+/// Retrieves the checkpoint of a given epoch.
 pub fn get_checkpoint(
     deps: Deps,
     epoch_number: u64,
@@ -94,7 +95,8 @@ struct VerifiedEpochAndCheckpoint {
     pub raw_ckpt: RawCheckpoint,
 }
 
-/// verify_epoch_and_checkpoint verifies an epoch metadata and a raw checkpoint
+/// Verifies an epoch metadata and a raw checkpoint.
+///
 /// The verifications include:
 /// - whether the raw checkpoint is BTC-finalised, i.e., in a w-deep BTC header
 /// - whether the epoch is sealed by the validator set of this epoch
@@ -193,8 +195,8 @@ fn verify_epoch_and_checkpoint(
     })
 }
 
-/// insert_epoch_and_checkpoint inserts an epoch and the corresponding raw checkpoint, and
-/// update the last finalised checkpoint
+/// Inserts an epoch and the corresponding raw checkpoint, and update the last finalised
+/// checkpoint.
 /// NOTE: epoch/raw_ckpt have already passed all verifications
 fn insert_epoch_and_checkpoint(
     deps: &mut DepsMut,
@@ -213,8 +215,7 @@ fn insert_epoch_and_checkpoint(
     set_last_finalized_epoch(deps, &verified_tuple.epoch)
 }
 
-/// extract_data_from_btc_ts extracts data needed for verifying Babylon epoch chain
-/// from a given BTC timestamp
+/// Extracts data needed for verifying Babylon epoch chain from a given BTC timestamp.
 pub fn extract_data_from_btc_ts(
     btc_ts: &BtcTimestamp,
 ) -> Result<
@@ -253,7 +254,7 @@ pub fn extract_data_from_btc_ts(
     Ok((epoch, raw_ckpt, proof_epoch_sealed, txs_info))
 }
 
-/// init initialises the Babylon epoch chain storage
+/// Initialises the Babylon epoch chain storage.
 pub fn init(
     deps: &mut DepsMut,
     btc_headers: Option<&BtcHeaders>,
@@ -280,8 +281,7 @@ pub fn init(
     Ok(insert_epoch_and_checkpoint(deps, &verified_tuple)?)
 }
 
-/// handle_epoch handles a BTC-finalised epoch by using the raw checkpoint
-/// and inclusion proofs
+/// Handles a BTC-finalised epoch by using the raw checkpoint and inclusion proofs.
 pub fn handle_epoch_and_checkpoint(
     deps: &mut DepsMut,
     btc_headers: Option<&BtcHeaders>,

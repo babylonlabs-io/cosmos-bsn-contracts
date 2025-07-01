@@ -23,7 +23,7 @@ pub fn encode_raw_query<T: Into<Binary>, Q: CustomQuery>(addr: &Addr, key: T) ->
     .into()
 }
 
-/// to_canonical_addr converts a bech32 address to a canonical address
+/// Converts a bech32 address to a canonical address
 /// ported from cosmwasm-std/testing/mock.rs
 pub fn to_canonical_addr(addr: &str, prefix: &str) -> Result<CanonicalAddr, StakingApiError> {
     // decode bech32 address

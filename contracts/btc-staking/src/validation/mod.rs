@@ -17,7 +17,7 @@ use {
     k256::sha2::{Digest, Sha256},
 };
 
-/// verify_pop verifies the proof of possession of the given address.
+/// Verifies the proof of possession of the given address.
 #[cfg(feature = "full-validation")]
 fn verify_pop(
     btc_pk: &VerifyingKey,
@@ -87,7 +87,7 @@ fn decode_pks(
     Ok((staker_pk, fp_pks, cov_pks))
 }
 
-/// verify_new_fp verifies the new finality provider data (full validation version)
+/// Verifies the new finality provider data (full validation version).
 pub fn verify_new_fp(new_fp: &NewFinalityProvider) -> Result<(), ContractError> {
     // The following code is marked with `#[cfg(feature = "full-validation")]`
     // so that it is included in the build if the `full-validation` feature is
@@ -126,7 +126,7 @@ pub fn verify_new_fp(new_fp: &NewFinalityProvider) -> Result<(), ContractError> 
     Ok(())
 }
 
-/// verify_active_delegation verifies the active delegation data
+/// Verifies the active delegation data.
 pub fn verify_active_delegation(
     params: &Params,
     active_delegation: &ActiveBtcDelegation,

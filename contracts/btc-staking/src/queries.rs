@@ -56,15 +56,21 @@ pub fn finality_providers(
 }
 
 /// Get the delegation info by staking tx hash.
-/// `staking_tx_hash_hex`: The (reversed) staking tx hash, in hex
+///
+/// # Arguments
+///
+/// - `staking_tx_hash_hex`: The (reversed) staking tx hash, in hex
 pub fn delegation(deps: Deps, staking_tx_hash_hex: String) -> Result<BtcDelegation, ContractError> {
     let staking_tx_hash = Txid::from_str(&staking_tx_hash_hex)?;
     Ok(BTC_DELEGATIONS.load(deps.storage, staking_tx_hash.as_ref())?)
 }
 
 /// Get list of delegations.
-/// `start_after`: The (reversed) associated staking tx hash of the delegation in hex, if provided.
-/// `active`: List only active delegations if true, otherwise list all delegations.
+///
+/// # Arguments
+///
+/// - `start_after`: The (reversed) associated staking tx hash of the delegation in hex, if provided.
+/// - `active`: List only active delegations if true, otherwise list all delegations.
 pub fn delegations(
     deps: Deps,
     start_after: Option<String>,
@@ -96,7 +102,9 @@ pub fn delegations(
 
 /// Delegation hashes by FP query.
 ///
-/// `btc_pk_hex`: The BTC public key of the finality provider, in hex
+/// # Arguments
+///
+/// - `btc_pk_hex`: The BTC public key of the finality provider, in hex
 pub fn delegations_by_fp(
     deps: Deps,
     btc_pk_hex: String,

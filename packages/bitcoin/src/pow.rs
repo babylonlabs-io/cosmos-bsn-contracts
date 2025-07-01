@@ -4,7 +4,7 @@ use crate::BlockHeader;
 // Its value is always 4
 const RETARGET_ADJUSTMENT_FACTOR: u64 = 4;
 
-/// verify_header_pow ensures the header's hash <= the header's target <= pow limit
+/// Ensures the header's hash <= the header's target <= pow limit.
 pub fn verify_header_pow(
     chain_params: &bitcoin::consensus::Params,
     header: &BlockHeader,
@@ -28,7 +28,7 @@ pub fn verify_header_pow(
     Ok(())
 }
 
-/// verify_next_header_pow checks whether the given btc_header extends the given
+/// Checks whether the given btc_header extends the given
 /// prev_btc_header, including checking prev hash and PoW.
 /// It is identical to BTCLightclient's implementation in
 /// https://github.com/babylonlabs-io/babylon/blob/v0.5.0/x/btclightclient/keeper/msg_server.go#L126-L149

@@ -21,13 +21,12 @@ pub trait ContractMsg {
 #[cw_serde]
 pub struct InstantiateMsg {
     pub network: babylon_bitcoin::chain_params::Network,
-    /// babylon_tag is a string encoding four bytes used for identification / tagging of the Babylon zone.
+    /// A string encoding four bytes used for identification / tagging of the Babylon zone.
     /// NOTE: this is a hex string, not raw bytes
     pub babylon_tag: String,
     pub btc_confirmation_depth: u32,
     pub checkpoint_finalization_timeout: u32,
-    /// notify_cosmos_zone indicates whether to send Cosmos zone messages notifying BTC-finalised
-    /// headers.
+    /// Whether to send Cosmos zone messages notifying BTC-finalised headers.
     /// NOTE: If set to true, then the Cosmos zone needs to integrate the corresponding message handler
     /// as well
     pub notify_cosmos_zone: bool,
@@ -111,7 +110,7 @@ impl ContractMsg for InstantiateMsg {
 
 #[cw_serde]
 pub enum ExecuteMsg {
-    /// `slashing` is a slashing event from the BTC staking contract.
+    /// Slashing event from the BTC staking contract.
     ///
     /// This will be forwarded over IBC to the Babylon side for propagation to other Consumers, and
     /// Babylon itself
@@ -121,31 +120,31 @@ pub enum ExecuteMsg {
 #[cw_serde]
 #[derive(QueryResponses)]
 pub enum QueryMsg {
-    /// Config returns the current configuration of the babylon-contract
+    /// Returns the current configuration of the babylon-contract.
     #[returns(Config)]
     Config {},
-    /// BabylonBaseEpoch returns the base Babylon epoch stored in the contract
+    /// Returns the base Babylon epoch stored in the contract.
     #[returns(EpochResponse)]
     BabylonBaseEpoch {},
-    /// BabylonLastEpoch returns the last babylon finalized epoch stored in the contract
+    /// Returns the last babylon finalized epoch stored in the contract.
     #[returns(EpochResponse)]
     BabylonLastEpoch {},
-    /// BabylonEpoch returns the Babylon epoch stored in the contract, by epoch number.
+    /// Returns the Babylon epoch stored in the contract, by epoch number.
     #[returns(EpochResponse)]
     BabylonEpoch { epoch_number: u64 },
-    /// BabylonCheckpoint returns the Babylon checkpoint stored in the contract, by epoch number.
+    /// Returns the Babylon checkpoint stored in the contract, by epoch number.
     #[returns(EpochResponse)]
     BabylonCheckpoint { epoch_number: u64 },
-    /// LastConsumerHeader returns the last Consumer epoch stored in the contract
+    /// Returns the last Consumer epoch stored in the contract.
     #[returns(ConsumerHeaderResponse)]
     LastConsumerHeader {},
-    /// LastConsumerHeight returns the last Consumer height stored in the contract
+    /// Returns the last Consumer height stored in the contract.
     #[returns(ConsumerHeightResponse)]
     LastConsumerHeight {},
-    /// ConsumerHeader returns the Consumer header stored in the contract, by Consumer height.
+    /// Returns the Consumer header stored in the contract, by Consumer height.
     #[returns(ConsumerHeaderResponse)]
     ConsumerHeader { height: u64 },
-    /// TransferInfo returns the IBC transfer information stored in the contract
+    /// Returns the IBC transfer information stored in the contract
     /// for ICS-020 rewards transfer.
     #[returns(Option<String>)]
     TransferInfo {},

@@ -22,7 +22,7 @@ fn hash_from_byte_slices_internal(sha: &mut Sha256, items: Vec<Vec<u8>>) -> Vec<
     }
 }
 
-/// `get_split_point` returns the largest power of 2 less than length
+/// Returns the largest power of 2 less than length.
 pub(crate) fn get_split_point(length: u64) -> Result<u64, MerkleError> {
     if length < 1 {
         return Err(MerkleError::generic_err(

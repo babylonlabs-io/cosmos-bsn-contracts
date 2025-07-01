@@ -193,7 +193,7 @@ impl From<BlockHeader> for BtcHeader {
 pub struct BtcHeaderResponse {
     /// The Bitcoin header.
     pub header: BtcHeader,
-    /// `hash` is the hash of the BTC header.
+    /// Hash of the BTC header.
     /// Encoded as a (byte-reversed) hex string.
     pub hash: String,
     /// The height of the block in the BTC blockchain.

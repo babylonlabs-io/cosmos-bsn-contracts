@@ -2,7 +2,7 @@
 //! It depends on a Wasm build being available, which you can create by running `cargo optimize` in
 //! the workspace root.
 //! Then running `cargo bench` will validate we can properly call into that generated Wasm.
-//!
+
 use criterion::{criterion_group, criterion_main, Criterion, PlottingBackend};
 
 use std::time::Duration;

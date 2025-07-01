@@ -71,9 +71,12 @@ fn get_blocks_per_year(deps: &mut DepsMut) -> Result<u64, ContractError> {
             cosmwasm_std::Binary::new("".into()),
         )?;
         // Deserialize protobuf
-        let res_decoded = anybuf::Bufany::deserialize(&res).unwrap();
+        let res_decoded =
+            anybuf::Bufany::deserialize(&res).expect("Static value must not fail to deserialize");
         // See https://github.com/cosmos/cosmos-sdk/blob/8bfcf554275c1efbb42666cc8510d2da139b67fa/proto/cosmos/mint/v1beta1/query.proto#L35-L36
-        let res_params = res_decoded.message(1).unwrap();
+        let res_params = res_decoded
+            .message(1)
+            .expect("Static value must contain a message at index 1");
         // See https://github.com/cosmos/cosmos-sdk/blob/8bfcf554275c1efbb42666cc8510d2da139b67fa/proto/cosmos/mint/v1beta1/mint.proto#L60-L61
         // to see from where the field number comes from
         blocks_per_year = res_params

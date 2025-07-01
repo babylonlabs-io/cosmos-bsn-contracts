@@ -1,4 +1,5 @@
-//!`bindings` include functions that invoke custom messages to the Consumer chain.
+//! This module includes functions that invoke custom messages to the Consumer chain.
+
 use cosmwasm_std::StdError;
 
 use babylon_bindings::BabylonMsg;
