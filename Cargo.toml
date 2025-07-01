@@ -28,7 +28,6 @@ babylon-bitcoin = { path = "./packages/bitcoin" }
 babylon-btcstaking = { path = "./packages/btcstaking" }
 babylon-contract = { path = "./contracts/babylon" }
 eots = { path = "./packages/eots" }
-ics23-commitment = { path = "./packages/ics23_commitment" }
 anyhow = "1.0.82"
 bech32 = "0.9.1"
 bitcoin = "0.32.6"

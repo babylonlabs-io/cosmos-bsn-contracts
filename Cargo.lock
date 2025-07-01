@@ -325,7 +325,6 @@ dependencies = [
  "ibc-core-host-types",
  "ibc-proto 0.52.0",
  "ics23",
- "ics23-commitment",
  "pbjson-types",
  "prost",
  "sha2",
@@ -1773,17 +1772,6 @@ dependencies = [
  "ripemd",
  "sha2",
  "sha3",
-]
-
-[[package]]
-name = "ics23-commitment"
-version = "0.14.0"
-dependencies = [
- "anyhow",
- "ics23",
- "prost",
- "tendermint-proto",
- "thiserror 1.0.69",
 ]
 
 [[package]]
