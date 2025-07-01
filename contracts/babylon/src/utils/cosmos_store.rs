@@ -1,4 +1,9 @@
-use ics23_commitment::merkle::convert_tm_proto_to_ics_merkle_proof;
+use ibc_core_commitment_types::commitment::CommitmentRoot;
+use ibc_core_commitment_types::merkle::{MerklePath, MerkleProof};
+use ibc_core_commitment_types::proto::ics23::{CommitmentProof, HostFunctionsManager};
+use ibc_core_commitment_types::specs::ProofSpecs;
+use ibc_core_host_types::path::PathBytes;
+use prost::Message;
 
 // the below keys are hard-coded for now. They have to be consistent with the Babylon repo.
 // TODO: integration tests for ensuring they are the same, or parametrise them upon instantiation
@@ -41,17 +46,28 @@ pub fn verify_store(
     proof: &tendermint_proto::crypto::ProofOps,
 ) -> Result<(), String> {
     // convert tendermint_proto::crypto::ProofOps to ics23 proof
-    let ics23_proof = convert_tm_proto_to_ics_merkle_proof(proof)
-        .map_err(|err|format!("failed to convert tendermint_proto::crypto::ProofOps to ibc::core::ics23_commitment::merkle::MerkleProof: {err:?}"))?;
+    let proofs = proof
+        .ops
+        .clone()
+        .into_iter()
+        .map(|op| CommitmentProof::decode(op.data.as_slice()))
+        .collect::<Result<_, _>>()
+        .map_err(|err| format!("failed to convert tendermint proof to ics23 proof: {err:?}"))?;
+    let ics23_proof = MerkleProof { proofs };
 
     // construct values for verifying Merkle proofs
-    let specs = ics23_commitment::specs::ProofSpecs::default();
-    let merkle_root = root.to_vec();
+    let merkle_root = CommitmentRoot::from_bytes(root).into();
     let merkle_keys = vec![module_key.to_vec(), key.to_vec()];
+    let merkle_path = MerklePath::new(merkle_keys.into_iter().map(PathBytes::from_bytes).collect());
 
-    // verify
     ics23_proof
-        .verify_membership(&specs, merkle_root, merkle_keys, value.to_vec(), 0)
+        .verify_membership::<HostFunctionsManager>(
+            &ProofSpecs::cosmos(),
+            merkle_root,
+            merkle_path,
+            value.to_vec(),
+            0,
+        )
         .map_err(|err| format!("failed to verify Tendermint Merkle proof: {err:?}"))?;
 
     Ok(())

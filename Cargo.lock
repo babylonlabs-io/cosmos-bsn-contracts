@@ -310,7 +310,7 @@ dependencies = [
  "btc-finality",
  "btc-light-client",
  "btc-staking",
- "cosmos-sdk-proto",
+ "cosmos-sdk-proto 0.27.0",
  "cosmwasm-schema",
  "cosmwasm-std",
  "cosmwasm-vm",
@@ -321,7 +321,9 @@ dependencies = [
  "cw2",
  "derivative",
  "hex",
- "ibc-proto",
+ "ibc-core-commitment-types",
+ "ibc-core-host-types",
+ "ibc-proto 0.52.0",
  "ics23",
  "ics23-commitment",
  "pbjson-types",
@@ -352,7 +354,7 @@ name = "babylon-proto"
 version = "0.14.0"
 dependencies = [
  "bitvec",
- "cosmos-sdk-proto",
+ "cosmos-sdk-proto 0.27.0",
  "pbjson-types",
  "prost",
  "sha2",
@@ -816,6 +818,16 @@ dependencies = [
 
 [[package]]
 name = "cosmos-sdk-proto"
+version = "0.26.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "462e1f6a8e005acc8835d32d60cbd7973ed65ea2a8d8473830e675f050956427"
+dependencies = [
+ "prost",
+ "tendermint-proto",
+]
+
+[[package]]
+name = "cosmos-sdk-proto"
 version = "0.27.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "95ac39be7373404accccaede7cc1ec942ccef14f0ca18d209967a756bf1dbb1f"
@@ -1232,9 +1244,9 @@ dependencies = [
 
 [[package]]
 name = "deranged"
-version = "0.4.0"
+version = "0.3.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9c9e6a11ca8224451684bc0d7d5a7adbf8f2fd6887261a1cfc3c0432f9d4068e"
+checksum = "b42b6fa04a440b495c8b04d0e71b707c585f83cb9cb28cf8cd0d976c315e31b4"
 dependencies = [
  "powerfmt",
 ]
@@ -1281,6 +1293,17 @@ dependencies = [
  "const-oid",
  "crypto-common",
  "subtle",
+]
+
+[[package]]
+name = "displaydoc"
+version = "0.2.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "97369cbbc041bc366949bc74d34658d6cda5621039731c6310521892a3a20ae0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.101",
 ]
 
 [[package]]
@@ -1663,6 +1686,63 @@ dependencies = [
 ]
 
 [[package]]
+name = "ibc-core-commitment-types"
+version = "0.57.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4ba35d2bde395cff6ddbf550d604c3098903e661430588995b1e5f8db1f2e1d1"
+dependencies = [
+ "derive_more",
+ "displaydoc",
+ "ibc-core-host-types",
+ "ibc-primitives",
+ "ibc-proto 0.51.1",
+ "ics23",
+ "subtle-encoding",
+]
+
+[[package]]
+name = "ibc-core-host-types"
+version = "0.57.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5879fb43b0789f42919b7965a93f8a18a08eaa39bf624fbaf837d8673ef1ecdc"
+dependencies = [
+ "base64 0.22.1",
+ "derive_more",
+ "displaydoc",
+ "ibc-primitives",
+ "prost",
+]
+
+[[package]]
+name = "ibc-primitives"
+version = "0.57.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4ff3dab00855e9ab99fa7276814bd29b0350f2da70b3e9f67f1d86f4e269655b"
+dependencies = [
+ "derive_more",
+ "displaydoc",
+ "ibc-proto 0.51.1",
+ "prost",
+ "time",
+]
+
+[[package]]
+name = "ibc-proto"
+version = "0.51.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9b70f517162e74e2d35875b8b94bf4d1e45f2c69ef3de452dc855944455d33ca"
+dependencies = [
+ "base64 0.22.1",
+ "bytes",
+ "cosmos-sdk-proto 0.26.1",
+ "flex-error",
+ "ics23",
+ "prost",
+ "subtle-encoding",
+ "tendermint-proto",
+]
+
+[[package]]
 name = "ibc-proto"
 version = "0.52.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1670,7 +1750,7 @@ checksum = "a650b51e384e54264b53974feb38e95e37aac70f7f2f9c07eb8022fe15eb8e20"
 dependencies = [
  "base64 0.22.1",
  "bytes",
- "cosmos-sdk-proto",
+ "cosmos-sdk-proto 0.27.0",
  "flex-error",
  "ics23",
  "prost",
@@ -2896,9 +2976,9 @@ dependencies = [
 
 [[package]]
 name = "time"
-version = "0.3.41"
+version = "0.3.37"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8a7619e19bc266e0f9c5e6686659d394bc57973859340060a69221e57dbc0c40"
+checksum = "35e7868883861bd0e56d9ac6efcaaca0d6d5d82a2a7ec8209ff492c07cf37b21"
 dependencies = [
  "deranged",
  "num-conv",
@@ -2909,15 +2989,15 @@ dependencies = [
 
 [[package]]
 name = "time-core"
-version = "0.1.4"
+version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c9e9a38711f559d9e3ce1cdb06dd7c5b8ea546bc90052da6d06bb76da74bb07c"
+checksum = "ef927ca75afb808a4d64dd374f00a2adf8d0fcff8e7b184af886c3c87ec4a3f3"
 
 [[package]]
 name = "time-macros"
-version = "0.2.22"
+version = "0.2.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3526739392ec93fd8b359c8e98514cb3e8e021beb4e5f597b00a0221f8ed8a49"
+checksum = "2834e6017e3e5e4b9834939793b282bc03b37a3336245fa820e35e233e2a85de"
 dependencies = [
  "num-conv",
  "time-core",
