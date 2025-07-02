@@ -4,7 +4,6 @@ use cw2::set_contract_version;
 use babylon_bindings::BabylonMsg;
 
 use crate::error::ContractError;
-use crate::msg::btc_header::BtcHeader;
 use crate::msg::contract::{ExecuteMsg, InstantiateMsg, QueryMsg};
 use crate::state::btc_light_client::{handle_btc_headers_from_user, init};
 use crate::state::config::{Config, CONFIG};
@@ -65,21 +64,18 @@ pub fn execute(
 ) -> Result<Response<BabylonMsg>, ContractError> {
     match msg {
         ExecuteMsg::BtcHeaders { headers } => {
-            let api = deps.api;
             let headers_len = headers.len();
-            let resp = match handle_btc_headers(deps, headers) {
-                Ok(resp) => {
-                    api.debug(&format!("Successfully handled {} BTC headers", headers_len));
-                    resp
-                }
-                Err(e) => {
-                    let err = format!("Failed to handle {} BTC headers: {}", headers_len, e);
-                    api.debug(&err);
-                    return Err(e);
-                }
-            };
 
-            Ok(resp)
+            handle_btc_headers_from_user(deps.storage, &headers)
+                .map(|_| {
+                    deps.api
+                        .debug(&format!("Successfully handled {headers_len} BTC headers"));
+                    Response::new().add_attribute("action", "update_btc_light_client")
+                })
+                .inspect_err(|e| {
+                    deps.api
+                        .debug(&format!("Failed to handle {headers_len} BTC headers: {e}"));
+                })
         }
     }
 }
@@ -106,12 +102,4 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> Result<Binary, ContractErr
             reverse,
         )?)?),
     }
-}
-
-fn handle_btc_headers(
-    deps: DepsMut,
-    headers: Vec<BtcHeader>,
-) -> Result<Response<BabylonMsg>, ContractError> {
-    handle_btc_headers_from_user(deps.storage, &headers)?;
-    Ok(Response::new().add_attribute("action", "update_btc_light_client"))
 }
