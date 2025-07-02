@@ -2,6 +2,7 @@
 use cosmwasm_std::{DepsMut, StdError, WasmMsg};
 
 use crate::bindings::msg_btc_finalized_header;
+use crate::utils::btc_light_client_executor::new_btc_headers_msg;
 use babylon_bindings::BabylonMsg;
 use babylon_proto::babylon::zoneconcierge::v1::BtcTimestamp;
 
@@ -18,21 +19,16 @@ pub fn handle_btc_timestamp(
     deps: &mut DepsMut,
     btc_ts: &BtcTimestamp,
 ) -> Result<(Option<WasmMsg>, Option<BabylonMsg>), StdError> {
-    let mut wasm_msg = None;
     let mut babylon_msg = None;
 
     // only process BTC headers if they exist and are not empty
-    if let Some(btc_headers) = btc_ts.btc_headers.as_ref() {
-        if !btc_headers.headers.is_empty() {
-            wasm_msg = Some(
-                crate::utils::btc_light_client_executor::new_btc_headers_msg(
-                    deps,
-                    &btc_headers.headers,
-                )
+    let wasm_msg = match btc_ts.btc_headers.as_ref() {
+        Some(btc_headers) if !btc_headers.headers.is_empty() => Some(
+            new_btc_headers_msg(deps, &btc_headers.headers)
                 .map_err(|e| StdError::generic_err(format!("failed to submit BTC headers: {e}")))?,
-            );
-        }
-    }
+        ),
+        _ => None,
+    };
 
     // extract and init/handle Babylon epoch chain
     let (epoch, raw_ckpt, proof_epoch_sealed, txs_info) =
