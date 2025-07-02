@@ -175,10 +175,8 @@ pub fn init(
     let base_header = headers.first().ok_or(InitError::MissingTipHeader)?;
     let base_header = base_header.to_btc_header_info(first_height, *first_work)?;
 
-    // decode this header to rust-bitcoin's type
     let base_btc_header: BlockHeader = babylon_bitcoin::deserialize(base_header.header.as_ref())?;
 
-    // verify the base header's pow
     if babylon_bitcoin::pow::verify_header_pow(&chain_params, &base_btc_header).is_err() {
         return Err(ContractError::BTCHeaderError {});
     }
@@ -186,7 +184,8 @@ pub fn init(
     // Convert headers to BtcHeaderInfo with work/height based on first block
     let mut cur_height = base_header.height;
     let mut cur_work = total_work(base_header.work.as_ref())?;
-    let mut processed_headers = vec![base_header.clone()];
+    let mut processed_headers = Vec::with_capacity(headers.len());
+    processed_headers.push(base_header.clone());
     for header in headers.iter().skip(1) {
         let new_header_info = header.to_btc_header_info_from_prev(cur_height, cur_work)?;
         cur_height += 1;
