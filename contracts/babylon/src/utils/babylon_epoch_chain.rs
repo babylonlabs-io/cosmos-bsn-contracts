@@ -137,7 +137,8 @@ pub fn verify_checkpoint_submitted(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use test_utils::get_btc_timestamp_and_headers;
+
+    use babylon_test_utils::get_btc_timestamp_and_headers;
 
     #[test]
     fn verify_epoch_sealed_works() {

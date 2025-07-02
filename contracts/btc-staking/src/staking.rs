@@ -731,7 +731,7 @@ pub(crate) mod tests {
 
     use cosmwasm_std::testing::{message_info, mock_dependencies, mock_env};
 
-    use test_utils::{
+    use babylon_test_utils::{
         create_new_finality_provider, create_new_fp_sk, get_active_btc_delegation,
         get_btc_del_unbonding_sig, get_derived_btc_delegation,
     };

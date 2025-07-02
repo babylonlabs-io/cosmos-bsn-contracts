@@ -16,6 +16,6 @@ thiserror       = { workspace = true }
 eots            = { path = "../eots" }
 
 [dev-dependencies]
-test-utils    = { path = "../test-utils" }
-babylon-proto = { workspace = true }
-prost         = { workspace = true }
+babylon-proto      = { workspace = true }
+babylon-test-utils = { path = "../test-utils" }
+prost              = { workspace = true }

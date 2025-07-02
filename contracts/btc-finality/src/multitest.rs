@@ -64,13 +64,12 @@ mod finality {
 
     use crate::msg::FinalitySignatureResponse;
     use babylon_apis::finality_api::IndexedBlock;
-    use test_utils::get_public_randomness_commitment;
 
-    use cosmwasm_std::{coin, Event};
-    use test_utils::{
+    use babylon_test_utils::{
         create_new_finality_provider, get_add_finality_sig, get_derived_btc_delegation,
-        get_pub_rand_value,
+        get_pub_rand_value, get_public_randomness_commitment,
     };
+    use cosmwasm_std::{coin, Event};
 
     #[test]
     fn commit_public_randomness_works() {
@@ -343,14 +342,13 @@ mod finality {
 
 mod slashing {
     use babylon_apis::finality_api::IndexedBlock;
-    use cosmwasm_std::coin;
-    use test_utils::{
+    use babylon_test_utils::{
         create_new_finality_provider, get_add_finality_sig, get_add_finality_sig_2,
-        get_derived_btc_delegation, get_pub_rand_value,
+        get_derived_btc_delegation, get_pub_rand_value, get_public_randomness_commitment,
     };
+    use cosmwasm_std::coin;
 
     use crate::multitest::suite::SuiteBuilder;
-    use test_utils::get_public_randomness_commitment;
 
     #[test]
     fn slashing_works() {
@@ -491,14 +489,13 @@ mod slashing {
 
 mod distribution {
     use babylon_apis::finality_api::IndexedBlock;
-    use cosmwasm_std::{coin, Addr};
-    use test_utils::{
+    use babylon_test_utils::{
         create_new_finality_provider, get_add_finality_sig, get_derived_btc_delegation,
-        get_pub_rand_value,
+        get_pub_rand_value, get_public_randomness_commitment,
     };
+    use cosmwasm_std::{coin, Addr};
 
     use crate::multitest::suite::SuiteBuilder;
-    use test_utils::get_public_randomness_commitment;
 
     #[test]
     fn distribution_consumer_withdrawal_works() {
@@ -657,7 +654,7 @@ mod jailing {
 
     use crate::error::ContractError;
     use crate::multitest::suite::SuiteBuilder;
-    use test_utils::{
+    use babylon_test_utils::{
         create_new_finality_provider, get_add_finality_sig, get_derived_btc_delegation,
         get_pub_rand_value, get_public_randomness_commitment,
     };

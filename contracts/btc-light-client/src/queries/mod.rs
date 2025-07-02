@@ -9,8 +9,8 @@ mod tests {
     use super::*;
     use crate::state::btc_light_client::init_from_babylon;
     use crate::state::btc_light_client::tests::setup;
+    use babylon_test_utils::get_btc_lc_headers;
     use cosmwasm_std::testing::mock_dependencies;
-    use test_utils::get_btc_lc_headers;
 
     #[test]
     fn btc_headers_work() {

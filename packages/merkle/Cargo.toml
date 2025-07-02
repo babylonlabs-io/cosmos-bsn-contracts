@@ -1,8 +1,12 @@
 [package]
 name = "babylon-merkle"
 description = "CometBFT compatible Merkle proofs"
-version.workspace = true
 edition.workspace = true
+version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+publish           = true
 
 [dependencies]
 cosmwasm-schema  = { workspace = true }

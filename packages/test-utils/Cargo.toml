@@ -1,16 +1,17 @@
 [package]
-name = "test-utils"
+name = "babylon-test-utils"
+description = "Utilities used in Babylon contracts tests"
 edition.workspace = true
 version.workspace = true
 license.workspace = true
 repository.workspace = true
 authors.workspace = true
-publish.workspace = true
+publish           = true
 
 [dependencies]
-babylon-apis     = { path = "../apis" }
-babylon-proto    = { path = "../proto" }
-babylon-bitcoin  = { path = "../bitcoin" }
+babylon-apis     = { path = "../apis", version = "0.14.0" }
+babylon-proto    = { path = "../proto", version = "0.14.0" }
+babylon-bitcoin  = { path = "../bitcoin", version = "0.14.0" }
 cosmwasm-std     = { workspace = true }
 hex              = { workspace = true }
 k256             = { workspace = true }

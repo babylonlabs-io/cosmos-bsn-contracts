@@ -1,12 +1,16 @@
 [package]
 name = "babylon-apis"
-version.workspace = true
+description = "Babylon APIs for BSN staking integration"
 edition.workspace = true
+version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
 
 [dependencies]
-babylon-bitcoin  = { path = "../bitcoin" }
-babylon-merkle   = { path = "../merkle" }
-babylon-proto    = { workspace = true }
+babylon-bitcoin  = { path = "../bitcoin", version = "0.14.0" }
+babylon-merkle   = { path = "../merkle", version = "0.14.0" }
+babylon-proto    = { path = "../proto", version = "0.14.0" }
 bech32           = { workspace = true }
 cosmwasm-std     = { workspace = true }
 cosmwasm-schema  = { workspace = true }

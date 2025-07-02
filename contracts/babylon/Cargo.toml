@@ -56,11 +56,11 @@ sha2             = { workspace = true }
 btc-light-client = { path = "../btc-light-client", features = [ "library" ] }
 
 [dev-dependencies]
-babylon-bindings-test        = { path = "../../packages/bindings-test" }
-btc-staking                  = { path = "../btc-staking", features = [ "library" ] }
-btc-finality                 = { path = "../btc-finality", features = [ "library" ] }
-btc-light-client             = { path = "../btc-light-client", features = [ "library" ] }
-test-utils                   = { path = "../../packages/test-utils" }
+babylon-bindings-test  = { path = "../../packages/bindings-test" }
+babylon-test-utils     = { path = "../../packages/test-utils" }
+btc-staking            = { path = "../btc-staking", features = [ "library" ] }
+btc-finality           = { path = "../btc-finality", features = [ "library" ] }
+btc-light-client       = { path = "../btc-light-client", features = [ "library" ] }
 
 cosmwasm-vm            = { workspace = true }
 cw-multi-test          = { workspace = true }
