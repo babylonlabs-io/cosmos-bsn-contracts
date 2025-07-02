@@ -19,8 +19,6 @@ pub fn handle_btc_timestamp(
     deps: &mut DepsMut,
     btc_ts: &BtcTimestamp,
 ) -> Result<(Option<WasmMsg>, Option<BabylonMsg>), StdError> {
-    let mut babylon_msg = None;
-
     // only process BTC headers if they exist and are not empty
     let wasm_msg = match btc_ts.btc_headers.as_ref() {
         Some(btc_headers) if !btc_headers.headers.is_empty() => Some(
@@ -59,7 +57,8 @@ pub fn handle_btc_timestamp(
 
     // Try to extract and handle the Consumer header.
     // It's possible that there is no Consumer header checkpointed in this epoch
-    if let Some(consumer_header) = btc_ts.header.as_ref() {
+
+    let babylon_msg = if let Some(consumer_header) = btc_ts.header.as_ref() {
         let proof = btc_ts
             .proof
             .as_ref()
@@ -87,8 +86,11 @@ pub fn handle_btc_timestamp(
         // Notify the Consumer about the newly finalised Consumer header.
         // A Cosmos chain that deploys the corresponding CosmWasm plugin will handle this message
         let msg = msg_btc_finalized_header(consumer_header)?;
-        babylon_msg = Some(msg);
-    }
+
+        Some(msg)
+    } else {
+        None
+    };
 
     Ok((wasm_msg, babylon_msg))
 }
