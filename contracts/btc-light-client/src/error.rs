@@ -57,8 +57,8 @@ pub enum ContractError {
     #[error("The BTC header is not being sent")]
     BTCHeaderEmpty {},
 
-    #[error("The BTC header does not satisfy the difficulty requirement or is not consecutive")]
-    BTCHeaderError {},
+    #[error(transparent)]
+    BtcLightClient(#[from] babylon_bitcoin::error::Error),
 
     #[error("The BTC header with hash {hash} is not found in the storage")]
     BTCHeaderNotFoundError { hash: String },

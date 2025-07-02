@@ -22,8 +22,7 @@ pub fn verify_headers(
         let btc_header: BlockHeader = babylon_bitcoin::deserialize(new_header.header.as_ref())?;
 
         // validate whether btc_header extends last_btc_header
-        babylon_bitcoin::pow::verify_next_header_pow(chain_params, &last_btc_header, &btc_header)
-            .map_err(|_| error::ContractError::BTCHeaderError {})?;
+        babylon_bitcoin::pow::verify_next_header_pow(chain_params, &last_btc_header, &btc_header)?;
 
         let header_work = btc_header.work();
         let cum_work = total_work(new_header.work.as_ref())?;

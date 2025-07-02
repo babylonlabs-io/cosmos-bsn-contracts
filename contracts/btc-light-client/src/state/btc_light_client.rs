@@ -177,9 +177,7 @@ pub fn init(
 
     let base_btc_header: BlockHeader = babylon_bitcoin::deserialize(base_header.header.as_ref())?;
 
-    if babylon_bitcoin::pow::verify_header_pow(&chain_params, &base_btc_header).is_err() {
-        return Err(ContractError::BTCHeaderError {});
-    }
+    babylon_bitcoin::pow::verify_header_pow(&chain_params, &base_btc_header)?;
 
     // Convert headers to BtcHeaderInfo with work/height based on first block
     let mut cur_height = base_header.height;
@@ -540,7 +538,7 @@ pub mod tests {
 
         // handling invalid fork headers
         let res = handle_btc_headers_from_babylon(&mut storage, &invalid_fork_headers);
-        assert!(matches!(res.unwrap_err(), ContractError::BTCHeaderError {}));
+        assert!(matches!(res.unwrap_err(), ContractError::BtcLightClient(_)));
 
         // ensure base and tip are unchanged
         ensure_base_and_tip(&storage, &test_headers);
