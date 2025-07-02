@@ -7,7 +7,7 @@ pub enum Error {
     FailedToParsePublicKey(String),
     #[error("Invalid schnorr signature")]
     InvalidSchnorrSignature(String),
-    #[error("Header's target is larger then pow_limit'")]
+    #[error("Header's target is larger than pow_limit")]
     TargetTooLarge,
     #[error("proof-of-work validation failed: {0:?}")]
     InvalidProofOfWork(ValidationError),
