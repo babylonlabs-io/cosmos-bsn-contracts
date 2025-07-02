@@ -353,23 +353,7 @@ mod tests {
     #[test]
     fn instantiate_works() {
         let mut deps = mock_dependencies();
-        let msg = InstantiateMsg {
-            network: babylon_bitcoin::chain_params::Network::Regtest,
-            babylon_tag: "01020304".to_string(),
-            btc_confirmation_depth: 10,
-            checkpoint_finalization_timeout: 100,
-            notify_cosmos_zone: false,
-            btc_light_client_code_id: None,
-            btc_light_client_msg: None,
-            btc_staking_code_id: None,
-            btc_staking_msg: None,
-            btc_finality_code_id: None,
-            btc_finality_msg: None,
-            admin: None,
-            consumer_name: None,
-            consumer_description: None,
-            ics20_channel_id: None,
-        };
+        let msg = InstantiateMsg::new_test();
         let info = message_info(&deps.api.addr_make(CREATOR), &[]);
         let res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
         assert_eq!(0, res.messages.len());
@@ -378,28 +362,10 @@ mod tests {
     #[test]
     fn instantiate_light_client_works() {
         let mut deps = mock_dependencies();
-        let net = babylon_bitcoin::chain_params::Network::Regtest;
-        let k = 10;
-        let w = 100;
-        let msg = InstantiateMsg {
-            network: net.clone(),
-            babylon_tag: "01020304".to_string(),
-            btc_confirmation_depth: k,
-            checkpoint_finalization_timeout: w,
-            notify_cosmos_zone: false,
-            btc_light_client_code_id: Some(1),
-            btc_light_client_msg: None,
-            btc_staking_code_id: None,
-            btc_staking_msg: None,
-            btc_finality_code_id: None,
-            btc_finality_msg: None,
-            admin: None,
-            consumer_name: None,
-            consumer_description: None,
-            ics20_channel_id: None,
-        };
+        let mut msg = InstantiateMsg::new_test();
+        msg.btc_light_client_code_id.replace(1);
         let info = message_info(&deps.api.addr_make(CREATOR), &[]);
-        let res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
+        let res = instantiate(deps.as_mut(), mock_env(), info, msg.clone()).unwrap();
         assert_eq!(1, res.messages.len());
         assert_eq!(REPLY_ID_INSTANTIATE_LIGHT_CLIENT, res.messages[0].id);
         assert_eq!(
@@ -408,9 +374,9 @@ mod tests {
                 admin: None,
                 code_id: 1,
                 msg: to_json_binary(&BtcLightClientInstantiateMsg {
-                    network: net.clone(),
-                    btc_confirmation_depth: k,
-                    checkpoint_finalization_timeout: w,
+                    network: babylon_bitcoin::chain_params::Network::Regtest,
+                    btc_confirmation_depth: msg.btc_confirmation_depth,
+                    checkpoint_finalization_timeout: msg.checkpoint_finalization_timeout,
                 })
                 .unwrap(),
                 funds: vec![],
@@ -424,23 +390,10 @@ mod tests {
     fn instantiate_light_client_params_works() {
         let mut deps = mock_dependencies();
         let params = r#"{"network":"testnet","btc_confirmation_depth":6,"checkpoint_finalization_timeout":100}"#;
-        let msg = InstantiateMsg {
-            network: babylon_bitcoin::chain_params::Network::Regtest,
-            babylon_tag: "01020304".to_string(),
-            btc_confirmation_depth: 10,
-            checkpoint_finalization_timeout: 100,
-            notify_cosmos_zone: false,
-            btc_light_client_code_id: Some(1),
-            btc_light_client_msg: Some(Binary::from(params.as_bytes())),
-            btc_staking_code_id: None,
-            btc_staking_msg: None,
-            btc_finality_code_id: None,
-            btc_finality_msg: None,
-            admin: None,
-            consumer_name: None,
-            consumer_description: None,
-            ics20_channel_id: None,
-        };
+        let mut msg = InstantiateMsg::new_test();
+        msg.btc_light_client_code_id.replace(1);
+        msg.btc_light_client_msg
+            .replace(Binary::from(params.as_bytes()));
         let info = message_info(&deps.api.addr_make(CREATOR), &[]);
         let res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
         assert_eq!(1, res.messages.len());
@@ -461,23 +414,8 @@ mod tests {
     #[test]
     fn instantiate_finality_works() {
         let mut deps = mock_dependencies();
-        let msg = InstantiateMsg {
-            network: babylon_bitcoin::chain_params::Network::Regtest,
-            babylon_tag: "01020304".to_string(),
-            btc_confirmation_depth: 10,
-            checkpoint_finalization_timeout: 100,
-            notify_cosmos_zone: false,
-            btc_light_client_code_id: None,
-            btc_light_client_msg: None,
-            btc_staking_code_id: None,
-            btc_staking_msg: None,
-            btc_finality_code_id: Some(2),
-            btc_finality_msg: None,
-            admin: None,
-            consumer_name: None,
-            consumer_description: None,
-            ics20_channel_id: None,
-        };
+        let mut msg = InstantiateMsg::new_test();
+        msg.btc_finality_code_id.replace(2);
         let info = message_info(&deps.api.addr_make(CREATOR), &[]);
         let res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
         assert_eq!(1, res.messages.len());
@@ -499,23 +437,10 @@ mod tests {
     fn instantiate_finality_params_works() {
         let mut deps = mock_dependencies();
         let params = r#"{"params": {"epoch_length": 10}}"#;
-        let msg = InstantiateMsg {
-            network: babylon_bitcoin::chain_params::Network::Regtest,
-            babylon_tag: "01020304".to_string(),
-            btc_confirmation_depth: 10,
-            checkpoint_finalization_timeout: 100,
-            notify_cosmos_zone: false,
-            btc_light_client_code_id: None,
-            btc_light_client_msg: None,
-            btc_staking_code_id: None,
-            btc_staking_msg: None,
-            btc_finality_code_id: Some(2),
-            btc_finality_msg: Some(Binary::from(params.as_bytes())),
-            admin: None,
-            consumer_name: None,
-            consumer_description: None,
-            ics20_channel_id: None,
-        };
+        let mut msg = InstantiateMsg::new_test();
+        msg.btc_finality_code_id.replace(2);
+        msg.btc_finality_msg
+            .replace(Binary::from(params.as_bytes()));
         let info = message_info(&deps.api.addr_make(CREATOR), &[]);
         let res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
         assert_eq!(1, res.messages.len());
