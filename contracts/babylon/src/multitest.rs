@@ -20,7 +20,9 @@ const BTC_FINALITY_CONTRACT_ADDR: &str =
 
 #[test]
 fn initialization() {
-    let suite = SuiteBuilder::new().build();
+    let suite = SuiteBuilder::new()
+        .with_checkpoint_finalization_timeout(1)
+        .build();
 
     // Check that the contracts were initialized correctly
     let config = suite.get_config();
@@ -30,7 +32,7 @@ fn initialization() {
     );
     assert_eq!(config.babylon_tag, [1, 2, 3, 4]);
     assert_eq!(config.btc_confirmation_depth, 1);
-    assert_eq!(config.checkpoint_finalization_timeout, 10);
+    assert_eq!(config.checkpoint_finalization_timeout, 1);
     assert!(!config.notify_cosmos_zone);
     assert_eq!(
         config.btc_light_client,
@@ -64,6 +66,7 @@ mod instantiation {
     use crate::state::config::Config;
 
     use super::*;
+    use btc_light_client::msg::btc_header::btc_headers_from_info;
     use cosmwasm_std::to_json_string;
 
     fn contract_should_be_instantiated(config: Config) {
@@ -92,10 +95,15 @@ mod instantiation {
 
     #[test]
     fn instantiate_light_client_msg_works() {
+        let initial_headers = crate::contract::tests::initial_headers();
+        let header: babylon_bitcoin::BlockHeader = bitcoin::consensus::encode::deserialize_hex("020000003f99814a36d2a2043b1d4bf61a410f71828eca1decbf56000000000000000000b3762ed278ac44bb953e24262cfeb952d0abe6d3b7f8b74fd24e009b96b6cb965d674655dd1317186436e79d").unwrap();
         let params = btc_light_client::msg::InstantiateMsg {
             network: babylon_bitcoin::chain_params::Network::Testnet,
-            btc_confirmation_depth: 6,
-            checkpoint_finalization_timeout: 100,
+            btc_confirmation_depth: 1,
+            checkpoint_finalization_timeout: 1,
+            headers: btc_headers_from_info(&initial_headers).unwrap(),
+            first_work: header.work().to_be_bytes().into(),
+            first_height: initial_headers[0].height,
         };
         let suite = SuiteBuilder::new()
             .with_light_client_msg(&to_json_string(&params).unwrap())

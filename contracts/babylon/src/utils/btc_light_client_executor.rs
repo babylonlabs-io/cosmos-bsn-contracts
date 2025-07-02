@@ -15,16 +15,8 @@ pub fn new_btc_headers_msg(
         .ok_or(ContractError::BtcLightClientNotSet {})?
         .to_string();
 
-    let btc_headers = btc_headers_from_info(headers)?;
-
-    let base_header = headers.first().ok_or(ContractError::BtcHeaderEmpty {})?;
-    let first_work = hex::encode(base_header.work.as_ref());
-    let first_height = base_header.height;
-
     let msg = BtcLightClientExecuteMsg::BtcHeaders {
-        headers: btc_headers,
-        first_work: Some(first_work),
-        first_height: Some(first_height),
+        headers: btc_headers_from_info(headers)?,
     };
     let wasm_msg = WasmMsg::Execute {
         contract_addr,

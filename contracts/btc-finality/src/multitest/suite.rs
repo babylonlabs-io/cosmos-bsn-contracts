@@ -3,7 +3,7 @@ use derivative::Derivative;
 use hex::ToHex;
 
 use cosmwasm_std::testing::mock_dependencies;
-use cosmwasm_std::{to_json_binary, Addr, BlockInfo, Coin, Timestamp};
+use cosmwasm_std::{to_json_binary, Addr, Binary, BlockInfo, Coin, Timestamp};
 use cw_multi_test::{next_block, AppResponse, Contract, ContractWrapper, Executor};
 
 use babylon_apis::btc_staking_api::{ActiveBtcDelegation, FinalityProvider, NewFinalityProvider};
@@ -128,6 +128,7 @@ impl SuiteBuilder {
                     checkpoint_finalization_timeout: 10,
                     notify_cosmos_zone: false,
                     btc_light_client_code_id: Some(btc_light_client_code_id),
+                    btc_light_client_initial_headers: Default::default(),
                     btc_light_client_msg: None,
                     btc_staking_code_id: Some(btc_staking_code_id),
                     btc_staking_msg: Some(

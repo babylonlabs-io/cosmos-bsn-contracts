@@ -2,6 +2,7 @@ use crate::error::ContractError;
 use babylon_bitcoin::{deserialize, BlockHeader, Work};
 use babylon_proto::babylon::btclightclient::v1::BtcHeaderInfo;
 use cosmwasm_std::{StdResult, Uint256};
+use prost::bytes::Bytes;
 use std::str::{from_utf8, FromStr};
 
 /// verify_headers verifies whether `new_headers` are valid consecutive headers
@@ -56,8 +57,7 @@ pub fn zero_work() -> Work {
 /// Returns the total work of the given header.
 /// The total work is the cumulative work of the given header and all of its ancestors.
 pub fn total_work(work: &[u8]) -> StdResult<Work> {
-    // TODO: Use a better encoding (String / binary)
-    let header_work = from_utf8(work)?;
-    let header_work_cw = cosmwasm_std::Uint256::from_str(header_work)?;
+    println!("----------- work: {work:?}");
+    let header_work_cw = cosmwasm_std::Uint256::from_be_bytes(work.try_into().unwrap());
     Ok(Work::from_be_bytes(header_work_cw.to_be_bytes()))
 }

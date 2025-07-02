@@ -30,15 +30,13 @@ pub fn instantiate(
         first_height,
     } = msg;
 
-    let first_work_hex = first_work;
-
     // Check if there are enough headers for initialization
     if headers.len() < btc_confirmation_depth as usize {
         return Err(InitError::NotEnoughHeaders(btc_confirmation_depth).into());
     }
 
-    let first_work_bytes = hex::decode(first_work_hex)?;
-    let first_work = total_work(&first_work_bytes)?;
+    println!("[LC] instantiate first_work: {first_work:?}");
+    let first_work = total_work(&first_work)?;
 
     let cfg = Config {
         network,

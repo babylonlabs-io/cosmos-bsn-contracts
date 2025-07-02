@@ -1,5 +1,5 @@
 use cosmwasm_schema::{cw_serde, QueryResponses};
-use cosmwasm_std::{StdError, StdResult};
+use cosmwasm_std::{Binary, StdError, StdResult};
 
 use crate::msg::btc_header::BtcHeader;
 #[cfg(not(target_arch = "wasm32"))]
@@ -14,7 +14,7 @@ pub struct InstantiateMsg {
     pub btc_confirmation_depth: u32,
     pub checkpoint_finalization_timeout: u32,
     pub headers: Vec<BtcHeader>,
-    pub first_work: String,
+    pub first_work: Binary,
     pub first_height: u32,
 }
 

@@ -53,7 +53,7 @@ impl BtcHeader {
                 &block_header.block_hash(),
             )),
             height,
-            work: prost::bytes::Bytes::from(work.to_string()),
+            work: work.to_be_bytes().to_vec().into(),
         })
     }
 
@@ -64,8 +64,6 @@ impl BtcHeader {
     ) -> Result<BtcHeaderInfo, ContractError> {
         let block_header: BlockHeader = self.try_into()?;
         let total_work = prev_work + block_header.work();
-        // To be able to print the decimal repr of the number
-        let total_work_cw = cosmwasm_std::Uint256::from_be_bytes(total_work.to_be_bytes());
 
         Ok(BtcHeaderInfo {
             header: ::prost::bytes::Bytes::from(babylon_bitcoin::serialize(&block_header)),
@@ -73,7 +71,7 @@ impl BtcHeader {
                 &block_header.block_hash(),
             )),
             height: prev_height + 1,
-            work: prost::bytes::Bytes::from(total_work_cw.to_string()),
+            work: total_work.to_be_bytes().to_vec().into(),
         })
     }
 }
