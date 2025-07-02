@@ -23,23 +23,9 @@ const CREATOR: &str = "creator";
 #[track_caller]
 fn setup() -> Instance<MockApi, MockStorage, MockQuerier> {
     let mut deps = mock_instance_with_gas_limit(BABYLON_CONTRACT_WASM, 2_250_000_000_000);
-    let msg = InstantiateMsg {
-        network: babylon_bitcoin::chain_params::Network::Regtest,
-        babylon_tag: "01020304".to_string(),
-        consumer_name: None,
-        consumer_description: None,
-        btc_confirmation_depth: 10,
-        checkpoint_finalization_timeout: 99,
-        notify_cosmos_zone: false,
-        btc_light_client_code_id: None,
-        btc_light_client_msg: None,
-        btc_staking_code_id: None,
-        btc_staking_msg: None,
-        btc_finality_code_id: None,
-        btc_finality_msg: None,
-        admin: None,
-        ics20_channel_id: None,
-    };
+    let mut msg = InstantiateMsg::new_test();
+    msg.btc_confirmation_depth = 10;
+    msg.checkpoint_finalization_timeout = 99;
     let info = message_info(&Addr::unchecked(CREATOR), &[]);
     let res: Response = instantiate(&mut deps, mock_env(), info, msg).unwrap();
     assert_eq!(0, res.messages.len());
@@ -60,23 +46,9 @@ fn wasm_size_limit_check() {
 fn instantiate_works() {
     let mut deps = mock_instance(BABYLON_CONTRACT_WASM, &[]);
 
-    let msg = InstantiateMsg {
-        network: babylon_bitcoin::chain_params::Network::Regtest,
-        babylon_tag: "01020304".to_string(),
-        consumer_name: None,
-        consumer_description: None,
-        btc_confirmation_depth: 10,
-        checkpoint_finalization_timeout: 100,
-        notify_cosmos_zone: false,
-        btc_light_client_code_id: None,
-        btc_light_client_msg: None,
-        btc_staking_code_id: None,
-        btc_staking_msg: None,
-        btc_finality_code_id: None,
-        btc_finality_msg: None,
-        admin: None,
-        ics20_channel_id: None,
-    };
+    let mut msg = InstantiateMsg::new_test();
+    msg.btc_confirmation_depth = 10;
+    msg.checkpoint_finalization_timeout = 100;
     let info = message_info(&Addr::unchecked(CREATOR), &[]);
     let res: ContractResult<Response> = instantiate(&mut deps, mock_env(), info, msg);
     let msgs = res.unwrap().messages;

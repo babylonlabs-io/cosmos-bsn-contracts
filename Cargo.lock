@@ -368,6 +368,7 @@ dependencies = [
  "babylon-apis",
  "babylon-bitcoin",
  "babylon-proto",
+ "bitcoin",
  "cosmwasm-std",
  "hex",
  "k256",

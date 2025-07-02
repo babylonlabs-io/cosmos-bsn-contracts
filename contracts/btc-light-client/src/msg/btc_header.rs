@@ -233,8 +233,8 @@ impl TryFrom<&BtcHeaderInfo> for BtcHeaderResponse {
 
     fn try_from(btc_header_info: &BtcHeaderInfo) -> Result<Self, Self::Error> {
         let header = BtcHeader::try_from(btc_header_info)?;
-        let total_work = from_utf8(btc_header_info.work.as_ref())?;
-        let total_work = cosmwasm_std::Uint256::from_str(total_work)?;
+        let total_work =
+            cosmwasm_std::Uint256::from_be_bytes(btc_header_info.work.to_vec().try_into().unwrap());
         // FIXME: Use BlockHash / Hash helper / encapsulation to reverse the hash under the hood
         let hash_repr = hex::encode(
             btc_header_info
@@ -357,7 +357,10 @@ mod tests {
                     &block_header.block_hash()
                 )),
                 height: 10 + 1,
-                work: ::prost::bytes::Bytes::from("23458".as_bytes()), // header work is two
+                work: cosmwasm_std::Uint256::from(23458u64)
+                    .to_be_bytes()
+                    .to_vec()
+                    .into(), // header work is two.
             })
         );
     }
@@ -449,7 +452,10 @@ mod tests {
             header: ::prost::bytes::Bytes::from(babylon_bitcoin::serialize(&block_header)),
             hash: ::prost::bytes::Bytes::from(block_header.block_hash().to_string()),
             height: 1234,
-            work: ::prost::bytes::Bytes::from("5678".as_bytes().to_vec()),
+            work: cosmwasm_std::Uint256::from_u128(5678)
+                .to_be_bytes()
+                .to_vec()
+                .into(),
         };
         let btc_header = BtcHeaderResponse::try_from(btc_header_info).unwrap();
         assert_eq!(btc_header.header.version, 1);

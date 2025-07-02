@@ -359,40 +359,11 @@ pub fn execute(
 pub(crate) mod tests {
     use super::*;
     use babylon_bitcoin::BlockHeader;
+    use babylon_test_utils::{initial_headers, initial_headers_in_hex};
     use cosmwasm_std::testing::message_info;
     use cosmwasm_std::testing::{mock_dependencies, mock_env};
 
     const CREATOR: &str = "creator";
-
-    // https://www.blockchain.com/explorer/blocks/btc/354816
-    pub(crate) fn initial_headers() -> Vec<BtcHeaderInfo> {
-        vec![
-            ("020000003f99814a36d2a2043b1d4bf61a410f71828eca1decbf56000000000000000000b3762ed278ac44bb953e24262cfeb952d0abe6d3b7f8b74fd24e009b96b6cb965d674655dd1317186436e79d", 354816),
-            ("02000000ab8fdde1899ac70ea94ce4d47252a71e625515ceed899d0200000000000000002bc1ef0c5f6132fb8b30993275980f28205d0c5a67ab762b1adabf262974349edb694655dd131718840e3767", 354817)
-        ]
-        .into_iter()
-        .map(|(header, height)| {
-            let header: BlockHeader = bitcoin::consensus::encode::deserialize_hex(header).unwrap();
-            BtcHeaderInfo {
-                header: bitcoin::consensus::serialize(&header).into(),
-                hash: bitcoin::consensus::serialize(&header.block_hash()).into(),
-                height,
-                work: header.work().to_be_bytes().to_vec().into(),
-            }
-        }).collect()
-    }
-
-    pub(crate) fn initial_headers_in_hex() -> String {
-        encode_btc_headers(initial_headers())
-    }
-
-    fn encode_btc_headers(headers: Vec<BtcHeaderInfo>) -> String {
-        let mut out = Vec::new();
-        for h in headers {
-            h.encode_length_delimited(&mut out).unwrap();
-        }
-        hex::encode(out)
-    }
 
     #[test]
     fn test_deserialize_btc_header() {
@@ -418,7 +389,7 @@ pub(crate) mod tests {
         msg.btc_light_client_code_id.replace(1);
 
         let initial_headers = initial_headers();
-        msg.btc_light_client_initial_headers = encode_btc_headers(initial_headers.clone());
+        msg.btc_light_client_initial_headers = initial_headers_in_hex();
 
         let header: BlockHeader = bitcoin::consensus::encode::deserialize_hex("020000003f99814a36d2a2043b1d4bf61a410f71828eca1decbf56000000000000000000b3762ed278ac44bb953e24262cfeb952d0abe6d3b7f8b74fd24e009b96b6cb965d674655dd1317186436e79d").unwrap();
         let expected_first_work: Binary = header.work().to_be_bytes().into();
@@ -453,7 +424,7 @@ pub(crate) mod tests {
         let mut deps = mock_dependencies();
         let params = r#"{"network":"testnet","btc_confirmation_depth":6,"checkpoint_finalization_timeout":100}"#;
         let mut msg = InstantiateMsg::new_test();
-        msg.btc_light_client_initial_headers = encode_btc_headers(initial_headers());
+        msg.btc_light_client_initial_headers = initial_headers_in_hex();
         msg.btc_light_client_code_id.replace(1);
         msg.btc_light_client_msg
             .replace(Binary::from(params.as_bytes()));
@@ -479,7 +450,7 @@ pub(crate) mod tests {
         let mut deps = mock_dependencies();
         let mut msg = InstantiateMsg::new_test();
         msg.btc_finality_code_id.replace(2);
-        msg.btc_light_client_initial_headers = encode_btc_headers(initial_headers());
+        msg.btc_light_client_initial_headers = initial_headers_in_hex();
         let info = message_info(&deps.api.addr_make(CREATOR), &[]);
         let res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
         assert_eq!(1, res.messages.len());
@@ -502,7 +473,7 @@ pub(crate) mod tests {
         let mut deps = mock_dependencies();
         let params = r#"{"params": {"epoch_length": 10}}"#;
         let mut msg = InstantiateMsg::new_test();
-        msg.btc_light_client_initial_headers = encode_btc_headers(initial_headers());
+        msg.btc_light_client_initial_headers = initial_headers_in_hex();
         msg.btc_finality_code_id.replace(2);
         msg.btc_finality_msg
             .replace(Binary::from(params.as_bytes()));
