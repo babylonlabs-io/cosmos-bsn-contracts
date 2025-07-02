@@ -82,8 +82,7 @@ impl BtcHeader {
 impl TryFrom<&BtcHeaderInfo> for BtcHeader {
     type Error = ContractError;
     fn try_from(btc_header_info: &BtcHeaderInfo) -> Result<Self, Self::Error> {
-        let block_header: BlockHeader = babylon_bitcoin::deserialize(&btc_header_info.header)
-            .map_err(|_| ContractError::BTCHeaderDecodeError {})?;
+        let block_header: BlockHeader = babylon_bitcoin::deserialize(&btc_header_info.header)?;
         Ok(Self {
             version: block_header.version.to_consensus(),
             prev_blockhash: block_header.prev_blockhash.to_string(),
@@ -108,8 +107,7 @@ impl TryFrom<&BtcHeaderInfoResponse> for BtcHeader {
     type Error = ContractError;
     fn try_from(btc_header_info_response: &BtcHeaderInfoResponse) -> Result<Self, Self::Error> {
         let block_header: BlockHeader =
-            babylon_bitcoin::deserialize(&hex::decode(&btc_header_info_response.header_hex)?)
-                .map_err(|_| ContractError::BTCHeaderDecodeError {})?;
+            babylon_bitcoin::deserialize(&hex::decode(&btc_header_info_response.header_hex)?)?;
         Ok(Self {
             version: block_header.version.to_consensus(),
             prev_blockhash: block_header.prev_blockhash.to_string(),

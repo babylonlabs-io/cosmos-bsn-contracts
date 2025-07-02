@@ -1,13 +1,13 @@
 use babylon_bitcoin::{BlockHash, BlockHeader, Work};
 use babylon_proto::babylon::btclightclient::v1::BtcHeaderInfo;
 use cosmwasm_std::Order::{Ascending, Descending};
-use cosmwasm_std::{StdResult, Storage};
+use cosmwasm_std::{StdError, StdResult, Storage};
 use cw_storage_plus::{Bound, Item, Map};
 use hex::ToHex;
 use prost::Message;
 use std::str::FromStr;
 
-use crate::error::ContractError;
+use crate::error::{ContractError, InitError};
 use crate::msg::btc_header::BtcHeader;
 use crate::utils::btc_light_client::{total_work, verify_headers};
 
@@ -20,6 +20,19 @@ pub const BTC_HEADER_BASE: Item<Vec<u8>> = Item::new("btc_lc_header_base");
 pub const BTC_HEIGHTS: Map<&[u8], u32> = Map::new("btc_lc_heights");
 pub const BTC_TIP: Item<Vec<u8>> = Item::new(BTC_TIP_KEY);
 
+/// Error type for the state store.
+#[derive(thiserror::Error, Debug, PartialEq)]
+pub enum StoreError {
+    #[error("The bytes cannot be decoded")]
+    Decode(#[from] prost::DecodeError),
+    #[error(transparent)]
+    CosmwasmStd(#[from] StdError),
+    #[error("The BTC height {height} is not found in the storage")]
+    HeightNotFound { height: u32 },
+    #[error("The BTC header with hash {hash} is not found in the storage")]
+    HeaderNotFound { hash: String },
+}
+
 // getters for storages
 
 // is_initialized checks if the BTC light client has been initialised or not
@@ -29,10 +42,10 @@ pub fn is_initialized(storage: &mut dyn Storage) -> bool {
 }
 
 // getter/setter for base header
-pub fn get_base_header(storage: &dyn Storage) -> Result<BtcHeaderInfo, ContractError> {
+pub fn get_base_header(storage: &dyn Storage) -> Result<BtcHeaderInfo, StoreError> {
     // NOTE: if init is successful, then base header is guaranteed to be in storage and decodable
     let base_header_bytes = BTC_HEADER_BASE.load(storage)?;
-    BtcHeaderInfo::decode(base_header_bytes.as_slice()).map_err(ContractError::DecodeError)
+    BtcHeaderInfo::decode(base_header_bytes.as_slice()).map_err(Into::into)
 }
 
 pub fn set_base_header(storage: &mut dyn Storage, base_header: &BtcHeaderInfo) -> StdResult<()> {
@@ -41,10 +54,10 @@ pub fn set_base_header(storage: &mut dyn Storage, base_header: &BtcHeaderInfo) -
 }
 
 // getter/setter for chain tip
-pub fn get_tip(storage: &dyn Storage) -> Result<BtcHeaderInfo, ContractError> {
+pub fn get_tip(storage: &dyn Storage) -> Result<BtcHeaderInfo, StoreError> {
     let tip_bytes = BTC_TIP.load(storage)?;
     //  NOTE: if init is successful, then tip header is guaranteed to be correct
-    BtcHeaderInfo::decode(tip_bytes.as_slice()).map_err(ContractError::DecodeError)
+    BtcHeaderInfo::decode(tip_bytes.as_slice()).map_err(Into::into)
 }
 
 pub fn set_tip(storage: &mut dyn Storage, tip: &BtcHeaderInfo) -> StdResult<()> {
@@ -87,40 +100,34 @@ pub fn remove_headers(
 }
 
 // Retrieves the BTC header of a given height.
-pub fn get_header(storage: &dyn Storage, height: u32) -> Result<BtcHeaderInfo, ContractError> {
+pub fn get_header(storage: &dyn Storage, height: u32) -> Result<BtcHeaderInfo, StoreError> {
     // Try to find the header with the given hash
     let header_bytes = BTC_HEADERS
         .load(storage, height)
-        .map_err(|_| ContractError::BTCHeightNotFoundError { height })?;
+        .map_err(|_| StoreError::HeightNotFound { height })?;
 
-    BtcHeaderInfo::decode(header_bytes.as_slice()).map_err(ContractError::DecodeError)
+    BtcHeaderInfo::decode(header_bytes.as_slice()).map_err(Into::into)
 }
 
 // Retrieves the BTC header of a given hash.
-pub fn get_header_by_hash(
-    storage: &dyn Storage,
-    hash: &[u8],
-) -> Result<BtcHeaderInfo, ContractError> {
+pub fn get_header_by_hash(storage: &dyn Storage, hash: &[u8]) -> Result<BtcHeaderInfo, StoreError> {
     // Try to find the height with the given hash
-    let height =
-        BTC_HEIGHTS
-            .load(storage, hash)
-            .map_err(|_| ContractError::BTCHeaderNotFoundError {
-                hash: hash.encode_hex::<String>(),
-            })?;
+    let height = BTC_HEIGHTS
+        .load(storage, hash)
+        .map_err(|_| StoreError::HeaderNotFound {
+            hash: hash.encode_hex::<String>(),
+        })?;
 
     get_header(storage, height)
 }
 
 // Retrieves the BTC header height of a given BTC hash
-pub fn get_header_height(storage: &dyn Storage, hash: &[u8]) -> Result<u32, ContractError> {
-    let height =
-        BTC_HEIGHTS
-            .load(storage, hash)
-            .map_err(|_| ContractError::BTCHeaderNotFoundError {
-                hash: hash.encode_hex(),
-            })?;
-    Ok(height)
+pub fn get_header_height(storage: &dyn Storage, hash: &[u8]) -> Result<u32, StoreError> {
+    BTC_HEIGHTS
+        .load(storage, hash)
+        .map_err(|_| StoreError::HeaderNotFound {
+            hash: hash.encode_hex(),
+        })
 }
 
 // Retrieves BTC headers in a given range.
@@ -129,7 +136,7 @@ pub fn get_headers(
     start_after: Option<u32>,
     limit: Option<u32>,
     reverse: Option<bool>,
-) -> Result<Vec<BtcHeaderInfo>, ContractError> {
+) -> Result<Vec<BtcHeaderInfo>, StoreError> {
     let limit = limit.unwrap_or(10) as usize;
     let reverse = reverse.unwrap_or(false);
 
@@ -145,17 +152,16 @@ pub fn get_headers(
         .take(limit)
         .map(|item| {
             let (_, header_bytes) = item?;
-            BtcHeaderInfo::decode(header_bytes.as_slice()).map_err(ContractError::DecodeError)
+            BtcHeaderInfo::decode(header_bytes.as_slice()).map_err(StoreError::Decode)
         })
         .collect::<Result<Vec<_>, _>>()?;
 
     Ok(headers)
 }
 
-/// init initialises the BTC header chain storage
-/// It takes BTC headers between
-/// - the BTC tip upon the last finalised epoch
-/// - the current tip
+/// Initialises the BTC header chain storage.
+///
+/// It takes BTC headers between the BTC tip upon the last finalised epoch and the current tip.
 pub fn init(
     storage: &mut dyn Storage,
     headers: &[BtcHeader],
@@ -163,35 +169,28 @@ pub fn init(
     first_height: u32,
 ) -> Result<(), ContractError> {
     let cfg = CONFIG.load(storage)?;
-    let chain_params = cfg.network.chain_params();
 
     // ensure there are >=w+1 headers, i.e. a base header and at least w subsequent
     // ones as a w-deep proof
     if (headers.len() as u32) < cfg.checkpoint_finalization_timeout + 1 {
-        return Err(ContractError::InitErrorLength(
-            cfg.checkpoint_finalization_timeout + 1,
-        ));
+        return Err(InitError::NotEnoughHeaders(cfg.checkpoint_finalization_timeout + 1).into());
     }
+
+    let chain_params = cfg.network.chain_params();
 
     // base header is the first header in the list
-    let base_header = headers.first().ok_or(ContractError::InitError {
-        msg: "base header is not provided".to_string(),
-    })?;
+    let base_header = headers.first().ok_or(InitError::MissingTipHeader)?;
     let base_header = base_header.to_btc_header_info(first_height, *first_work)?;
 
-    // decode this header to rust-bitcoin's type
-    let base_btc_header: BlockHeader = babylon_bitcoin::deserialize(base_header.header.as_ref())
-        .map_err(|_| ContractError::BTCHeaderDecodeError {})?;
+    let base_btc_header: BlockHeader = babylon_bitcoin::deserialize(base_header.header.as_ref())?;
 
-    // verify the base header's pow
-    if babylon_bitcoin::pow::verify_header_pow(&chain_params, &base_btc_header).is_err() {
-        return Err(ContractError::BTCHeaderError {});
-    }
+    babylon_bitcoin::pow::verify_header_pow(&chain_params, &base_btc_header)?;
 
     // Convert headers to BtcHeaderInfo with work/height based on first block
     let mut cur_height = base_header.height;
     let mut cur_work = total_work(base_header.work.as_ref())?;
-    let mut processed_headers = vec![base_header.clone()];
+    let mut processed_headers = Vec::with_capacity(headers.len());
+    processed_headers.push(base_header.clone());
     for header in headers.iter().skip(1) {
         let new_header_info = header.to_btc_header_info_from_prev(cur_height, cur_work)?;
         cur_height += 1;
@@ -203,18 +202,14 @@ pub fn init(
     let new_headers = &processed_headers[1..];
     verify_headers(&chain_params, &base_header, new_headers)?;
 
-    // initialise base header
-    // NOTE: not changeable in the future
+    // Store base header (immutable), full chain and tip.
     set_base_header(storage, &base_header)?;
-    // insert all headers
     insert_headers(storage, &processed_headers)?;
-    // set tip header
-    set_tip(
-        storage,
-        processed_headers.last().ok_or(ContractError::InitError {
-            msg: "tip header is not provided".to_string(),
-        })?,
-    )?;
+    let tip = processed_headers
+        .last()
+        .ok_or(InitError::MissingTipHeader)?;
+    set_tip(storage, tip)?;
+
     Ok(())
 }
 
@@ -226,8 +221,7 @@ pub fn init_from_babylon(
     let btc_headers = headers
         .iter()
         .map(BtcHeader::try_from)
-        .collect::<Result<Vec<BtcHeader>, _>>()
-        .map_err(|_| ContractError::BTCHeaderDecodeError {})?;
+        .collect::<Result<Vec<BtcHeader>, _>>()?;
     let base_header = headers.first().ok_or(ContractError::BTCHeaderEmpty {})?;
     let first_work = total_work(base_header.work.as_ref())?;
     let first_height = base_header.height;
@@ -260,8 +254,7 @@ pub fn handle_btc_headers_from_babylon(
         .first()
         .ok_or(ContractError::BTCHeaderEmpty {})?;
     let first_new_btc_header: BlockHeader =
-        babylon_bitcoin::deserialize(first_new_header.header.as_ref())
-            .map_err(|_| ContractError::BTCHeaderDecodeError {})?;
+        babylon_bitcoin::deserialize(first_new_header.header.as_ref())?;
 
     if first_new_btc_header.prev_blockhash.as_ref() == cur_tip_hash.to_vec() {
         // Most common case: extending the current tip
@@ -552,7 +545,7 @@ pub mod tests {
 
         // handling invalid fork headers
         let res = handle_btc_headers_from_babylon(&mut storage, &invalid_fork_headers);
-        assert!(matches!(res.unwrap_err(), ContractError::BTCHeaderError {}));
+        assert!(matches!(res.unwrap_err(), ContractError::BtcLightClient(_)));
 
         // ensure base and tip are unchanged
         ensure_base_and_tip(&storage, &test_headers);

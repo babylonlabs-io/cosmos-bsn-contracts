@@ -1,3 +1,4 @@
+use crate::error::Error;
 use crate::BlockHeader;
 
 // RetargetAdjustmentFactor in https://github.com/btcsuite/btcd/blob/master/chaincfg/params.go
@@ -8,11 +9,12 @@ const RETARGET_ADJUSTMENT_FACTOR: u64 = 4;
 pub fn verify_header_pow(
     chain_params: &bitcoin::consensus::Params,
     header: &BlockHeader,
-) -> Result<(), String> {
+) -> Result<(), Error> {
     let target = header.target();
+
     // ensure the target <= pow_limit
     if target > chain_params.max_attainable_target {
-        return Err("the header's target should be no larger than pow_limit".to_string());
+        return Err(Error::TargetTooLarge);
     }
 
     // ensure the header's hash <= target
@@ -21,9 +23,9 @@ pub fn verify_header_pow(
     // - the header hash is smaller than required_target
     // The former must be true since we give this header's target
     // Here we are interested in the latter check, in which the code is private
-    if header.validate_pow(target).is_err() {
-        return Err("the header's hash should be no larger than its target".to_string());
-    }
+    header
+        .validate_pow(target)
+        .map_err(Error::InvalidProofOfWork)?;
 
     Ok(())
 }
@@ -36,10 +38,10 @@ pub fn verify_next_header_pow(
     chain_params: &bitcoin::consensus::Params,
     prev_header: &BlockHeader,
     header: &BlockHeader,
-) -> Result<(), String> {
+) -> Result<(), Error> {
     // ensure the header is adjacent to last_btc_header
     if !prev_header.block_hash().eq(&header.prev_blockhash) {
-        return Err("the header is not consecutive to the previous header".to_string());
+        return Err(Error::PreHeaderHashMismatch);
     }
 
     // ensure the header's hash <= the header's target <= pow limit
@@ -55,7 +57,7 @@ pub fn verify_next_header_pow(
         let max_cur_target = old_target * retarget_adjustment_factor_u256;
         let min_cur_target = old_target / retarget_adjustment_factor_u256;
         if cur_target > max_cur_target || cur_target < min_cur_target {
-            return Err("difficulty not relevant to parent difficulty".to_string());
+            return Err(Error::BadDifficulty);
         }
     }
 
