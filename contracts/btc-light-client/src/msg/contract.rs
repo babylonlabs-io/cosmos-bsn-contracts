@@ -1,7 +1,7 @@
 use cosmwasm_schema::{cw_serde, QueryResponses};
-use cosmwasm_std::{Binary, StdError, StdResult};
+use cosmwasm_std::Binary;
 
-use crate::msg::btc_header::BtcHeader;
+use crate::{error::InitError, msg::btc_header::BtcHeader};
 #[cfg(not(target_arch = "wasm32"))]
 use {
     crate::msg::btc_header::{BtcHeaderResponse, BtcHeadersResponse},
@@ -24,19 +24,26 @@ pub struct InstantiateMsg {
 }
 
 impl InstantiateMsg {
-    pub fn validate(&self) -> StdResult<()> {
+    pub fn validate(&self) -> Result<(), InitError> {
         if self.btc_confirmation_depth == 0 {
-            return Err(StdError::generic_err(
-                "BTC confirmation depth must be greater than 0",
-            ));
+            return Err(InitError::ZeroConfirmationDepth);
         }
+
         if self.checkpoint_finalization_timeout == 0 {
-            return Err(StdError::generic_err(
-                "Checkpoint finalization timeout must be greater than 0",
-            ));
+            return Err(InitError::ZeroCheckpointFinalizationTimeout);
         }
+
+        // Check if there are enough headers for initialization
+        if self.headers.len() < self.btc_confirmation_depth as usize {
+            return Err(InitError::NotEnoughHeaders {
+                got: self.headers.len(),
+                required: self.btc_confirmation_depth,
+            });
+        }
+
         // TODO: validate headers, first work and first height? For example, the base header
         // should be on the difficulty boundary.
+
         Ok(())
     }
 }

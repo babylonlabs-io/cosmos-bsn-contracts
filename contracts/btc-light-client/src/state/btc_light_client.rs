@@ -172,7 +172,11 @@ pub fn init(
     // ensure there are >=w+1 headers, i.e. a base header and at least w subsequent
     // ones as a w-deep proof
     if (headers.len() as u32) < cfg.checkpoint_finalization_timeout + 1 {
-        return Err(InitError::NotEnoughHeaders(cfg.checkpoint_finalization_timeout + 1).into());
+        return Err(InitError::NotEnoughHeaders {
+            got: headers.len(),
+            required: cfg.checkpoint_finalization_timeout + 1,
+        }
+        .into());
     }
 
     let chain_params = cfg.network.chain_params();

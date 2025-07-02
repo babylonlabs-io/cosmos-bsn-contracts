@@ -14,8 +14,12 @@ pub enum InitError {
     MissingBaseHeight,
     #[error("Missing tip header")]
     MissingTipHeader,
-    #[error("Not enough headers (expected at least {0})")]
-    NotEnoughHeaders(u32),
+    #[error("BTC confirmation depth must be greater than 0")]
+    ZeroConfirmationDepth,
+    #[error("Checkpoint finalization timeout must be greater than 0")]
+    ZeroCheckpointFinalizationTimeout,
+    #[error("Not enough headers (expected at least {required}, got: {got})")]
+    NotEnoughHeaders { got: usize, required: u32 },
 }
 
 #[derive(Error, Debug, PartialEq)]

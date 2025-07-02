@@ -3,7 +3,7 @@ use cw2::set_contract_version;
 
 use babylon_bindings::BabylonMsg;
 
-use crate::error::{ContractError, InitError};
+use crate::error::ContractError;
 use crate::msg::btc_header::BtcHeader;
 use crate::msg::contract::{ExecuteMsg, InstantiateMsg, QueryMsg};
 use crate::state::btc_light_client::{handle_btc_headers_from_user, init};
@@ -30,18 +30,13 @@ pub fn instantiate(
         first_height,
     } = msg;
 
-    // Check if there are enough headers for initialization
-    if headers.len() < btc_confirmation_depth as usize {
-        return Err(InitError::NotEnoughHeaders(btc_confirmation_depth).into());
-    }
-
-    let first_work = total_work(&first_work)?;
-
     let cfg = Config {
         network,
         btc_confirmation_depth,
         checkpoint_finalization_timeout,
     };
+
+    let first_work = total_work(&first_work)?;
 
     init(deps.storage, &cfg, &headers, &first_work, first_height)?;
 
