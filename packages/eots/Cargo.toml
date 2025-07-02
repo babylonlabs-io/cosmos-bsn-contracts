@@ -1,5 +1,6 @@
 [package]
 name = "eots"
+description = "EOTS (Extractable One Time Signature) utilities"
 edition.workspace = true
 version.workspace = true
 license.workspace = true
