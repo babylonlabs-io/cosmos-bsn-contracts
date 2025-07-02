@@ -13,6 +13,9 @@ pub struct InstantiateMsg {
     pub network: babylon_bitcoin::chain_params::Network,
     pub btc_confirmation_depth: u32,
     pub checkpoint_finalization_timeout: u32,
+    pub headers: Vec<BtcHeader>,
+    pub first_work: String,
+    pub first_height: u32,
 }
 
 impl InstantiateMsg {
@@ -27,6 +30,7 @@ impl InstantiateMsg {
                 "Checkpoint finalization timeout must be greater than 0",
             ));
         }
+        // TODO: validate headers, first work and first height?
         Ok(())
     }
 }
@@ -36,13 +40,7 @@ pub enum ExecuteMsg {
     /// Add BTC headers to the light client. If not initialized, this will initialize
     /// the light client with the provided headers. Otherwise, it will update the
     /// existing chain with the new headers.
-    BtcHeaders {
-        headers: Vec<BtcHeader>,
-        // TODO: below are temporary fields, they should be removed after
-        // BTC light client has proper initialisation
-        first_work: Option<String>,
-        first_height: Option<u32>,
-    },
+    BtcHeaders { headers: Vec<BtcHeader> },
 }
 
 #[cw_serde]

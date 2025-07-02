@@ -11,7 +11,7 @@ use crate::error::{ContractError, InitError};
 use crate::msg::btc_header::BtcHeader;
 use crate::utils::btc_light_client::{total_work, verify_headers};
 
-use super::CONFIG;
+use super::{Config, CONFIG};
 
 pub const BTC_TIP_KEY: &str = "btc_lc_tip";
 
@@ -164,12 +164,11 @@ pub fn get_headers(
 /// It takes BTC headers between the BTC tip upon the last finalised epoch and the current tip.
 pub fn init(
     storage: &mut dyn Storage,
+    cfg: &Config,
     headers: &[BtcHeader],
     first_work: &Work,
     first_height: u32,
 ) -> Result<(), ContractError> {
-    let cfg = CONFIG.load(storage)?;
-
     // ensure there are >=w+1 headers, i.e. a base header and at least w subsequent
     // ones as a w-deep proof
     if (headers.len() as u32) < cfg.checkpoint_finalization_timeout + 1 {
@@ -225,7 +224,8 @@ pub fn init_from_babylon(
     let base_header = headers.first().ok_or(ContractError::BTCHeaderEmpty {})?;
     let first_work = total_work(base_header.work.as_ref())?;
     let first_height = base_header.height;
-    init(storage, &btc_headers, &first_work, first_height)
+    let cfg = CONFIG.load(storage)?;
+    init(storage, &cfg, &btc_headers, &first_work, first_height)
 }
 
 /// handle_btc_headers_from_babylon verifies and inserts a number of
