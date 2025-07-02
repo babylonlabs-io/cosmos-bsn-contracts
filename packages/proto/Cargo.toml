@@ -8,6 +8,8 @@ repository.workspace = true
 authors.workspace = true
 publish           = true
 
+exclude = [ "babylon" ]
+
 [lib]
 doctest = false
 
