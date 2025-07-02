@@ -46,7 +46,7 @@ serde            = { workspace = true, features = ["derive"] }
 
 [dev-dependencies]
 babylon-bindings-test  = { path = "../../packages/bindings-test" }
-test-utils             = { path = "../../packages/test-utils" }
+babylon-test-utils     = { path = "../../packages/test-utils" }
 
 cosmwasm-vm            = { workspace = true }
 cw-multi-test          = { workspace = true }

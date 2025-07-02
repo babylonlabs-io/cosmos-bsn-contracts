@@ -55,11 +55,12 @@ thiserror        = { workspace = true }
 cw-controllers   = { workspace = true }
 
 [dev-dependencies]
-babylon-bindings-test = { path = "../../packages/bindings-test" }
-babylon-proto         = { path = "../../packages/proto" }
 babylon-contract      = { path = "../babylon", features = [ "library" ] }
 btc-staking           = { path = "../btc-staking", features = [ "library" ] }
-test-utils            = { path = "../../packages/test-utils" }
+
+babylon-bindings-test = { path = "../../packages/bindings-test" }
+babylon-proto         = { path = "../../packages/proto" }
+babylon-test-utils    = { path = "../../packages/test-utils" }
 
 cosmwasm-vm           = { workspace = true }
 cw-multi-test         = { workspace = true }

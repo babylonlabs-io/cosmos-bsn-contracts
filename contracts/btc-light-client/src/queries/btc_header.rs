@@ -40,8 +40,8 @@ pub fn btc_headers(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use babylon_test_utils::get_btc_lc_headers;
     use cosmwasm_std::testing::mock_dependencies;
-    use test_utils::get_btc_lc_headers;
 
     use crate::state::btc_light_client::init_from_babylon;
     use crate::state::config::{Config, CONFIG};

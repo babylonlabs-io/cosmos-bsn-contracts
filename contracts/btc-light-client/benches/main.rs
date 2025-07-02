@@ -6,7 +6,6 @@
 use criterion::{criterion_group, criterion_main, Criterion, PlottingBackend};
 
 use std::time::Duration;
-use test_utils::get_btc_lc_mainchain_resp;
 use thousands::Separable;
 
 use cosmwasm_std::{Env, MessageInfo, Response};
@@ -17,6 +16,7 @@ use cosmwasm_vm::testing::{
 use cosmwasm_vm::Instance;
 
 use babylon_bindings::BabylonMsg;
+use babylon_test_utils::get_btc_lc_mainchain_resp;
 use btc_light_client::msg::btc_header::BtcHeader;
 use btc_light_client::msg::contract::{ExecuteMsg, InstantiateMsg};
 

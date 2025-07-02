@@ -37,16 +37,17 @@ library = []
 full-validation = []
 
 [dependencies]
-babylon-apis          = { path = "../../packages/apis" }
-babylon-bindings      = { path = "../../packages/bindings" }
-babylon-contract      = { path = "../babylon", features = [ "library" ] }
-babylon-merkle        = { path = "../../packages/merkle" }
-babylon-proto         = { path = "../../packages/proto" }
-babylon-btcstaking    = { path = "../../packages/btcstaking" }
-babylon-bitcoin       = { path = "../../packages/bitcoin" }
-eots                  = { path = "../../packages/eots" }
-test-utils            = { path = "../../packages/test-utils" }
-btc-light-client      = { path = "../btc-light-client", features = [ "library" ] }
+btc-light-client = { path = "../btc-light-client", features = [ "library" ] }
+
+babylon-apis       = { path = "../../packages/apis" }
+babylon-bindings   = { path = "../../packages/bindings" }
+babylon-contract   = { path = "../babylon", features = [ "library" ] }
+babylon-merkle     = { path = "../../packages/merkle" }
+babylon-proto      = { path = "../../packages/proto" }
+babylon-btcstaking = { path = "../../packages/btcstaking" }
+babylon-bitcoin    = { path = "../../packages/bitcoin" }
+babylon-test-utils = { path = "../../packages/test-utils" }
+eots               = { path = "../../packages/eots" }
 
 bitcoin          = { workspace = true }
 cosmwasm-schema  = { workspace = true }
@@ -62,6 +63,6 @@ thiserror        = { workspace = true }
 cw-controllers   = { workspace = true }
 
 [dev-dependencies]
-babylon-proto     = { path = "../../packages/proto" }
-cosmwasm-vm       = { workspace = true }
-prost             = { workspace = true }
+babylon-proto = { path = "../../packages/proto" }
+cosmwasm-vm   = { workspace = true }
+prost         = { workspace = true }

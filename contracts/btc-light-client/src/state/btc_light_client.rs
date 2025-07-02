@@ -352,8 +352,8 @@ pub mod tests {
 
     use super::*;
     use babylon_bitcoin::chain_params::Network;
+    use babylon_test_utils::{get_btc_lc_fork_headers, get_btc_lc_fork_msg, get_btc_lc_headers};
     use cosmwasm_std::{from_json, testing::mock_dependencies};
-    use test_utils::{get_btc_lc_fork_headers, get_btc_lc_fork_msg, get_btc_lc_headers};
 
     pub(crate) fn setup(storage: &mut dyn Storage) -> u32 {
         // set config first
