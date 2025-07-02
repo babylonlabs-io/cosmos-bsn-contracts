@@ -357,9 +357,10 @@ mod tests {
     use super::*;
     use rand::{thread_rng, RngCore};
     use sha2::{Digest, Sha256};
-    use test_utils::get_eots_testdata;
 
     use k256::{ProjectivePoint, Scalar};
+
+    use babylon_test_utils::get_eots_testdata;
 
     pub fn rand_gen() -> (SecRand, PubRand) {
         let x = SecRand::new(&Scalar::generate_vartime(&mut thread_rng()).to_bytes()).unwrap();

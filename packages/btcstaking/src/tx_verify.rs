@@ -201,7 +201,7 @@ mod tests {
     };
     use bitcoin::consensus::deserialize;
 
-    use test_utils::{get_btc_delegation, get_params};
+    use babylon_test_utils::{get_btc_delegation, get_params};
 
     #[test]
     fn test_check_transactions() {
