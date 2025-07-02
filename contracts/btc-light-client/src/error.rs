@@ -26,15 +26,6 @@ pub enum ContractError {
     #[error("{0}")]
     ParseReply(#[from] ParseReplyError),
 
-    #[error("Invalid reply id: {0}")]
-    InvalidReplyId(u64),
-
-    #[error("Unauthorized")]
-    Unauthorized {},
-
-    #[error("Invalid configuration: {msg}")]
-    InvalidConfig { msg: String },
-
     #[error("The given headers during initialization cannot be verified: {0:?}")]
     Init(#[from] InitError),
 
@@ -59,17 +50,11 @@ pub enum ContractError {
     #[error(transparent)]
     Store(#[from] crate::state::btc_light_client::StoreError),
 
-    #[error("The BTC header info cumulative work encoding is wrong")]
-    BTCWrongCumulativeWorkEncoding {},
-
     #[error("The BTC header info {0} cumulative work is wrong. Expected {1}, got {2}")]
     BTCWrongCumulativeWork(usize, Work, Work),
 
     #[error("The BTC header info {0} height is wrong. Expected {1}, got {2}")]
     BTCWrongHeight(usize, u32, u32),
-
-    #[error("The work is invalid")]
-    InvalidWork {},
 
     #[error("The new chain's work ({0}), is not better than the current chain's work ({1})")]
     BTCChainWithNotEnoughWork(Work, Work),
