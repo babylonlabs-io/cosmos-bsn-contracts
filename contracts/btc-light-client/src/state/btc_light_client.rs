@@ -1,7 +1,7 @@
 use babylon_bitcoin::{BlockHash, BlockHeader, Work};
 use babylon_proto::babylon::btclightclient::v1::BtcHeaderInfo;
 use cosmwasm_std::Order::{Ascending, Descending};
-use cosmwasm_std::{StdResult, Storage};
+use cosmwasm_std::{StdError, StdResult, Storage};
 use cw_storage_plus::{Bound, Item, Map};
 use hex::ToHex;
 use prost::Message;
@@ -20,6 +20,19 @@ pub const BTC_HEADER_BASE: Item<Vec<u8>> = Item::new("btc_lc_header_base");
 pub const BTC_HEIGHTS: Map<&[u8], u32> = Map::new("btc_lc_heights");
 pub const BTC_TIP: Item<Vec<u8>> = Item::new(BTC_TIP_KEY);
 
+/// Error type for the state store.
+#[derive(thiserror::Error, Debug, PartialEq)]
+pub enum StoreError {
+    #[error("The bytes cannot be decoded")]
+    Decode(#[from] prost::DecodeError),
+    #[error(transparent)]
+    CosmwasmStd(#[from] StdError),
+    #[error("The BTC height {height} is not found in the storage")]
+    HeightNotFound { height: u32 },
+    #[error("The BTC header with hash {hash} is not found in the storage")]
+    HeaderNotFound { hash: String },
+}
+
 // getters for storages
 
 // is_initialized checks if the BTC light client has been initialised or not
@@ -29,10 +42,10 @@ pub fn is_initialized(storage: &mut dyn Storage) -> bool {
 }
 
 // getter/setter for base header
-pub fn get_base_header(storage: &dyn Storage) -> Result<BtcHeaderInfo, ContractError> {
+pub fn get_base_header(storage: &dyn Storage) -> Result<BtcHeaderInfo, StoreError> {
     // NOTE: if init is successful, then base header is guaranteed to be in storage and decodable
     let base_header_bytes = BTC_HEADER_BASE.load(storage)?;
-    BtcHeaderInfo::decode(base_header_bytes.as_slice()).map_err(ContractError::DecodeError)
+    BtcHeaderInfo::decode(base_header_bytes.as_slice()).map_err(Into::into)
 }
 
 pub fn set_base_header(storage: &mut dyn Storage, base_header: &BtcHeaderInfo) -> StdResult<()> {
@@ -41,10 +54,10 @@ pub fn set_base_header(storage: &mut dyn Storage, base_header: &BtcHeaderInfo) -
 }
 
 // getter/setter for chain tip
-pub fn get_tip(storage: &dyn Storage) -> Result<BtcHeaderInfo, ContractError> {
+pub fn get_tip(storage: &dyn Storage) -> Result<BtcHeaderInfo, StoreError> {
     let tip_bytes = BTC_TIP.load(storage)?;
     //  NOTE: if init is successful, then tip header is guaranteed to be correct
-    BtcHeaderInfo::decode(tip_bytes.as_slice()).map_err(ContractError::DecodeError)
+    BtcHeaderInfo::decode(tip_bytes.as_slice()).map_err(Into::into)
 }
 
 pub fn set_tip(storage: &mut dyn Storage, tip: &BtcHeaderInfo) -> StdResult<()> {
@@ -87,40 +100,34 @@ pub fn remove_headers(
 }
 
 // Retrieves the BTC header of a given height.
-pub fn get_header(storage: &dyn Storage, height: u32) -> Result<BtcHeaderInfo, ContractError> {
+pub fn get_header(storage: &dyn Storage, height: u32) -> Result<BtcHeaderInfo, StoreError> {
     // Try to find the header with the given hash
     let header_bytes = BTC_HEADERS
         .load(storage, height)
-        .map_err(|_| ContractError::BTCHeightNotFoundError { height })?;
+        .map_err(|_| StoreError::HeightNotFound { height })?;
 
-    BtcHeaderInfo::decode(header_bytes.as_slice()).map_err(ContractError::DecodeError)
+    BtcHeaderInfo::decode(header_bytes.as_slice()).map_err(Into::into)
 }
 
 // Retrieves the BTC header of a given hash.
-pub fn get_header_by_hash(
-    storage: &dyn Storage,
-    hash: &[u8],
-) -> Result<BtcHeaderInfo, ContractError> {
+pub fn get_header_by_hash(storage: &dyn Storage, hash: &[u8]) -> Result<BtcHeaderInfo, StoreError> {
     // Try to find the height with the given hash
-    let height =
-        BTC_HEIGHTS
-            .load(storage, hash)
-            .map_err(|_| ContractError::BTCHeaderNotFoundError {
-                hash: hash.encode_hex::<String>(),
-            })?;
+    let height = BTC_HEIGHTS
+        .load(storage, hash)
+        .map_err(|_| StoreError::HeaderNotFound {
+            hash: hash.encode_hex::<String>(),
+        })?;
 
     get_header(storage, height)
 }
 
 // Retrieves the BTC header height of a given BTC hash
-pub fn get_header_height(storage: &dyn Storage, hash: &[u8]) -> Result<u32, ContractError> {
-    let height =
-        BTC_HEIGHTS
-            .load(storage, hash)
-            .map_err(|_| ContractError::BTCHeaderNotFoundError {
-                hash: hash.encode_hex(),
-            })?;
-    Ok(height)
+pub fn get_header_height(storage: &dyn Storage, hash: &[u8]) -> Result<u32, StoreError> {
+    BTC_HEIGHTS
+        .load(storage, hash)
+        .map_err(|_| StoreError::HeaderNotFound {
+            hash: hash.encode_hex(),
+        })
 }
 
 // Retrieves BTC headers in a given range.
@@ -129,7 +136,7 @@ pub fn get_headers(
     start_after: Option<u32>,
     limit: Option<u32>,
     reverse: Option<bool>,
-) -> Result<Vec<BtcHeaderInfo>, ContractError> {
+) -> Result<Vec<BtcHeaderInfo>, StoreError> {
     let limit = limit.unwrap_or(10) as usize;
     let reverse = reverse.unwrap_or(false);
 
@@ -145,7 +152,7 @@ pub fn get_headers(
         .take(limit)
         .map(|item| {
             let (_, header_bytes) = item?;
-            BtcHeaderInfo::decode(header_bytes.as_slice()).map_err(ContractError::DecodeError)
+            BtcHeaderInfo::decode(header_bytes.as_slice()).map_err(StoreError::Decode)
         })
         .collect::<Result<Vec<_>, _>>()?;
 

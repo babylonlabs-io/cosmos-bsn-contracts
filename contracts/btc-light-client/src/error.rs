@@ -2,7 +2,6 @@ use babylon_bitcoin::Work;
 use cosmwasm_std::StdError;
 use cw_utils::ParseReplyError;
 use hex::FromHexError;
-use prost::DecodeError;
 use std::str::Utf8Error;
 use thiserror::Error;
 
@@ -39,9 +38,6 @@ pub enum ContractError {
     #[error("The given headers during initialization cannot be verified: {0:?}")]
     Init(#[from] InitError),
 
-    #[error("The bytes cannot be decoded")]
-    DecodeError(#[from] DecodeError),
-
     #[error("{0}")]
     HashError(#[from] babylon_bitcoin::HexError),
 
@@ -60,11 +56,8 @@ pub enum ContractError {
     #[error(transparent)]
     BtcLightClient(#[from] babylon_bitcoin::error::Error),
 
-    #[error("The BTC header with hash {hash} is not found in the storage")]
-    BTCHeaderNotFoundError { hash: String },
-
-    #[error("The BTC height {height} is not found in the storage")]
-    BTCHeightNotFoundError { height: u32 },
+    #[error(transparent)]
+    Store(#[from] crate::state::btc_light_client::StoreError),
 
     #[error("The BTC header info cumulative work encoding is wrong")]
     BTCWrongCumulativeWorkEncoding {},

@@ -1,5 +1,5 @@
-use crate::error;
-use babylon_bitcoin::{BlockHeader, Work};
+use crate::error::ContractError;
+use babylon_bitcoin::{deserialize, BlockHeader, Work};
 use babylon_proto::babylon::btclightclient::v1::BtcHeaderInfo;
 use cosmwasm_std::{StdResult, Uint256};
 use std::str::{from_utf8, FromStr};
@@ -10,16 +10,13 @@ pub fn verify_headers(
     chain_params: &babylon_bitcoin::chain_params::Params,
     first_header: &BtcHeaderInfo,
     new_headers: &[BtcHeaderInfo],
-) -> Result<(), error::ContractError> {
+) -> Result<(), ContractError> {
     // verify each new header iteratively
     let mut last_header = first_header.clone();
     let mut cum_work_old = total_work(last_header.work.as_ref())?;
     for (i, new_header) in new_headers.iter().enumerate() {
-        // decode last header to rust-bitcoin's type
-        let last_btc_header: BlockHeader =
-            babylon_bitcoin::deserialize(last_header.header.as_ref())?;
-        // decode this header to rust-bitcoin's type
-        let btc_header: BlockHeader = babylon_bitcoin::deserialize(new_header.header.as_ref())?;
+        let last_btc_header: BlockHeader = deserialize(last_header.header.as_ref())?;
+        let btc_header: BlockHeader = deserialize(new_header.header.as_ref())?;
 
         // validate whether btc_header extends last_btc_header
         babylon_bitcoin::pow::verify_next_header_pow(chain_params, &last_btc_header, &btc_header)?;
@@ -29,7 +26,7 @@ pub fn verify_headers(
 
         // Validate cumulative work
         if cum_work_old + header_work != cum_work {
-            return Err(error::ContractError::BTCWrongCumulativeWork(
+            return Err(ContractError::BTCWrongCumulativeWork(
                 i,
                 cum_work_old + header_work,
                 cum_work,
@@ -38,7 +35,7 @@ pub fn verify_headers(
         cum_work_old = cum_work;
         // Validate height
         if new_header.height != last_header.height + 1 {
-            return Err(error::ContractError::BTCWrongHeight(
+            return Err(ContractError::BTCWrongHeight(
                 i,
                 last_header.height + 1,
                 new_header.height,
