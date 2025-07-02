@@ -283,6 +283,7 @@ version = "0.14.0"
 dependencies = [
  "babylon-bitcoin",
  "babylon-proto",
+ "babylon-test-utils",
  "bitcoin",
  "digest",
  "eots",
@@ -291,7 +292,6 @@ dependencies = [
  "prost",
  "rust_decimal",
  "sha2",
- "test-utils",
  "thiserror 1.0.69",
 ]
 
@@ -306,6 +306,7 @@ dependencies = [
  "babylon-bindings-test",
  "babylon-bitcoin",
  "babylon-proto",
+ "babylon-test-utils",
  "blst",
  "btc-finality",
  "btc-light-client",
@@ -329,7 +330,6 @@ dependencies = [
  "prost",
  "sha2",
  "tendermint-proto",
- "test-utils",
  "thiserror 1.0.69",
  "thousands",
 ]
@@ -358,6 +358,21 @@ dependencies = [
  "prost",
  "sha2",
  "tendermint-proto",
+]
+
+[[package]]
+name = "babylon-test-utils"
+version = "0.14.0"
+dependencies = [
+ "babylon-apis",
+ "babylon-bitcoin",
+ "babylon-proto",
+ "cosmwasm-std",
+ "hex",
+ "k256",
+ "prost",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -574,6 +589,7 @@ dependencies = [
  "babylon-contract",
  "babylon-merkle",
  "babylon-proto",
+ "babylon-test-utils",
  "bitcoin",
  "btc-light-client",
  "btc-staking",
@@ -592,7 +608,6 @@ dependencies = [
  "pbjson-types",
  "prost",
  "tendermint-proto",
- "test-utils",
  "thiserror 1.0.69",
 ]
 
@@ -607,6 +622,7 @@ dependencies = [
  "babylon-bindings-test",
  "babylon-bitcoin",
  "babylon-proto",
+ "babylon-test-utils",
  "cosmwasm-schema",
  "cosmwasm-std",
  "cosmwasm-vm",
@@ -619,7 +635,6 @@ dependencies = [
  "hex",
  "prost",
  "serde",
- "test-utils",
  "thiserror 1.0.69",
  "thousands",
 ]
@@ -635,6 +650,7 @@ dependencies = [
  "babylon-contract",
  "babylon-merkle",
  "babylon-proto",
+ "babylon-test-utils",
  "bitcoin",
  "btc-light-client",
  "cosmwasm-schema",
@@ -649,7 +665,6 @@ dependencies = [
  "hex",
  "k256",
  "prost",
- "test-utils",
  "thiserror 1.0.69",
 ]
 
@@ -1443,11 +1458,11 @@ dependencies = [
 name = "eots"
 version = "0.14.0"
 dependencies = [
+ "babylon-test-utils",
  "hex",
  "k256",
  "rand",
  "sha2",
- "test-utils",
  "thiserror 1.0.69",
 ]
 
@@ -2890,21 +2905,6 @@ dependencies = [
  "serde_bytes",
  "subtle-encoding",
  "time",
-]
-
-[[package]]
-name = "test-utils"
-version = "0.14.0"
-dependencies = [
- "babylon-apis",
- "babylon-bitcoin",
- "babylon-proto",
- "cosmwasm-std",
- "hex",
- "k256",
- "prost",
- "serde",
- "serde_json",
 ]
 
 [[package]]
