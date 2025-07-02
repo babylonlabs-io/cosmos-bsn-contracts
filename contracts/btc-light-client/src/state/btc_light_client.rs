@@ -7,7 +7,7 @@ use hex::ToHex;
 use prost::Message;
 use std::str::FromStr;
 
-use crate::error::ContractError;
+use crate::error::{ContractError, InitError};
 use crate::msg::btc_header::BtcHeader;
 use crate::utils::btc_light_client::{total_work, verify_headers};
 
@@ -168,15 +168,11 @@ pub fn init(
     // ensure there are >=w+1 headers, i.e. a base header and at least w subsequent
     // ones as a w-deep proof
     if (headers.len() as u32) < cfg.checkpoint_finalization_timeout + 1 {
-        return Err(ContractError::InitErrorLength(
-            cfg.checkpoint_finalization_timeout + 1,
-        ));
+        return Err(InitError::NotEnoughHeaders(cfg.checkpoint_finalization_timeout + 1).into());
     }
 
     // base header is the first header in the list
-    let base_header = headers.first().ok_or(ContractError::InitError {
-        msg: "base header is not provided".to_string(),
-    })?;
+    let base_header = headers.first().ok_or(InitError::MissingTipHeader)?;
     let base_header = base_header.to_btc_header_info(first_height, *first_work)?;
 
     // decode this header to rust-bitcoin's type
@@ -211,9 +207,9 @@ pub fn init(
     // set tip header
     set_tip(
         storage,
-        processed_headers.last().ok_or(ContractError::InitError {
-            msg: "tip header is not provided".to_string(),
-        })?,
+        processed_headers
+            .last()
+            .ok_or(InitError::MissingTipHeader)?,
     )?;
     Ok(())
 }

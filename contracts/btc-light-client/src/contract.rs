@@ -3,7 +3,7 @@ use cw2::set_contract_version;
 
 use babylon_bindings::BabylonMsg;
 
-use crate::error::ContractError;
+use crate::error::{ContractError, InitError};
 use crate::msg::btc_header::BtcHeader;
 use crate::msg::contract::{ExecuteMsg, InstantiateMsg, QueryMsg};
 use crate::state::btc_light_client::{handle_btc_headers_from_user, init, is_initialized};
@@ -107,22 +107,13 @@ fn handle_btc_headers(
 ) -> Result<Response<BabylonMsg>, ContractError> {
     // Check if the BTC light client has been initialized
     if !is_initialized(deps.storage) {
-        let Some(first_work_hex) = first_work else {
-            return Err(ContractError::InitError {
-                msg: "base work is not provided".to_string(),
-            });
-        };
-
-        let Some(first_height) = first_height else {
-            return Err(ContractError::InitError {
-                msg: "base height is not provided".to_string(),
-            });
-        };
+        let first_work_hex = first_work.ok_or(InitError::MissingBaseWork)?;
+        let first_height = first_height.ok_or(InitError::MissingBaseHeight)?;
 
         // Check if there are enough headers for initialization
         let cfg = CONFIG.load(deps.storage)?;
         if headers.len() < cfg.btc_confirmation_depth as usize {
-            return Err(ContractError::InitErrorLength(cfg.btc_confirmation_depth));
+            return Err(InitError::NotEnoughHeaders(cfg.btc_confirmation_depth).into());
         }
 
         let first_work_bytes = hex::decode(first_work_hex)?;
