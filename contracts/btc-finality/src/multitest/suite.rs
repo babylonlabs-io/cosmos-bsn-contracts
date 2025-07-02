@@ -3,7 +3,7 @@ use derivative::Derivative;
 use hex::ToHex;
 
 use cosmwasm_std::testing::mock_dependencies;
-use cosmwasm_std::{to_json_binary, Addr, Binary, BlockInfo, Coin, Timestamp};
+use cosmwasm_std::{to_json_binary, Addr, BlockInfo, Coin, Timestamp};
 use cw_multi_test::{next_block, AppResponse, Contract, ContractWrapper, Executor};
 
 use babylon_apis::btc_staking_api::{ActiveBtcDelegation, FinalityProvider, NewFinalityProvider};

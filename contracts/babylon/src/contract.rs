@@ -71,11 +71,11 @@ pub fn instantiate(
             Some(lc_msg) => lc_msg,
             None => {
                 let initial_headers =
-                    decode_btc_headers(hex::decode(&msg.btc_light_client_initial_headers).unwrap())
-                        .unwrap();
-                let base_header = initial_headers.first().expect("Must not be empty");
+                    decode_btc_headers(hex::decode(&msg.btc_light_client_initial_headers)?)?;
 
-                let first_height = base_header.height;
+                let base_header = initial_headers
+                    .first()
+                    .ok_or(ContractError::BtcHeaderEmpty {})?;
 
                 let btc_lc_init_msg = BtcLightClientInstantiateMsg {
                     network: msg.network.clone(),
@@ -83,7 +83,7 @@ pub fn instantiate(
                     checkpoint_finalization_timeout: msg.checkpoint_finalization_timeout,
                     headers: btc_headers_from_info(&initial_headers)?,
                     first_work: base_header.work.to_vec().into(),
-                    first_height,
+                    first_height: base_header.height,
                 };
                 to_json_binary(&btc_lc_init_msg)?
             }
@@ -356,7 +356,7 @@ pub fn execute(
 }
 
 #[cfg(test)]
-pub(crate) mod tests {
+mod tests {
     use super::*;
     use babylon_bitcoin::BlockHeader;
     use babylon_test_utils::{initial_headers, initial_headers_in_hex};
@@ -391,9 +391,6 @@ pub(crate) mod tests {
         let initial_headers = initial_headers();
         msg.btc_light_client_initial_headers = initial_headers_in_hex();
 
-        let header: BlockHeader = bitcoin::consensus::encode::deserialize_hex("020000003f99814a36d2a2043b1d4bf61a410f71828eca1decbf56000000000000000000b3762ed278ac44bb953e24262cfeb952d0abe6d3b7f8b74fd24e009b96b6cb965d674655dd1317186436e79d").unwrap();
-        let expected_first_work: Binary = header.work().to_be_bytes().into();
-
         let info = message_info(&deps.api.addr_make(CREATOR), &[]);
         let res = instantiate(deps.as_mut(), mock_env(), info, msg.clone()).unwrap();
         assert_eq!(1, res.messages.len());
@@ -408,7 +405,7 @@ pub(crate) mod tests {
                     btc_confirmation_depth: msg.btc_confirmation_depth,
                     checkpoint_finalization_timeout: msg.checkpoint_finalization_timeout,
                     headers: btc_headers_from_info(&initial_headers).unwrap(),
-                    first_work: expected_first_work,
+                    first_work: initial_headers[0].work.to_vec().into(),
                     first_height: initial_headers[0].height,
                 })
                 .unwrap(),

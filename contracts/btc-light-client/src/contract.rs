@@ -6,7 +6,7 @@ use babylon_bindings::BabylonMsg;
 use crate::error::{ContractError, InitError};
 use crate::msg::btc_header::BtcHeader;
 use crate::msg::contract::{ExecuteMsg, InstantiateMsg, QueryMsg};
-use crate::state::btc_light_client::{handle_btc_headers_from_user, init, is_initialized};
+use crate::state::btc_light_client::{handle_btc_headers_from_user, init};
 use crate::state::config::{Config, CONFIG};
 use crate::utils::btc_light_client::total_work;
 
@@ -35,7 +35,6 @@ pub fn instantiate(
         return Err(InitError::NotEnoughHeaders(btc_confirmation_depth).into());
     }
 
-    println!("[LC] instantiate first_work: {first_work:?}");
     let first_work = total_work(&first_work)?;
 
     let cfg = Config {

@@ -350,7 +350,7 @@ pub fn get_public_randomness_commitment() -> (String, PubRandCommit, Vec<u8>) {
     )
 }
 
-///
+/// Returns the initial BTC headers for the babylon contract instantiation.
 pub fn initial_headers() -> Vec<BtcHeaderInfo> {
     vec![
         // https://www.blockchain.com/explorer/blocks/btc/354816
@@ -359,23 +359,24 @@ pub fn initial_headers() -> Vec<BtcHeaderInfo> {
     ]
     .into_iter()
     .map(|(header, height)| {
-        let header: BlockHeader = bitcoin::consensus::encode::deserialize_hex(header).unwrap();
+        let header: BlockHeader =
+            bitcoin::consensus::encode::deserialize_hex(header).expect("Static value must be correct");
         BtcHeaderInfo {
             header: bitcoin::consensus::serialize(&header).into(),
             hash: bitcoin::consensus::serialize(&header.block_hash()).into(),
             height,
             work: header.work().to_be_bytes().to_vec().into(),
         }
-    }).collect()
+    })
+    .collect()
 }
 
+/// Returns the initial BTC headers encoded in protobuf and hex-encoded form.
+///
+/// This format is suitable for embedding into messages such as `InstantiateMsg`.
 pub fn initial_headers_in_hex() -> String {
-    encode_btc_headers(initial_headers())
-}
-
-fn encode_btc_headers(headers: Vec<BtcHeaderInfo>) -> String {
     let mut out = Vec::new();
-    for h in headers {
+    for h in initial_headers() {
         h.encode_length_delimited(&mut out).unwrap();
     }
     hex::encode(out)

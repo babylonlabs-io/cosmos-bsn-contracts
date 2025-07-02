@@ -1,10 +1,11 @@
-use std::str::{from_utf8, FromStr};
+use std::str::FromStr;
 
 use cosmwasm_schema::cw_serde;
 
 use babylon_bitcoin::hash_types::TxMerkleNode;
 use babylon_bitcoin::{BlockHash, BlockHeader};
 use babylon_proto::babylon::btclightclient::v1::{BtcHeaderInfo, BtcHeaderInfoResponse};
+use cosmwasm_std::StdError;
 
 use crate::error::ContractError;
 
@@ -233,8 +234,13 @@ impl TryFrom<&BtcHeaderInfo> for BtcHeaderResponse {
 
     fn try_from(btc_header_info: &BtcHeaderInfo) -> Result<Self, Self::Error> {
         let header = BtcHeader::try_from(btc_header_info)?;
-        let total_work =
-            cosmwasm_std::Uint256::from_be_bytes(btc_header_info.work.to_vec().try_into().unwrap());
+        let total_work = cosmwasm_std::Uint256::from_be_bytes(
+            btc_header_info
+                .work
+                .to_vec()
+                .try_into()
+                .map_err(|e| StdError::generic_err(format!("Invalid work: {e:?}")))?,
+        );
         // FIXME: Use BlockHash / Hash helper / encapsulation to reverse the hash under the hood
         let hash_repr = hex::encode(
             btc_header_info

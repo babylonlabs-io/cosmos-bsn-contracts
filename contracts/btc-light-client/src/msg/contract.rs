@@ -13,8 +13,13 @@ pub struct InstantiateMsg {
     pub network: babylon_bitcoin::chain_params::Network,
     pub btc_confirmation_depth: u32,
     pub checkpoint_finalization_timeout: u32,
+    /// A sequence of initial BTC headers used to bootstrap the light client.
+    ///
+    /// Must include at least `btc_confirmation_depth` headers following the base header.
     pub headers: Vec<BtcHeader>,
+    /// Total accumulated work of the first (base) BTC header, encoded as big-endian bytes.
     pub first_work: Binary,
+    /// Height of the first (base) BTC header.
     pub first_height: u32,
 }
 
@@ -30,7 +35,8 @@ impl InstantiateMsg {
                 "Checkpoint finalization timeout must be greater than 0",
             ));
         }
-        // TODO: validate headers, first work and first height?
+        // TODO: validate headers, first work and first height? For example, the base header
+        // should be on the difficulty boundary.
         Ok(())
     }
 }

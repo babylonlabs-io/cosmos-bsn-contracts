@@ -47,6 +47,10 @@ pub enum ContractError {
     InvalidConfig { msg: String },
     #[error("IBC transfer info not set")]
     IbcTransferInfoNotSet {},
+    #[error(transparent)]
+    Hex(#[from] hex::FromHexError),
+    #[error(transparent)]
+    ProstDecode(#[from] prost::DecodeError),
 }
 
 #[derive(Error, Debug, PartialEq)]
