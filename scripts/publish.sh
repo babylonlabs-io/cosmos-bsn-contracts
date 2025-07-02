@@ -14,9 +14,9 @@ then
 fi
 
 # These are imported by other packages - wait 30 seconds between each as they have linear dependencies
-BASE_CRATES=""
+BASE_CRATES="packages/bitcoin packages/eots packages/merkle packages/proto"
 
-ALL_CRATES="packages/eots packages/merkle packages/test-utils"
+ALL_CRATES="packages/apis packages/test-utils"
 
 SLEEP_TIME=30
 
