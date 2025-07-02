@@ -60,6 +60,29 @@ pub struct InstantiateMsg {
     pub ics20_channel_id: Option<String>,
 }
 
+impl InstantiateMsg {
+    #[cfg(any(test, feature = "library"))]
+    pub fn new_test() -> Self {
+        Self {
+            network: babylon_bitcoin::chain_params::Network::Regtest,
+            babylon_tag: "01020304".to_string(),
+            btc_confirmation_depth: 10,
+            checkpoint_finalization_timeout: 100,
+            notify_cosmos_zone: false,
+            btc_light_client_code_id: None,
+            btc_light_client_msg: None,
+            btc_staking_code_id: None,
+            btc_staking_msg: None,
+            btc_finality_code_id: None,
+            btc_finality_msg: None,
+            admin: None,
+            consumer_name: None,
+            consumer_description: None,
+            ics20_channel_id: None,
+        }
+    }
+}
+
 impl ContractMsg for InstantiateMsg {
     fn validate(&self) -> StdResult<()> {
         if self.babylon_tag.len() != BABYLON_TAG_BYTES * 2 {
