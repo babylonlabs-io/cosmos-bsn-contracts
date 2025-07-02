@@ -9,9 +9,9 @@ authors.workspace = true
 publish           = true
 
 [dependencies]
-babylon-apis     = { path = "../apis" }
-babylon-proto    = { path = "../proto" }
-babylon-bitcoin  = { path = "../bitcoin" }
+babylon-apis     = { path = "../apis", version = "0.14.0" }
+babylon-proto    = { path = "../proto", version = "0.14.0" }
+babylon-bitcoin  = { path = "../bitcoin", version = "0.14.0" }
 cosmwasm-std     = { workspace = true }
 hex              = { workspace = true }
 k256             = { workspace = true }
