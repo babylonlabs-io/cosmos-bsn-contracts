@@ -1,11 +1,12 @@
 [package]
-name = "test-utils"
+name = "babylon-test-utils"
+description = "Utilities used in Babylon contracts tests"
 edition.workspace = true
 version.workspace = true
 license.workspace = true
 repository.workspace = true
 authors.workspace = true
-publish.workspace = true
+publish           = true
 
 [dependencies]
 babylon-apis     = { path = "../apis" }
