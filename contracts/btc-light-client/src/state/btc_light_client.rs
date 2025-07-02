@@ -152,10 +152,9 @@ pub fn get_headers(
     Ok(headers)
 }
 
-/// init initialises the BTC header chain storage
-/// It takes BTC headers between
-/// - the BTC tip upon the last finalised epoch
-/// - the current tip
+/// Initialises the BTC header chain storage.
+///
+/// It takes BTC headers between the BTC tip upon the last finalised epoch and the current tip.
 pub fn init(
     storage: &mut dyn Storage,
     headers: &[BtcHeader],
@@ -163,7 +162,6 @@ pub fn init(
     first_height: u32,
 ) -> Result<(), ContractError> {
     let cfg = CONFIG.load(storage)?;
-    let chain_params = cfg.network.chain_params();
 
     // ensure there are >=w+1 headers, i.e. a base header and at least w subsequent
     // ones as a w-deep proof
@@ -171,13 +169,14 @@ pub fn init(
         return Err(InitError::NotEnoughHeaders(cfg.checkpoint_finalization_timeout + 1).into());
     }
 
+    let chain_params = cfg.network.chain_params();
+
     // base header is the first header in the list
     let base_header = headers.first().ok_or(InitError::MissingTipHeader)?;
     let base_header = base_header.to_btc_header_info(first_height, *first_work)?;
 
     // decode this header to rust-bitcoin's type
-    let base_btc_header: BlockHeader = babylon_bitcoin::deserialize(base_header.header.as_ref())
-        .map_err(|_| ContractError::BTCHeaderDecodeError {})?;
+    let base_btc_header: BlockHeader = babylon_bitcoin::deserialize(base_header.header.as_ref())?;
 
     // verify the base header's pow
     if babylon_bitcoin::pow::verify_header_pow(&chain_params, &base_btc_header).is_err() {
@@ -199,18 +198,14 @@ pub fn init(
     let new_headers = &processed_headers[1..];
     verify_headers(&chain_params, &base_header, new_headers)?;
 
-    // initialise base header
-    // NOTE: not changeable in the future
+    // Store base header (immutable), full chain and tip.
     set_base_header(storage, &base_header)?;
-    // insert all headers
     insert_headers(storage, &processed_headers)?;
-    // set tip header
-    set_tip(
-        storage,
-        processed_headers
-            .last()
-            .ok_or(InitError::MissingTipHeader)?,
-    )?;
+    let tip = processed_headers
+        .last()
+        .ok_or(InitError::MissingTipHeader)?;
+    set_tip(storage, tip)?;
+
     Ok(())
 }
 
@@ -222,8 +217,7 @@ pub fn init_from_babylon(
     let btc_headers = headers
         .iter()
         .map(BtcHeader::try_from)
-        .collect::<Result<Vec<BtcHeader>, _>>()
-        .map_err(|_| ContractError::BTCHeaderDecodeError {})?;
+        .collect::<Result<Vec<BtcHeader>, _>>()?;
     let base_header = headers.first().ok_or(ContractError::BTCHeaderEmpty {})?;
     let first_work = total_work(base_header.work.as_ref())?;
     let first_height = base_header.height;
@@ -256,8 +250,7 @@ pub fn handle_btc_headers_from_babylon(
         .first()
         .ok_or(ContractError::BTCHeaderEmpty {})?;
     let first_new_btc_header: BlockHeader =
-        babylon_bitcoin::deserialize(first_new_header.header.as_ref())
-            .map_err(|_| ContractError::BTCHeaderDecodeError {})?;
+        babylon_bitcoin::deserialize(first_new_header.header.as_ref())?;
 
     if first_new_btc_header.prev_blockhash.as_ref() == cur_tip_hash.to_vec() {
         // Most common case: extending the current tip

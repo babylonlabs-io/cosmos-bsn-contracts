@@ -17,11 +17,9 @@ pub fn verify_headers(
     for (i, new_header) in new_headers.iter().enumerate() {
         // decode last header to rust-bitcoin's type
         let last_btc_header: BlockHeader =
-            babylon_bitcoin::deserialize(last_header.header.as_ref())
-                .map_err(|_| error::ContractError::BTCHeaderDecodeError {})?;
+            babylon_bitcoin::deserialize(last_header.header.as_ref())?;
         // decode this header to rust-bitcoin's type
-        let btc_header: BlockHeader = babylon_bitcoin::deserialize(new_header.header.as_ref())
-            .map_err(|_| error::ContractError::BTCHeaderDecodeError {})?;
+        let btc_header: BlockHeader = babylon_bitcoin::deserialize(new_header.header.as_ref())?;
 
         // validate whether btc_header extends last_btc_header
         babylon_bitcoin::pow::verify_next_header_pow(chain_params, &last_btc_header, &btc_header)

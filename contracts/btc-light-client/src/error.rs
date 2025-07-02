@@ -51,8 +51,8 @@ pub enum ContractError {
     #[error("The bytes cannot be decoded as string")]
     DecodeUtf8Error(#[from] Utf8Error),
 
-    #[error("The BTC header cannot be decoded")]
-    BTCHeaderDecodeError {},
+    #[error("The BTC header cannot be decoded: {0}")]
+    BTCHeaderDecodeError(String),
 
     #[error("The BTC header is not being sent")]
     BTCHeaderEmpty {},
@@ -80,4 +80,10 @@ pub enum ContractError {
 
     #[error("The new chain's work ({0}), is not better than the current chain's work ({1})")]
     BTCChainWithNotEnoughWork(Work, Work),
+}
+
+impl From<babylon_bitcoin::EncodeError> for ContractError {
+    fn from(e: babylon_bitcoin::EncodeError) -> Self {
+        Self::BTCHeaderDecodeError(e.to_string())
+    }
 }
