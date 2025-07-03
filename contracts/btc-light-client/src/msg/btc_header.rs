@@ -420,15 +420,7 @@ mod tests {
             work: ::prost::bytes::Bytes::from("5678".as_bytes().to_vec()),
         };
         let btc_header = BtcHeader::try_from(&btc_header_info).unwrap();
-        assert_eq!(btc_header.version, 1);
-        assert_eq!(
-            btc_header.prev_blockhash,
-            block_header.prev_blockhash.to_string()
-        );
-        assert_eq!(btc_header.merkle_root, block_header.merkle_root.to_string());
-        assert_eq!(btc_header.time, 123);
-        assert_eq!(btc_header.bits, 456);
-        assert_eq!(btc_header.nonce, 789);
+        assert_eq!(BlockHeader::try_from(btc_header).unwrap(), block_header);
     }
 
     #[test]
@@ -454,19 +446,10 @@ mod tests {
             work: ::prost::bytes::Bytes::from("5678".as_bytes().to_vec()),
         };
         let btc_header = BtcHeaderResponse::try_from(btc_header_info).unwrap();
-        assert_eq!(btc_header.header.version, 1);
         assert_eq!(
-            btc_header.header.prev_blockhash,
-            block_header.prev_blockhash.to_string()
+            BlockHeader::try_from(btc_header.header).unwrap(),
+            block_header
         );
-        assert_eq!(
-            btc_header.header.merkle_root,
-            block_header.merkle_root.to_string()
-        );
-        assert_eq!(btc_header.header.time, 123);
-        assert_eq!(btc_header.header.bits, 456);
-        assert_eq!(btc_header.header.nonce, 789);
-
         assert_eq!(btc_header.height, 1234);
         assert_eq!(
             btc_header.cum_work,
