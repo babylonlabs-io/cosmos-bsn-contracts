@@ -1,4 +1,4 @@
-use babylon_bitcoin::chain_params::Network;
+use babylon_bitcoin::Network;
 use babylon_test_utils::get_params;
 
 use crate::state::config::Params;

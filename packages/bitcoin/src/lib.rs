@@ -1,23 +1,54 @@
+pub mod error;
+pub mod pow;
+pub mod schnorr;
+
+use bitcoin::blockdata::opcodes;
+use bitcoin::hashes::{sha256d, Hash};
+use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
+
 pub use bitcoin::{
     block::{Header as BlockHeader, Version},
     consensus::encode::Error as EncodeError,
-    consensus::{deserialize, serialize},
+    consensus::{deserialize, serialize, Params},
     hash_types,
     hashes::hex::HexToArrayError as HexError,
     BlockHash, CompactTarget, Target, Transaction, Work,
 };
 pub use cosmwasm_std::Uint256;
 
-use bitcoin::blockdata::opcodes;
-use bitcoin::hashes::{sha256d, Hash};
-
-pub mod chain_params;
-pub mod error;
-pub mod merkle;
-pub mod pow;
-pub mod schnorr;
-
 pub type Result<T> = std::result::Result<T, error::Error>;
+
+// we re-implement the enum here since `rust-bitcoin`'s enum implementation
+// does not have `#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum Network {
+    Mainnet,
+    Testnet,
+    Signet,
+    Regtest,
+}
+
+impl Network {
+    pub fn chain_params(&self) -> Params {
+        match self {
+            Self::Mainnet => Params::new(bitcoin::Network::Bitcoin),
+            Self::Testnet => Params::new(bitcoin::Network::Testnet),
+            Self::Signet => Params::new(bitcoin::Network::Signet),
+            Self::Regtest => Params::new(bitcoin::Network::Regtest),
+        }
+    }
+
+    pub fn bitcoin_network(&self) -> bitcoin::Network {
+        match self {
+            Self::Mainnet => bitcoin::Network::Bitcoin,
+            Self::Testnet => bitcoin::Network::Testnet,
+            Self::Signet => bitcoin::Network::Signet,
+            Self::Regtest => bitcoin::Network::Regtest,
+        }
+    }
+}
 
 pub fn extract_op_return_data(tx: &Transaction) -> core::result::Result<Vec<u8>, String> {
     for output in tx.output.iter() {

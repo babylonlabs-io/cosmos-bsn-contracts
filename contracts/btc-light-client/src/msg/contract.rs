@@ -10,7 +10,7 @@ use {
 
 #[cw_serde]
 pub struct InstantiateMsg {
-    pub network: babylon_bitcoin::chain_params::Network,
+    pub network: babylon_bitcoin::Network,
     pub btc_confirmation_depth: u32,
     pub checkpoint_finalization_timeout: u32,
 }

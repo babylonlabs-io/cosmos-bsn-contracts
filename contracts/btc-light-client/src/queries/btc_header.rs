@@ -45,7 +45,7 @@ mod tests {
 
     use crate::state::btc_light_client::init_from_babylon;
     use crate::state::config::{Config, CONFIG};
-    use babylon_bitcoin::chain_params::Network;
+    use babylon_bitcoin::Network;
 
     fn setup_test_state(
         deps: &mut cosmwasm_std::OwnedDeps<
