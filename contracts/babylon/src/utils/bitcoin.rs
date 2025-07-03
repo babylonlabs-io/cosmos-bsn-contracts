@@ -55,7 +55,7 @@ pub fn extract_checkpoint_data(
     idx: usize,
 ) -> Result<Vec<u8>, String> {
     // get OP_RETURN data
-    let op_return_data = babylon_bitcoin::op_return::extract_op_return_data(btc_tx)?;
+    let op_return_data = babylon_bitcoin::extract_op_return_data(btc_tx)?;
 
     // verify OP_RETURN length
     if idx == 0 && op_return_data.len() != FIRST_PART_LEN {
