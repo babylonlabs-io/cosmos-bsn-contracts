@@ -56,7 +56,7 @@ pub fn extract_op_return_data(tx: &Transaction) -> core::result::Result<Vec<u8>,
             let pk_script = output.script_pubkey.as_bytes();
 
             // if this is OP_PUSHDATA1, we need to drop first 3 bytes as those are related
-            // to script iteslf i.e OP_RETURN + OP_PUSHDATA1 + len of bytes
+            // to script itself i.e OP_RETURN + OP_PUSHDATA1 + len of bytes
             if pk_script[1] == opcodes::all::OP_PUSHDATA1.to_u8() {
                 return Ok(pk_script[3..pk_script.len()].to_vec());
             } else {
@@ -93,7 +93,7 @@ pub fn verify_merkle_proof(
         current_hash = sha256d::Hash::hash(&concat);
     }
 
-    &current_hash == root
+    current_hash == *root
 }
 
 #[cfg(test)]
