@@ -3,11 +3,11 @@
 use crate::error::ContractError;
 use babylon_bitcoin::{deserialize, BlockHeader, Work};
 use babylon_proto::babylon::btclightclient::v1::BtcHeaderInfo;
-use cosmwasm_std::{StdResult, Uint256};
+use cosmwasm_std::StdResult;
 use std::str::{from_utf8, FromStr};
 
-/// verify_headers verifies whether `new_headers` are valid consecutive headers
-/// after the given `first_header`
+/// Verifies whether `new_headers` are valid consecutive headers
+/// after the given `first_header`.
 pub fn verify_headers(
     chain_params: &babylon_bitcoin::chain_params::Params,
     first_header: &BtcHeaderInfo,
@@ -48,11 +48,6 @@ pub fn verify_headers(
         last_header = new_header.clone();
     }
     Ok(())
-}
-
-/// Zero work helper / constructor
-pub fn zero_work() -> Work {
-    Work::from_be_bytes(Uint256::zero().to_be_bytes())
 }
 
 /// Returns the total work of the given header.
