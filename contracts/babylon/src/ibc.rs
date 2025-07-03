@@ -166,9 +166,8 @@ pub(crate) mod ibc_packet {
         _caller: String,
         btc_ts: &BtcTimestamp,
     ) -> StdResult<IbcReceiveResponse<BabylonMsg>> {
-        let cfg = CONFIG.load(deps.storage)?;
         // handle the BTC timestamp, i.e., verify the BTC timestamp and update the contract state
-        let (wasm_msg, babylon_msg) = crate::state::handle_btc_timestamp(deps, btc_ts)?;
+        let wasm_msg = crate::state::handle_btc_timestamp(deps, btc_ts)?;
 
         // construct response
         let mut resp: IbcReceiveResponse<BabylonMsg> =
@@ -179,14 +178,6 @@ pub(crate) mod ibc_packet {
         // add wasm message to response if it exists
         if let Some(wasm_msg) = wasm_msg {
             resp = resp.add_message(wasm_msg);
-        }
-
-        // add Babylon message to response if it exists and the
-        // contract enables sending messages to the Cosmos zone
-        if let Some(babylon_msg) = babylon_msg {
-            if cfg.notify_cosmos_zone {
-                resp = resp.add_message(babylon_msg);
-            }
         }
 
         Ok(resp)
