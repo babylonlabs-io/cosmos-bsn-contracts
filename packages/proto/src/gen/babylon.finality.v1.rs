@@ -105,36 +105,4 @@ pub struct MsgAddFinalitySig {
     #[prost(bytes="bytes", tag="7")]
     pub finality_sig: ::prost::bytes::Bytes,
 }
-/// MsgEquivocationEvidence is the message for handling evidence of equivocation
-#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct MsgEquivocationEvidence {
-    #[prost(string, tag="1")]
-    pub signer: ::prost::alloc::string::String,
-    /// fp_btc_pk is the BTC PK of the finality provider that casts this vote
-    #[prost(bytes="bytes", tag="2")]
-    pub fp_btc_pk: ::prost::bytes::Bytes,
-    /// block_height is the height of the conflicting blocks
-    #[prost(uint64, tag="3")]
-    pub block_height: u64,
-    /// pub_rand is the public randomness the finality provider has committed to
-    #[prost(bytes="bytes", tag="4")]
-    pub pub_rand: ::prost::bytes::Bytes,
-    /// canonical_app_hash is the AppHash of the canonical block
-    #[prost(bytes="bytes", tag="5")]
-    pub canonical_app_hash: ::prost::bytes::Bytes,
-    /// fork_app_hash is the AppHash of the fork block
-    #[prost(bytes="bytes", tag="6")]
-    pub fork_app_hash: ::prost::bytes::Bytes,
-    /// canonical_finality_sig is the finality signature to the canonical block
-    /// where finality signature is an EOTS signature, i.e.,
-    /// the `s` in a Schnorr signature `(r, s)`
-    /// `r` is the public randomness that is already committed by the finality provider
-    #[prost(bytes="bytes", tag="7")]
-    pub canonical_finality_sig: ::prost::bytes::Bytes,
-    /// fork_finality_sig is the finality signature to the fork block
-    /// where finality signature is an EOTS signature
-    #[prost(bytes="bytes", tag="8")]
-    pub fork_finality_sig: ::prost::bytes::Bytes,
-}
 // @@protoc_insertion_point(module)
