@@ -1,3 +1,5 @@
+//! This module provides some Bitcoin related helper functions.
+
 use crate::error::ContractError;
 use babylon_bitcoin::{deserialize, BlockHeader, Work};
 use babylon_proto::babylon::btclightclient::v1::BtcHeaderInfo;
