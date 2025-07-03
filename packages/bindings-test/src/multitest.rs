@@ -1,26 +1,23 @@
 use anyhow::{bail, Result as AnyResult};
-use schemars::JsonSchema;
-use serde::de::DeserializeOwned;
-use std::cmp::max;
-use std::fmt::Debug;
-use std::ops::{Deref, DerefMut};
-use thiserror::Error;
-
+use babylon_bindings::{BabylonMsg, BabylonQuery};
 use cosmwasm_std::testing::{MockApi, MockQuerier, MockStorage};
-use cosmwasm_std::{CustomMsg, OwnedDeps};
-use std::marker::PhantomData;
-
 use cosmwasm_std::Order::Ascending;
 use cosmwasm_std::{
     Addr, Api, Binary, BlockInfo, CustomQuery, Empty, Querier, QuerierResult, StdError, StdResult,
     Storage, Timestamp,
 };
+use cosmwasm_std::{CustomMsg, OwnedDeps};
 use cw_multi_test::{
     App, AppResponse, BankKeeper, BankSudo, BasicAppBuilder, CosmosRouter, Module, WasmKeeper,
 };
 use cw_storage_plus::{Item, Map};
-
-use babylon_bindings::{BabylonMsg, BabylonQuery};
+use schemars::JsonSchema;
+use serde::de::DeserializeOwned;
+use std::cmp::max;
+use std::fmt::Debug;
+use std::marker::PhantomData;
+use std::ops::{Deref, DerefMut};
+use thiserror::Error;
 
 pub struct BabylonModule {}
 

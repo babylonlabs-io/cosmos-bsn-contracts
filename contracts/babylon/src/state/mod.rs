@@ -7,10 +7,9 @@ pub mod config;
 pub mod consumer_header_chain;
 
 /// Handles a BTC timestamp.
-/// It returns a tuple of (WasmMsg, BabylonMsg).
-/// The returned WasmMsg is a message to submit BTC headers to the BTC light client.
-/// The returned BabylonMsg is a message to notify of a newly finalised Consumer header, or None if
-/// this BTC timestamp does not carry a newly finalised Consumer header
+/// It returns an Option<WasmMsg>.
+/// The returned WasmMsg, if Some, is a message to submit BTC headers to the BTC light client.
+/// Returns None if there are no BTC headers to submit or if processing fails.
 pub fn handle_btc_timestamp(
     deps: &mut DepsMut,
     btc_ts: &BtcTimestamp,
