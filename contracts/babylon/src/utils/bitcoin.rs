@@ -41,7 +41,7 @@ pub fn parse_tx_info(
         .map_err(|err| format!("failed to decode BTC tx: {err:?}"))?;
 
     // verify Merkle proof
-    if !babylon_bitcoin::merkle::verify_merkle_proof(&btc_tx, &proof, tx_idx, root) {
+    if !babylon_bitcoin::verify_merkle_proof(&btc_tx, &proof, tx_idx, root) {
         return Err("failed to verify Bitcoin Merkle proof".to_string());
     }
 
