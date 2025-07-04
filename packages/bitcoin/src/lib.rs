@@ -1,5 +1,4 @@
 pub mod error;
-pub mod pow;
 pub mod schnorr;
 
 use bitcoin::blockdata::opcodes;

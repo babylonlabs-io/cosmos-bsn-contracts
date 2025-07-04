@@ -509,7 +509,10 @@ pub mod tests {
 
         // handling invalid fork headers
         let res = handle_btc_headers_from_babylon(&mut storage, &invalid_fork_headers);
-        assert!(matches!(res.unwrap_err(), ContractError::BtcLightClient(_)));
+        assert!(matches!(
+            res.unwrap_err(),
+            ContractError::BTCWrongCumulativeWork(..)
+        ));
 
         // ensure base and tip are unchanged
         ensure_base_and_tip(&storage, &test_headers);
