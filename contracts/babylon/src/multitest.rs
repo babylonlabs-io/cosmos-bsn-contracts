@@ -92,14 +92,11 @@ mod instantiation {
 
     #[test]
     fn instantiate_light_client_msg_works() {
-        let initial_headers = babylon_test_utils::initial_headers();
         let params = btc_light_client::msg::InstantiateMsg {
             network: babylon_bitcoin::Network::Testnet,
             btc_confirmation_depth: 1,
             checkpoint_finalization_timeout: 1,
-            headers: btc_headers_from_info(&initial_headers).unwrap(),
-            first_work: initial_headers[0].work.to_vec().into(),
-            first_height: initial_headers[0].height,
+            initial_header: babylon_test_utils::initial_header(),
         };
         let suite = SuiteBuilder::new()
             .with_light_client_msg(&to_json_string(&params).unwrap())

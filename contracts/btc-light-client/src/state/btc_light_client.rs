@@ -1,4 +1,4 @@
-use babylon_bitcoin::{BlockHash, BlockHeader, Work};
+use babylon_bitcoin::{BlockHash, BlockHeader};
 use babylon_proto::babylon::btclightclient::v1::BtcHeaderInfo;
 use cosmwasm_std::Order::{Ascending, Descending};
 use cosmwasm_std::{StdError, StdResult, Storage};
@@ -8,8 +8,9 @@ use prost::Message;
 use std::str::FromStr;
 
 use crate::bitcoin::{total_work, verify_headers};
-use crate::error::{ContractError, InitError};
+use crate::error::ContractError;
 use crate::msg::btc_header::BtcHeader;
+use crate::msg::contract::InitialHeader;
 
 use super::{Config, CONFIG};
 
@@ -165,53 +166,17 @@ pub fn get_headers(
 pub fn init(
     storage: &mut dyn Storage,
     cfg: &Config,
-    headers: &[BtcHeader],
-    first_work: &Work,
-    first_height: u32,
+    initial_header: InitialHeader,
 ) -> Result<(), ContractError> {
-    // ensure there are >=w+1 headers, i.e. a base header and at least w subsequent
-    // ones as a w-deep proof
-    if (headers.len() as u32) < cfg.checkpoint_finalization_timeout + 1 {
-        return Err(InitError::NotEnoughHeaders {
-            got: headers.len(),
-            required: cfg.checkpoint_finalization_timeout + 1,
-        }
-        .into());
-    }
-
-    let chain_params = cfg.network.chain_params();
-
-    // base header is the first header in the list
-    let base_header = headers.first().ok_or(InitError::MissingTipHeader)?;
-    let base_header = base_header.to_btc_header_info(first_height, *first_work)?;
+    let base_header = initial_header.to_btc_header_info()?;
 
     let base_btc_header: BlockHeader = babylon_bitcoin::deserialize(base_header.header.as_ref())?;
 
-    babylon_bitcoin::pow::verify_header_pow(&chain_params, &base_btc_header)?;
+    babylon_bitcoin::pow::verify_header_pow(&cfg.network.chain_params(), &base_btc_header)?;
 
-    // Convert headers to BtcHeaderInfo with work/height based on first block
-    let mut cur_height = base_header.height;
-    let mut cur_work = total_work(base_header.work.as_ref())?;
-    let mut processed_headers = Vec::with_capacity(headers.len());
-    processed_headers.push(base_header.clone());
-    for header in headers.iter().skip(1) {
-        let new_header_info = header.to_btc_header_info_from_prev(cur_height, cur_work)?;
-        cur_height += 1;
-        cur_work = total_work(new_header_info.work.as_ref())?;
-        processed_headers.push(new_header_info);
-    }
-
-    // verify subsequent headers
-    let new_headers = &processed_headers[1..];
-    verify_headers(&chain_params, &base_header, new_headers)?;
-
-    // Store base header (immutable), full chain and tip.
+    // Store base header (immutable) and tip.
     set_base_header(storage, &base_header)?;
-    insert_headers(storage, &processed_headers)?;
-    let tip = processed_headers
-        .last()
-        .ok_or(InitError::MissingTipHeader)?;
-    set_tip(storage, tip)?;
+    set_tip(storage, &base_header)?;
 
     Ok(())
 }
@@ -221,6 +186,8 @@ pub fn init_from_babylon(
     storage: &mut dyn Storage,
     headers: &[BtcHeaderInfo],
 ) -> Result<(), ContractError> {
+    todo!("init_from_babylon")
+    /*
     let btc_headers = headers
         .iter()
         .map(BtcHeader::try_from)
@@ -230,6 +197,7 @@ pub fn init_from_babylon(
     let first_height = base_header.height;
     let cfg = CONFIG.load(storage)?;
     init(storage, &cfg, &btc_headers, &first_work, first_height)
+    */
 }
 
 /// handle_btc_headers_from_babylon verifies and inserts a number of

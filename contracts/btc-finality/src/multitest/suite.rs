@@ -1,4 +1,5 @@
 use anyhow::Result as AnyResult;
+use btc_light_client::msg::contract::InitialHeader;
 use derivative::Derivative;
 use hex::ToHex;
 
@@ -128,7 +129,7 @@ impl SuiteBuilder {
                     checkpoint_finalization_timeout: 1,
                     notify_cosmos_zone: false,
                     btc_light_client_code_id: Some(btc_light_client_code_id),
-                    btc_light_client_initial_headers: babylon_test_utils::initial_headers_in_hex(),
+                    btc_light_client_initial_header: babylon_test_utils::initial_header_in_hex(),
                     btc_light_client_msg: None,
                     btc_staking_code_id: Some(btc_staking_code_id),
                     btc_staking_msg: Some(

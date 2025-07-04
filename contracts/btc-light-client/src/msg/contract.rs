@@ -1,7 +1,12 @@
+use babylon_proto::babylon::btclightclient::v1::BtcHeaderInfo;
 use cosmwasm_schema::{cw_serde, QueryResponses};
 use cosmwasm_std::Binary;
 
-use crate::{error::InitError, msg::btc_header::BtcHeader};
+use crate::bitcoin::total_work;
+use crate::{
+    error::{ContractError, InitError},
+    msg::btc_header::BtcHeader,
+};
 #[cfg(not(target_arch = "wasm32"))]
 use {
     crate::msg::btc_header::{BtcHeaderResponse, BtcHeadersResponse},
@@ -9,18 +14,42 @@ use {
 };
 
 #[cw_serde]
+pub struct InitialHeader {
+    /// Initial BTC header to initialize the light client.
+    pub header: BtcHeader,
+    /// Total accumulated work of the initial header, encoded as big-endian bytes.
+    pub total_work: Binary,
+    /// Height of the initial header.
+    pub height: u32,
+}
+
+impl InitialHeader {
+    pub fn to_btc_header_info(&self) -> Result<BtcHeaderInfo, ContractError> {
+        let total_work = total_work(&self.total_work)?;
+        self.header.to_btc_header_info(self.height, total_work)
+    }
+}
+
+impl TryFrom<BtcHeaderInfo> for InitialHeader {
+    type Error = ContractError;
+    fn try_from(header_info: BtcHeaderInfo) -> Result<Self, Self::Error> {
+        let total_work: Binary = header_info.work.to_vec().into();
+        let height = header_info.height;
+        Ok(Self {
+            header: header_info.try_into()?,
+            total_work,
+            height,
+        })
+    }
+}
+
+#[cw_serde]
 pub struct InstantiateMsg {
     pub network: babylon_bitcoin::Network,
     pub btc_confirmation_depth: u32,
     pub checkpoint_finalization_timeout: u32,
-    /// A sequence of initial BTC headers used to bootstrap the light client.
-    ///
-    /// Must include at least `btc_confirmation_depth` headers following the base header.
-    pub headers: Vec<BtcHeader>,
-    /// Total accumulated work of the first (base) BTC header, encoded as big-endian bytes.
-    pub first_work: Binary,
-    /// Height of the first (base) BTC header.
-    pub first_height: u32,
+    /// Initial BTC header.
+    pub initial_header: InitialHeader,
 }
 
 impl InstantiateMsg {
@@ -31,14 +60,6 @@ impl InstantiateMsg {
 
         if self.checkpoint_finalization_timeout == 0 {
             return Err(InitError::ZeroCheckpointFinalizationTimeout);
-        }
-
-        // Check if there are enough headers for initialization
-        if self.headers.len() < self.btc_confirmation_depth as usize {
-            return Err(InitError::NotEnoughHeaders {
-                got: self.headers.len(),
-                required: self.btc_confirmation_depth,
-            });
         }
 
         // TODO: validate headers, first work and first height? For example, the base header

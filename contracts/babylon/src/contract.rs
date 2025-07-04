@@ -10,7 +10,9 @@ use prost::Message;
 
 use babylon_apis::{btc_staking_api, finality_api};
 use babylon_bindings::BabylonMsg;
-use btc_light_client::msg::contract::InstantiateMsg as BtcLightClientInstantiateMsg;
+use btc_light_client::msg::contract::{
+    InitialHeader, InstantiateMsg as BtcLightClientInstantiateMsg,
+};
 
 use crate::error::ContractError;
 use crate::ibc::{ibc_packet, IBC_CHANNEL, IBC_TRANSFER};
@@ -70,21 +72,17 @@ pub fn instantiate(
         let init_msg = match msg.btc_light_client_msg {
             Some(lc_msg) => lc_msg,
             None => {
-                let initial_headers =
-                    decode_btc_headers(hex::decode(&msg.btc_light_client_initial_headers)?)?;
-
-                let base_header = initial_headers
-                    .first()
-                    .ok_or(ContractError::BtcHeaderEmpty {})?;
+                let initial_header: InitialHeader =
+                    serde_json::from_slice(&hex::decode(&msg.btc_light_client_initial_header)?)
+                        .unwrap();
 
                 let btc_lc_init_msg = BtcLightClientInstantiateMsg {
                     network: msg.network.clone(),
                     btc_confirmation_depth: msg.btc_confirmation_depth,
                     checkpoint_finalization_timeout: msg.checkpoint_finalization_timeout,
-                    headers: btc_headers_from_info(&initial_headers)?,
-                    first_work: base_header.work.to_vec().into(),
-                    first_height: base_header.height,
+                    initial_header,
                 };
+
                 to_json_binary(&btc_lc_init_msg)?
             }
         };
@@ -359,7 +357,7 @@ pub fn execute(
 mod tests {
     use super::*;
     use babylon_bitcoin::BlockHeader;
-    use babylon_test_utils::{initial_headers, initial_headers_in_hex};
+    use babylon_test_utils::{initial_header, initial_header_in_hex};
     use cosmwasm_std::testing::message_info;
     use cosmwasm_std::testing::{mock_dependencies, mock_env};
 
@@ -387,9 +385,7 @@ mod tests {
         let mut deps = mock_dependencies();
         let mut msg = InstantiateMsg::new_test();
         msg.btc_light_client_code_id.replace(1);
-
-        let initial_headers = initial_headers();
-        msg.btc_light_client_initial_headers = initial_headers_in_hex();
+        msg.btc_light_client_initial_header = initial_header_in_hex();
 
         let info = message_info(&deps.api.addr_make(CREATOR), &[]);
         let res = instantiate(deps.as_mut(), mock_env(), info, msg.clone()).unwrap();
@@ -404,9 +400,7 @@ mod tests {
                     network: babylon_bitcoin::Network::Regtest,
                     btc_confirmation_depth: msg.btc_confirmation_depth,
                     checkpoint_finalization_timeout: msg.checkpoint_finalization_timeout,
-                    headers: btc_headers_from_info(&initial_headers).unwrap(),
-                    first_work: initial_headers[0].work.to_vec().into(),
-                    first_height: initial_headers[0].height,
+                    initial_header: initial_header(),
                 })
                 .unwrap(),
                 funds: vec![],
@@ -421,7 +415,7 @@ mod tests {
         let mut deps = mock_dependencies();
         let params = r#"{"network":"testnet","btc_confirmation_depth":6,"checkpoint_finalization_timeout":100}"#;
         let mut msg = InstantiateMsg::new_test();
-        msg.btc_light_client_initial_headers = initial_headers_in_hex();
+        msg.btc_light_client_initial_header = initial_header_in_hex();
         msg.btc_light_client_code_id.replace(1);
         msg.btc_light_client_msg
             .replace(Binary::from(params.as_bytes()));
@@ -447,7 +441,7 @@ mod tests {
         let mut deps = mock_dependencies();
         let mut msg = InstantiateMsg::new_test();
         msg.btc_finality_code_id.replace(2);
-        msg.btc_light_client_initial_headers = initial_headers_in_hex();
+        msg.btc_light_client_initial_header = initial_header_in_hex();
         let info = message_info(&deps.api.addr_make(CREATOR), &[]);
         let res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
         assert_eq!(1, res.messages.len());
@@ -470,7 +464,7 @@ mod tests {
         let mut deps = mock_dependencies();
         let params = r#"{"params": {"epoch_length": 10}}"#;
         let mut msg = InstantiateMsg::new_test();
-        msg.btc_light_client_initial_headers = initial_headers_in_hex();
+        msg.btc_light_client_initial_header = initial_header_in_hex();
         msg.btc_finality_code_id.replace(2);
         msg.btc_finality_msg
             .replace(Binary::from(params.as_bytes()));

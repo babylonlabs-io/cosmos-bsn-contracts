@@ -24,9 +24,7 @@ pub fn instantiate(
         network,
         btc_confirmation_depth,
         checkpoint_finalization_timeout,
-        headers,
-        first_work,
-        first_height,
+        initial_header,
     } = msg;
 
     let cfg = Config {
@@ -35,9 +33,7 @@ pub fn instantiate(
         checkpoint_finalization_timeout,
     };
 
-    let first_work = total_work(&first_work)?;
-
-    init(deps.storage, &cfg, &headers, &first_work, first_height)?;
+    init(deps.storage, &cfg, initial_header)?;
 
     CONFIG.save(deps.storage, &cfg)?;
 

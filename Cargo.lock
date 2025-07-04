@@ -328,6 +328,7 @@ dependencies = [
  "ics23",
  "pbjson-types",
  "prost",
+ "serde_json",
  "sha2",
  "tendermint-proto",
  "thiserror 1.0.69",
@@ -368,6 +369,7 @@ dependencies = [
  "babylon-bitcoin",
  "babylon-proto",
  "bitcoin",
+ "btc-light-client",
  "cosmwasm-std",
  "hex",
  "k256",
@@ -608,6 +610,7 @@ dependencies = [
  "k256",
  "pbjson-types",
  "prost",
+ "serde_json",
  "tendermint-proto",
  "thiserror 1.0.69",
 ]
