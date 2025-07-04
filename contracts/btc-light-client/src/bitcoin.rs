@@ -19,8 +19,7 @@ pub fn verify_headers(
         let last_btc_header: BlockHeader = deserialize(last_header.header.as_ref())?;
         let btc_header: BlockHeader = deserialize(new_header.header.as_ref())?;
 
-        // validate whether btc_header extends last_btc_header
-        babylon_bitcoin::pow::verify_next_header_pow(chain_params, &last_btc_header, &btc_header)?;
+        check_header(chain_params, &last_btc_header, &btc_header)?;
 
         let header_work = btc_header.work();
         let cum_work = total_work(new_header.work.as_ref())?;
@@ -46,6 +45,16 @@ pub fn verify_headers(
         // this header is good, verify the next one
         last_header = new_header.clone();
     }
+    Ok(())
+}
+
+// https://github.com/babylonlabs-io/babylon/blob/48617fb852e9cae4ea7ea38c80793cdcb6f2668c/x/btclightclient/types/btc_light_client.go#L416
+fn check_header(
+    chain_params: &babylon_bitcoin::Params,
+    parent_header: &BlockHeader,
+    header: &BlockHeader,
+) -> Result<(), ContractError> {
+    babylon_bitcoin::pow::verify_next_header_pow(chain_params, parent_header, header)?;
     Ok(())
 }
 
