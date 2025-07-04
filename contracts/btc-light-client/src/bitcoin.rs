@@ -97,8 +97,7 @@ fn check_block_header_sanity(
     }
     */
 
-    // Check proof-of-work
-    babylon_bitcoin::pow::verify_header_pow(chain_params, header)?;
+    check_proof_of_work(chain_params, header)?;
 
     // if the chain does not allow reduced difficulty after 10min, ensure
     // the new header's target is within the [0.25, 4] range
@@ -114,6 +113,31 @@ fn check_block_header_sanity(
             return Err(ContractError::BadDifficulty);
         }
     }
+
+    Ok(())
+}
+
+/// Ensures the header's hash <= the header's target <= pow limit.
+pub(crate) fn check_proof_of_work(
+    chain_params: &bitcoin::consensus::Params,
+    header: &BlockHeader,
+) -> Result<(), ContractError> {
+    let target = header.target();
+
+    // ensure the target <= pow_limit
+    if target > chain_params.max_attainable_target {
+        return Err(ContractError::TargetTooLarge);
+    }
+
+    // ensure the header's hash <= target
+    // NOTE: validate_pow ensures two things
+    // - the given required_target is same
+    // - the header hash is smaller than required_target
+    // The former must be true since we give this header's target
+    // Here we are interested in the latter check, in which the code is private
+    header
+        .validate_pow(target)
+        .map_err(ContractError::InvalidProofOfWork)?;
 
     Ok(())
 }

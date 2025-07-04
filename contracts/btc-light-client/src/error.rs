@@ -40,6 +40,12 @@ pub enum ContractError {
     #[error("The BTC header info {0} height is wrong. Expected {1}, got {2}")]
     BTCWrongHeight(usize, u32, u32),
 
+    #[error("Header's target is larger than pow_limit")]
+    TargetTooLarge,
+
+    #[error("proof-of-work validation failed: {0:?}")]
+    InvalidProofOfWork(bitcoin::block::ValidationError),
+
     #[error("Incorrect proof-of-work: {{ got: {got:?}, expected: {expected:?} }}")]
     BadDifficultyBits { got: Target, expected: Target },
 
