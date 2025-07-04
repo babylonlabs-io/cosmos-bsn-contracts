@@ -58,27 +58,27 @@ pub fn verify_headers(
 ) -> Result<(), HeaderError> {
     let mut last_header = first_header.clone();
     let mut cum_work_old = total_work(last_header.work.as_ref())?;
+
     for (i, new_header) in new_headers.iter().enumerate() {
-        let last_btc_header: BlockHeader = deserialize(last_header.header.as_ref())?;
-        let btc_header: BlockHeader = deserialize(new_header.header.as_ref())?;
+        let prev_block_header: BlockHeader = deserialize(last_header.header.as_ref())?;
+        let block_header: BlockHeader = deserialize(new_header.header.as_ref())?;
 
         check_header(
             storage,
             chain_params,
             last_header.height,
-            &last_btc_header,
-            &btc_header,
+            &prev_block_header,
+            &block_header,
         )?;
 
-        let header_work = btc_header.work();
         let cum_work = total_work(new_header.work.as_ref())?;
 
         // Validate cumulative work
-        let cum_work_new = cum_work_old + header_work;
+        let cum_work_new = cum_work_old + block_header.work();
         if cum_work_new != cum_work {
             return Err(HeaderError::WrongCumulativeWork(i, cum_work_new, cum_work));
         }
-        cum_work_old = cum_work;
+
         // Validate height
         if new_header.height != last_header.height + 1 {
             return Err(HeaderError::WrongHeight(
@@ -89,6 +89,7 @@ pub fn verify_headers(
         }
 
         // this header is good, verify the next one
+        cum_work_old = cum_work;
         last_header = new_header.clone();
     }
     Ok(())
