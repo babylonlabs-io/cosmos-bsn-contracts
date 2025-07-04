@@ -7,9 +7,9 @@ use hex::ToHex;
 use prost::Message;
 use std::str::FromStr;
 
+use crate::bitcoin::{total_work, verify_headers};
 use crate::error::{ContractError, InitError};
 use crate::msg::btc_header::BtcHeader;
-use crate::utils::btc_light_client::{total_work, verify_headers};
 
 use super::{Config, CONFIG};
 
@@ -348,7 +348,7 @@ pub mod tests {
     };
 
     use super::*;
-    use babylon_bitcoin::chain_params::Network;
+    use babylon_bitcoin::Network;
     use babylon_test_utils::{get_btc_lc_fork_headers, get_btc_lc_fork_msg, get_btc_lc_headers};
     use cosmwasm_std::{from_json, testing::mock_dependencies};
 

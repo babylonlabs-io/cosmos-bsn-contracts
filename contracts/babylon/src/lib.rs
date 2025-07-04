@@ -12,7 +12,6 @@ use crate::error::ContractError;
 pub use crate::msg::contract::ExecuteMsg;
 use crate::msg::contract::InstantiateMsg;
 
-mod bindings;
 pub mod contract;
 pub mod error;
 pub mod ibc;

@@ -45,7 +45,6 @@ fn wasm_size_limit_check() {
 #[test]
 fn instantiate_works() {
     let mut deps = mock_instance(BABYLON_CONTRACT_WASM, &[]);
-
     let mut msg = InstantiateMsg::new_test();
     msg.btc_confirmation_depth = 10;
     msg.checkpoint_finalization_timeout = 100;

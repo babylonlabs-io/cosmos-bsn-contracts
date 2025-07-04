@@ -401,7 +401,7 @@ mod tests {
                 admin: None,
                 code_id: 1,
                 msg: to_json_binary(&BtcLightClientInstantiateMsg {
-                    network: babylon_bitcoin::chain_params::Network::Regtest,
+                    network: babylon_bitcoin::Network::Regtest,
                     btc_confirmation_depth: msg.btc_confirmation_depth,
                     checkpoint_finalization_timeout: msg.checkpoint_finalization_timeout,
                     headers: btc_headers_from_info(&initial_headers).unwrap(),

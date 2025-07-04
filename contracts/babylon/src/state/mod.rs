@@ -1,32 +1,33 @@
 //! state is the module that manages smart contract's system state
-use cosmwasm_std::{DepsMut, StdError, WasmMsg};
-
-use crate::bindings::msg_btc_finalized_header;
-use crate::utils::btc_light_client_executor::new_btc_headers_msg;
-use babylon_bindings::BabylonMsg;
 use babylon_proto::babylon::zoneconcierge::v1::BtcTimestamp;
+use cosmwasm_std::{DepsMut, StdError, WasmMsg};
 
 pub mod babylon_epoch_chain;
 pub mod config;
 pub mod consumer_header_chain;
 
 /// Handles a BTC timestamp.
-/// It returns a tuple of (WasmMsg, BabylonMsg).
-/// The returned WasmMsg is a message to submit BTC headers to the BTC light client.
-/// The returned BabylonMsg is a message to notify of a newly finalised Consumer header, or None if
-/// this BTC timestamp does not carry a newly finalised Consumer header
+/// It returns an Option<WasmMsg>.
+/// The returned WasmMsg, if Some, is a message to submit BTC headers to the BTC light client.
+/// Returns None if there are no BTC headers to submit or if processing fails.
 pub fn handle_btc_timestamp(
     deps: &mut DepsMut,
     btc_ts: &BtcTimestamp,
-) -> Result<(Option<WasmMsg>, Option<BabylonMsg>), StdError> {
+) -> Result<Option<WasmMsg>, StdError> {
+    let mut wasm_msg = None;
+
     // only process BTC headers if they exist and are not empty
-    let wasm_msg = match btc_ts.btc_headers.as_ref() {
-        Some(btc_headers) if !btc_headers.headers.is_empty() => Some(
-            new_btc_headers_msg(deps, &btc_headers.headers)
+    if let Some(btc_headers) = btc_ts.btc_headers.as_ref() {
+        if !btc_headers.headers.is_empty() {
+            wasm_msg = Some(
+                crate::utils::btc_light_client_executor::new_btc_headers_msg(
+                    deps,
+                    &btc_headers.headers,
+                )
                 .map_err(|e| StdError::generic_err(format!("failed to submit BTC headers: {e}")))?,
-        ),
-        _ => None,
-    };
+            );
+        }
+    }
 
     // extract and init/handle Babylon epoch chain
     let (epoch, raw_ckpt, proof_epoch_sealed, txs_info) =
@@ -57,8 +58,7 @@ pub fn handle_btc_timestamp(
 
     // Try to extract and handle the Consumer header.
     // It's possible that there is no Consumer header checkpointed in this epoch
-
-    let babylon_msg = if let Some(consumer_header) = btc_ts.header.as_ref() {
+    if let Some(consumer_header) = btc_ts.header.as_ref() {
         let proof = btc_ts
             .proof
             .as_ref()
@@ -81,16 +81,7 @@ pub fn handle_btc_timestamp(
                 "failed to handle Consumer header from Babylon: {e}"
             ))
         })?;
+    }
 
-        // Finalised Consumer header verified.
-        // Notify the Consumer about the newly finalised Consumer header.
-        // A Cosmos chain that deploys the corresponding CosmWasm plugin will handle this message
-        let msg = msg_btc_finalized_header(consumer_header)?;
-
-        Some(msg)
-    } else {
-        None
-    };
-
-    Ok((wasm_msg, babylon_msg))
+    Ok(wasm_msg)
 }

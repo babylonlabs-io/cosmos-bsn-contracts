@@ -1,14 +1,3 @@
-use hex::ToHex;
-use k256::schnorr::{Signature, SigningKey};
-use prost::{bytes::Bytes, Message};
-use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::path::PathBuf;
-use std::str::FromStr;
-use std::{env, fs};
-
-use cosmwasm_std::{Binary, Decimal, Uint256};
-
 use babylon_apis::btc_staking_api::{
     ActiveBtcDelegation, BtcUndelegationInfo, CovenantAdaptorSignatures, DelegatorUnbondingInfo,
     FinalityProviderDescription, NewFinalityProvider, ProofOfPossessionBtc,
@@ -19,6 +8,15 @@ use babylon_proto::babylon::btclightclient::v1::{BtcHeaderInfo, QueryMainChainRe
 use babylon_proto::babylon::btcstaking::v1::{BtcDelegation, FinalityProvider, Params};
 use babylon_proto::babylon::finality::v1::{MsgAddFinalitySig, MsgCommitPubRandList};
 use babylon_proto::babylon::zoneconcierge::v1::BtcTimestamp;
+use cosmwasm_std::{Binary, Decimal, Uint256};
+use hex::ToHex;
+use k256::schnorr::{Signature, SigningKey};
+use prost::{bytes::Bytes, Message};
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
+use std::path::PathBuf;
+use std::str::FromStr;
+use std::{env, fs};
 
 const BTC_LC_MAIN: &str = "btc_light_client.dat";
 const BTC_LC_FORK: &str = "btc_light_client_fork.dat";

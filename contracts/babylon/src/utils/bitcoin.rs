@@ -41,7 +41,7 @@ pub fn parse_tx_info(
         .map_err(|err| format!("failed to decode BTC tx: {err:?}"))?;
 
     // verify Merkle proof
-    if !babylon_bitcoin::merkle::verify_merkle_proof(&btc_tx, &proof, tx_idx, root) {
+    if !babylon_bitcoin::verify_merkle_proof(&btc_tx, &proof, tx_idx, root) {
         return Err("failed to verify Bitcoin Merkle proof".to_string());
     }
 
@@ -55,7 +55,7 @@ pub fn extract_checkpoint_data(
     idx: usize,
 ) -> Result<Vec<u8>, String> {
     // get OP_RETURN data
-    let op_return_data = babylon_bitcoin::op_return::extract_op_return_data(btc_tx)?;
+    let op_return_data = babylon_bitcoin::extract_op_return_data(btc_tx)?;
 
     // verify OP_RETURN length
     if idx == 0 && op_return_data.len() != FIRST_PART_LEN {

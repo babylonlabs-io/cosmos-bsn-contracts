@@ -47,7 +47,7 @@ pub fn setup_instance() -> Instance<MockApi, MockStorage, MockQuerier> {
     let mut deps = mock_instance_with_gas_limit(WASM, 10_000_000_000_000);
     let initial_headers = initial_headers();
     let msg = InstantiateMsg {
-        network: babylon_bitcoin::chain_params::Network::Regtest,
+        network: babylon_bitcoin::Network::Regtest,
         btc_confirmation_depth: 10,
         checkpoint_finalization_timeout: 2,
         headers: btc_headers_from_info(&initial_headers).unwrap(),

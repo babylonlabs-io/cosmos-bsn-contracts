@@ -3,11 +3,11 @@ use cw2::set_contract_version;
 
 use babylon_bindings::BabylonMsg;
 
+use crate::bitcoin::total_work;
 use crate::error::ContractError;
 use crate::msg::contract::{ExecuteMsg, InstantiateMsg, QueryMsg};
 use crate::state::btc_light_client::{handle_btc_headers_from_user, init};
 use crate::state::config::{Config, CONFIG};
-use crate::utils::btc_light_client::total_work;
 
 pub const CONTRACT_NAME: &str = env!("CARGO_PKG_NAME");
 pub const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
