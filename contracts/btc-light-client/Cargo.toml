@@ -34,6 +34,7 @@ babylon-apis     = { path = "../../packages/apis" }
 babylon-bindings = { path = "../../packages/bindings" }
 babylon-proto    = { path = "../../packages/proto" }
 babylon-bitcoin  = { path = "../../packages/bitcoin" }
+bitcoin          = { workspace = true }
 cosmwasm-schema  = { workspace = true }
 cosmwasm-std     = { workspace = true }
 cw2              = { workspace = true }

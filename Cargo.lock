@@ -626,6 +626,7 @@ dependencies = [
  "babylon-bitcoin",
  "babylon-proto",
  "babylon-test-utils",
+ "bitcoin",
  "cosmwasm-schema",
  "cosmwasm-std",
  "cosmwasm-vm",

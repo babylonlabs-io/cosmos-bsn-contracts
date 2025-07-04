@@ -1,4 +1,5 @@
 use babylon_bitcoin::Work;
+use bitcoin::Target;
 use cosmwasm_std::StdError;
 use cw_utils::ParseReplyError;
 use hex::FromHexError;
@@ -38,6 +39,9 @@ pub enum ContractError {
 
     #[error("The BTC header info {0} height is wrong. Expected {1}, got {2}")]
     BTCWrongHeight(usize, u32, u32),
+
+    #[error("Incorrect proof-of-work: {{ got: {got:?}, expected: {expected:?} }}")]
+    BadDifficultyBits { got: Target, expected: Target },
 
     #[error("The new chain's work ({0}), is not better than the current chain's work ({1})")]
     BTCChainWithNotEnoughWork(Work, Work),

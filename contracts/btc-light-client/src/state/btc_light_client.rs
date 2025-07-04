@@ -191,7 +191,7 @@ pub fn handle_btc_headers_from_babylon(
         // Most common case: extending the current tip
 
         // Verify each new header after `current_tip` iteratively
-        verify_headers(&chain_params, &cur_tip.clone(), new_headers)?;
+        verify_headers(storage, &chain_params, &cur_tip.clone(), new_headers)?;
 
         // All good, add all the headers to the BTC light client store
         insert_headers(storage, new_headers)?;
@@ -205,7 +205,7 @@ pub fn handle_btc_headers_from_babylon(
         let fork_parent = get_header_by_hash(storage, parent_hash)?;
 
         // Verify each new header after `fork_parent` iteratively
-        verify_headers(&chain_params, &fork_parent, new_headers)?;
+        verify_headers(storage, &chain_params, &fork_parent, new_headers)?;
 
         let new_tip = new_headers.last().ok_or(ContractError::BTCHeaderEmpty {})?;
 
