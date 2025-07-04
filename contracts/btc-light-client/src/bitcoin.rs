@@ -54,7 +54,13 @@ fn check_header(
     parent_header: &BlockHeader,
     header: &BlockHeader,
 ) -> Result<(), ContractError> {
+    // TODO: CheckBlockHeaderContext, i.e., difficulty adjustment.
+    // https://pkg.go.dev/github.com/btcsuite/btcd@v0.24.2/blockchain#CheckBlockHeaderContext
+
+    // TODO: CheckBlockHeaderSanity
+    // https://pkg.go.dev/github.com/btcsuite/btcd@v0.24.2/blockchain#CheckBlockHeaderSanity
     babylon_bitcoin::pow::verify_next_header_pow(chain_params, parent_header, header)?;
+
     Ok(())
 }
 
