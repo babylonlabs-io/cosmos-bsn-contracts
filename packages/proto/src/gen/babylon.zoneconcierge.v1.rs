@@ -243,12 +243,4 @@ pub struct ConsumerSlashingIbcPacket {
     #[prost(message, optional, tag="1")]
     pub evidence: ::core::option::Option<super::super::finality::v1::Evidence>,
 }
-/// QueryFinalizedChainsInfoResponse is response type for the
-/// Query/FinalizedChainsInfo RPC method.
-#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct QueryFinalizedChainsInfoResponse {
-    #[prost(message, repeated, tag="1")]
-    pub finalized_chains_info: ::prost::alloc::vec::Vec<FinalizedChainInfo>,
-}
 // @@protoc_insertion_point(module)
