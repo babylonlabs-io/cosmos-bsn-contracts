@@ -2,10 +2,11 @@ use cosmwasm_std::{to_json_binary, Binary, Deps, DepsMut, Empty, Env, MessageInf
 use cw2::set_contract_version;
 
 use babylon_bindings::BabylonMsg;
+use babylon_bitcoin::BlockHeader;
 
 use crate::error::ContractError;
 use crate::msg::contract::{ExecuteMsg, InstantiateMsg, QueryMsg};
-use crate::state::btc_light_client::{handle_btc_headers_from_user, init};
+use crate::state::btc_light_client::{handle_btc_headers_from_user, set_base_header, set_tip};
 use crate::state::config::{Config, CONFIG};
 
 pub const CONTRACT_NAME: &str = env!("CARGO_PKG_NAME");
@@ -32,7 +33,16 @@ pub fn instantiate(
         checkpoint_finalization_timeout,
     };
 
-    init(deps.storage, &cfg, initial_header)?;
+    // Initialises the BTC header chain storage.
+    let base_header = initial_header.to_btc_header_info()?;
+
+    let base_btc_header: BlockHeader = babylon_bitcoin::deserialize(base_header.header.as_ref())?;
+
+    babylon_bitcoin::pow::verify_header_pow(&cfg.network.chain_params(), &base_btc_header)?;
+
+    // Store base header (immutable) and tip.
+    set_base_header(deps.storage, &base_header)?;
+    set_tip(deps.storage, &base_header)?;
 
     CONFIG.save(deps.storage, &cfg)?;
 

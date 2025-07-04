@@ -10,9 +10,8 @@ use std::str::FromStr;
 use crate::bitcoin::{total_work, verify_headers};
 use crate::error::ContractError;
 use crate::msg::btc_header::BtcHeader;
-use crate::msg::contract::InitialHeader;
 
-use super::{Config, CONFIG};
+use super::CONFIG;
 
 pub const BTC_TIP_KEY: &str = "btc_lc_tip";
 
@@ -158,27 +157,6 @@ pub fn get_headers(
         .collect::<Result<Vec<_>, _>>()?;
 
     Ok(headers)
-}
-
-/// Initialises the BTC header chain storage.
-///
-/// It takes BTC headers between the BTC tip upon the last finalised epoch and the current tip.
-pub fn init(
-    storage: &mut dyn Storage,
-    cfg: &Config,
-    initial_header: InitialHeader,
-) -> Result<(), ContractError> {
-    let base_header = initial_header.to_btc_header_info()?;
-
-    let base_btc_header: BlockHeader = babylon_bitcoin::deserialize(base_header.header.as_ref())?;
-
-    babylon_bitcoin::pow::verify_header_pow(&cfg.network.chain_params(), &base_btc_header)?;
-
-    // Store base header (immutable) and tip.
-    set_base_header(storage, &base_header)?;
-    set_tip(storage, &base_header)?;
-
-    Ok(())
 }
 
 /// handle_btc_headers_from_babylon verifies and inserts a number of
