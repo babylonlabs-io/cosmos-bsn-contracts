@@ -3,7 +3,7 @@
 use crate::error::ContractError;
 use crate::state::get_header;
 use babylon_bitcoin::{deserialize, BlockHeader, Work};
-use babylon_bitcoin::{Params, Uint256 as U256};
+use babylon_bitcoin::{Params, Uint256};
 use babylon_proto::babylon::btclightclient::v1::BtcHeaderInfo;
 use bitcoin::Target;
 use cosmwasm_std::Storage;
@@ -102,11 +102,9 @@ fn check_block_header_sanity(
     // if the chain does not allow reduced difficulty after 10min, ensure
     // the new header's target is within the [0.25, 4] range
     if !chain_params.allow_min_difficulty_blocks {
-        let retarget_adjustment_factor_u256 =
-            cosmwasm_std::Uint256::from(RETARGET_ADJUSTMENT_FACTOR);
-        let old_target =
-            cosmwasm_std::Uint256::from_be_bytes(prev_block_header.target().to_be_bytes());
-        let cur_target = cosmwasm_std::Uint256::from_be_bytes(header.target().to_be_bytes());
+        let retarget_adjustment_factor_u256 = Uint256::from(RETARGET_ADJUSTMENT_FACTOR);
+        let old_target = Uint256::from_be_bytes(prev_block_header.target().to_be_bytes());
+        let cur_target = Uint256::from_be_bytes(header.target().to_be_bytes());
         let max_cur_target = old_target * retarget_adjustment_factor_u256;
         let min_cur_target = old_target / retarget_adjustment_factor_u256;
         if cur_target > max_cur_target || cur_target < min_cur_target {
@@ -200,7 +198,7 @@ fn get_next_work_required(
         let last_block_time = last_block.time;
 
         Ok(calculate_next_work_required(
-            U256::from_be_bytes(last_block.target().to_be_bytes()),
+            Uint256::from_be_bytes(last_block.target().to_be_bytes()),
             first_block_time.into(),
             last_block_time.into(),
             params,
@@ -212,7 +210,7 @@ fn get_next_work_required(
 
 // <https://github.com/bitcoin/bitcoin/blob/89b910711c004c21b7d67baa888073742f7f94f0/src/pow.cpp#L49-L72>
 fn calculate_next_work_required(
-    previous_target: U256,
+    previous_target: Uint256,
     first_block_time: u64,
     last_block_time: u64,
     params: &Params,
@@ -235,8 +233,8 @@ fn calculate_next_work_required(
     let pow_limit = params.max_attainable_target;
 
     // Retarget.
-    let target = previous_target * U256::from_u128(actual_timespan.into());
-    let target = target / U256::from_u128(pow_target_timespan.into());
+    let target = previous_target * Uint256::from_u128(actual_timespan.into());
+    let target = target / Uint256::from_u128(pow_target_timespan.into());
     let target = Target::from_be_bytes(target.to_be_bytes());
 
     if target > pow_limit {
