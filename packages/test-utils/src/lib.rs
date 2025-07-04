@@ -365,7 +365,7 @@ pub fn initial_header() -> btc_light_client::msg::contract::InitialHeader {
 }
 
 pub fn initial_header_in_hex() -> String {
-    hex::encode(&serde_json::to_vec(&initial_header()).unwrap())
+    hex::encode(serde_json::to_vec(&initial_header()).unwrap())
 }
 
 /// Returns the initial BTC headers for the babylon contract instantiation.

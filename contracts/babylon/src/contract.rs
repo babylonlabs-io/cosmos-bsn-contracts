@@ -1,12 +1,9 @@
-use babylon_proto::babylon::btclightclient::v1::BtcHeaderInfo;
-use btc_light_client::msg::btc_header::btc_headers_from_info;
 use cosmwasm_std::{
     to_json_binary, Addr, Binary, Deps, DepsMut, Empty, Env, MessageInfo, QueryResponse, Reply,
     Response, SubMsg, SubMsgResponse, WasmMsg,
 };
 use cw2::set_contract_version;
 use cw_utils::ParseReplyError;
-use prost::Message;
 
 use babylon_apis::{btc_staking_api, finality_api};
 use babylon_bindings::BabylonMsg;
@@ -27,15 +24,6 @@ pub const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 const REPLY_ID_INSTANTIATE_LIGHT_CLIENT: u64 = 2;
 const REPLY_ID_INSTANTIATE_STAKING: u64 = 3;
 const REPLY_ID_INSTANTIATE_FINALITY: u64 = 4;
-
-fn decode_btc_headers(bytes: Vec<u8>) -> Result<Vec<BtcHeaderInfo>, prost::DecodeError> {
-    let mut buf = bytes.as_slice();
-    let mut headers = Vec::new();
-    while !buf.is_empty() {
-        headers.push(BtcHeaderInfo::decode_length_delimited(&mut buf)?);
-    }
-    Ok(headers)
-}
 
 /// When we instantiate the Babylon contract, it will optionally instantiate a BTC light client
 /// contract first – if its code id is provided – followed by BTC staking and finality contracts

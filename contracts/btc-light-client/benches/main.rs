@@ -16,8 +16,8 @@ use cosmwasm_vm::testing::{
 use cosmwasm_vm::Instance;
 
 use babylon_bindings::BabylonMsg;
-use babylon_test_utils::{get_btc_lc_mainchain_resp, initial_headers};
-use btc_light_client::msg::btc_header::{btc_headers_from_info, BtcHeader};
+use babylon_test_utils::{get_btc_lc_mainchain_resp, initial_header};
+use btc_light_client::msg::btc_header::BtcHeader;
 use btc_light_client::msg::contract::{ExecuteMsg, InstantiateMsg};
 
 #[cfg(clippy)]
@@ -45,14 +45,11 @@ pub fn get_main_msg_test_headers() -> Vec<BtcHeader> {
 #[track_caller]
 pub fn setup_instance() -> Instance<MockApi, MockStorage, MockQuerier> {
     let mut deps = mock_instance_with_gas_limit(WASM, 10_000_000_000_000);
-    let initial_headers = initial_headers();
     let msg = InstantiateMsg {
         network: babylon_bitcoin::Network::Regtest,
         btc_confirmation_depth: 10,
         checkpoint_finalization_timeout: 2,
-        headers: btc_headers_from_info(&initial_headers).unwrap(),
-        first_work: initial_headers[0].work.to_vec().into(),
-        first_height: initial_headers[0].height,
+        initial_header: initial_header(),
     };
     let info = mock_info(CREATOR, &[]);
     let res: Response = instantiate(&mut deps, mock_env(), info, msg).unwrap();

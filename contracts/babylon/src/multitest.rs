@@ -63,7 +63,6 @@ mod instantiation {
     use crate::state::config::Config;
 
     use super::*;
-    use btc_light_client::msg::btc_header::btc_headers_from_info;
     use cosmwasm_std::to_json_string;
 
     fn contract_should_be_instantiated(config: Config) {

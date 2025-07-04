@@ -3,7 +3,6 @@ use cw2::set_contract_version;
 
 use babylon_bindings::BabylonMsg;
 
-use crate::bitcoin::total_work;
 use crate::error::ContractError;
 use crate::msg::contract::{ExecuteMsg, InstantiateMsg, QueryMsg};
 use crate::state::btc_light_client::{handle_btc_headers_from_user, init};

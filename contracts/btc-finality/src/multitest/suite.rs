@@ -1,5 +1,4 @@
 use anyhow::Result as AnyResult;
-use btc_light_client::msg::contract::InitialHeader;
 use derivative::Derivative;
 use hex::ToHex;
 

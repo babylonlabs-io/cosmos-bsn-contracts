@@ -206,9 +206,9 @@ pub fn init_from_babylon(
         processed_headers.push(new_header_info);
     }
 
-    set_base_header(storage, &base_header)?;
+    set_base_header(storage, base_header)?;
     let tip = processed_headers.last().unwrap();
-    set_tip(storage, &tip)?;
+    set_tip(storage, tip)?;
     insert_headers(storage, &processed_headers)?;
 
     Ok(())
