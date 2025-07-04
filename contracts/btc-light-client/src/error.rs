@@ -43,6 +43,9 @@ pub enum ContractError {
     #[error("Incorrect proof-of-work: {{ got: {got:?}, expected: {expected:?} }}")]
     BadDifficultyBits { got: Target, expected: Target },
 
+    #[error("difficulty not relevant to parent difficulty")]
+    BadDifficulty,
+
     #[error("The new chain's work ({0}), is not better than the current chain's work ({1})")]
     BTCChainWithNotEnoughWork(Work, Work),
 
