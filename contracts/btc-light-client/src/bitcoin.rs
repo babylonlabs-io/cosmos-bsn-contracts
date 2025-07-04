@@ -1,6 +1,5 @@
 //! This module provides some Bitcoin related helper functions.
 
-use crate::error::ContractError;
 use crate::state::get_header;
 use babylon_bitcoin::{deserialize, BlockHeader, Work};
 use babylon_bitcoin::{Params, Uint256};
@@ -13,6 +12,42 @@ use cosmwasm_std::{StdError, StdResult};
 // Its value is always 4
 const RETARGET_ADJUSTMENT_FACTOR: u64 = 4;
 
+#[derive(thiserror::Error, Debug, PartialEq)]
+pub enum HeaderError {
+    #[error("Header's target is larger than pow_limit")]
+    TargetTooLarge,
+
+    #[error("proof-of-work validation failed: {0:?}")]
+    InvalidProofOfWork(bitcoin::block::ValidationError),
+
+    #[error("Incorrect proof-of-work: {{ got: {got:?}, expected: {expected:?} }}")]
+    BadDifficultyBits { got: Target, expected: Target },
+
+    #[error("difficulty not relevant to parent difficulty")]
+    BadDifficulty,
+
+    #[error("The BTC header info {0} cumulative work is wrong. Expected {1}, got {2}")]
+    WrongCumulativeWork(usize, Work, Work),
+
+    #[error("The BTC header info {0} height is wrong. Expected {1}, got {2}")]
+    WrongHeight(usize, u32, u32),
+
+    #[error("The BTC header cannot be decoded: {0}")]
+    DecodeError(String),
+
+    #[error(transparent)]
+    Std(#[from] StdError),
+
+    #[error(transparent)]
+    Store(#[from] crate::state::btc_light_client::StoreError),
+}
+
+impl From<babylon_bitcoin::EncodeError> for HeaderError {
+    fn from(e: babylon_bitcoin::EncodeError) -> Self {
+        Self::DecodeError(e.to_string())
+    }
+}
+
 /// Verifies whether `new_headers` are valid consecutive headers
 /// after the given `first_header`.
 pub fn verify_headers(
@@ -20,8 +55,7 @@ pub fn verify_headers(
     chain_params: &Params,
     first_header: &BtcHeaderInfo,
     new_headers: &[BtcHeaderInfo],
-) -> Result<(), ContractError> {
-    // verify each new header iteratively
+) -> Result<(), HeaderError> {
     let mut last_header = first_header.clone();
     let mut cum_work_old = total_work(last_header.work.as_ref())?;
     for (i, new_header) in new_headers.iter().enumerate() {
@@ -40,17 +74,14 @@ pub fn verify_headers(
         let cum_work = total_work(new_header.work.as_ref())?;
 
         // Validate cumulative work
-        if cum_work_old + header_work != cum_work {
-            return Err(ContractError::BTCWrongCumulativeWork(
-                i,
-                cum_work_old + header_work,
-                cum_work,
-            ));
+        let cum_work_new = cum_work_old + header_work;
+        if cum_work_new != cum_work {
+            return Err(HeaderError::WrongCumulativeWork(i, cum_work_new, cum_work));
         }
         cum_work_old = cum_work;
         // Validate height
         if new_header.height != last_header.height + 1 {
-            return Err(ContractError::BTCWrongHeight(
+            return Err(HeaderError::WrongHeight(
                 i,
                 last_header.height + 1,
                 new_header.height,
@@ -70,7 +101,7 @@ fn check_header(
     prev_block_height: u32,
     prev_block_header: &BlockHeader,
     header: &BlockHeader,
-) -> Result<(), ContractError> {
+) -> Result<(), HeaderError> {
     check_block_header_context(
         storage,
         chain_params,
@@ -89,7 +120,7 @@ fn check_block_header_sanity(
     chain_params: &Params,
     prev_block_header: &BlockHeader,
     header: &BlockHeader,
-) -> Result<(), ContractError> {
+) -> Result<(), HeaderError> {
     /* This check should be done much eariler.
     // ensure the header is adjacent to last_btc_header
     if !prev_header.block_hash().eq(&header.prev_blockhash) {
@@ -108,7 +139,7 @@ fn check_block_header_sanity(
         let max_cur_target = old_target * retarget_adjustment_factor_u256;
         let min_cur_target = old_target / retarget_adjustment_factor_u256;
         if cur_target > max_cur_target || cur_target < min_cur_target {
-            return Err(ContractError::BadDifficulty);
+            return Err(HeaderError::BadDifficulty);
         }
     }
 
@@ -119,12 +150,12 @@ fn check_block_header_sanity(
 pub(crate) fn check_proof_of_work(
     chain_params: &bitcoin::consensus::Params,
     header: &BlockHeader,
-) -> Result<(), ContractError> {
+) -> Result<(), HeaderError> {
     let target = header.target();
 
     // ensure the target <= pow_limit
     if target > chain_params.max_attainable_target {
-        return Err(ContractError::TargetTooLarge);
+        return Err(HeaderError::TargetTooLarge);
     }
 
     // ensure the header's hash <= target
@@ -135,7 +166,7 @@ pub(crate) fn check_proof_of_work(
     // Here we are interested in the latter check, in which the code is private
     header
         .validate_pow(target)
-        .map_err(ContractError::InvalidProofOfWork)?;
+        .map_err(HeaderError::InvalidProofOfWork)?;
 
     Ok(())
 }
@@ -148,7 +179,7 @@ fn check_block_header_context(
     prev_block_height: u32,
     prev_block_header: &BlockHeader,
     header: &BlockHeader,
-) -> Result<(), ContractError> {
+) -> Result<(), HeaderError> {
     let expected_target =
         get_next_work_required(storage, prev_block_height, prev_block_header, chain_params)?;
 
@@ -157,7 +188,7 @@ fn check_block_header_context(
     let actual_target = header.target();
 
     if actual_target.to_compact_lossy().to_consensus() != expected_bits {
-        return Err(ContractError::BadDifficultyBits {
+        return Err(HeaderError::BadDifficultyBits {
             got: actual_target,
             expected: expected_target,
         });
@@ -175,7 +206,7 @@ fn get_next_work_required(
     last_block_height: u32,
     last_block: &BlockHeader,
     params: &Params,
-) -> Result<Target, ContractError> {
+) -> Result<Target, HeaderError> {
     if params.no_pow_retargeting {
         return Ok(last_block.target());
     }

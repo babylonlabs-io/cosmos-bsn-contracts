@@ -1,5 +1,4 @@
 use babylon_bitcoin::Work;
-use bitcoin::Target;
 use cosmwasm_std::StdError;
 use cw_utils::ParseReplyError;
 use hex::FromHexError;
@@ -34,24 +33,6 @@ pub enum ContractError {
     #[error("The BTC header is not being sent")]
     BTCHeaderEmpty {},
 
-    #[error("The BTC header info {0} cumulative work is wrong. Expected {1}, got {2}")]
-    BTCWrongCumulativeWork(usize, Work, Work),
-
-    #[error("The BTC header info {0} height is wrong. Expected {1}, got {2}")]
-    BTCWrongHeight(usize, u32, u32),
-
-    #[error("Header's target is larger than pow_limit")]
-    TargetTooLarge,
-
-    #[error("proof-of-work validation failed: {0:?}")]
-    InvalidProofOfWork(bitcoin::block::ValidationError),
-
-    #[error("Incorrect proof-of-work: {{ got: {got:?}, expected: {expected:?} }}")]
-    BadDifficultyBits { got: Target, expected: Target },
-
-    #[error("difficulty not relevant to parent difficulty")]
-    BadDifficulty,
-
     #[error("The new chain's work ({0}), is not better than the current chain's work ({1})")]
     BTCChainWithNotEnoughWork(Work, Work),
 
@@ -69,6 +50,9 @@ pub enum ContractError {
 
     #[error(transparent)]
     DecodeUtf8Error(#[from] Utf8Error),
+
+    #[error(transparent)]
+    HeaderVerification(#[from] crate::bitcoin::HeaderError),
 
     #[error(transparent)]
     BtcLightClient(#[from] babylon_bitcoin::error::Error),
