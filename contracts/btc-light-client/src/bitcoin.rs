@@ -75,8 +75,17 @@ fn check_header(
         header,
     )?;
 
-    // TODO: CheckBlockHeaderSanity
-    // https://pkg.go.dev/github.com/btcsuite/btcd@v0.24.2/blockchain#CheckBlockHeaderSanity
+    check_block_header_sanity(chain_params, prev_block_header, header)?;
+
+    Ok(())
+}
+
+// https://pkg.go.dev/github.com/btcsuite/btcd@v0.24.2/blockchain#CheckBlockHeaderSanity
+fn check_block_header_sanity(
+    chain_params: &Params,
+    prev_block_header: &BlockHeader,
+    header: &BlockHeader,
+) -> Result<(), ContractError> {
     babylon_bitcoin::pow::verify_next_header_pow(chain_params, &prev_block_header, header)?;
 
     Ok(())
