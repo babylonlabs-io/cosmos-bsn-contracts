@@ -7,9 +7,9 @@ use hex::ToHex;
 use prost::Message;
 use std::str::FromStr;
 
+use crate::bitcoin::{total_work, verify_headers};
 use crate::error::{ContractError, InitError};
 use crate::msg::btc_header::BtcHeader;
-use crate::utils::btc_light_client::{total_work, verify_headers};
 
 use super::CONFIG;
 

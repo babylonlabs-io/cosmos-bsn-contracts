@@ -14,7 +14,6 @@ types:
     - babylon.zoneconcierge.v1.ProofEpochSealed
     - babylon.zoneconcierge.v1.ProofFinalizedChainInfo
     - babylon.zoneconcierge.v1.FinalizedChainInfo
-    - babylon.zoneconcierge.v1.QueryFinalizedChainsInfoResponse
     - babylon.zoneconcierge.v1.OutboundPacket
     - babylon.zoneconcierge.v1.InboundPacket
     - babylon.zoneconcierge.v1.BTCTimestamp
@@ -24,7 +23,6 @@ types:
     - babylon.finality.v1.PubRandCommit
     - babylon.finality.v1.MsgAddFinalitySig
     - babylon.finality.v1.MsgCommitPubRandList
-    - babylon.finality.v1.MsgEquivocationEvidence
 plugins:
   - plugin: buf.build/community/neoeinstein-prost:v0.2.3
     out: src/gen
