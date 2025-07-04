@@ -184,33 +184,28 @@ pub fn handle_btc_headers_from_babylon(
     let first_new_header = new_headers
         .first()
         .ok_or(ContractError::BTCHeaderEmpty {})?;
+
     let first_new_btc_header: BlockHeader =
         babylon_bitcoin::deserialize(first_new_header.header.as_ref())?;
 
-    if first_new_btc_header.prev_blockhash.as_ref() == cur_tip_hash.to_vec() {
+    let new_tip = if first_new_btc_header.prev_blockhash.as_ref() == cur_tip_hash.to_vec() {
         // Most common case: extending the current tip
 
-        // Verify each new header after `current_tip` iteratively
-        verify_headers(storage, &chain_params, &cur_tip.clone(), new_headers)?;
+        verify_headers(storage, &chain_params, &cur_tip, new_headers)?;
 
-        // All good, add all the headers to the BTC light client store
-        insert_headers(storage, new_headers)?;
-
-        // Update tip
-        let new_tip = new_headers.last().ok_or(ContractError::BTCHeaderEmpty {})?;
-        set_tip(storage, new_tip)?;
+        new_headers.last().ok_or(ContractError::BTCHeaderEmpty {})?
     } else {
         // Here we received a potential new fork
         let parent_hash = first_new_btc_header.prev_blockhash.as_ref();
         let fork_parent = get_header_by_hash(storage, parent_hash)?;
 
-        // Verify each new header after `fork_parent` iteratively
         verify_headers(storage, &chain_params, &fork_parent, new_headers)?;
 
-        let new_tip = new_headers.last().ok_or(ContractError::BTCHeaderEmpty {})?;
+        let new_tip = new_headers.last().expect("Must exist as checked above");
 
         let new_tip_work = total_work(new_tip.work.as_ref())?;
         let cur_tip_work = total_work(cur_tip.work.as_ref())?;
+
         if new_tip_work <= cur_tip_work {
             return Err(ContractError::BTCChainWithNotEnoughWork(
                 new_tip_work,
@@ -218,15 +213,16 @@ pub fn handle_btc_headers_from_babylon(
             ));
         }
 
-        // Remove all headers from the old fork first
+        // Remove all fork headers.
         remove_headers(storage, &cur_tip, &fork_parent)?;
 
-        // All good, add all the headers to the BTC light client store
-        insert_headers(storage, new_headers)?;
+        new_tip
+    };
 
-        // Update tip
-        set_tip(storage, new_tip)?;
-    }
+    // All good, insert new headers and update the tip.
+    insert_headers(storage, new_headers)?;
+    set_tip(storage, new_tip)?;
+
     Ok(())
 }
 
