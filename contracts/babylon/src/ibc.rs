@@ -338,7 +338,7 @@ mod tests {
     fn setup() -> OwnedDeps<MockStorage, MockApi, MockQuerier> {
         let mut deps = mock_dependencies();
         let msg = InstantiateMsg {
-            network: babylon_bitcoin::chain_params::Network::Regtest,
+            network: babylon_bitcoin::Network::Regtest,
             babylon_tag: "01020304".to_string(),
             btc_confirmation_depth: 10,
             checkpoint_finalization_timeout: 100,

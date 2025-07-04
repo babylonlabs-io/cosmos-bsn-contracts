@@ -1,4 +1,4 @@
-use babylon_bitcoin::chain_params::Network;
+use babylon_bitcoin::Network;
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::Addr;
 

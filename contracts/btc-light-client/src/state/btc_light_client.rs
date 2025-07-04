@@ -344,7 +344,7 @@ pub mod tests {
     };
 
     use super::*;
-    use babylon_bitcoin::chain_params::Network;
+    use babylon_bitcoin::Network;
     use babylon_test_utils::{get_btc_lc_fork_headers, get_btc_lc_fork_msg, get_btc_lc_headers};
     use cosmwasm_std::{from_json, testing::mock_dependencies};
 

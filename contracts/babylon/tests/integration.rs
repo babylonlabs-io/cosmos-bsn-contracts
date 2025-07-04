@@ -24,7 +24,7 @@ const CREATOR: &str = "creator";
 fn setup() -> Instance<MockApi, MockStorage, MockQuerier> {
     let mut deps = mock_instance_with_gas_limit(BABYLON_CONTRACT_WASM, 2_250_000_000_000);
     let msg = InstantiateMsg {
-        network: babylon_bitcoin::chain_params::Network::Regtest,
+        network: babylon_bitcoin::Network::Regtest,
         babylon_tag: "01020304".to_string(),
         consumer_name: None,
         consumer_description: None,
@@ -61,7 +61,7 @@ fn instantiate_works() {
     let mut deps = mock_instance(BABYLON_CONTRACT_WASM, &[]);
 
     let msg = InstantiateMsg {
-        network: babylon_bitcoin::chain_params::Network::Regtest,
+        network: babylon_bitcoin::Network::Regtest,
         babylon_tag: "01020304".to_string(),
         consumer_name: None,
         consumer_description: None,

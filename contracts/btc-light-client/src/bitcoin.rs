@@ -9,7 +9,7 @@ use std::str::{from_utf8, FromStr};
 /// Verifies whether `new_headers` are valid consecutive headers
 /// after the given `first_header`.
 pub fn verify_headers(
-    chain_params: &babylon_bitcoin::chain_params::Params,
+    chain_params: &babylon_bitcoin::Params,
     first_header: &BtcHeaderInfo,
     new_headers: &[BtcHeaderInfo],
 ) -> Result<(), ContractError> {

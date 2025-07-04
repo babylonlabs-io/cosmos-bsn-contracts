@@ -20,7 +20,7 @@ pub trait ContractMsg {
 
 #[cw_serde]
 pub struct InstantiateMsg {
-    pub network: babylon_bitcoin::chain_params::Network,
+    pub network: babylon_bitcoin::Network,
     /// A string encoding four bytes used for identification / tagging of the Babylon zone.
     /// NOTE: this is a hex string, not raw bytes
     pub babylon_tag: String,
@@ -64,7 +64,7 @@ impl InstantiateMsg {
     #[cfg(any(test, feature = "library"))]
     pub fn new_test() -> Self {
         Self {
-            network: babylon_bitcoin::chain_params::Network::Regtest,
+            network: babylon_bitcoin::Network::Regtest,
             babylon_tag: "01020304".to_string(),
             btc_confirmation_depth: 10,
             checkpoint_finalization_timeout: 100,
