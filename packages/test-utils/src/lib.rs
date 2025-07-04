@@ -348,6 +348,7 @@ pub fn get_public_randomness_commitment() -> (String, PubRandCommit, Vec<u8>) {
     )
 }
 
+/// Returns the initial BTC header for the babylon contract instantiation.
 pub fn initial_header() -> btc_light_client::msg::contract::InitialHeader {
     // https://www.blockchain.com/explorer/blocks/btc/354816
     let header = "020000003f99814a36d2a2043b1d4bf61a410f71828eca1decbf56000000000000000000b3762ed278ac44bb953e24262cfeb952d0abe6d3b7f8b74fd24e009b96b6cb965d674655dd1317186436e79d";
@@ -364,38 +365,9 @@ pub fn initial_header() -> btc_light_client::msg::contract::InitialHeader {
     btc_header_info.try_into().unwrap()
 }
 
-pub fn initial_header_in_hex() -> String {
-    hex::encode(serde_json::to_vec(&initial_header()).unwrap())
-}
-
-/// Returns the initial BTC headers for the babylon contract instantiation.
-pub fn initial_headers() -> Vec<BtcHeaderInfo> {
-    vec![
-        // https://www.blockchain.com/explorer/blocks/btc/354816
-        ("020000003f99814a36d2a2043b1d4bf61a410f71828eca1decbf56000000000000000000b3762ed278ac44bb953e24262cfeb952d0abe6d3b7f8b74fd24e009b96b6cb965d674655dd1317186436e79d", 354816),
-        ("02000000ab8fdde1899ac70ea94ce4d47252a71e625515ceed899d0200000000000000002bc1ef0c5f6132fb8b30993275980f28205d0c5a67ab762b1adabf262974349edb694655dd131718840e3767", 354817)
-    ]
-    .into_iter()
-    .map(|(header, height)| {
-        let header: BlockHeader =
-            bitcoin::consensus::encode::deserialize_hex(header).expect("Static value must be correct");
-        BtcHeaderInfo {
-            header: bitcoin::consensus::serialize(&header).into(),
-            hash: bitcoin::consensus::serialize(&header.block_hash()).into(),
-            height,
-            work: header.work().to_be_bytes().to_vec().into(),
-        }
-    })
-    .collect()
-}
-
-/// Returns the initial BTC headers encoded in protobuf and hex-encoded form.
+/// Returns the initial BTC header encoded in json and hex-encoded form.
 ///
 /// This format is suitable for embedding into messages such as `InstantiateMsg`.
-pub fn initial_headers_in_hex() -> String {
-    let mut out = Vec::new();
-    for h in initial_headers() {
-        h.encode_length_delimited(&mut out).unwrap();
-    }
-    hex::encode(out)
+pub fn initial_header_in_hex() -> String {
+    hex::encode(serde_json::to_vec(&initial_header()).unwrap())
 }
