@@ -2,12 +2,11 @@ use cosmwasm_std::{to_json_binary, Binary, Deps, DepsMut, Empty, Env, MessageInf
 use cw2::set_contract_version;
 
 use babylon_bindings::BabylonMsg;
+use babylon_bitcoin::BlockHeader;
 
-use crate::bitcoin::total_work;
-use crate::error::{ContractError, InitError};
-use crate::msg::btc_header::BtcHeader;
+use crate::error::ContractError;
 use crate::msg::contract::{ExecuteMsg, InstantiateMsg, QueryMsg};
-use crate::state::btc_light_client::{handle_btc_headers_from_user, init, is_initialized};
+use crate::state::btc_light_client::{handle_btc_headers_from_user, set_base_header, set_tip};
 use crate::state::config::{Config, CONFIG};
 
 pub const CONTRACT_NAME: &str = env!("CARGO_PKG_NAME");
@@ -21,12 +20,30 @@ pub fn instantiate(
 ) -> Result<Response<BabylonMsg>, ContractError> {
     msg.validate()?;
 
-    // Initialize config
+    let InstantiateMsg {
+        network,
+        btc_confirmation_depth,
+        checkpoint_finalization_timeout,
+        initial_header,
+    } = msg;
+
     let cfg = Config {
-        network: msg.network,
-        btc_confirmation_depth: msg.btc_confirmation_depth,
-        checkpoint_finalization_timeout: msg.checkpoint_finalization_timeout,
+        network,
+        btc_confirmation_depth,
+        checkpoint_finalization_timeout,
     };
+
+    // Initialises the BTC header chain storage.
+    let base_header = initial_header.to_btc_header_info()?;
+
+    let base_btc_header: BlockHeader = babylon_bitcoin::deserialize(base_header.header.as_ref())?;
+
+    babylon_bitcoin::pow::verify_header_pow(&cfg.network.chain_params(), &base_btc_header)?;
+
+    // Store base header (immutable) and tip.
+    set_base_header(deps.storage, &base_header)?;
+    set_tip(deps.storage, &base_header)?;
+
     CONFIG.save(deps.storage, &cfg)?;
 
     // Set contract version
@@ -51,26 +68,19 @@ pub fn execute(
     msg: ExecuteMsg,
 ) -> Result<Response<BabylonMsg>, ContractError> {
     match msg {
-        ExecuteMsg::BtcHeaders {
-            headers,
-            first_work,
-            first_height,
-        } => {
-            let api = deps.api;
+        ExecuteMsg::BtcHeaders { headers } => {
             let headers_len = headers.len();
-            let resp = match handle_btc_headers(deps, headers, first_work, first_height) {
-                Ok(resp) => {
-                    api.debug(&format!("Successfully handled {} BTC headers", headers_len));
-                    resp
-                }
-                Err(e) => {
-                    let err = format!("Failed to handle {} BTC headers: {}", headers_len, e);
-                    api.debug(&err);
-                    return Err(e);
-                }
-            };
 
-            Ok(resp)
+            handle_btc_headers_from_user(deps.storage, &headers)
+                .map(|_| {
+                    deps.api
+                        .debug(&format!("Successfully handled {headers_len} BTC headers"));
+                    Response::new().add_attribute("action", "update_btc_light_client")
+                })
+                .inspect_err(|e| {
+                    deps.api
+                        .debug(&format!("Failed to handle {headers_len} BTC headers: {e}"));
+                })
         }
     }
 }
@@ -96,33 +106,5 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> Result<Binary, ContractErr
             limit,
             reverse,
         )?)?),
-    }
-}
-
-fn handle_btc_headers(
-    deps: DepsMut,
-    headers: Vec<BtcHeader>,
-    first_work: Option<String>,
-    first_height: Option<u32>,
-) -> Result<Response<BabylonMsg>, ContractError> {
-    // Check if the BTC light client has been initialized
-    if !is_initialized(deps.storage) {
-        let first_work_hex = first_work.ok_or(InitError::MissingBaseWork)?;
-        let first_height = first_height.ok_or(InitError::MissingBaseHeight)?;
-
-        // Check if there are enough headers for initialization
-        let cfg = CONFIG.load(deps.storage)?;
-        if headers.len() < cfg.btc_confirmation_depth as usize {
-            return Err(InitError::NotEnoughHeaders(cfg.btc_confirmation_depth).into());
-        }
-
-        let first_work_bytes = hex::decode(first_work_hex)?;
-        let first_work = total_work(&first_work_bytes)?;
-
-        init(deps.storage, &headers, &first_work, first_height)?;
-        Ok(Response::new().add_attribute("action", "init_btc_light_client"))
-    } else {
-        handle_btc_headers_from_user(deps.storage, &headers)?;
-        Ok(Response::new().add_attribute("action", "update_btc_light_client"))
     }
 }

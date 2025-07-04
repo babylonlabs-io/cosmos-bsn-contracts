@@ -32,6 +32,8 @@ pub struct InstantiateMsg {
     pub notify_cosmos_zone: bool,
     /// If set, this will instantiate a BTC light client contract
     pub btc_light_client_code_id: Option<u64>,
+    /// JSON encoded `InitialHeader` in hex.
+    pub btc_light_client_initial_header: String,
     /// If set, this will define the instantiation message for the BTC light client contract.
     /// This message is opaque to the Babylon contract, and depends on the specific light client
     /// being instantiated
@@ -66,10 +68,11 @@ impl InstantiateMsg {
         Self {
             network: babylon_bitcoin::Network::Regtest,
             babylon_tag: "01020304".to_string(),
-            btc_confirmation_depth: 10,
-            checkpoint_finalization_timeout: 100,
+            btc_confirmation_depth: 1,
+            checkpoint_finalization_timeout: 1,
             notify_cosmos_zone: false,
             btc_light_client_code_id: None,
+            btc_light_client_initial_header: babylon_test_utils::initial_header_in_hex(),
             btc_light_client_msg: None,
             btc_staking_code_id: None,
             btc_staking_msg: None,

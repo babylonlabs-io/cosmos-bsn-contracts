@@ -20,14 +20,16 @@ const BTC_FINALITY_CONTRACT_ADDR: &str =
 
 #[test]
 fn initialization() {
-    let suite = SuiteBuilder::new().build();
+    let suite = SuiteBuilder::new()
+        .with_checkpoint_finalization_timeout(1)
+        .build();
 
     // Check that the contracts were initialized correctly
     let config = suite.get_config();
     assert_eq!(config.network, babylon_bitcoin::Network::Testnet);
     assert_eq!(config.babylon_tag, [1, 2, 3, 4]);
     assert_eq!(config.btc_confirmation_depth, 1);
-    assert_eq!(config.checkpoint_finalization_timeout, 10);
+    assert_eq!(config.checkpoint_finalization_timeout, 1);
     assert!(!config.notify_cosmos_zone);
     assert_eq!(
         config.btc_light_client,
@@ -91,8 +93,9 @@ mod instantiation {
     fn instantiate_light_client_msg_works() {
         let params = btc_light_client::msg::InstantiateMsg {
             network: babylon_bitcoin::Network::Testnet,
-            btc_confirmation_depth: 6,
-            checkpoint_finalization_timeout: 100,
+            btc_confirmation_depth: 1,
+            checkpoint_finalization_timeout: 1,
+            initial_header: babylon_test_utils::initial_header(),
         };
         let suite = SuiteBuilder::new()
             .with_light_client_msg(&to_json_string(&params).unwrap())

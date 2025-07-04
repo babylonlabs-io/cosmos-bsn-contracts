@@ -125,9 +125,10 @@ impl SuiteBuilder {
                     network: Network::Testnet,
                     babylon_tag: "01020304".to_string(),
                     btc_confirmation_depth: 1,
-                    checkpoint_finalization_timeout: 10,
+                    checkpoint_finalization_timeout: 1,
                     notify_cosmos_zone: false,
                     btc_light_client_code_id: Some(btc_light_client_code_id),
+                    btc_light_client_initial_header: babylon_test_utils::initial_header_in_hex(),
                     btc_light_client_msg: None,
                     btc_staking_code_id: Some(btc_staking_code_id),
                     btc_staking_msg: Some(

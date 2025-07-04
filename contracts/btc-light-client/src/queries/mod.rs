@@ -7,8 +7,7 @@ pub use btc_header::{
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::state::btc_light_client::init_from_babylon;
-    use crate::state::btc_light_client::tests::setup;
+    use crate::state::btc_light_client::tests::{init_contract, setup};
     use babylon_test_utils::get_btc_lc_headers;
     use cosmwasm_std::testing::mock_dependencies;
 
@@ -19,7 +18,7 @@ mod tests {
 
         let test_headers = get_btc_lc_headers();
 
-        init_from_babylon(deps.as_mut().storage, &test_headers).unwrap();
+        init_contract(deps.as_mut().storage, &test_headers).unwrap();
         // get headers
         let headers = btc_headers(&deps.as_ref(), None, None, None)
             .unwrap()
@@ -78,7 +77,7 @@ mod tests {
 
         let test_headers = get_btc_lc_headers();
 
-        init_from_babylon(deps.as_mut().storage, &test_headers).unwrap();
+        init_contract(deps.as_mut().storage, &test_headers).unwrap();
 
         // get headers in reverse order
         let headers = btc_headers(&deps.as_ref(), None, None, Some(true))

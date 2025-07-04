@@ -47,6 +47,18 @@ pub enum ContractError {
     InvalidConfig { msg: String },
     #[error("IBC transfer info not set")]
     IbcTransferInfoNotSet {},
+    #[error(transparent)]
+    Hex(#[from] hex::FromHexError),
+    #[error(transparent)]
+    ProstDecode(#[from] prost::DecodeError),
+    #[error("SerdeJson error: {0}")]
+    SerdeJson(String),
+}
+
+impl From<serde_json::Error> for ContractError {
+    fn from(e: serde_json::Error) -> Self {
+        Self::SerdeJson(e.to_string())
+    }
 }
 
 #[derive(Error, Debug, PartialEq)]

@@ -8,7 +8,7 @@ use babylon_proto::babylon::btclightclient::v1::{BtcHeaderInfo, QueryMainChainRe
 use babylon_proto::babylon::btcstaking::v1::{BtcDelegation, FinalityProvider, Params};
 use babylon_proto::babylon::finality::v1::{MsgAddFinalitySig, MsgCommitPubRandList};
 use babylon_proto::babylon::zoneconcierge::v1::BtcTimestamp;
-use cosmwasm_std::{Binary, Decimal};
+use cosmwasm_std::{Binary, Decimal, Uint256};
 use hex::ToHex;
 use k256::schnorr::{Signature, SigningKey};
 use prost::{bytes::Bytes, Message};
@@ -87,7 +87,11 @@ pub fn get_btc_lc_headers() -> Vec<BtcHeaderInfo> {
                     .collect::<Vec<_>>(),
             ),
             height: h.height,
-            work: { Bytes::from(h.work.clone()) },
+            work: Uint256::from_str(&h.work)
+                .unwrap()
+                .to_be_bytes()
+                .to_vec()
+                .into(),
         })
         .collect()
 }
@@ -109,7 +113,11 @@ pub fn get_btc_lc_fork_headers() -> Vec<BtcHeaderInfo> {
                     .collect::<Vec<_>>(),
             ),
             height: h.height,
-            work: { Bytes::from(h.work.clone()) },
+            work: Uint256::from_str(&h.work)
+                .unwrap()
+                .to_be_bytes()
+                .to_vec()
+                .into(),
         })
         .collect()
 }
@@ -338,4 +346,28 @@ pub fn get_public_randomness_commitment() -> (String, PubRandCommit, Vec<u8>) {
         },
         pub_rand_commitment_msg.sig.to_vec(),
     )
+}
+
+/// Returns the initial BTC header for the babylon contract instantiation.
+pub fn initial_header() -> btc_light_client::msg::contract::InitialHeader {
+    // https://www.blockchain.com/explorer/blocks/btc/354816
+    let header = "020000003f99814a36d2a2043b1d4bf61a410f71828eca1decbf56000000000000000000b3762ed278ac44bb953e24262cfeb952d0abe6d3b7f8b74fd24e009b96b6cb965d674655dd1317186436e79d";
+    let height = 354816;
+    let header: BlockHeader =
+        bitcoin::consensus::encode::deserialize_hex(header).expect("Static value must be correct");
+    let btc_header_info = BtcHeaderInfo {
+        header: bitcoin::consensus::serialize(&header).into(),
+        hash: bitcoin::consensus::serialize(&header.block_hash()).into(),
+        height,
+        work: header.work().to_be_bytes().to_vec().into(),
+    };
+
+    btc_header_info.try_into().unwrap()
+}
+
+/// Returns the initial BTC header encoded in json and hex-encoded form.
+///
+/// This format is suitable for embedding into messages such as `InstantiateMsg`.
+pub fn initial_header_in_hex() -> String {
+    hex::encode(serde_json::to_vec(&initial_header()).unwrap())
 }

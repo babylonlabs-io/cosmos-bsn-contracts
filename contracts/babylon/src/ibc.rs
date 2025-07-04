@@ -337,23 +337,8 @@ mod tests {
 
     fn setup() -> OwnedDeps<MockStorage, MockApi, MockQuerier> {
         let mut deps = mock_dependencies();
-        let msg = InstantiateMsg {
-            network: babylon_bitcoin::Network::Regtest,
-            babylon_tag: "01020304".to_string(),
-            btc_confirmation_depth: 10,
-            checkpoint_finalization_timeout: 100,
-            notify_cosmos_zone: false,
-            btc_light_client_code_id: None,
-            btc_light_client_msg: None,
-            btc_staking_code_id: None,
-            btc_staking_msg: None,
-            btc_finality_code_id: None,
-            btc_finality_msg: None,
-            admin: None,
-            consumer_name: None,
-            consumer_description: None,
-            ics20_channel_id: Some("channel-1".to_string()),
-        };
+        let mut msg = InstantiateMsg::new_test();
+        msg.ics20_channel_id.replace("channel-1".to_string());
         let info = message_info(&deps.api.addr_make(CREATOR), &[]);
         let res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
         assert_eq!(0, res.messages.len());

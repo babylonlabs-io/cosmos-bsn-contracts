@@ -16,7 +16,7 @@ use cosmwasm_vm::testing::{
 use cosmwasm_vm::Instance;
 
 use babylon_bindings::BabylonMsg;
-use babylon_test_utils::get_btc_lc_mainchain_resp;
+use babylon_test_utils::{get_btc_lc_mainchain_resp, initial_header};
 use btc_light_client::msg::btc_header::BtcHeader;
 use btc_light_client::msg::contract::{ExecuteMsg, InstantiateMsg};
 
@@ -49,6 +49,7 @@ pub fn setup_instance() -> Instance<MockApi, MockStorage, MockQuerier> {
         network: babylon_bitcoin::Network::Regtest,
         btc_confirmation_depth: 10,
         checkpoint_finalization_timeout: 2,
+        initial_header: initial_header(),
     };
     let info = mock_info(CREATOR, &[]);
     let res: Response = instantiate(&mut deps, mock_env(), info, msg).unwrap();
@@ -71,8 +72,6 @@ fn setup_benchmark() -> (
 
     let benchmark_msg = ExecuteMsg::BtcHeaders {
         headers: test_headers[0..=1].to_owned(),
-        first_work: None,
-        first_height: None,
     };
 
     // init call
@@ -92,8 +91,6 @@ fn bench_btc_light_client(c: &mut Criterion) {
         b.iter(|| {
             let benchmark_msg = ExecuteMsg::BtcHeaders {
                 headers: test_headers[i..=i + 1].to_owned(),
-                first_work: None,
-                first_height: None,
             };
             execute::<_, _, _, _, BabylonMsg>(&mut deps, env.clone(), info.clone(), benchmark_msg)
                 .unwrap();
@@ -111,8 +108,6 @@ fn bench_btc_light_client(c: &mut Criterion) {
             for _ in 0..iter {
                 let benchmark_msg = ExecuteMsg::BtcHeaders {
                     headers: test_headers[i..=i + 1].to_owned(),
-                    first_work: None,
-                    first_height: None,
                 };
                 let gas_before = deps.get_gas_left();
                 execute::<_, _, _, _, BabylonMsg>(
@@ -143,8 +138,6 @@ fn bench_btc_light_client(c: &mut Criterion) {
             for _ in 0..iter {
                 let benchmark_msg = ExecuteMsg::BtcHeaders {
                     headers: test_headers[i..=i + 1].to_owned(),
-                    first_work: None,
-                    first_height: None,
                 };
                 let gas_before = deps.get_gas_left();
                 execute::<_, _, _, _, BabylonMsg>(

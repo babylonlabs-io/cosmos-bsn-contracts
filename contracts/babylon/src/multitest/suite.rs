@@ -56,6 +56,7 @@ pub struct SuiteBuilder {
     staking_msg: Option<String>,
     finality_msg: Option<String>,
     ics20_channel_id: Option<String>,
+    checkpoint_finalization_timeout: Option<u32>,
 }
 
 impl SuiteBuilder {
@@ -87,6 +88,15 @@ impl SuiteBuilder {
     /// Sets the IBC transfer info
     pub fn with_ics20_channel(mut self, channel_id: &str) -> Self {
         self.ics20_channel_id = Some(channel_id.to_owned());
+        self
+    }
+
+    pub fn with_checkpoint_finalization_timeout(
+        mut self,
+        checkpoint_finalization_timeout: u32,
+    ) -> Self {
+        self.checkpoint_finalization_timeout
+            .replace(checkpoint_finalization_timeout);
         self
     }
 
@@ -124,9 +134,12 @@ impl SuiteBuilder {
                     network: Network::Testnet,
                     babylon_tag: "01020304".to_string(),
                     btc_confirmation_depth: 1,
-                    checkpoint_finalization_timeout: 10,
+                    checkpoint_finalization_timeout: self
+                        .checkpoint_finalization_timeout
+                        .unwrap_or(1),
                     notify_cosmos_zone: false,
                     btc_light_client_code_id: Some(btc_light_client_code_id),
+                    btc_light_client_initial_header: babylon_test_utils::initial_header_in_hex(),
                     btc_light_client_msg: light_client_msg,
                     btc_staking_code_id: Some(btc_staking_code_id),
                     btc_staking_msg: staking_msg,
