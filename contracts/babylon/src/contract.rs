@@ -61,8 +61,7 @@ pub fn instantiate(
             Some(lc_msg) => lc_msg,
             None => {
                 let initial_header: InitialHeader =
-                    serde_json::from_slice(&hex::decode(&msg.btc_light_client_initial_header)?)
-                        .unwrap();
+                    serde_json::from_slice(&hex::decode(&msg.btc_light_client_initial_header)?)?;
 
                 let btc_lc_init_msg = BtcLightClientInstantiateMsg {
                     network: msg.network.clone(),
@@ -374,7 +373,6 @@ mod tests {
         let mut msg = InstantiateMsg::new_test();
         msg.btc_light_client_code_id.replace(1);
         msg.btc_light_client_initial_header = initial_header_in_hex();
-
         let info = message_info(&deps.api.addr_make(CREATOR), &[]);
         let res = instantiate(deps.as_mut(), mock_env(), info, msg.clone()).unwrap();
         assert_eq!(1, res.messages.len());

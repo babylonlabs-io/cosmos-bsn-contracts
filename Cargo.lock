@@ -610,7 +610,6 @@ dependencies = [
  "k256",
  "pbjson-types",
  "prost",
- "serde_json",
  "tendermint-proto",
  "thiserror 1.0.69",
 ]

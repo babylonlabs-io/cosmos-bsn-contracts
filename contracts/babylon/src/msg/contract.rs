@@ -32,7 +32,7 @@ pub struct InstantiateMsg {
     pub notify_cosmos_zone: bool,
     /// If set, this will instantiate a BTC light client contract
     pub btc_light_client_code_id: Option<u64>,
-    /// Encoded `InitialHeader` in hex.
+    /// JSON encoded `InitialHeader` in hex.
     pub btc_light_client_initial_header: String,
     /// If set, this will define the instantiation message for the BTC light client contract.
     /// This message is opaque to the Babylon contract, and depends on the specific light client
