@@ -186,18 +186,32 @@ pub fn init_from_babylon(
     storage: &mut dyn Storage,
     headers: &[BtcHeaderInfo],
 ) -> Result<(), ContractError> {
-    todo!("init_from_babylon")
-    /*
-    let btc_headers = headers
+    let base_header = headers.first().unwrap();
+
+    // Convert headers to BtcHeaderInfo with work/height based on first block
+    let mut cur_height = base_header.height;
+    let mut cur_work = total_work(base_header.work.as_ref())?;
+
+    let headers = headers
         .iter()
         .map(BtcHeader::try_from)
         .collect::<Result<Vec<BtcHeader>, _>>()?;
-    let base_header = headers.first().ok_or(ContractError::BTCHeaderEmpty {})?;
-    let first_work = total_work(base_header.work.as_ref())?;
-    let first_height = base_header.height;
-    let cfg = CONFIG.load(storage)?;
-    init(storage, &cfg, &btc_headers, &first_work, first_height)
-    */
+
+    let mut processed_headers = Vec::with_capacity(headers.len());
+    processed_headers.push(base_header.clone());
+    for header in headers.iter().skip(1) {
+        let new_header_info = header.to_btc_header_info_from_prev(cur_height, cur_work)?;
+        cur_height += 1;
+        cur_work = total_work(new_header_info.work.as_ref())?;
+        processed_headers.push(new_header_info);
+    }
+
+    set_base_header(storage, &base_header)?;
+    let tip = processed_headers.last().unwrap();
+    set_tip(storage, &tip)?;
+    insert_headers(storage, &processed_headers)?;
+
+    Ok(())
 }
 
 /// handle_btc_headers_from_babylon verifies and inserts a number of
