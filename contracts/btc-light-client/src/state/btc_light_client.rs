@@ -181,9 +181,7 @@ pub fn handle_btc_headers_from_babylon(
     let cur_tip_hash = cur_tip.hash.clone();
 
     // decode the first header in these new headers
-    let first_new_header = new_headers
-        .first()
-        .ok_or(ContractError::BTCHeaderEmpty {})?;
+    let first_new_header = new_headers.first().ok_or(ContractError::EmptyHeaders {})?;
 
     let first_new_btc_header: BlockHeader =
         babylon_bitcoin::deserialize(first_new_header.header.as_ref())?;
@@ -193,7 +191,7 @@ pub fn handle_btc_headers_from_babylon(
 
         verify_headers(storage, &chain_params, &cur_tip, new_headers)?;
 
-        new_headers.last().ok_or(ContractError::BTCHeaderEmpty {})?
+        new_headers.last().ok_or(ContractError::EmptyHeaders {})?
     } else {
         // Here we received a potential new fork
         let parent_hash = first_new_btc_header.prev_blockhash.as_ref();
@@ -207,10 +205,7 @@ pub fn handle_btc_headers_from_babylon(
         let cur_tip_work = total_work(cur_tip.work.as_ref())?;
 
         if new_tip_work <= cur_tip_work {
-            return Err(ContractError::BTCChainWithNotEnoughWork(
-                new_tip_work,
-                cur_tip_work,
-            ));
+            return Err(ContractError::InsufficientWork(new_tip_work, cur_tip_work));
         }
 
         // Remove all fork headers.
@@ -239,7 +234,7 @@ pub fn handle_btc_headers_from_user(
 ) -> Result<(), ContractError> {
     let first_new_btc_header = new_btc_headers
         .first()
-        .ok_or(ContractError::BTCHeaderEmpty {})?;
+        .ok_or(ContractError::EmptyHeaders {})?;
 
     // Decode the btc_header (byte-reversed) prev_blockhash
     let prev_blockhash = BlockHash::from_str(&first_new_btc_header.prev_blockhash)?;
@@ -469,7 +464,7 @@ pub mod tests {
         );
         assert!(matches!(
             res.unwrap_err(),
-            ContractError::BTCChainWithNotEnoughWork(_, _)
+            ContractError::InsufficientWork(_, _)
         ));
 
         // ensure base and tip are unchanged

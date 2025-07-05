@@ -3,10 +3,7 @@ use cosmwasm_schema::{cw_serde, QueryResponses};
 use cosmwasm_std::Binary;
 
 use crate::bitcoin::total_work;
-use crate::{
-    error::{ContractError, InitError},
-    msg::btc_header::BtcHeader,
-};
+use crate::{error::ContractError, msg::btc_header::BtcHeader};
 #[cfg(not(target_arch = "wasm32"))]
 use {
     crate::msg::btc_header::{BtcHeaderResponse, BtcHeadersResponse},
@@ -53,13 +50,13 @@ pub struct InstantiateMsg {
 }
 
 impl InstantiateMsg {
-    pub fn validate(&self) -> Result<(), InitError> {
+    pub fn validate(&self) -> Result<(), ContractError> {
         if self.btc_confirmation_depth == 0 {
-            return Err(InitError::ZeroConfirmationDepth);
+            return Err(ContractError::ZeroConfirmationDepth);
         }
 
         if self.checkpoint_finalization_timeout == 0 {
-            return Err(InitError::ZeroCheckpointFinalizationTimeout);
+            return Err(ContractError::ZeroCheckpointFinalizationTimeout);
         }
 
         // TODO: validate headers, first work and first height? For example, the base header
