@@ -4,7 +4,7 @@ use crate::state::get_header;
 use babylon_bitcoin::{deserialize, BlockHeader, Work};
 use babylon_bitcoin::{Params, Uint256};
 use babylon_proto::babylon::btclightclient::v1::BtcHeaderInfo;
-use bitcoin::Target;
+use bitcoin::{BlockHash, Target};
 use cosmwasm_std::Storage;
 use cosmwasm_std::{StdError, StdResult};
 
@@ -31,6 +31,9 @@ pub enum HeaderError {
 
     #[error("The BTC header info {0} height is wrong. Expected {1}, got {2}")]
     WrongHeight(usize, u32, u32),
+
+    #[error("Header's prev_blockhash {got} does not match parent header's block hash {expected}")]
+    PrevHashMismatch { got: BlockHash, expected: BlockHash },
 
     #[error("The BTC header cannot be decoded: {0}")]
     DecodeError(String),
@@ -62,6 +65,14 @@ pub fn verify_headers(
     for (i, new_header) in new_headers.iter().enumerate() {
         let prev_block_header: BlockHeader = deserialize(last_header.header.as_ref())?;
         let block_header: BlockHeader = deserialize(new_header.header.as_ref())?;
+
+        // Check whether the headers form a chain.
+        if block_header.prev_blockhash != prev_block_header.block_hash() {
+            return Err(HeaderError::PrevHashMismatch {
+                got: block_header.prev_blockhash,
+                expected: prev_block_header.block_hash(),
+            });
+        }
 
         check_header(
             storage,
@@ -122,13 +133,6 @@ fn check_block_header_sanity(
     prev_block_header: &BlockHeader,
     header: &BlockHeader,
 ) -> Result<(), HeaderError> {
-    /* This check should be done much eariler.
-    // ensure the header is adjacent to last_btc_header
-    if !prev_header.block_hash().eq(&header.prev_blockhash) {
-        return Err(Error::PreHeaderHashMismatch);
-    }
-    */
-
     check_proof_of_work(chain_params, header)?;
 
     // if the chain does not allow reduced difficulty after 10min, ensure
