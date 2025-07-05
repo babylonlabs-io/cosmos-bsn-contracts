@@ -503,7 +503,7 @@ pub mod tests {
         let res = handle_btc_headers_from_babylon(&mut storage, &invalid_fork_headers);
         assert!(matches!(
             res.unwrap_err(),
-            ContractError::Header(HeaderError::WrongCumulativeWork(..))
+            ContractError::Header(HeaderError::PrevHashMismatch { .. })
         ));
 
         // ensure base and tip are unchanged
