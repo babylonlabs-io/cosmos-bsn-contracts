@@ -20,6 +20,8 @@ pub enum InitError {
     ZeroCheckpointFinalizationTimeout,
     #[error("Not enough headers (expected at least {required}, got: {got})")]
     NotEnoughHeaders { got: usize, required: u32 },
+    #[error("Header {0} is not on the difficulty boundary")]
+    NotOnDifficultyBoundary(u32),
 }
 
 #[derive(Error, Debug, PartialEq)]
@@ -53,9 +55,6 @@ pub enum ContractError {
 
     #[error(transparent)]
     HeaderVerification(#[from] crate::bitcoin::HeaderError),
-
-    #[error(transparent)]
-    BtcLightClient(#[from] babylon_bitcoin::error::Error),
 
     #[error(transparent)]
     Store(#[from] crate::state::btc_light_client::StoreError),

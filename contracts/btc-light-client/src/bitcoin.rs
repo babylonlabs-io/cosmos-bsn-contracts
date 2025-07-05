@@ -172,7 +172,14 @@ pub(crate) fn check_proof_of_work(
     Ok(())
 }
 
-/// Ensures the difficulty specified in the block header complies with the protocol.
+/// Checks if a header's difficulty is correctly set according to the retargeting rules.
+///
+/// This function verifies that if a header is on a difficulty change boundary,
+/// its difficulty has been recalculated based on the previous 2016 blocks.
+///
+/// # Returns
+/// * `Ok(())` if the difficulty is correct
+/// * `Err(HeaderError)` if the difficulty is incorrect
 // https://pkg.go.dev/github.com/btcsuite/btcd@v0.24.2/blockchain#CheckBlockHeaderContext
 fn check_block_header_context(
     storage: &dyn Storage,
@@ -187,8 +194,9 @@ fn check_block_header_context(
     let expected_bits = expected_target.to_compact_lossy().to_consensus();
 
     let actual_target = header.target();
+    let actual_bits = actual_target.to_compact_lossy().to_consensus();
 
-    if actual_target.to_compact_lossy().to_consensus() != expected_bits {
+    if actual_bits != expected_bits {
         return Err(HeaderError::BadDifficultyBits {
             got: actual_target,
             expected: expected_target,
@@ -236,6 +244,7 @@ fn get_next_work_required(
             params,
         ))
     } else {
+        // Not on a boundary, difficulty should be the same as parent
         Ok(last_block.target())
     }
 }
@@ -282,4 +291,17 @@ pub fn total_work(work: &[u8]) -> StdResult<Work> {
     Ok(Work::from_be_bytes(work.try_into().map_err(|e| {
         StdError::generic_err(format!("Invalid work: {e:?}"))
     })?))
+}
+
+/// Checks if a Bitcoin header is on a difficulty change boundary.
+///
+/// In Bitcoin, difficulty is adjusted every 2016 blocks (approximately every 2 weeks).
+/// A header is on a difficulty change boundary if its height is divisible by 2016.
+pub fn is_difficulty_change_boundary(height: u32, chain_params: &Params) -> bool {
+    let difficulty_adjustment_interval = chain_params.difficulty_adjustment_interval() as u32;
+
+    // A header is on a difficulty change boundary if:
+    // 1. The height is >= difficulty_adjustment_interval (2016 for mainnet)
+    // 2. The height is divisible by difficulty_adjustment_interval
+    height >= difficulty_adjustment_interval && height % difficulty_adjustment_interval == 0
 }
