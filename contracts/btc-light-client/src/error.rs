@@ -51,8 +51,9 @@ pub enum ContractError {
     #[error(transparent)]
     DecodeUtf8Error(#[from] Utf8Error),
 
+    /// Header verification error.
     #[error(transparent)]
-    HeaderVerification(#[from] crate::bitcoin::HeaderError),
+    Header(#[from] crate::bitcoin::HeaderError),
 
     #[error(transparent)]
     Store(#[from] crate::state::btc_light_client::StoreError),

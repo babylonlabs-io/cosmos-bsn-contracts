@@ -508,7 +508,7 @@ pub mod tests {
         let res = handle_btc_headers_from_babylon(&mut storage, &invalid_fork_headers);
         assert!(matches!(
             res.unwrap_err(),
-            ContractError::HeaderVerification(HeaderError::WrongCumulativeWork(..))
+            ContractError::Header(HeaderError::WrongCumulativeWork(..))
         ));
 
         // ensure base and tip are unchanged
@@ -552,11 +552,7 @@ pub mod tests {
         let res = handle_btc_headers_from_babylon(&mut storage, &invalid_fork_headers);
         assert_eq!(
             res.unwrap_err(),
-            ContractError::HeaderVerification(HeaderError::WrongHeight(
-                len - 1,
-                height,
-                height + 1
-            ))
+            ContractError::Header(HeaderError::WrongHeight(len - 1, height, height + 1))
         );
 
         // ensure base and tip are unchanged
@@ -609,7 +605,7 @@ pub mod tests {
         let res = handle_btc_headers_from_babylon(&mut storage, &invalid_fork_headers);
         assert_eq!(
             res.unwrap_err(),
-            ContractError::HeaderVerification(HeaderError::WrongCumulativeWork(
+            ContractError::Header(HeaderError::WrongCumulativeWork(
                 wrong_header_index,
                 total_work(header.work.as_ref()).unwrap(),
                 total_work(wrong_header.work.as_ref()).unwrap(),
