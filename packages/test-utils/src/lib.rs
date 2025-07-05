@@ -350,9 +350,9 @@ pub fn get_public_randomness_commitment() -> (String, PubRandCommit, Vec<u8>) {
 
 /// Returns the initial BTC header for the babylon contract instantiation.
 pub fn initial_header() -> btc_light_client::msg::contract::InitialHeader {
-    // https://www.blockchain.com/explorer/blocks/btc/354816
-    let header = "020000003f99814a36d2a2043b1d4bf61a410f71828eca1decbf56000000000000000000b3762ed278ac44bb953e24262cfeb952d0abe6d3b7f8b74fd24e009b96b6cb965d674655dd1317186436e79d";
-    let height = 354816;
+    // Initial base header on Babylon Genesis mainnet, https://www.blockchain.com/explorer/blocks/btc/854784.
+    let header = "0000c020f382af1f6d228721b49f3da2f5b831587803b16597b301000000000000000000e4f76aae64d8316d195a92424871b74168b58d1c3c6988548e0e9890b15fc2fc3c00aa66be1a0317082e4bc7";
+    let height = 854784;
     let header: BlockHeader =
         bitcoin::consensus::encode::deserialize_hex(header).expect("Static value must be correct");
     let btc_header_info = BtcHeaderInfo {
