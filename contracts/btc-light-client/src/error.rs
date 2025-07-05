@@ -55,9 +55,6 @@ pub enum ContractError {
     HeaderVerification(#[from] crate::bitcoin::HeaderError),
 
     #[error(transparent)]
-    BtcLightClient(#[from] babylon_bitcoin::error::Error),
-
-    #[error(transparent)]
     Store(#[from] crate::state::btc_light_client::StoreError),
 }
 
