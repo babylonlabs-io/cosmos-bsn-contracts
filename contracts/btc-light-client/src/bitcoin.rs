@@ -31,7 +31,7 @@ pub enum HeaderError {
     #[error("Header's difficulty bits mismatch: {{ got: {got:?}, expected: {expected:?} }}")]
     BadDifficultyBits { got: Target, expected: Target },
 
-    #[error("Heaer's difficulty does not reasonably relevant to its parent")]
+    #[error("Header's difficulty is not reasonably related to its parent")]
     BadDifficulty,
 
     #[error("Header #{0}: cumulative work mismatch. Expected {1}, got {2}")]
@@ -193,6 +193,9 @@ pub(crate) fn check_proof_of_work(
 /// > Ensure the difficulty specified in the block header matches
 /// > the calculated difficulty based on the previous block and
 /// > difficulty retarget rules.
+///
+/// Note: While the naming mirrors the btcd implementation, this function only performs
+/// the difficulty adjustment check (not the full header context validation in btc).
 ///
 /// https://pkg.go.dev/github.com/btcsuite/btcd@v0.24.2/blockchain#CheckBlockHeaderContext
 fn check_block_header_context(
