@@ -1,4 +1,5 @@
 name: Deployment
+
 on:
   push:
     tags:
@@ -6,6 +7,11 @@ on:
 env:
   CARGO_TERM_COLOR: always
   WORKSPACE: "/home/runner/work/cosmos-bsn-contracts/cosmos-bsn-contracts"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build_and_upload_contracts:
     runs-on: ubuntu-latest
