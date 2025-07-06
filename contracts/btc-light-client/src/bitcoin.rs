@@ -1,4 +1,11 @@
-//! This module provides some Bitcoin related helper functions.
+//! Verifies Bitcoin block headers for correctness and proof-of-work validity.
+//!
+//! This module provides functionality to:
+//! - Verify that a sequence of Bitcoin headers forms a valid chain.
+//! - Enforce proof-of-work correctness.
+//! - Ensure difficulty retargeting and cumulative work are consistent with Bitcoin consensus rules.
+//!
+//! It mirrors the logic used in Bitcoin Core and Babylon's Go implementation.
 
 use crate::state::get_header;
 use babylon_bitcoin::{deserialize, BlockHeader, Work};
@@ -12,30 +19,31 @@ use cosmwasm_std::{StdError, StdResult};
 // Its value is always 4
 const RETARGET_ADJUSTMENT_FACTOR: u64 = 4;
 
+/// Errors that can occur during BTC header verification.
 #[derive(thiserror::Error, Debug, PartialEq)]
 pub enum HeaderError {
-    #[error("Header's target is larger than pow_limit")]
+    #[error("Header's target exceeds the chain's maximum difficulty limit")]
     TargetTooLarge,
 
-    #[error("proof-of-work validation failed: {0:?}")]
+    #[error("Proof-of-work hash does not satisfy the claim difficulty: {0:?}")]
     InvalidProofOfWork(bitcoin::block::ValidationError),
 
-    #[error("Incorrect proof-of-work: {{ got: {got:?}, expected: {expected:?} }}")]
+    #[error("Header's difficulty bits mismatch: {{ got: {got:?}, expected: {expected:?} }}")]
     BadDifficultyBits { got: Target, expected: Target },
 
-    #[error("difficulty not relevant to parent difficulty")]
+    #[error("Heaer's difficulty does not reasonably relevant to its parent")]
     BadDifficulty,
 
-    #[error("The BTC header info {0} cumulative work is wrong. Expected {1}, got {2}")]
+    #[error("Header #{0}: cumulative work mismatch. Expected {1}, got {2}")]
     WrongCumulativeWork(usize, Work, Work),
 
-    #[error("The BTC header info {0} height is wrong. Expected {1}, got {2}")]
+    #[error("Header #{0}: incorrect height. Expected {1}, got {2}")]
     WrongHeight(usize, u32, u32),
 
-    #[error("Header's prev_blockhash {got} does not match parent header's block hash {expected}")]
+    #[error("Header's prev_blockhash {got} does not match parent header's hash {expected}")]
     PrevHashMismatch { got: BlockHash, expected: BlockHash },
 
-    #[error("The BTC header cannot be decoded: {0}")]
+    #[error("Failed to decode BTC header: {0}")]
     DecodeError(String),
 
     #[error(transparent)]
@@ -51,8 +59,9 @@ impl From<babylon_bitcoin::EncodeError> for HeaderError {
     }
 }
 
-/// Verifies whether `new_headers` are valid consecutive headers
-/// after the given `first_header`.
+/// Verifies a consecutive sequence of Bitcoin headers starting from a known header.
+///
+/// Ref https://github.com/babylonlabs-io/babylon/blob/d3d81178dc38c172edaf5651c72b296bb9371a48/x/btclightclient/types/btc_light_client.go#L298
 pub fn verify_headers(
     storage: &dyn Storage,
     chain_params: &Params,
@@ -106,7 +115,9 @@ pub fn verify_headers(
     Ok(())
 }
 
-// https://github.com/babylonlabs-io/babylon/blob/48617fb852e9cae4ea7ea38c80793cdcb6f2668c/x/btclightclient/types/btc_light_client.go#L416
+/// This functions mirrors the `checkHeader` in babylon golang implmentation.
+///
+/// https://github.com/babylonlabs-io/babylon/blob/48617fb852e9cae4ea7ea38c80793cdcb6f2668c/x/btclightclient/types/btc_light_client.go#L416
 fn check_header(
     storage: &dyn Storage,
     chain_params: &Params,
@@ -127,12 +138,15 @@ fn check_header(
     Ok(())
 }
 
-// https://pkg.go.dev/github.com/btcsuite/btcd@v0.24.2/blockchain#CheckBlockHeaderSanity
+/// https://pkg.go.dev/github.com/btcsuite/btcd@v0.24.2/blockchain#CheckBlockHeaderSanity
 fn check_block_header_sanity(
     chain_params: &Params,
     prev_block_header: &BlockHeader,
     header: &BlockHeader,
 ) -> Result<(), HeaderError> {
+    // Ensure the proof of work bits in the block header is in min/max range
+    // and the block hash is less than the target value described by the
+    // bits.
     check_proof_of_work(chain_params, header)?;
 
     // if the chain does not allow reduced difficulty after 10min, ensure
@@ -176,8 +190,11 @@ pub(crate) fn check_proof_of_work(
     Ok(())
 }
 
-/// Ensures the difficulty specified in the block header complies with the protocol.
-// https://pkg.go.dev/github.com/btcsuite/btcd@v0.24.2/blockchain#CheckBlockHeaderContext
+/// > Ensure the difficulty specified in the block header matches
+/// > the calculated difficulty based on the previous block and
+/// > difficulty retarget rules.
+///
+/// https://pkg.go.dev/github.com/btcsuite/btcd@v0.24.2/blockchain#CheckBlockHeaderContext
 fn check_block_header_context(
     storage: &dyn Storage,
     chain_params: &Params,

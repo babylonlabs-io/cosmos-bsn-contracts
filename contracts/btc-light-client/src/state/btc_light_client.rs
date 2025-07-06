@@ -170,6 +170,8 @@ pub fn get_headers(
 /// - BTC tip upon finalising epoch e
 ///   such that Babylon contract maintains the same canonical BTC header chain
 ///   as Babylon.
+///
+/// Ref https://github.com/babylonlabs-io/babylon/blob/d3d81178dc38c172edaf5651c72b296bb9371a48/x/btclightclient/types/btc_light_client.go#L339
 pub fn handle_btc_headers_from_babylon(
     storage: &mut dyn Storage,
     new_headers: &[BtcHeaderInfo],
