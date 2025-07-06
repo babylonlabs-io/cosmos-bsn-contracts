@@ -1,4 +1,4 @@
-name: Bechmarking
+name: Benchmarking
 
 on:
   push:
