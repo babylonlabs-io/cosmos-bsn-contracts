@@ -3,11 +3,10 @@
 # This script generates protobuf messages in Rust using a Buf workspace
 # Use with: `cargo run-script gen-proto` in the root dir.
 
-set -eo pipefail
+set -euo pipefail
 
-PROTO_ROOT="packages/proto"
-
-cd "$(dirname "$0")/../"
+SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
+PROTO_ROOT="$SCRIPT_DIR/packages/proto"
 
 # Initialize git submodules
 git submodule update --init --recursive
