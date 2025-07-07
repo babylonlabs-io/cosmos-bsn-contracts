@@ -36,5 +36,5 @@ jobs:
       run: |
         rustup component add rustfmt clippy
         cargo fmt -- --check
-        cargo clippy --workspace --all-targets -- -D warnings
+        cargo clippy --workspace --all-features --all-targets -- -D warnings
         cargo test --lib --features full-validation
