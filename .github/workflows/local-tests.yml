@@ -1,10 +1,16 @@
 name: Local Tests
+
 on:
   pull_request:
     branches:
       - '**'
 env:
   CARGO_TERM_COLOR: always
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   check-schema-binary-naming:
     runs-on: ubuntu-latest
