@@ -3,7 +3,7 @@
   "title": "ExecuteMsg",
   "oneOf": [
     {
-      "description": "`slashing` is a slashing event from the BTC staking contract.\n\nThis will be forwarded over IBC to the Babylon side for propagation to other Consumers, and Babylon itself",
+      "description": "Slashing event from the BTC staking contract.\n\nThis will be forwarded over IBC to the Babylon side for propagation to other Consumers, and Babylon itself",
       "type": "object",
       "required": [
         "slashing"
@@ -40,13 +40,13 @@
       ],
       "properties": {
         "block_height": {
-          "description": "`block_height` is the height of the conflicting blocks",
+          "description": "Height of the conflicting blocks",
           "type": "integer",
           "format": "uint64",
           "minimum": 0.0
         },
         "canonical_app_hash": {
-          "description": "`canonical_app_hash` is the AppHash of the canonical block",
+          "description": "AppHash of the canonical block",
           "type": "array",
           "items": {
             "type": "integer",
@@ -55,7 +55,7 @@
           }
         },
         "canonical_finality_sig": {
-          "description": "`canonical_finality_sig` is the finality signature to the canonical block, where finality signature is an EOTS signature, i.e., the `s` in a Schnorr signature `(r, s)`. `r` is the public randomness already committed by the finality provider. Deserializes to `SchnorrEOTSSig`",
+          "description": "Finality signature to the canonical block, where finality signature is an EOTS signature, i.e., the `s` in a Schnorr signature `(r, s)`. `r` is the public randomness already committed by the finality provider. Deserializes to `SchnorrEOTSSig`",
           "type": "array",
           "items": {
             "type": "integer",
@@ -64,7 +64,7 @@
           }
         },
         "fork_app_hash": {
-          "description": "`fork_app_hash` is the AppHash of the fork block",
+          "description": "AppHash of the fork block",
           "type": "array",
           "items": {
             "type": "integer",
@@ -73,7 +73,7 @@
           }
         },
         "fork_finality_sig": {
-          "description": "`fork_finality_sig` is the finality signature to the fork block, where finality signature is an EOTS signature. Deserializes to `SchnorrEOTSSig`",
+          "description": "Finality signature to the fork block, where finality signature is an EOTS signature. Deserializes to `SchnorrEOTSSig`",
           "type": "array",
           "items": {
             "type": "integer",
@@ -82,7 +82,7 @@
           }
         },
         "fp_btc_pk": {
-          "description": "`fp_btc_pk` is the BTC PK of the finality provider that casts this vote",
+          "description": "BTC PK of the finality provider that casts this vote",
           "type": "array",
           "items": {
             "type": "integer",
@@ -91,7 +91,7 @@
           }
         },
         "pub_rand": {
-          "description": "`pub_rand is` the public randomness the finality provider has committed to. Deserializes to `SchnorrPubRand`",
+          "description": "Public randomness the finality provider has committed to. Deserializes to `SchnorrPubRand`",
           "type": "array",
           "items": {
             "type": "integer",

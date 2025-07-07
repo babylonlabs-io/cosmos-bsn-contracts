@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "ActiveBtcDelegation",
-  "description": "ActiveBTCDelegation is a message sent when a BTC delegation newly receives covenant signatures and thus becomes active",
+  "description": "Message sent when a BTC delegation newly receives covenant signatures and thus becomes active.",
   "type": "object",
   "required": [
     "btc_pk_hex",
@@ -21,18 +21,18 @@
   ],
   "properties": {
     "btc_pk_hex": {
-      "description": "btc_pk_hex is the Bitcoin secp256k1 PK of the BTC delegator. The PK follows encoding in BIP-340 spec in hex format",
+      "description": "Bitcoin secp256k1 PK of the BTC delegator. The PK follows encoding in BIP-340 spec in hex format",
       "type": "string"
     },
     "covenant_sigs": {
-      "description": "covenant_sigs is a list of adaptor signatures on the slashing tx by each covenant member. It will be a part of the witness for the staking tx output.",
+      "description": "List of adaptor signatures on the slashing tx by each covenant member. It will be a part of the witness for the staking tx output.",
       "type": "array",
       "items": {
         "$ref": "#/definitions/CovenantAdaptorSignatures"
       }
     },
     "delegator_slashing_sig": {
-      "description": "delegator_slashing_sig is the signature on the slashing tx by the delegator (i.e. SK corresponding to btc_pk) as string hex. It will be a part of the witness for the staking tx output.",
+      "description": "Signature on the slashing tx by the delegator (i.e. SK corresponding to btc_pk) as string hex. It will be a part of the witness for the staking tx output.",
       "allOf": [
         {
           "$ref": "#/definitions/Binary"
@@ -40,26 +40,26 @@
       ]
     },
     "end_height": {
-      "description": "end_height is the end height of the BTC delegation it is the end BTC height of the time-lock - w",
+      "description": "End height of the BTC delegation. It is the end BTC height of the time-lock - w",
       "type": "integer",
       "format": "uint32",
       "minimum": 0.0
     },
     "fp_btc_pk_list": {
-      "description": "fp_btc_pk_list is the list of BIP-340 PKs of the finality providers that this BTC delegation delegates to",
+      "description": "List of BIP-340 PKs of the finality providers that this BTC delegation delegates to",
       "type": "array",
       "items": {
         "type": "string"
       }
     },
     "params_version": {
-      "description": "params version used to validate the delegation",
+      "description": "Params version used to validate the delegation",
       "type": "integer",
       "format": "uint32",
       "minimum": 0.0
     },
     "slashing_tx": {
-      "description": "slashing_tx is the slashing tx",
+      "description": "Slashing tx.",
       "allOf": [
         {
           "$ref": "#/definitions/Binary"
@@ -67,17 +67,17 @@
       ]
     },
     "staker_addr": {
-      "description": "staker_addr is the address to receive rewards from BTC delegation",
+      "description": "Address to receive rewards from BTC delegation.",
       "type": "string"
     },
     "staking_output_idx": {
-      "description": "staking_output_idx is the index of the staking output in the staking tx",
+      "description": "Index of the staking output in the staking tx",
       "type": "integer",
       "format": "uint32",
       "minimum": 0.0
     },
     "staking_tx": {
-      "description": "staking_tx is the staking tx",
+      "description": "Staking tx.",
       "allOf": [
         {
           "$ref": "#/definitions/Binary"
@@ -85,25 +85,25 @@
       ]
     },
     "start_height": {
-      "description": "start_height is the start BTC height of the BTC delegation. It is the start BTC height of the time-lock",
+      "description": "Start BTC height of the BTC delegation. It is the start BTC height of the time-lock",
       "type": "integer",
       "format": "uint32",
       "minimum": 0.0
     },
     "total_sat": {
-      "description": "total_sat is the total BTC stakes in this delegation, quantified in satoshi",
+      "description": "Total BTC stakes in this delegation, quantified in satoshi",
       "type": "integer",
       "format": "uint64",
       "minimum": 0.0
     },
     "unbonding_time": {
-      "description": "unbonding_time is used in unbonding output time-lock path and in slashing transactions change outputs",
+      "description": "Used in unbonding output time-lock path and in slashing transactions change outputs",
       "type": "integer",
       "format": "uint32",
       "minimum": 0.0
     },
     "undelegation_info": {
-      "description": "undelegation_info is the undelegation info of this delegation.",
+      "description": "Undelegation info of this delegation.",
       "allOf": [
         {
           "$ref": "#/definitions/BtcUndelegationInfo"
@@ -118,7 +118,7 @@
       "type": "string"
     },
     "BtcUndelegationInfo": {
-      "description": "BTCUndelegationInfo provides all necessary info about the undelegation",
+      "description": "Provides all necessary info about the undelegation.",
       "type": "object",
       "required": [
         "covenant_slashing_sigs",
@@ -129,21 +129,21 @@
       ],
       "properties": {
         "covenant_slashing_sigs": {
-          "description": "covenant_slashing_sigs is a list of adaptor signatures on the unbonding slashing tx by each covenant member It will be a part of the witness for the staking tx output.",
+          "description": "List of adaptor signatures on the unbonding slashing tx by each covenant member It will be a part of the witness for the staking tx output.",
           "type": "array",
           "items": {
             "$ref": "#/definitions/CovenantAdaptorSignatures"
           }
         },
         "covenant_unbonding_sig_list": {
-          "description": "covenant_unbonding_sig_list is the list of signatures on the unbonding tx by covenant members",
+          "description": "List of signatures on the unbonding tx by covenant members",
           "type": "array",
           "items": {
             "$ref": "#/definitions/SignatureInfo"
           }
         },
         "delegator_slashing_sig": {
-          "description": "delegator_slashing_sig is the signature on the slashing tx by the delegator (i.e. SK corresponding to btc_pk). It will be a part of the witness for the unbonding tx output.",
+          "description": "Signature on the slashing tx by the delegator (i.e. SK corresponding to btc_pk). It will be a part of the witness for the unbonding tx output.",
           "allOf": [
             {
               "$ref": "#/definitions/Binary"
@@ -151,7 +151,7 @@
           ]
         },
         "delegator_unbonding_info": {
-          "description": "delegator_unbonding_info is the information about transaction which spent the staking output",
+          "description": "Information about transaction which spent the staking output",
           "anyOf": [
             {
               "$ref": "#/definitions/DelegatorUnbondingInfo"
@@ -162,7 +162,7 @@
           ]
         },
         "slashing_tx": {
-          "description": "slashing_tx is the unbonding slashing tx",
+          "description": "Unbonding slashing tx",
           "allOf": [
             {
               "$ref": "#/definitions/Binary"
@@ -170,7 +170,7 @@
           ]
         },
         "unbonding_tx": {
-          "description": "unbonding_tx is the transaction which will transfer the funds from staking output to unbonding output. Unbonding output will usually have lower timelock than staking output.",
+          "description": "Transaction which will transfer the funds from staking output to unbonding output. Unbonding output will usually have lower timelock than staking output.",
           "allOf": [
             {
               "$ref": "#/definitions/Binary"
@@ -181,7 +181,7 @@
       "additionalProperties": false
     },
     "CovenantAdaptorSignatures": {
-      "description": "CovenantAdaptorSignatures is a list adaptor signatures signed by the covenant with different finality provider's public keys as encryption keys",
+      "description": "Represents a list adaptor signatures signed by the covenant with different finality provider's public keys as encryption keys",
       "type": "object",
       "required": [
         "adaptor_sigs",
@@ -189,14 +189,14 @@
       ],
       "properties": {
         "adaptor_sigs": {
-          "description": "adaptor_sigs is a list of adaptor signatures, each encrypted by a restaked BTC finality provider's public key",
+          "description": "List of adaptor signatures, each encrypted by a restaked BTC finality provider's public key",
           "type": "array",
           "items": {
             "$ref": "#/definitions/Binary"
           }
         },
         "cov_pk": {
-          "description": "cov_pk is the public key of the covenant emulator, used as the public key of the adaptor signature",
+          "description": "Public key of the covenant emulator, used as the public key of the adaptor signature",
           "allOf": [
             {
               "$ref": "#/definitions/Binary"
@@ -219,7 +219,7 @@
       "additionalProperties": false
     },
     "SignatureInfo": {
-      "description": "SignatureInfo is a BIP-340 signature together with its signer's BIP-340 PK",
+      "description": "A BIP-340 signature together with its signer's BIP-340 PK.",
       "type": "object",
       "required": [
         "pk",

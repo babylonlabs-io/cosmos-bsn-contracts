@@ -19,7 +19,7 @@
       ]
     },
     "hash": {
-      "description": "`hash` is the hash of the BTC header. Encoded as a (byte-reversed) hex string.",
+      "description": "Hash of the BTC header. Encoded as a (byte-reversed) hex string.",
       "type": "string"
     },
     "header": {

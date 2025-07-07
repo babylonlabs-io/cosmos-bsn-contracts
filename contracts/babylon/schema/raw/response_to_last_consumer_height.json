@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "ConsumerHeightResponse",
-  "description": "ConsumerHeightResponse is the metadata of a Consumer height.\n\nThis struct is for use in RPC requests and responses. It is a convenience, efficient way to return the height of the last finalised Consumer header.\n\nAdapted from `ConsumerHeaderResponse`.",
+  "description": "Metadata of a Consumer height.\n\nThis struct is for use in RPC requests and responses. It is a convenience, efficient way to return the height of the last finalised Consumer header.\n\nAdapted from `ConsumerHeaderResponse`.",
   "type": "object",
   "required": [
     "height"

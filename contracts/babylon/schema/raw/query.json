@@ -3,7 +3,7 @@
   "title": "QueryMsg",
   "oneOf": [
     {
-      "description": "Config returns the current configuration of the babylon-contract",
+      "description": "Returns the current configuration of the babylon-contract.",
       "type": "object",
       "required": [
         "config"
@@ -17,7 +17,7 @@
       "additionalProperties": false
     },
     {
-      "description": "BabylonBaseEpoch returns the base Babylon epoch stored in the contract",
+      "description": "Returns the base Babylon epoch stored in the contract.",
       "type": "object",
       "required": [
         "babylon_base_epoch"
@@ -31,7 +31,7 @@
       "additionalProperties": false
     },
     {
-      "description": "BabylonLastEpoch returns the last babylon finalized epoch stored in the contract",
+      "description": "Returns the last babylon finalized epoch stored in the contract.",
       "type": "object",
       "required": [
         "babylon_last_epoch"
@@ -45,7 +45,7 @@
       "additionalProperties": false
     },
     {
-      "description": "BabylonEpoch returns the Babylon epoch stored in the contract, by epoch number.",
+      "description": "Returns the Babylon epoch stored in the contract, by epoch number.",
       "type": "object",
       "required": [
         "babylon_epoch"
@@ -69,7 +69,7 @@
       "additionalProperties": false
     },
     {
-      "description": "BabylonCheckpoint returns the Babylon checkpoint stored in the contract, by epoch number.",
+      "description": "Returns the Babylon checkpoint stored in the contract, by epoch number.",
       "type": "object",
       "required": [
         "babylon_checkpoint"
@@ -93,7 +93,7 @@
       "additionalProperties": false
     },
     {
-      "description": "LastConsumerHeader returns the last Consumer epoch stored in the contract",
+      "description": "Returns the last Consumer epoch stored in the contract.",
       "type": "object",
       "required": [
         "last_consumer_header"
@@ -107,7 +107,7 @@
       "additionalProperties": false
     },
     {
-      "description": "LastConsumerHeight returns the last Consumer height stored in the contract",
+      "description": "Returns the last Consumer height stored in the contract.",
       "type": "object",
       "required": [
         "last_consumer_height"
@@ -121,7 +121,7 @@
       "additionalProperties": false
     },
     {
-      "description": "ConsumerHeader returns the Consumer header stored in the contract, by Consumer height.",
+      "description": "Returns the Consumer header stored in the contract, by Consumer height.",
       "type": "object",
       "required": [
         "consumer_header"
@@ -145,7 +145,7 @@
       "additionalProperties": false
     },
     {
-      "description": "TransferInfo returns the IBC transfer information stored in the contract for ICS-020 rewards transfer.",
+      "description": "Returns the IBC transfer information stored in the contract for ICS-020 rewards transfer.",
       "type": "object",
       "required": [
         "transfer_info"
