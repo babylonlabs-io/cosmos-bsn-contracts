@@ -59,7 +59,7 @@ fn decode_pks(
 ) -> Result<(VerifyingKey, Vec<VerifyingKey>, Vec<VerifyingKey>), ContractError> {
     // get staker's public key
     let staker_pk_bytes =
-        hex::decode(&staker_pk_hex).map_err(|e| ContractError::SecP256K1Error(e.to_string()))?;
+        hex::decode(staker_pk_hex).map_err(|e| ContractError::SecP256K1Error(e.to_string()))?;
     let staker_pk = VerifyingKey::from_bytes(&staker_pk_bytes)
         .map_err(|e| ContractError::SecP256K1Error(e.to_string()))?;
 
@@ -242,7 +242,7 @@ pub fn verify_active_delegation(
                     slashing_path_script.as_script(),
                     &cov_pk,
                     &fp_pks[idx],
-                    &sig,
+                    sig,
                 )
                 .map_err(|e| ContractError::SecP256K1Error(e.to_string()))?;
             }
@@ -359,8 +359,8 @@ pub fn verify_active_delegation(
                 .map_err(|e| ContractError::SecP256K1Error(e.to_string()))?;
             // Verify the covenant member's signature
             babylon_btcstaking::sig_verify::verify_transaction_sig_with_output(
-                &staking_tx,
-                &staking_output,
+                staking_tx,
+                staking_output,
                 unbonding_path_script.as_script(),
                 &cov_pk,
                 &sig,
@@ -399,10 +399,10 @@ pub fn verify_active_delegation(
                 enc_verify_transaction_sig_with_output(
                     &unbonding_slashing_tx,
                     unbonding_output,
-                    &unbonding_slashing_path_script.as_script(),
+                    unbonding_slashing_path_script.as_script(),
                     &cov_pk,
                     &fp_pks[idx],
-                    &sig,
+                    sig,
                 )
                 .map_err(|e| ContractError::SecP256K1Error(e.to_string()))?;
             }
@@ -495,7 +495,7 @@ pub fn verify_slashed_delegation(
         */
 
         // get the slashed FP's SK
-        let slashed_fp_sk = hex::decode(&slashed_fp_sk_hex)
+        let slashed_fp_sk = hex::decode(slashed_fp_sk_hex)
             .map_err(|e| ContractError::SecP256K1Error(e.to_string()))?;
         let slashed_fp_sk = SigningKey::from_bytes(&slashed_fp_sk)
             .map_err(|e| ContractError::SecP256K1Error(e.to_string()))?;
