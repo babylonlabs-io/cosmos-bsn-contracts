@@ -15,10 +15,6 @@ use bitcoin::{BlockHash, Target};
 use cosmwasm_std::Storage;
 use cosmwasm_std::{StdError, StdResult};
 
-// RetargetAdjustmentFactor in https://github.com/btcsuite/btcd/blob/master/chaincfg/params.go
-// Its value is always 4
-const RETARGET_ADJUSTMENT_FACTOR: u64 = 4;
-
 /// Errors that can occur during BTC header verification.
 #[derive(thiserror::Error, Debug, PartialEq)]
 pub enum HeaderError {
@@ -133,34 +129,9 @@ fn check_header(
         header,
     )?;
 
-    check_block_header_sanity(chain_params, prev_block_header, header)?;
-
-    Ok(())
-}
-
-/// https://pkg.go.dev/github.com/btcsuite/btcd@v0.24.2/blockchain#CheckBlockHeaderSanity
-fn check_block_header_sanity(
-    chain_params: &Params,
-    prev_block_header: &BlockHeader,
-    header: &BlockHeader,
-) -> Result<(), HeaderError> {
-    // Ensure the proof of work bits in the block header is in min/max range
-    // and the block hash is less than the target value described by the
-    // bits.
+    // Perform proof-of-work check as specified in:
+    // https://pkg.go.dev/github.com/btcsuite/btcd@v0.24.2/blockchain#CheckBlockHeaderSanity
     check_proof_of_work(chain_params, header)?;
-
-    // if the chain does not allow reduced difficulty after 10min, ensure
-    // the new header's target is within the [0.25, 4] range
-    if !chain_params.allow_min_difficulty_blocks {
-        let retarget_adjustment_factor_u256 = Uint256::from(RETARGET_ADJUSTMENT_FACTOR);
-        let old_target = Uint256::from_be_bytes(prev_block_header.target().to_be_bytes());
-        let cur_target = Uint256::from_be_bytes(header.target().to_be_bytes());
-        let max_cur_target = old_target * retarget_adjustment_factor_u256;
-        let min_cur_target = old_target / retarget_adjustment_factor_u256;
-        if cur_target > max_cur_target || cur_target < min_cur_target {
-            return Err(HeaderError::BadDifficulty);
-        }
-    }
 
     Ok(())
 }
@@ -195,7 +166,7 @@ pub(crate) fn check_proof_of_work(
 /// > difficulty retarget rules.
 ///
 /// Note: While the naming mirrors the btcd implementation, this function only performs
-/// the difficulty adjustment check (not the full header context validation in btc).
+/// the difficulty adjustment check (not the full header context validation in btcd).
 ///
 /// https://pkg.go.dev/github.com/btcsuite/btcd@v0.24.2/blockchain#CheckBlockHeaderContext
 fn check_block_header_context(
