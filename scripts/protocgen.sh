@@ -6,7 +6,7 @@
 set -euo pipefail
 
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
-PROTO_ROOT="$SCRIPT_DIR/packages/proto"
+PROTO_ROOT="$SCRIPT_DIR/../packages/proto"
 
 # Initialize git submodules
 git submodule update --init --recursive
