@@ -44,7 +44,7 @@
       ],
       "properties": {
         "btc_network": {
-          "description": "`btc_network` is the network the BTC staking protocol is running on",
+          "description": "Network the BTC staking protocol is running on.",
           "allOf": [
             {
               "$ref": "#/definitions/Network"
@@ -52,30 +52,30 @@
           ]
         },
         "covenant_pks": {
-          "description": "`covenant_pks` is the list of public keys held by the covenant committee each PK follows encoding in BIP-340 spec on Bitcoin",
+          "description": "List of public keys held by the covenant committee each PK follows encoding in BIP-340 spec on Bitcoin",
           "type": "array",
           "items": {
             "type": "string"
           }
         },
         "covenant_quorum": {
-          "description": "`covenant_quorum` is the minimum number of signatures needed for the covenant multi-signature",
+          "description": "Minimum number of signatures needed for the covenant multi-signature.",
           "type": "integer",
           "format": "uint32",
           "minimum": 0.0
         },
         "min_slashing_tx_fee_sat": {
-          "description": "`min_slashing_tx_fee_sat` is the minimum amount of tx fee (quantified in Satoshi) needed for the pre-signed slashing tx",
+          "description": "Minimum amount of tx fee (quantified in Satoshi) needed for the pre-signed slashing tx.",
           "type": "integer",
           "format": "uint64",
           "minimum": 0.0
         },
         "slashing_pk_script": {
-          "description": "`slashing_pk_script` is the pk script that the slashed BTC goes to. The pk script is in string format on Bitcoin.",
+          "description": "Pk script that the slashed BTC goes to, in string format on Bitcoin.",
           "type": "string"
         },
         "slashing_rate": {
-          "description": "`slashing_rate` determines the portion of the staked amount to be slashed, expressed as a decimal (e.g. 0.5 for 50%).",
+          "description": "Portion of the staked amount to be slashed, expressed as a decimal (e.g. 0.5 for 50%).",
           "type": "string"
         }
       },

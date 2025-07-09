@@ -15,20 +15,6 @@
             "headers"
           ],
           "properties": {
-            "first_height": {
-              "type": [
-                "integer",
-                "null"
-              ],
-              "format": "uint32",
-              "minimum": 0.0
-            },
-            "first_work": {
-              "type": [
-                "string",
-                "null"
-              ]
-            },
             "headers": {
               "type": "array",
               "items": {

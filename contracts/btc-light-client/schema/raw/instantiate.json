@@ -5,6 +5,7 @@
   "required": [
     "btc_confirmation_depth",
     "checkpoint_finalization_timeout",
+    "initial_header",
     "network"
   ],
   "properties": {
@@ -18,12 +19,102 @@
       "format": "uint32",
       "minimum": 0.0
     },
+    "initial_header": {
+      "description": "Initial BTC header.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/InitialHeader"
+        }
+      ]
+    },
     "network": {
       "$ref": "#/definitions/Network"
     }
   },
   "additionalProperties": false,
   "definitions": {
+    "Binary": {
+      "description": "Binary is a wrapper around Vec<u8> to add base64 de/serialization with serde. It also adds some helper methods to help encode inline.\n\nThis is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>. See also <https://github.com/CosmWasm/cosmwasm/blob/main/docs/MESSAGE_TYPES.md>.",
+      "type": "string"
+    },
+    "BtcHeader": {
+      "description": "Bitcoin header.\n\nContains all the block's information except the actual transactions, but including a root of a [merkle tree] committing to all transactions in the block.\n\nThis struct is for use in RPC requests and responses. It has convenience trait impls to convert to the internal representation (`BlockHeader`), and to the Babylon extended representation (`BtcHeaderInfo`). Adapted from `BlockHeader`.",
+      "type": "object",
+      "required": [
+        "bits",
+        "merkle_root",
+        "nonce",
+        "prev_blockhash",
+        "time",
+        "version"
+      ],
+      "properties": {
+        "bits": {
+          "description": "The target value below which the blockhash must lie, encoded as a a float (with well-defined rounding, of course).",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0.0
+        },
+        "merkle_root": {
+          "description": "The root hash of the merkle tree of transactions in the block. Encoded as a (byte-reversed) hex string.",
+          "type": "string"
+        },
+        "nonce": {
+          "description": "The nonce, selected to obtain a low enough blockhash.",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0.0
+        },
+        "prev_blockhash": {
+          "description": "Reference to the previous block in the chain. Encoded as a (byte-reversed) hex string.",
+          "type": "string"
+        },
+        "time": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0.0
+        },
+        "version": {
+          "description": "Originally protocol version, but repurposed for soft-fork signaling.\n\n### Relevant BIPs\n\n* [BIP9 - Version bits with timeout and delay](https://github.com/bitcoin/bips/blob/master/bip-0009.mediawiki) (current usage) * [BIP34 - Block v2, Height in Coinbase](https://github.com/bitcoin/bips/blob/master/bip-0034.mediawiki)",
+          "type": "integer",
+          "format": "int32"
+        }
+      },
+      "additionalProperties": false
+    },
+    "InitialHeader": {
+      "type": "object",
+      "required": [
+        "header",
+        "height",
+        "total_work"
+      ],
+      "properties": {
+        "header": {
+          "description": "Initial BTC header to initialize the light client.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/BtcHeader"
+            }
+          ]
+        },
+        "height": {
+          "description": "Height of the initial header.",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0.0
+        },
+        "total_work": {
+          "description": "Total accumulated work of the initial header, encoded as big-endian bytes.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Binary"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
     "Network": {
       "type": "string",
       "enum": [

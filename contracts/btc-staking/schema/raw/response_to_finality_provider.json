@@ -12,15 +12,15 @@
   ],
   "properties": {
     "addr": {
-      "description": "addr is the bech32 address identifier of the finality provider",
+      "description": "Bech32 address identifier of the finality provider.",
       "type": "string"
     },
     "btc_pk_hex": {
-      "description": "btc_pk_hex is the Bitcoin secp256k1 PK of this finality provider the PK follows encoding in BIP-340 spec in hex format",
+      "description": "Bitcoin secp256k1 PK of this finality provider the PK follows encoding in BIP-340 spec in hex format",
       "type": "string"
     },
     "commission": {
-      "description": "commission defines the commission rate of the finality provider.",
+      "description": "Commission rate of the finality provider.",
       "allOf": [
         {
           "$ref": "#/definitions/Decimal"
@@ -28,11 +28,11 @@
       ]
     },
     "consumer_id": {
-      "description": "consumer_id is the ID of the consumer that the finality provider is operating on.",
+      "description": "ID of the consumer that the finality provider is operating on.",
       "type": "string"
     },
     "description": {
-      "description": "description defines the description terms for the finality provider",
+      "description": "Description terms for the finality provider.",
       "anyOf": [
         {
           "$ref": "#/definitions/FinalityProviderDescription"
@@ -43,7 +43,7 @@
       ]
     },
     "pop": {
-      "description": "pop is the proof of possession of the babylon_pk and btc_pk",
+      "description": "Proof of possession of the babylon_pk and btc_pk.",
       "anyOf": [
         {
           "$ref": "#/definitions/ProofOfPossessionBtc"
@@ -54,13 +54,13 @@
       ]
     },
     "slashed_btc_height": {
-      "description": "slashed_btc_height is the BTC height on which the finality provider is slashed",
+      "description": "BTC height on which the finality provider is slashed.",
       "type": "integer",
       "format": "uint32",
       "minimum": 0.0
     },
     "slashed_height": {
-      "description": "slashed_height is the height on which the finality provider is slashed",
+      "description": "Height on which the finality provider is slashed.",
       "type": "integer",
       "format": "uint64",
       "minimum": 0.0
@@ -87,30 +87,30 @@
       ],
       "properties": {
         "details": {
-          "description": "details is the details of the finality provider",
+          "description": "Details of the finality provider.",
           "type": "string"
         },
         "identity": {
-          "description": "identity is the identity of the finality provider",
+          "description": "Identity of the finality provider.",
           "type": "string"
         },
         "moniker": {
-          "description": "moniker is the name of the finality provider",
+          "description": "Name of the finality provider.",
           "type": "string"
         },
         "security_contact": {
-          "description": "security_contact is the security contact of the finality provider",
+          "description": "Security contact of the finality provider.",
           "type": "string"
         },
         "website": {
-          "description": "website is the website of the finality provider",
+          "description": "Website of the finality provider.",
           "type": "string"
         }
       },
       "additionalProperties": false
     },
     "ProofOfPossessionBtc": {
-      "description": "ProofOfPossessionBtc is the proof of possession that a Babylon secp256k1 secret key and a Bitcoin secp256k1 secret key are held by the same person",
+      "description": "Proof of possession that a Babylon secp256k1 secret key and a Bitcoin secp256k1 secret key are held by the same person.",
       "type": "object",
       "required": [
         "btc_sig",
@@ -118,7 +118,7 @@
       ],
       "properties": {
         "btc_sig": {
-          "description": "btc_sig is the signature generated via sign(sk_btc, babylon_sig) the signature follows encoding in either BIP-340 spec or BIP-322 spec",
+          "description": "Signature generated via sign(sk_btc, babylon_sig).\n\nThe signature follows encoding in either BIP-340 spec or BIP-322 spec.",
           "allOf": [
             {
               "$ref": "#/definitions/Binary"
@@ -126,7 +126,7 @@
           ]
         },
         "btc_sig_type": {
-          "description": "btc_sig_type indicates the type of btc_sig in the pop",
+          "description": "Type of `btc_sig` in the pop.",
           "type": "integer",
           "format": "int32"
         }

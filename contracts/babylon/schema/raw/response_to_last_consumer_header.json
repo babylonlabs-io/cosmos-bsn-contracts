@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "ConsumerHeaderResponse",
-  "description": "ConsumerHeaderResponse is the metadata of a Consumer header.\n\nThis struct is for use in RPC requests and responses. It has convenience helpers to convert from the internal representation (`IndexedHeader`).\n\nAdapted from `IndexedHeader`.",
+  "description": "Metadata of a Consumer header.\n\nThis struct is for use in RPC requests and responses. It has convenience helpers to convert from the internal representation (`IndexedHeader`).\n\nAdapted from `IndexedHeader`.",
   "type": "object",
   "required": [
     "babylon_epoch",
@@ -14,41 +14,41 @@
   ],
   "properties": {
     "babylon_epoch": {
-      "description": "epoch is the epoch number of this header in the Babylon ledger",
+      "description": "Epoch number of this header in the Babylon ledger",
       "type": "integer",
       "format": "uint64",
       "minimum": 0.0
     },
     "babylon_header_hash": {
-      "description": "babylon_header_hash is the hash of the babylon block that includes this Consumer header. Hex-encoded string of 32 bytes",
+      "description": "Hash of the babylon block that includes this Consumer header. Hex-encoded string of 32 bytes",
       "type": "string"
     },
     "babylon_header_height": {
-      "description": "babylon_header_height is the height of the babylon block that includes this Consumer header",
+      "description": "Height of the babylon block that includes this Consumer header",
       "type": "integer",
       "format": "uint64",
       "minimum": 0.0
     },
     "babylon_tx_hash": {
-      "description": "babylon_tx_hash is the hash of the tx that includes this header. (babylon_block_height, babylon_tx_hash) jointly provides the position of the header in the Babylon ledger. Hex-encoded string of 32 bytes",
+      "description": "Hash of the tx that includes this header. (babylon_block_height, babylon_tx_hash) jointly provides the position of Header in the Babylon ledger. Hex-encoded string of 32 bytes",
       "type": "string"
     },
     "consumer_id": {
-      "description": "consumer_id is the unique ID of the consumer",
+      "description": "Unique ID of the consumer",
       "type": "string"
     },
     "hash": {
-      "description": "hash is the hash of this header. Hex-encoded string of 32 bytes",
+      "description": "Hash of this header. Hex-encoded string of 32 bytes",
       "type": "string"
     },
     "height": {
-      "description": "height is the height of this header in the Consumer's ledger. (hash, height) jointly provides the position of the header on the Consumer ledger",
+      "description": "Height of this header in the Consumer's ledger. (hash, height) jointly provides the position of the header on the Consumer ledger",
       "type": "integer",
       "format": "uint64",
       "minimum": 0.0
     },
     "time": {
-      "description": "time is the timestamp of this header in the Consumer's ledger. It's necessary for the Consumer to unbond all mature validators/delegations before this timestamp when this header is BTC-finalised",
+      "description": "Timestamp of this header in the Consumer's ledger. It's necessary for the Consumer to unbond all mature validators/delegations before this timestamp when this header is BTC-finalised",
       "anyOf": [
         {
           "$ref": "#/definitions/Timestamp"

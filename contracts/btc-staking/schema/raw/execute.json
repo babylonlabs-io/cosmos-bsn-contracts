@@ -120,7 +120,7 @@
       "additionalProperties": false
     },
     {
-      "description": "`DistributeRewards` is a message sent by the finality contract, to distribute rewards to delegators",
+      "description": "Message sent by the finality contract, to distribute rewards to delegators.",
       "type": "object",
       "required": [
         "distribute_rewards"
@@ -133,7 +133,7 @@
           ],
           "properties": {
             "fp_distribution": {
-              "description": "`fp_distribution` is the list of finality providers and their rewards",
+              "description": "List of finality providers and their rewards.",
               "type": "array",
               "items": {
                 "$ref": "#/definitions/RewardInfo"
@@ -146,7 +146,7 @@
       "additionalProperties": false
     },
     {
-      "description": "`WithdrawRewards` is a message sent by anyone on behalf of the staker, to withdraw rewards from BTC staking via the given FP.\n\n`staker_addr` is both the address to claim and receive the rewards. It's a Babylon address. If rewards are to be sent to a Consumer address, the staker's equivalent address in that chain will be computed and used.",
+      "description": "Message sent by anyone on behalf of the staker, to withdraw rewards from BTC staking via the given FP.",
       "type": "object",
       "required": [
         "withdraw_rewards"
@@ -163,6 +163,7 @@
               "type": "string"
             },
             "staker_addr": {
+              "description": "Both the address to claim and receive the rewards. It's a Babylon address. If rewards are to be sent to a Consumer address, the staker's equivalent address in that chain will be computed and used.",
               "type": "string"
             }
           },
@@ -174,7 +175,7 @@
   ],
   "definitions": {
     "ActiveBtcDelegation": {
-      "description": "ActiveBTCDelegation is a message sent when a BTC delegation newly receives covenant signatures and thus becomes active",
+      "description": "Message sent when a BTC delegation newly receives covenant signatures and thus becomes active.",
       "type": "object",
       "required": [
         "btc_pk_hex",
@@ -194,18 +195,18 @@
       ],
       "properties": {
         "btc_pk_hex": {
-          "description": "btc_pk_hex is the Bitcoin secp256k1 PK of the BTC delegator. The PK follows encoding in BIP-340 spec in hex format",
+          "description": "Bitcoin secp256k1 PK of the BTC delegator. The PK follows encoding in BIP-340 spec in hex format",
           "type": "string"
         },
         "covenant_sigs": {
-          "description": "covenant_sigs is a list of adaptor signatures on the slashing tx by each covenant member. It will be a part of the witness for the staking tx output.",
+          "description": "List of adaptor signatures on the slashing tx by each covenant member. It will be a part of the witness for the staking tx output.",
           "type": "array",
           "items": {
             "$ref": "#/definitions/CovenantAdaptorSignatures"
           }
         },
         "delegator_slashing_sig": {
-          "description": "delegator_slashing_sig is the signature on the slashing tx by the delegator (i.e. SK corresponding to btc_pk) as string hex. It will be a part of the witness for the staking tx output.",
+          "description": "Signature on the slashing tx by the delegator (i.e. SK corresponding to btc_pk) as string hex. It will be a part of the witness for the staking tx output.",
           "allOf": [
             {
               "$ref": "#/definitions/Binary"
@@ -213,26 +214,26 @@
           ]
         },
         "end_height": {
-          "description": "end_height is the end height of the BTC delegation it is the end BTC height of the time-lock - w",
+          "description": "End height of the BTC delegation. It is the end BTC height of the time-lock - w",
           "type": "integer",
           "format": "uint32",
           "minimum": 0.0
         },
         "fp_btc_pk_list": {
-          "description": "fp_btc_pk_list is the list of BIP-340 PKs of the finality providers that this BTC delegation delegates to",
+          "description": "List of BIP-340 PKs of the finality providers that this BTC delegation delegates to",
           "type": "array",
           "items": {
             "type": "string"
           }
         },
         "params_version": {
-          "description": "params version used to validate the delegation",
+          "description": "Params version used to validate the delegation",
           "type": "integer",
           "format": "uint32",
           "minimum": 0.0
         },
         "slashing_tx": {
-          "description": "slashing_tx is the slashing tx",
+          "description": "Slashing tx.",
           "allOf": [
             {
               "$ref": "#/definitions/Binary"
@@ -240,17 +241,17 @@
           ]
         },
         "staker_addr": {
-          "description": "staker_addr is the address to receive rewards from BTC delegation",
+          "description": "Address to receive rewards from BTC delegation.",
           "type": "string"
         },
         "staking_output_idx": {
-          "description": "staking_output_idx is the index of the staking output in the staking tx",
+          "description": "Index of the staking output in the staking tx",
           "type": "integer",
           "format": "uint32",
           "minimum": 0.0
         },
         "staking_tx": {
-          "description": "staking_tx is the staking tx",
+          "description": "Staking tx.",
           "allOf": [
             {
               "$ref": "#/definitions/Binary"
@@ -258,25 +259,25 @@
           ]
         },
         "start_height": {
-          "description": "start_height is the start BTC height of the BTC delegation. It is the start BTC height of the time-lock",
+          "description": "Start BTC height of the BTC delegation. It is the start BTC height of the time-lock",
           "type": "integer",
           "format": "uint32",
           "minimum": 0.0
         },
         "total_sat": {
-          "description": "total_sat is the total BTC stakes in this delegation, quantified in satoshi",
+          "description": "Total BTC stakes in this delegation, quantified in satoshi",
           "type": "integer",
           "format": "uint64",
           "minimum": 0.0
         },
         "unbonding_time": {
-          "description": "unbonding_time is used in unbonding output time-lock path and in slashing transactions change outputs",
+          "description": "Used in unbonding output time-lock path and in slashing transactions change outputs",
           "type": "integer",
           "format": "uint32",
           "minimum": 0.0
         },
         "undelegation_info": {
-          "description": "undelegation_info is the undelegation info of this delegation.",
+          "description": "Undelegation info of this delegation.",
           "allOf": [
             {
               "$ref": "#/definitions/BtcUndelegationInfo"
@@ -291,7 +292,7 @@
       "type": "string"
     },
     "BtcUndelegationInfo": {
-      "description": "BTCUndelegationInfo provides all necessary info about the undelegation",
+      "description": "Provides all necessary info about the undelegation.",
       "type": "object",
       "required": [
         "covenant_slashing_sigs",
@@ -302,21 +303,21 @@
       ],
       "properties": {
         "covenant_slashing_sigs": {
-          "description": "covenant_slashing_sigs is a list of adaptor signatures on the unbonding slashing tx by each covenant member It will be a part of the witness for the staking tx output.",
+          "description": "List of adaptor signatures on the unbonding slashing tx by each covenant member It will be a part of the witness for the staking tx output.",
           "type": "array",
           "items": {
             "$ref": "#/definitions/CovenantAdaptorSignatures"
           }
         },
         "covenant_unbonding_sig_list": {
-          "description": "covenant_unbonding_sig_list is the list of signatures on the unbonding tx by covenant members",
+          "description": "List of signatures on the unbonding tx by covenant members",
           "type": "array",
           "items": {
             "$ref": "#/definitions/SignatureInfo"
           }
         },
         "delegator_slashing_sig": {
-          "description": "delegator_slashing_sig is the signature on the slashing tx by the delegator (i.e. SK corresponding to btc_pk). It will be a part of the witness for the unbonding tx output.",
+          "description": "Signature on the slashing tx by the delegator (i.e. SK corresponding to btc_pk). It will be a part of the witness for the unbonding tx output.",
           "allOf": [
             {
               "$ref": "#/definitions/Binary"
@@ -324,7 +325,7 @@
           ]
         },
         "delegator_unbonding_info": {
-          "description": "delegator_unbonding_info is the information about transaction which spent the staking output",
+          "description": "Information about transaction which spent the staking output",
           "anyOf": [
             {
               "$ref": "#/definitions/DelegatorUnbondingInfo"
@@ -335,7 +336,7 @@
           ]
         },
         "slashing_tx": {
-          "description": "slashing_tx is the unbonding slashing tx",
+          "description": "Unbonding slashing tx",
           "allOf": [
             {
               "$ref": "#/definitions/Binary"
@@ -343,7 +344,7 @@
           ]
         },
         "unbonding_tx": {
-          "description": "unbonding_tx is the transaction which will transfer the funds from staking output to unbonding output. Unbonding output will usually have lower timelock than staking output.",
+          "description": "Transaction which will transfer the funds from staking output to unbonding output. Unbonding output will usually have lower timelock than staking output.",
           "allOf": [
             {
               "$ref": "#/definitions/Binary"
@@ -354,7 +355,7 @@
       "additionalProperties": false
     },
     "CovenantAdaptorSignatures": {
-      "description": "CovenantAdaptorSignatures is a list adaptor signatures signed by the covenant with different finality provider's public keys as encryption keys",
+      "description": "Represents a list adaptor signatures signed by the covenant with different finality provider's public keys as encryption keys",
       "type": "object",
       "required": [
         "adaptor_sigs",
@@ -362,14 +363,14 @@
       ],
       "properties": {
         "adaptor_sigs": {
-          "description": "adaptor_sigs is a list of adaptor signatures, each encrypted by a restaked BTC finality provider's public key",
+          "description": "List of adaptor signatures, each encrypted by a restaked BTC finality provider's public key",
           "type": "array",
           "items": {
             "$ref": "#/definitions/Binary"
           }
         },
         "cov_pk": {
-          "description": "cov_pk is the public key of the covenant emulator, used as the public key of the adaptor signature",
+          "description": "Public key of the covenant emulator, used as the public key of the adaptor signature",
           "allOf": [
             {
               "$ref": "#/definitions/Binary"
@@ -406,23 +407,23 @@
       ],
       "properties": {
         "details": {
-          "description": "details is the details of the finality provider",
+          "description": "Details of the finality provider.",
           "type": "string"
         },
         "identity": {
-          "description": "identity is the identity of the finality provider",
+          "description": "Identity of the finality provider.",
           "type": "string"
         },
         "moniker": {
-          "description": "moniker is the name of the finality provider",
+          "description": "Name of the finality provider.",
           "type": "string"
         },
         "security_contact": {
-          "description": "security_contact is the security contact of the finality provider",
+          "description": "Security contact of the finality provider.",
           "type": "string"
         },
         "website": {
-          "description": "website is the website of the finality provider",
+          "description": "Website of the finality provider.",
           "type": "string"
         }
       },
@@ -438,15 +439,15 @@
       ],
       "properties": {
         "addr": {
-          "description": "addr is the bech32 address identifier of the finality provider",
+          "description": "Bech32 address identifier of the finality provider.",
           "type": "string"
         },
         "btc_pk_hex": {
-          "description": "btc_pk_hex is the Bitcoin secp256k1 PK of this finality provider the PK follows encoding in BIP-340 spec in hex format",
+          "description": "Bitcoin secp256k1 PK of this finality provider the PK follows encoding in BIP-340 spec in hex format",
           "type": "string"
         },
         "commission": {
-          "description": "commission defines the commission rate of the finality provider.",
+          "description": "Commission rate of the finality provider.",
           "allOf": [
             {
               "$ref": "#/definitions/Decimal"
@@ -454,11 +455,11 @@
           ]
         },
         "consumer_id": {
-          "description": "consumer_id is the ID of the consumer that the finality provider is operating on.",
+          "description": "ID of the consumer that the finality provider is operating on.",
           "type": "string"
         },
         "description": {
-          "description": "description defines the description terms for the finality provider",
+          "description": "Description terms for the finality provider.",
           "anyOf": [
             {
               "$ref": "#/definitions/FinalityProviderDescription"
@@ -469,7 +470,7 @@
           ]
         },
         "pop": {
-          "description": "pop is the proof of possession of the babylon_pk and btc_pk",
+          "description": "Proof of possession of the babylon_pk and btc_pk",
           "anyOf": [
             {
               "$ref": "#/definitions/ProofOfPossessionBtc"
@@ -483,7 +484,7 @@
       "additionalProperties": false
     },
     "ProofOfPossessionBtc": {
-      "description": "ProofOfPossessionBtc is the proof of possession that a Babylon secp256k1 secret key and a Bitcoin secp256k1 secret key are held by the same person",
+      "description": "Proof of possession that a Babylon secp256k1 secret key and a Bitcoin secp256k1 secret key are held by the same person.",
       "type": "object",
       "required": [
         "btc_sig",
@@ -491,7 +492,7 @@
       ],
       "properties": {
         "btc_sig": {
-          "description": "btc_sig is the signature generated via sign(sk_btc, babylon_sig) the signature follows encoding in either BIP-340 spec or BIP-322 spec",
+          "description": "Signature generated via sign(sk_btc, babylon_sig).\n\nThe signature follows encoding in either BIP-340 spec or BIP-322 spec.",
           "allOf": [
             {
               "$ref": "#/definitions/Binary"
@@ -499,7 +500,7 @@
           ]
         },
         "btc_sig_type": {
-          "description": "btc_sig_type indicates the type of btc_sig in the pop",
+          "description": "Type of `btc_sig` in the pop.",
           "type": "integer",
           "format": "int32"
         }
@@ -523,7 +524,7 @@
       "additionalProperties": false
     },
     "SignatureInfo": {
-      "description": "SignatureInfo is a BIP-340 signature together with its signer's BIP-340 PK",
+      "description": "A BIP-340 signature together with its signer's BIP-340 PK.",
       "type": "object",
       "required": [
         "pk",
@@ -540,7 +541,7 @@
       "additionalProperties": false
     },
     "SlashedBtcDelegation": {
-      "description": "SlashedBTCDelegation is a packet sent from Babylon to the Consumer chain about a slashed BTC delegation re-staked to >=1 of the Consumer chain's finality providers",
+      "description": "A packet sent from Babylon to the Consumer chain about a slashed BTC delegation re-staked to >=1 of the Consumer chain's finality providers",
       "type": "object",
       "required": [
         "recovered_fp_btc_sk",
@@ -548,11 +549,11 @@
       ],
       "properties": {
         "recovered_fp_btc_sk": {
-          "description": "recovered_fp_btc_sk is the extracted BTC SK of the finality provider on this Consumer chain",
+          "description": "Extracted BTC SK of the finality provider on this Consumer chain.",
           "type": "string"
         },
         "staking_tx_hash": {
-          "description": "staking tx hash of the BTC delegation. It uniquely identifies a BTC delegation",
+          "description": "Staking tx hash of the BTC delegation. It uniquely identifies a BTC delegation",
           "type": "string"
         }
       },
@@ -563,7 +564,7 @@
       "type": "string"
     },
     "UnbondedBtcDelegation": {
-      "description": "UnbondedBTCDelegation is sent from Babylon to the Consumer chain upon an early unbonded BTC delegation",
+      "description": "Sent from Babylon to the Consumer chain upon an early unbonded BTC delegation.",
       "type": "object",
       "required": [
         "staking_tx_hash",
@@ -571,11 +572,11 @@
       ],
       "properties": {
         "staking_tx_hash": {
-          "description": "staking tx hash of the BTC delegation. It uniquely identifies a BTC delegation",
+          "description": "Staking tx hash of the BTC delegation. It uniquely identifies a BTC delegation",
           "type": "string"
         },
         "unbonding_tx_sig": {
-          "description": "unbonding_tx_sig is the signature on the unbonding tx signed by the BTC delegator It proves that the BTC delegator wants to unbond",
+          "description": "Signature on the unbonding tx signed by the BTC delegator It proves that the BTC delegator wants to unbond",
           "allOf": [
             {
               "$ref": "#/definitions/Binary"

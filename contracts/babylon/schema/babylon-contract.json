@@ -9,6 +9,7 @@
     "required": [
       "babylon_tag",
       "btc_confirmation_depth",
+      "btc_light_client_initial_header",
       "checkpoint_finalization_timeout",
       "network",
       "notify_cosmos_zone"
@@ -22,7 +23,7 @@
         ]
       },
       "babylon_tag": {
-        "description": "babylon_tag is a string encoding four bytes used for identification / tagging of the Babylon zone. NOTE: this is a hex string, not raw bytes",
+        "description": "A string encoding four bytes used for identification / tagging of the Babylon zone. NOTE: this is a hex string, not raw bytes",
         "type": "string"
       },
       "btc_confirmation_depth": {
@@ -58,6 +59,10 @@
         ],
         "format": "uint64",
         "minimum": 0.0
+      },
+      "btc_light_client_initial_header": {
+        "description": "JSON encoded `InitialHeader` in hex.",
+        "type": "string"
       },
       "btc_light_client_msg": {
         "description": "If set, this will define the instantiation message for the BTC light client contract. This message is opaque to the Babylon contract, and depends on the specific light client being instantiated",
@@ -120,7 +125,7 @@
         "$ref": "#/definitions/Network"
       },
       "notify_cosmos_zone": {
-        "description": "notify_cosmos_zone indicates whether to send Cosmos zone messages notifying BTC-finalised headers. NOTE: If set to true, then the Cosmos zone needs to integrate the corresponding message handler as well",
+        "description": "Whether to send Cosmos zone messages notifying BTC-finalised headers. NOTE: If set to true, then the Cosmos zone needs to integrate the corresponding message handler as well",
         "type": "boolean"
       }
     },
@@ -146,7 +151,7 @@
     "title": "ExecuteMsg",
     "oneOf": [
       {
-        "description": "`slashing` is a slashing event from the BTC staking contract.\n\nThis will be forwarded over IBC to the Babylon side for propagation to other Consumers, and Babylon itself",
+        "description": "Slashing event from the BTC staking contract.\n\nThis will be forwarded over IBC to the Babylon side for propagation to other Consumers, and Babylon itself",
         "type": "object",
         "required": [
           "slashing"
@@ -183,13 +188,13 @@
         ],
         "properties": {
           "block_height": {
-            "description": "`block_height` is the height of the conflicting blocks",
+            "description": "Height of the conflicting blocks",
             "type": "integer",
             "format": "uint64",
             "minimum": 0.0
           },
           "canonical_app_hash": {
-            "description": "`canonical_app_hash` is the AppHash of the canonical block",
+            "description": "AppHash of the canonical block",
             "type": "array",
             "items": {
               "type": "integer",
@@ -198,7 +203,7 @@
             }
           },
           "canonical_finality_sig": {
-            "description": "`canonical_finality_sig` is the finality signature to the canonical block, where finality signature is an EOTS signature, i.e., the `s` in a Schnorr signature `(r, s)`. `r` is the public randomness already committed by the finality provider. Deserializes to `SchnorrEOTSSig`",
+            "description": "Finality signature to the canonical block, where finality signature is an EOTS signature, i.e., the `s` in a Schnorr signature `(r, s)`. `r` is the public randomness already committed by the finality provider. Deserializes to `SchnorrEOTSSig`",
             "type": "array",
             "items": {
               "type": "integer",
@@ -207,7 +212,7 @@
             }
           },
           "fork_app_hash": {
-            "description": "`fork_app_hash` is the AppHash of the fork block",
+            "description": "AppHash of the fork block",
             "type": "array",
             "items": {
               "type": "integer",
@@ -216,7 +221,7 @@
             }
           },
           "fork_finality_sig": {
-            "description": "`fork_finality_sig` is the finality signature to the fork block, where finality signature is an EOTS signature. Deserializes to `SchnorrEOTSSig`",
+            "description": "Finality signature to the fork block, where finality signature is an EOTS signature. Deserializes to `SchnorrEOTSSig`",
             "type": "array",
             "items": {
               "type": "integer",
@@ -225,7 +230,7 @@
             }
           },
           "fp_btc_pk": {
-            "description": "`fp_btc_pk` is the BTC PK of the finality provider that casts this vote",
+            "description": "BTC PK of the finality provider that casts this vote",
             "type": "array",
             "items": {
               "type": "integer",
@@ -234,7 +239,7 @@
             }
           },
           "pub_rand": {
-            "description": "`pub_rand is` the public randomness the finality provider has committed to. Deserializes to `SchnorrPubRand`",
+            "description": "Public randomness the finality provider has committed to. Deserializes to `SchnorrPubRand`",
             "type": "array",
             "items": {
               "type": "integer",
@@ -252,7 +257,7 @@
     "title": "QueryMsg",
     "oneOf": [
       {
-        "description": "Config returns the current configuration of the babylon-contract",
+        "description": "Returns the current configuration of the babylon-contract.",
         "type": "object",
         "required": [
           "config"
@@ -266,7 +271,7 @@
         "additionalProperties": false
       },
       {
-        "description": "BabylonBaseEpoch returns the base Babylon epoch stored in the contract",
+        "description": "Returns the base Babylon epoch stored in the contract.",
         "type": "object",
         "required": [
           "babylon_base_epoch"
@@ -280,7 +285,7 @@
         "additionalProperties": false
       },
       {
-        "description": "BabylonLastEpoch returns the last babylon finalized epoch stored in the contract",
+        "description": "Returns the last babylon finalized epoch stored in the contract.",
         "type": "object",
         "required": [
           "babylon_last_epoch"
@@ -294,7 +299,7 @@
         "additionalProperties": false
       },
       {
-        "description": "BabylonEpoch returns the Babylon epoch stored in the contract, by epoch number.",
+        "description": "Returns the Babylon epoch stored in the contract, by epoch number.",
         "type": "object",
         "required": [
           "babylon_epoch"
@@ -318,7 +323,7 @@
         "additionalProperties": false
       },
       {
-        "description": "BabylonCheckpoint returns the Babylon checkpoint stored in the contract, by epoch number.",
+        "description": "Returns the Babylon checkpoint stored in the contract, by epoch number.",
         "type": "object",
         "required": [
           "babylon_checkpoint"
@@ -342,7 +347,7 @@
         "additionalProperties": false
       },
       {
-        "description": "LastConsumerHeader returns the last Consumer epoch stored in the contract",
+        "description": "Returns the last Consumer epoch stored in the contract.",
         "type": "object",
         "required": [
           "last_consumer_header"
@@ -356,7 +361,7 @@
         "additionalProperties": false
       },
       {
-        "description": "LastConsumerHeight returns the last Consumer height stored in the contract",
+        "description": "Returns the last Consumer height stored in the contract.",
         "type": "object",
         "required": [
           "last_consumer_height"
@@ -370,7 +375,7 @@
         "additionalProperties": false
       },
       {
-        "description": "ConsumerHeader returns the Consumer header stored in the contract, by Consumer height.",
+        "description": "Returns the Consumer header stored in the contract, by Consumer height.",
         "type": "object",
         "required": [
           "consumer_header"
@@ -394,7 +399,7 @@
         "additionalProperties": false
       },
       {
-        "description": "TransferInfo returns the IBC transfer information stored in the contract for ICS-020 rewards transfer.",
+        "description": "Returns the IBC transfer information stored in the contract for ICS-020 rewards transfer.",
         "type": "object",
         "required": [
           "transfer_info"
@@ -447,7 +452,7 @@
           "minimum": 0.0
         },
         "last_block_time": {
-          "description": "last_block_time is the time of the last block in this epoch. Babylon needs to remember the last header's time of each epoch to complete unbonding validators/delegations when a previous epoch's checkpoint is finalised. The last_block_time field is nil in the epoch's beginning, and is set upon the end of this epoch",
+          "description": "The time of the last block in this epoch.\n\nBabylon needs to remember the last header's time of each epoch to complete unbonding validators/delegations when a previous epoch's checkpoint is finalised. The `last_block_time` field is nil in the epoch's beginning, and is set upon the end of this epoch",
           "anyOf": [
             {
               "$ref": "#/definitions/Timestamp"
@@ -458,11 +463,11 @@
           ]
         },
         "sealer_app_hash": {
-          "description": "sealer is the last block of the sealed epoch. sealer_app_hash points to the sealer but stored in the first header of the next epoch. Hex-encoded string",
+          "description": "sealer is the last block of the sealed epoch. `sealer_app_hash` points to the sealer but stored in the first header of the next epoch. Hex-encoded string",
           "type": "string"
         },
         "sealer_block_hash": {
-          "description": "sealer_block_hash is the hash of the sealer. The validator set has generated a BLS multisig on the hash, i.e. the hash of the last block in the epoch. Hex-encoded string",
+          "description": "The hash of the sealer.\n\nThe validator set has generated a BLS multisig on the hash, i.e. the hash of the last block in the epoch in hex-encoded string.",
           "type": "string"
         }
       },
@@ -511,7 +516,7 @@
           "minimum": 0.0
         },
         "last_block_time": {
-          "description": "last_block_time is the time of the last block in this epoch. Babylon needs to remember the last header's time of each epoch to complete unbonding validators/delegations when a previous epoch's checkpoint is finalised. The last_block_time field is nil in the epoch's beginning, and is set upon the end of this epoch",
+          "description": "The time of the last block in this epoch.\n\nBabylon needs to remember the last header's time of each epoch to complete unbonding validators/delegations when a previous epoch's checkpoint is finalised. The `last_block_time` field is nil in the epoch's beginning, and is set upon the end of this epoch",
           "anyOf": [
             {
               "$ref": "#/definitions/Timestamp"
@@ -522,11 +527,11 @@
           ]
         },
         "sealer_app_hash": {
-          "description": "sealer is the last block of the sealed epoch. sealer_app_hash points to the sealer but stored in the first header of the next epoch. Hex-encoded string",
+          "description": "sealer is the last block of the sealed epoch. `sealer_app_hash` points to the sealer but stored in the first header of the next epoch. Hex-encoded string",
           "type": "string"
         },
         "sealer_block_hash": {
-          "description": "sealer_block_hash is the hash of the sealer. The validator set has generated a BLS multisig on the hash, i.e. the hash of the last block in the epoch. Hex-encoded string",
+          "description": "The hash of the sealer.\n\nThe validator set has generated a BLS multisig on the hash, i.e. the hash of the last block in the epoch in hex-encoded string.",
           "type": "string"
         }
       },
@@ -575,7 +580,7 @@
           "minimum": 0.0
         },
         "last_block_time": {
-          "description": "last_block_time is the time of the last block in this epoch. Babylon needs to remember the last header's time of each epoch to complete unbonding validators/delegations when a previous epoch's checkpoint is finalised. The last_block_time field is nil in the epoch's beginning, and is set upon the end of this epoch",
+          "description": "The time of the last block in this epoch.\n\nBabylon needs to remember the last header's time of each epoch to complete unbonding validators/delegations when a previous epoch's checkpoint is finalised. The `last_block_time` field is nil in the epoch's beginning, and is set upon the end of this epoch",
           "anyOf": [
             {
               "$ref": "#/definitions/Timestamp"
@@ -586,11 +591,11 @@
           ]
         },
         "sealer_app_hash": {
-          "description": "sealer is the last block of the sealed epoch. sealer_app_hash points to the sealer but stored in the first header of the next epoch. Hex-encoded string",
+          "description": "sealer is the last block of the sealed epoch. `sealer_app_hash` points to the sealer but stored in the first header of the next epoch. Hex-encoded string",
           "type": "string"
         },
         "sealer_block_hash": {
-          "description": "sealer_block_hash is the hash of the sealer. The validator set has generated a BLS multisig on the hash, i.e. the hash of the last block in the epoch. Hex-encoded string",
+          "description": "The hash of the sealer.\n\nThe validator set has generated a BLS multisig on the hash, i.e. the hash of the last block in the epoch in hex-encoded string.",
           "type": "string"
         }
       },
@@ -639,7 +644,7 @@
           "minimum": 0.0
         },
         "last_block_time": {
-          "description": "last_block_time is the time of the last block in this epoch. Babylon needs to remember the last header's time of each epoch to complete unbonding validators/delegations when a previous epoch's checkpoint is finalised. The last_block_time field is nil in the epoch's beginning, and is set upon the end of this epoch",
+          "description": "The time of the last block in this epoch.\n\nBabylon needs to remember the last header's time of each epoch to complete unbonding validators/delegations when a previous epoch's checkpoint is finalised. The `last_block_time` field is nil in the epoch's beginning, and is set upon the end of this epoch",
           "anyOf": [
             {
               "$ref": "#/definitions/Timestamp"
@@ -650,11 +655,11 @@
           ]
         },
         "sealer_app_hash": {
-          "description": "sealer is the last block of the sealed epoch. sealer_app_hash points to the sealer but stored in the first header of the next epoch. Hex-encoded string",
+          "description": "sealer is the last block of the sealed epoch. `sealer_app_hash` points to the sealer but stored in the first header of the next epoch. Hex-encoded string",
           "type": "string"
         },
         "sealer_block_hash": {
-          "description": "sealer_block_hash is the hash of the sealer. The validator set has generated a BLS multisig on the hash, i.e. the hash of the last block in the epoch. Hex-encoded string",
+          "description": "The hash of the sealer.\n\nThe validator set has generated a BLS multisig on the hash, i.e. the hash of the last block in the epoch in hex-encoded string.",
           "type": "string"
         }
       },
@@ -759,7 +764,7 @@
           "$ref": "#/definitions/Network"
         },
         "notify_cosmos_zone": {
-          "description": "notify_cosmos_zone indicates whether to send Cosmos zone messages notifying BTC-finalised headers. NOTE: if set to true, then the Cosmos zone needs to integrate the corresponding message handler as well",
+          "description": "Whether to send Cosmos zone messages notifying BTC-finalised headers. NOTE: if set to true, then the Cosmos zone needs to integrate the corresponding message handler as well",
           "type": "boolean"
         }
       },
@@ -783,7 +788,7 @@
     "consumer_header": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ConsumerHeaderResponse",
-      "description": "ConsumerHeaderResponse is the metadata of a Consumer header.\n\nThis struct is for use in RPC requests and responses. It has convenience helpers to convert from the internal representation (`IndexedHeader`).\n\nAdapted from `IndexedHeader`.",
+      "description": "Metadata of a Consumer header.\n\nThis struct is for use in RPC requests and responses. It has convenience helpers to convert from the internal representation (`IndexedHeader`).\n\nAdapted from `IndexedHeader`.",
       "type": "object",
       "required": [
         "babylon_epoch",
@@ -796,41 +801,41 @@
       ],
       "properties": {
         "babylon_epoch": {
-          "description": "epoch is the epoch number of this header in the Babylon ledger",
+          "description": "Epoch number of this header in the Babylon ledger",
           "type": "integer",
           "format": "uint64",
           "minimum": 0.0
         },
         "babylon_header_hash": {
-          "description": "babylon_header_hash is the hash of the babylon block that includes this Consumer header. Hex-encoded string of 32 bytes",
+          "description": "Hash of the babylon block that includes this Consumer header. Hex-encoded string of 32 bytes",
           "type": "string"
         },
         "babylon_header_height": {
-          "description": "babylon_header_height is the height of the babylon block that includes this Consumer header",
+          "description": "Height of the babylon block that includes this Consumer header",
           "type": "integer",
           "format": "uint64",
           "minimum": 0.0
         },
         "babylon_tx_hash": {
-          "description": "babylon_tx_hash is the hash of the tx that includes this header. (babylon_block_height, babylon_tx_hash) jointly provides the position of the header in the Babylon ledger. Hex-encoded string of 32 bytes",
+          "description": "Hash of the tx that includes this header. (babylon_block_height, babylon_tx_hash) jointly provides the position of Header in the Babylon ledger. Hex-encoded string of 32 bytes",
           "type": "string"
         },
         "consumer_id": {
-          "description": "consumer_id is the unique ID of the consumer",
+          "description": "Unique ID of the consumer",
           "type": "string"
         },
         "hash": {
-          "description": "hash is the hash of this header. Hex-encoded string of 32 bytes",
+          "description": "Hash of this header. Hex-encoded string of 32 bytes",
           "type": "string"
         },
         "height": {
-          "description": "height is the height of this header in the Consumer's ledger. (hash, height) jointly provides the position of the header on the Consumer ledger",
+          "description": "Height of this header in the Consumer's ledger. (hash, height) jointly provides the position of the header on the Consumer ledger",
           "type": "integer",
           "format": "uint64",
           "minimum": 0.0
         },
         "time": {
-          "description": "time is the timestamp of this header in the Consumer's ledger. It's necessary for the Consumer to unbond all mature validators/delegations before this timestamp when this header is BTC-finalised",
+          "description": "Timestamp of this header in the Consumer's ledger. It's necessary for the Consumer to unbond all mature validators/delegations before this timestamp when this header is BTC-finalised",
           "anyOf": [
             {
               "$ref": "#/definitions/Timestamp"
@@ -860,7 +865,7 @@
     "last_consumer_header": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ConsumerHeaderResponse",
-      "description": "ConsumerHeaderResponse is the metadata of a Consumer header.\n\nThis struct is for use in RPC requests and responses. It has convenience helpers to convert from the internal representation (`IndexedHeader`).\n\nAdapted from `IndexedHeader`.",
+      "description": "Metadata of a Consumer header.\n\nThis struct is for use in RPC requests and responses. It has convenience helpers to convert from the internal representation (`IndexedHeader`).\n\nAdapted from `IndexedHeader`.",
       "type": "object",
       "required": [
         "babylon_epoch",
@@ -873,41 +878,41 @@
       ],
       "properties": {
         "babylon_epoch": {
-          "description": "epoch is the epoch number of this header in the Babylon ledger",
+          "description": "Epoch number of this header in the Babylon ledger",
           "type": "integer",
           "format": "uint64",
           "minimum": 0.0
         },
         "babylon_header_hash": {
-          "description": "babylon_header_hash is the hash of the babylon block that includes this Consumer header. Hex-encoded string of 32 bytes",
+          "description": "Hash of the babylon block that includes this Consumer header. Hex-encoded string of 32 bytes",
           "type": "string"
         },
         "babylon_header_height": {
-          "description": "babylon_header_height is the height of the babylon block that includes this Consumer header",
+          "description": "Height of the babylon block that includes this Consumer header",
           "type": "integer",
           "format": "uint64",
           "minimum": 0.0
         },
         "babylon_tx_hash": {
-          "description": "babylon_tx_hash is the hash of the tx that includes this header. (babylon_block_height, babylon_tx_hash) jointly provides the position of the header in the Babylon ledger. Hex-encoded string of 32 bytes",
+          "description": "Hash of the tx that includes this header. (babylon_block_height, babylon_tx_hash) jointly provides the position of Header in the Babylon ledger. Hex-encoded string of 32 bytes",
           "type": "string"
         },
         "consumer_id": {
-          "description": "consumer_id is the unique ID of the consumer",
+          "description": "Unique ID of the consumer",
           "type": "string"
         },
         "hash": {
-          "description": "hash is the hash of this header. Hex-encoded string of 32 bytes",
+          "description": "Hash of this header. Hex-encoded string of 32 bytes",
           "type": "string"
         },
         "height": {
-          "description": "height is the height of this header in the Consumer's ledger. (hash, height) jointly provides the position of the header on the Consumer ledger",
+          "description": "Height of this header in the Consumer's ledger. (hash, height) jointly provides the position of the header on the Consumer ledger",
           "type": "integer",
           "format": "uint64",
           "minimum": 0.0
         },
         "time": {
-          "description": "time is the timestamp of this header in the Consumer's ledger. It's necessary for the Consumer to unbond all mature validators/delegations before this timestamp when this header is BTC-finalised",
+          "description": "Timestamp of this header in the Consumer's ledger. It's necessary for the Consumer to unbond all mature validators/delegations before this timestamp when this header is BTC-finalised",
           "anyOf": [
             {
               "$ref": "#/definitions/Timestamp"
@@ -937,7 +942,7 @@
     "last_consumer_height": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "ConsumerHeightResponse",
-      "description": "ConsumerHeightResponse is the metadata of a Consumer height.\n\nThis struct is for use in RPC requests and responses. It is a convenience, efficient way to return the height of the last finalised Consumer header.\n\nAdapted from `ConsumerHeaderResponse`.",
+      "description": "Metadata of a Consumer height.\n\nThis struct is for use in RPC requests and responses. It is a convenience, efficient way to return the height of the last finalised Consumer header.\n\nAdapted from `ConsumerHeaderResponse`.",
       "type": "object",
       "required": [
         "height"

@@ -27,7 +27,7 @@
       "minimum": 0.0
     },
     "last_block_time": {
-      "description": "last_block_time is the time of the last block in this epoch. Babylon needs to remember the last header's time of each epoch to complete unbonding validators/delegations when a previous epoch's checkpoint is finalised. The last_block_time field is nil in the epoch's beginning, and is set upon the end of this epoch",
+      "description": "The time of the last block in this epoch.\n\nBabylon needs to remember the last header's time of each epoch to complete unbonding validators/delegations when a previous epoch's checkpoint is finalised. The `last_block_time` field is nil in the epoch's beginning, and is set upon the end of this epoch",
       "anyOf": [
         {
           "$ref": "#/definitions/Timestamp"
@@ -38,11 +38,11 @@
       ]
     },
     "sealer_app_hash": {
-      "description": "sealer is the last block of the sealed epoch. sealer_app_hash points to the sealer but stored in the first header of the next epoch. Hex-encoded string",
+      "description": "sealer is the last block of the sealed epoch. `sealer_app_hash` points to the sealer but stored in the first header of the next epoch. Hex-encoded string",
       "type": "string"
     },
     "sealer_block_hash": {
-      "description": "sealer_block_hash is the hash of the sealer. The validator set has generated a BLS multisig on the hash, i.e. the hash of the last block in the epoch. Hex-encoded string",
+      "description": "The hash of the sealer.\n\nThe validator set has generated a BLS multisig on the hash, i.e. the hash of the last block in the epoch in hex-encoded string.",
       "type": "string"
     }
   },
