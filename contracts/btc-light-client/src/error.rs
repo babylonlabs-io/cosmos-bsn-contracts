@@ -13,6 +13,9 @@ pub enum ContractError {
     #[error("Checkpoint finalization timeout must be greater than 0")]
     ZeroCheckpointFinalizationTimeout,
 
+    #[error("Header {0} is not on the difficulty boundary")]
+    NotOnDifficultyBoundary(u32),
+
     #[error("The BTC header cannot be decoded: {0}")]
     BitcoinEncode(String),
 

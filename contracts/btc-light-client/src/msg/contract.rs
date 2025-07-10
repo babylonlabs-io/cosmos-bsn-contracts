@@ -59,8 +59,16 @@ impl InstantiateMsg {
             return Err(ContractError::ZeroCheckpointFinalizationTimeout);
         }
 
-        // TODO: validate headers, first work and first height? For example, the base header
-        // should be on the difficulty boundary.
+        if !crate::bitcoin::is_difficulty_change_boundary(
+            self.initial_header.height,
+            &self.network.chain_params(),
+        ) {
+            return Err(ContractError::NotOnDifficultyBoundary(
+                self.initial_header.height,
+            ));
+        }
+
+        // TODO: the height should be larger than a recent block?
 
         Ok(())
     }

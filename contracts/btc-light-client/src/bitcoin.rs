@@ -232,6 +232,7 @@ fn get_next_work_required(
             params,
         ))
     } else {
+        // Not on a boundary, difficulty should be the same as parent
         Ok(last_block.target())
     }
 }
@@ -278,4 +279,17 @@ pub fn total_work(work: &[u8]) -> StdResult<Work> {
     Ok(Work::from_be_bytes(work.try_into().map_err(|e| {
         StdError::generic_err(format!("Invalid work: {e:?}"))
     })?))
+}
+
+/// Checks if a Bitcoin header is on a difficulty change boundary.
+///
+/// In Bitcoin, difficulty is adjusted every 2016 blocks (approximately every 2 weeks).
+/// A header is on a difficulty change boundary if its height is divisible by 2016.
+pub fn is_difficulty_change_boundary(height: u32, chain_params: &Params) -> bool {
+    let difficulty_adjustment_interval = chain_params.difficulty_adjustment_interval() as u32;
+
+    // A header is on a difficulty change boundary if:
+    // 1. The height is >= difficulty_adjustment_interval (2016 for mainnet)
+    // 2. The height is divisible by difficulty_adjustment_interval
+    height >= difficulty_adjustment_interval && height % difficulty_adjustment_interval == 0
 }
