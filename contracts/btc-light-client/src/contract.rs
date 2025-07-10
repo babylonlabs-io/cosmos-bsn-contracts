@@ -38,7 +38,7 @@ pub fn instantiate(
 
     let base_btc_header: BlockHeader = babylon_bitcoin::deserialize(base_header.header.as_ref())?;
 
-    babylon_bitcoin::pow::verify_header_pow(&cfg.network.chain_params(), &base_btc_header)?;
+    crate::bitcoin::check_proof_of_work(&cfg.network.chain_params(), &base_btc_header)?;
 
     // Store base header (immutable) and tip.
     set_base_header(deps.storage, &base_header)?;

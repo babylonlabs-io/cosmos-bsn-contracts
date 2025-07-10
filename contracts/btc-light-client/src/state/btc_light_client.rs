@@ -170,6 +170,8 @@ pub fn get_headers(
 /// - BTC tip upon finalising epoch e
 ///   such that Babylon contract maintains the same canonical BTC header chain
 ///   as Babylon.
+///
+/// Ref https://github.com/babylonlabs-io/babylon/blob/d3d81178dc38c172edaf5651c72b296bb9371a48/x/btclightclient/types/btc_light_client.go#L339
 pub fn handle_btc_headers_from_babylon(
     storage: &mut dyn Storage,
     new_headers: &[BtcHeaderInfo],
@@ -181,52 +183,43 @@ pub fn handle_btc_headers_from_babylon(
     let cur_tip_hash = cur_tip.hash.clone();
 
     // decode the first header in these new headers
-    let first_new_header = new_headers
-        .first()
-        .ok_or(ContractError::BTCHeaderEmpty {})?;
+    let first_new_header = new_headers.first().ok_or(ContractError::EmptyHeaders {})?;
+
     let first_new_btc_header: BlockHeader =
         babylon_bitcoin::deserialize(first_new_header.header.as_ref())?;
 
-    if first_new_btc_header.prev_blockhash.as_ref() == cur_tip_hash.to_vec() {
+    let new_tip = if first_new_btc_header.prev_blockhash.as_ref() == cur_tip_hash.to_vec() {
         // Most common case: extending the current tip
 
-        // Verify each new header after `current_tip` iteratively
-        verify_headers(&chain_params, &cur_tip.clone(), new_headers)?;
+        verify_headers(storage, &chain_params, &cur_tip, new_headers)?;
 
-        // All good, add all the headers to the BTC light client store
-        insert_headers(storage, new_headers)?;
-
-        // Update tip
-        let new_tip = new_headers.last().ok_or(ContractError::BTCHeaderEmpty {})?;
-        set_tip(storage, new_tip)?;
+        new_headers.last().ok_or(ContractError::EmptyHeaders {})?
     } else {
         // Here we received a potential new fork
         let parent_hash = first_new_btc_header.prev_blockhash.as_ref();
         let fork_parent = get_header_by_hash(storage, parent_hash)?;
 
-        // Verify each new header after `fork_parent` iteratively
-        verify_headers(&chain_params, &fork_parent, new_headers)?;
+        verify_headers(storage, &chain_params, &fork_parent, new_headers)?;
 
-        let new_tip = new_headers.last().ok_or(ContractError::BTCHeaderEmpty {})?;
+        let new_tip = new_headers.last().expect("Must exist as checked above");
 
         let new_tip_work = total_work(new_tip.work.as_ref())?;
         let cur_tip_work = total_work(cur_tip.work.as_ref())?;
+
         if new_tip_work <= cur_tip_work {
-            return Err(ContractError::BTCChainWithNotEnoughWork(
-                new_tip_work,
-                cur_tip_work,
-            ));
+            return Err(ContractError::InsufficientWork(new_tip_work, cur_tip_work));
         }
 
-        // Remove all headers from the old fork first
+        // Remove all fork headers.
         remove_headers(storage, &cur_tip, &fork_parent)?;
 
-        // All good, add all the headers to the BTC light client store
-        insert_headers(storage, new_headers)?;
+        new_tip
+    };
 
-        // Update tip
-        set_tip(storage, new_tip)?;
-    }
+    // All good, insert new headers and update the tip.
+    insert_headers(storage, new_headers)?;
+    set_tip(storage, new_tip)?;
+
     Ok(())
 }
 
@@ -243,7 +236,7 @@ pub fn handle_btc_headers_from_user(
 ) -> Result<(), ContractError> {
     let first_new_btc_header = new_btc_headers
         .first()
-        .ok_or(ContractError::BTCHeaderEmpty {})?;
+        .ok_or(ContractError::EmptyHeaders {})?;
 
     // Decode the btc_header (byte-reversed) prev_blockhash
     let prev_blockhash = BlockHash::from_str(&first_new_btc_header.prev_blockhash)?;
@@ -269,6 +262,7 @@ pub fn handle_btc_headers_from_user(
 
 #[cfg(test)]
 pub mod tests {
+    use crate::bitcoin::HeaderError;
     use crate::{
         state::{Config, CONFIG},
         ExecuteMsg,
@@ -472,7 +466,7 @@ pub mod tests {
         );
         assert!(matches!(
             res.unwrap_err(),
-            ContractError::BTCChainWithNotEnoughWork(_, _)
+            ContractError::InsufficientWork(_, _)
         ));
 
         // ensure base and tip are unchanged
@@ -509,7 +503,10 @@ pub mod tests {
 
         // handling invalid fork headers
         let res = handle_btc_headers_from_babylon(&mut storage, &invalid_fork_headers);
-        assert!(matches!(res.unwrap_err(), ContractError::BtcLightClient(_)));
+        assert!(matches!(
+            res.unwrap_err(),
+            ContractError::Header(HeaderError::PrevHashMismatch { .. })
+        ));
 
         // ensure base and tip are unchanged
         ensure_base_and_tip(&storage, &test_headers);
@@ -552,7 +549,7 @@ pub mod tests {
         let res = handle_btc_headers_from_babylon(&mut storage, &invalid_fork_headers);
         assert_eq!(
             res.unwrap_err(),
-            ContractError::BTCWrongHeight(len - 1, height, height + 1)
+            ContractError::Header(HeaderError::WrongHeight(len - 1, height, height + 1))
         );
 
         // ensure base and tip are unchanged
@@ -605,11 +602,11 @@ pub mod tests {
         let res = handle_btc_headers_from_babylon(&mut storage, &invalid_fork_headers);
         assert_eq!(
             res.unwrap_err(),
-            ContractError::BTCWrongCumulativeWork(
+            ContractError::Header(HeaderError::WrongCumulativeWork(
                 wrong_header_index,
                 total_work(header.work.as_ref()).unwrap(),
                 total_work(wrong_header.work.as_ref()).unwrap(),
-            )
+            ))
         );
 
         // ensure base and tip are eunchanged
