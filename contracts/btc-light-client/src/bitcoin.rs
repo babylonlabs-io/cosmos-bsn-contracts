@@ -322,6 +322,7 @@ fn get_next_work_required(
 }
 
 // <https://github.com/bitcoin/bitcoin/blob/89b910711c004c21b7d67baa888073742f7f94f0/src/pow.cpp#L49-L72>
+// TODO: see if we can directly reuse the rust-bitcoin API https://github.com/rust-bitcoin/rust-bitcoin/blob/f7274a57c36d0b8d8cc528426e269c27d496bd5f/bitcoin/src/pow.rs#L374
 fn calculate_next_work_required(
     previous_target: Uint256,
     first_block_time: u64,
