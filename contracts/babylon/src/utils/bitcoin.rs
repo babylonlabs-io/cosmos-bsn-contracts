@@ -1,10 +1,10 @@
-use babylon_bitcoin::BlockHeader;
-use babylon_bitcoin::Transaction;
 use babylon_proto::babylon::btccheckpoint::v1::TransactionInfo;
 use babylon_proto::babylon::checkpointing::v1::{
     CURRENT_VERSION, FIRST_PART_LEN, HEADER_LEN, MERKLE_PROOF_ELEM_SIZE, SECOND_PART_LEN, TAG_LEN,
 };
+use bitcoin::block::Header as BlockHeader;
 use bitcoin::hashes::{sha256d, Hash};
+use bitcoin::Transaction;
 
 fn verify_merkle_proof(
     tx: &Transaction,
@@ -67,7 +67,7 @@ pub fn parse_tx_info(
     }
 
     // deserialise btc tx
-    let btc_tx: Transaction = babylon_bitcoin::deserialize(&tx_info.transaction)
+    let btc_tx: Transaction = bitcoin::consensus::deserialize(&tx_info.transaction)
         .map_err(|err| format!("failed to decode BTC tx: {err:?}"))?;
 
     // verify Merkle proof

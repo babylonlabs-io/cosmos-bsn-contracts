@@ -2,9 +2,10 @@ use std::str::FromStr;
 
 use cosmwasm_schema::cw_serde;
 
-use babylon_bitcoin::hash_types::TxMerkleNode;
-use babylon_bitcoin::{BlockHash, BlockHeader};
 use babylon_proto::babylon::btclightclient::v1::{BtcHeaderInfo, BtcHeaderInfoResponse};
+use bitcoin::block::Header as BlockHeader;
+use bitcoin::hash_types::TxMerkleNode;
+use bitcoin::BlockHash;
 use cosmwasm_std::StdError;
 
 use crate::error::ContractError;
@@ -45,12 +46,12 @@ impl BtcHeader {
     pub fn to_btc_header_info(
         &self,
         height: u32,
-        work: babylon_bitcoin::Work,
+        work: bitcoin::Work,
     ) -> Result<BtcHeaderInfo, ContractError> {
         let block_header: BlockHeader = self.try_into()?;
         Ok(BtcHeaderInfo {
-            header: ::prost::bytes::Bytes::from(babylon_bitcoin::serialize(&block_header)),
-            hash: ::prost::bytes::Bytes::from(babylon_bitcoin::serialize(
+            header: ::prost::bytes::Bytes::from(bitcoin::consensus::serialize(&block_header)),
+            hash: ::prost::bytes::Bytes::from(bitcoin::consensus::serialize(
                 &block_header.block_hash(),
             )),
             height,
@@ -61,14 +62,14 @@ impl BtcHeader {
     pub fn to_btc_header_info_from_prev(
         &self,
         prev_height: u32,
-        prev_work: babylon_bitcoin::Work,
+        prev_work: bitcoin::Work,
     ) -> Result<BtcHeaderInfo, ContractError> {
         let block_header: BlockHeader = self.try_into()?;
         let total_work = prev_work + block_header.work();
 
         Ok(BtcHeaderInfo {
-            header: ::prost::bytes::Bytes::from(babylon_bitcoin::serialize(&block_header)),
-            hash: ::prost::bytes::Bytes::from(babylon_bitcoin::serialize(
+            header: ::prost::bytes::Bytes::from(bitcoin::consensus::serialize(&block_header)),
+            hash: ::prost::bytes::Bytes::from(bitcoin::consensus::serialize(
                 &block_header.block_hash(),
             )),
             height: prev_height + 1,
@@ -81,7 +82,7 @@ impl BtcHeader {
 impl TryFrom<&BtcHeaderInfo> for BtcHeader {
     type Error = ContractError;
     fn try_from(btc_header_info: &BtcHeaderInfo) -> Result<Self, Self::Error> {
-        let block_header: BlockHeader = babylon_bitcoin::deserialize(&btc_header_info.header)?;
+        let block_header: BlockHeader = bitcoin::consensus::deserialize(&btc_header_info.header)?;
         Ok(Self {
             version: block_header.version.to_consensus(),
             prev_blockhash: block_header.prev_blockhash.to_string(),
@@ -106,7 +107,7 @@ impl TryFrom<&BtcHeaderInfoResponse> for BtcHeader {
     type Error = ContractError;
     fn try_from(btc_header_info_response: &BtcHeaderInfoResponse) -> Result<Self, Self::Error> {
         let block_header: BlockHeader =
-            babylon_bitcoin::deserialize(&hex::decode(&btc_header_info_response.header_hex)?)?;
+            bitcoin::consensus::deserialize(&hex::decode(&btc_header_info_response.header_hex)?)?;
         Ok(Self {
             version: block_header.version.to_consensus(),
             prev_blockhash: block_header.prev_blockhash.to_string(),
@@ -140,11 +141,11 @@ impl TryFrom<&BtcHeader> for BlockHeader {
 
     fn try_from(header: &BtcHeader) -> Result<Self, Self::Error> {
         Ok(Self {
-            version: babylon_bitcoin::Version::from_consensus(header.version),
+            version: bitcoin::block::Version::from_consensus(header.version),
             prev_blockhash: BlockHash::from_str(&header.prev_blockhash)?,
             merkle_root: TxMerkleNode::from_str(&header.merkle_root)?,
             time: header.time,
-            bits: babylon_bitcoin::CompactTarget::from_consensus(header.bits),
+            bits: bitcoin::CompactTarget::from_consensus(header.bits),
             nonce: header.nonce,
         })
     }
@@ -282,7 +283,7 @@ impl From<BtcHeaderResponse> for BtcHeader {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use babylon_bitcoin::{CompactTarget, Version, Work};
+    use bitcoin::{block::Version, CompactTarget, Work};
 
     fn block_header_1234() -> BlockHeader {
         BlockHeader {
@@ -375,8 +376,8 @@ mod tests {
         assert_eq!(
             btc_header_info,
             Ok(BtcHeaderInfo {
-                header: ::prost::bytes::Bytes::from(babylon_bitcoin::serialize(&block_header)),
-                hash: ::prost::bytes::Bytes::from(babylon_bitcoin::serialize(
+                header: ::prost::bytes::Bytes::from(bitcoin::consensus::serialize(&block_header)),
+                hash: ::prost::bytes::Bytes::from(bitcoin::consensus::serialize(
                     &block_header.block_hash()
                 )),
                 height: 10 + 1,
@@ -410,8 +411,8 @@ mod tests {
     fn btc_header_from_btc_header_info_works() {
         let block_header = block_header_1234();
         let btc_header_info = BtcHeaderInfo {
-            header: ::prost::bytes::Bytes::from(babylon_bitcoin::serialize(&block_header)),
-            hash: ::prost::bytes::Bytes::from(babylon_bitcoin::serialize(
+            header: ::prost::bytes::Bytes::from(bitcoin::consensus::serialize(&block_header)),
+            hash: ::prost::bytes::Bytes::from(bitcoin::consensus::serialize(
                 &block_header.block_hash(),
             )),
             height: 1234,
@@ -425,7 +426,7 @@ mod tests {
     fn btc_header_reponse_from_btc_header_info_works() {
         let block_header = block_header_1234();
         let btc_header_info = BtcHeaderInfo {
-            header: ::prost::bytes::Bytes::from(babylon_bitcoin::serialize(&block_header)),
+            header: ::prost::bytes::Bytes::from(bitcoin::consensus::serialize(&block_header)),
             hash: ::prost::bytes::Bytes::from(block_header.block_hash().to_string()),
             height: 1234,
             work: cosmwasm_std::Uint256::from_u128(5678)

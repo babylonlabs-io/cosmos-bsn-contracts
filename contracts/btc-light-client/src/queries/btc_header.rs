@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use babylon_bitcoin::BlockHash;
+use bitcoin::BlockHash;
 use cosmwasm_std::Deps;
 
 use crate::error::ContractError;

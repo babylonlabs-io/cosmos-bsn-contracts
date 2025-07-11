@@ -232,6 +232,7 @@ dependencies = [
  "babylon-merkle",
  "babylon-proto",
  "bech32 0.9.1",
+ "bitcoin",
  "cosmwasm-schema",
  "cosmwasm-std",
  "hex",
