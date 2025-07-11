@@ -2,8 +2,6 @@ use thiserror::Error;
 
 #[derive(Error, Debug, PartialEq)]
 pub enum Error {
-    #[error("Bitcoin error: {0}")]
-    BitcoinError(#[from] babylon_bitcoin::error::Error),
     #[error("Failed to decompress bytes to a projective point")]
     DecompressPointFailed {},
     #[error("Point {0} is at infinity")]

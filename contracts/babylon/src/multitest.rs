@@ -26,7 +26,7 @@ fn initialization() {
 
     // Check that the contracts were initialized correctly
     let config = suite.get_config();
-    assert_eq!(config.network, babylon_bitcoin::Network::Testnet);
+    assert_eq!(config.network, btc_light_client::BitcoinNetwork::Testnet);
     assert_eq!(config.babylon_tag, [1, 2, 3, 4]);
     assert_eq!(config.btc_confirmation_depth, 1);
     assert_eq!(config.checkpoint_finalization_timeout, 1);
@@ -92,7 +92,7 @@ mod instantiation {
     #[test]
     fn instantiate_light_client_msg_works() {
         let params = btc_light_client::msg::InstantiateMsg {
-            network: babylon_bitcoin::Network::Testnet,
+            network: btc_light_client::BitcoinNetwork::Testnet,
             btc_confirmation_depth: 1,
             checkpoint_finalization_timeout: 1,
             initial_header: babylon_test_utils::initial_header(),
@@ -123,7 +123,7 @@ mod instantiation {
         let params = btc_staking::state::config::Params {
             covenant_pks: vec![],
             covenant_quorum: 1,
-            btc_network: babylon_bitcoin::Network::Regtest,
+            btc_network: btc_light_client::BitcoinNetwork::Regtest,
             slashing_pk_script: String::from("76a914010101010101010101010101010101010101010188ab"),
             min_slashing_tx_fee_sat: 10000,
             slashing_rate: String::from("0.1"),

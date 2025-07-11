@@ -3,11 +3,13 @@ use babylon_apis::btc_staking_api::{
     FinalityProviderDescription, NewFinalityProvider, ProofOfPossessionBtc,
 };
 use babylon_apis::finality_api::PubRandCommit;
-use babylon_bitcoin::{deserialize, BlockHash, BlockHeader};
 use babylon_proto::babylon::btclightclient::v1::{BtcHeaderInfo, QueryMainChainResponse};
 use babylon_proto::babylon::btcstaking::v1::{BtcDelegation, FinalityProvider, Params};
 use babylon_proto::babylon::finality::v1::{MsgAddFinalitySig, MsgCommitPubRandList};
 use babylon_proto::babylon::zoneconcierge::v1::BtcTimestamp;
+use bitcoin::block::Header as BlockHeader;
+use bitcoin::consensus::deserialize;
+use bitcoin::BlockHash;
 use cosmwasm_std::{Binary, Decimal, Uint256};
 use hex::ToHex;
 use k256::schnorr::{Signature, SigningKey};

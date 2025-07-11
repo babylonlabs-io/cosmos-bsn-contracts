@@ -1,8 +1,8 @@
-use babylon_bitcoin::BlockHeader;
 use babylon_proto::babylon::btccheckpoint::v1::TransactionInfo;
 use babylon_proto::babylon::checkpointing::v1::{RawCheckpoint, CURRENT_VERSION};
 use babylon_proto::babylon::epoching::v1::Epoch;
 use babylon_proto::babylon::zoneconcierge::v1::ProofEpochSealed;
+use bitcoin::block::Header as BlockHeader;
 use prost::Message;
 
 pub const NUM_BTC_TXS: usize = 2;

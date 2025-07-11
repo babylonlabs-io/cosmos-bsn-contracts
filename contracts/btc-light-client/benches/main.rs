@@ -46,7 +46,7 @@ pub fn get_main_msg_test_headers() -> Vec<BtcHeader> {
 pub fn setup_instance() -> Instance<MockApi, MockStorage, MockQuerier> {
     let mut deps = mock_instance_with_gas_limit(WASM, 10_000_000_000_000);
     let msg = InstantiateMsg {
-        network: babylon_bitcoin::Network::Regtest,
+        network: btc_light_client::BitcoinNetwork::Regtest,
         btc_confirmation_depth: 10,
         checkpoint_finalization_timeout: 2,
         initial_header: initial_header(),

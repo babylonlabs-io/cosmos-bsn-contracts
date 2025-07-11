@@ -3,7 +3,7 @@ use cw_storage_plus::Item;
 
 #[cw_serde]
 pub struct Config {
-    pub network: babylon_bitcoin::Network,
+    pub network: crate::state::BitcoinNetwork,
     pub btc_confirmation_depth: u32,
     pub checkpoint_finalization_timeout: u32,
 }

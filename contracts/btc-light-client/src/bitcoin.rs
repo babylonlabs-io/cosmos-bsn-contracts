@@ -8,12 +8,14 @@
 //! It mirrors the logic used in Bitcoin Core and Babylon's Go implementation.
 
 use crate::state::get_header;
-use babylon_bitcoin::{deserialize, BlockHeader, Work};
-use babylon_bitcoin::{Params, Uint256};
 use babylon_proto::babylon::btclightclient::v1::BtcHeaderInfo;
+use bitcoin::block::Header as BlockHeader;
+use bitcoin::consensus::deserialize;
+use bitcoin::consensus::Params;
+use bitcoin::Work;
 use bitcoin::{BlockHash, Target};
-use cosmwasm_std::Storage;
 use cosmwasm_std::{StdError, StdResult};
+use cosmwasm_std::{Storage, Uint256};
 
 /// Errors that can occur during BTC header verification.
 #[derive(thiserror::Error, Debug, PartialEq)]
@@ -49,8 +51,8 @@ pub enum HeaderError {
     Store(#[from] crate::state::btc_light_client::StoreError),
 }
 
-impl From<babylon_bitcoin::EncodeError> for HeaderError {
-    fn from(e: babylon_bitcoin::EncodeError) -> Self {
+impl From<bitcoin::consensus::encode::Error> for HeaderError {
+    fn from(e: bitcoin::consensus::encode::Error) -> Self {
         Self::DecodeError(e.to_string())
     }
 }

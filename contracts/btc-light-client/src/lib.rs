@@ -8,6 +8,7 @@ use crate::error::ContractError;
 pub use crate::msg::ExecuteMsg;
 use crate::msg::InstantiateMsg;
 use crate::msg::QueryMsg;
+pub use crate::state::BitcoinNetwork;
 
 mod bitcoin;
 pub mod contract;

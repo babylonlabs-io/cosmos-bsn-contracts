@@ -1,5 +1,5 @@
-use babylon_bitcoin::{BlockHash, BlockHeader};
 use babylon_proto::babylon::btclightclient::v1::BtcHeaderInfo;
+use bitcoin::{block::Header as BlockHeader, BlockHash};
 use cosmwasm_std::Order::{Ascending, Descending};
 use cosmwasm_std::{StdError, StdResult, Storage};
 use cw_storage_plus::{Bound, Item, Map};
@@ -186,7 +186,7 @@ pub fn handle_btc_headers_from_babylon(
     let first_new_header = new_headers.first().ok_or(ContractError::EmptyHeaders {})?;
 
     let first_new_btc_header: BlockHeader =
-        babylon_bitcoin::deserialize(first_new_header.header.as_ref())?;
+        bitcoin::consensus::deserialize(first_new_header.header.as_ref())?;
 
     let new_tip = if first_new_btc_header.prev_blockhash.as_ref() == cur_tip_hash.to_vec() {
         // Most common case: extending the current tip
@@ -269,7 +269,7 @@ pub mod tests {
     };
 
     use super::*;
-    use babylon_bitcoin::Network;
+    use crate::state::BitcoinNetwork;
     use babylon_test_utils::{get_btc_lc_fork_headers, get_btc_lc_fork_msg, get_btc_lc_headers};
     use cosmwasm_std::{from_json, testing::mock_dependencies};
 
@@ -310,7 +310,7 @@ pub mod tests {
         // set config first
         let w: u32 = 2;
         let cfg = Config {
-            network: Network::Regtest,
+            network: BitcoinNetwork::Regtest,
             btc_confirmation_depth: 1,
             checkpoint_finalization_timeout: w,
         };
@@ -649,7 +649,7 @@ pub mod tests {
         let tip_btc_expected: BlockHeader =
             test_fork_msg_headers.last().unwrap().try_into().unwrap();
         let tip_btc_actual: BlockHeader =
-            babylon_bitcoin::deserialize(get_tip(&storage).unwrap().header.as_ref()).unwrap();
+            bitcoin::consensus::deserialize(get_tip(&storage).unwrap().header.as_ref()).unwrap();
         assert_eq!(tip_btc_expected, tip_btc_actual);
 
         // ensure all initial headers are still inserted
