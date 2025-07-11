@@ -39,7 +39,7 @@ pub fn instantiate(
     // Initialize config with None values for consumer fields
     let denom = deps.querier.query_bonded_denom()?;
     let mut cfg = Config {
-        network: msg.network.clone(),
+        network: msg.network,
         babylon_tag: msg.babylon_tag_to_bytes()?,
         btc_confirmation_depth: msg.btc_confirmation_depth,
         checkpoint_finalization_timeout: msg.checkpoint_finalization_timeout,
@@ -64,7 +64,7 @@ pub fn instantiate(
                     serde_json::from_slice(&hex::decode(&msg.btc_light_client_initial_header)?)?;
 
                 let btc_lc_init_msg = BtcLightClientInstantiateMsg {
-                    network: msg.network.clone(),
+                    network: msg.network,
                     btc_confirmation_depth: msg.btc_confirmation_depth,
                     checkpoint_finalization_timeout: msg.checkpoint_finalization_timeout,
                     initial_header,
