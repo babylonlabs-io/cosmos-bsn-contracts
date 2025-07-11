@@ -4,6 +4,36 @@ use babylon_proto::babylon::btccheckpoint::v1::TransactionInfo;
 use babylon_proto::babylon::checkpointing::v1::{
     CURRENT_VERSION, FIRST_PART_LEN, HEADER_LEN, MERKLE_PROOF_ELEM_SIZE, SECOND_PART_LEN, TAG_LEN,
 };
+use bitcoin::hashes::{sha256d, Hash};
+
+fn verify_merkle_proof(
+    tx: &Transaction,
+    proof: &[&[u8]],
+    tx_index: usize,
+    root: &sha256d::Hash,
+) -> bool {
+    let mut current_hash = *tx.compute_txid().as_raw_hash();
+
+    for (i, next_hash) in proof.iter().enumerate() {
+        let mut concat = vec![];
+        // extracts the i-th bit of tx idx
+        if ((tx_index >> i) & 1) == 1 {
+            // If the bit is 1, the transaction is in the right subtree of the current hash
+            // Append the next hash and then the current hash to the concatenated hash value
+            concat.extend_from_slice(next_hash);
+            concat.extend_from_slice(&current_hash[..]);
+        } else {
+            // If the bit is 0, the transaction is in the left subtree of the current hash
+            // Append the current hash and then the next hash to the concatenated hash value
+            concat.extend_from_slice(&current_hash[..]);
+            concat.extend_from_slice(next_hash);
+        }
+
+        current_hash = sha256d::Hash::hash(&concat);
+    }
+
+    current_hash == *root
+}
 
 /// Checks whether the given `tx_info` is correct against the given btc_header, i.e.,
 /// - the BTC header hash in tx_info is same as the btc_header's hash
@@ -41,7 +71,7 @@ pub fn parse_tx_info(
         .map_err(|err| format!("failed to decode BTC tx: {err:?}"))?;
 
     // verify Merkle proof
-    if !babylon_bitcoin::verify_merkle_proof(&btc_tx, &proof, tx_idx, root) {
+    if !verify_merkle_proof(&btc_tx, &proof, tx_idx, root) {
         return Err("failed to verify Bitcoin Merkle proof".to_string());
     }
 
