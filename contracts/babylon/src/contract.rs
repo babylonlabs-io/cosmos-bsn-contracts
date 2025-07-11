@@ -383,7 +383,7 @@ mod tests {
                 admin: None,
                 code_id: 1,
                 msg: to_json_binary(&BtcLightClientInstantiateMsg {
-                    network: btc_light_client::state::BitcoinNetwork::Regtest,
+                    network: btc_light_client::BitcoinNetwork::Regtest,
                     btc_confirmation_depth: msg.btc_confirmation_depth,
                     checkpoint_finalization_timeout: msg.checkpoint_finalization_timeout,
                     initial_header: initial_header(),

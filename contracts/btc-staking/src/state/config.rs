@@ -1,4 +1,4 @@
-use btc_light_client::state::BitcoinNetwork;
+use btc_light_client::BitcoinNetwork;
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::Addr;
 

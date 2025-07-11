@@ -1,5 +1,5 @@
 use babylon_test_utils::get_params;
-use btc_light_client::state::BitcoinNetwork;
+use btc_light_client::BitcoinNetwork;
 
 use crate::state::config::Params;
 

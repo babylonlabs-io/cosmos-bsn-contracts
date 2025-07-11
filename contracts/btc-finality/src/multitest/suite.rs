@@ -12,7 +12,7 @@ use babylon_apis::finality_api::{IndexedBlock, PubRandCommit};
 use babylon_apis::{btc_staking_api, finality_api, to_bech32_addr, to_canonical_addr};
 use babylon_bindings::BabylonMsg;
 use babylon_bindings_test::BabylonApp;
-use btc_light_client::state::BitcoinNetwork;
+use btc_light_client::BitcoinNetwork;
 
 use btc_staking::msg::{
     ActivatedHeightResponse, AllPendingRewardsResponse, FinalityProviderInfo, PendingRewards,

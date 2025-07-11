@@ -4,7 +4,7 @@ use derivative::Derivative;
 
 use babylon_bindings::BabylonMsg;
 use babylon_bindings_test::BabylonApp;
-use btc_light_client::state::BitcoinNetwork;
+use btc_light_client::BitcoinNetwork;
 use cosmwasm_std::{Addr, Binary, Empty};
 use cw_multi_test::{AppResponse, Contract, ContractWrapper, Executor};
 
