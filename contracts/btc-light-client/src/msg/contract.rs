@@ -42,7 +42,7 @@ impl TryFrom<BtcHeaderInfo> for InitialHeader {
 
 #[cw_serde]
 pub struct InstantiateMsg {
-    pub network: babylon_bitcoin::Network,
+    pub network: crate::state::BitcoinNetwork,
     pub btc_confirmation_depth: u32,
     pub checkpoint_finalization_timeout: u32,
     /// Initial BTC header.

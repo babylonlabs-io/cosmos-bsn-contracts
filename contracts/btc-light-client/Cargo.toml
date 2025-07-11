@@ -43,6 +43,7 @@ cw-utils         = { workspace = true }
 hex              = { workspace = true }
 thiserror        = { workspace = true }
 prost            = { workspace = true }
+schemars         = { workspace = true }
 serde            = { workspace = true, features = ["derive"] }
 
 [dev-dependencies]

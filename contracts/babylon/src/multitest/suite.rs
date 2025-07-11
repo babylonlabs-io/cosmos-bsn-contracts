@@ -4,7 +4,7 @@ use derivative::Derivative;
 
 use babylon_bindings::BabylonMsg;
 use babylon_bindings_test::BabylonApp;
-use babylon_bitcoin::Network;
+use btc_light_client::state::BitcoinNetwork;
 use cosmwasm_std::{Addr, Binary, Empty};
 use cw_multi_test::{AppResponse, Contract, ContractWrapper, Executor};
 
@@ -131,7 +131,7 @@ impl SuiteBuilder {
                 contract_code_id,
                 owner.clone(),
                 &InstantiateMsg {
-                    network: Network::Testnet,
+                    network: BitcoinNetwork::Testnet,
                     babylon_tag: "01020304".to_string(),
                     btc_confirmation_depth: 1,
                     checkpoint_finalization_timeout: self

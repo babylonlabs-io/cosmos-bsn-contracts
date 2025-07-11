@@ -269,7 +269,7 @@ pub mod tests {
     };
 
     use super::*;
-    use babylon_bitcoin::Network;
+    use crate::state::BitcoinNetwork;
     use babylon_test_utils::{get_btc_lc_fork_headers, get_btc_lc_fork_msg, get_btc_lc_headers};
     use cosmwasm_std::{from_json, testing::mock_dependencies};
 
@@ -310,7 +310,7 @@ pub mod tests {
         // set config first
         let w: u32 = 2;
         let cfg = Config {
-            network: Network::Regtest,
+            network: BitcoinNetwork::Regtest,
             btc_confirmation_depth: 1,
             checkpoint_finalization_timeout: w,
         };

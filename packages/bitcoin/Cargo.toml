@@ -9,7 +9,7 @@ authors.workspace = true
 publish           = true
 
 [dependencies]
-bitcoin      = { workspace = true }
+bitcoin      = { workspace = true, features = ["serde"] }
 digest       = { workspace = true }
 sha2         = { workspace = true }
 serde        = { workspace = true }

@@ -45,7 +45,7 @@ mod tests {
 
     use crate::state::btc_light_client::tests::init_contract;
     use crate::state::config::{Config, CONFIG};
-    use babylon_bitcoin::Network;
+    use crate::state::BitcoinNetwork;
 
     fn setup_test_state(
         deps: &mut cosmwasm_std::OwnedDeps<
@@ -56,7 +56,7 @@ mod tests {
     ) {
         // Set config
         let cfg = Config {
-            network: Network::Regtest,
+            network: BitcoinNetwork::Regtest,
             btc_confirmation_depth: 1,
             checkpoint_finalization_timeout: 2,
         };
