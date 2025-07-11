@@ -1,5 +1,4 @@
 pub mod error;
-pub mod schnorr;
 
 use bitcoin::blockdata::opcodes;
 use bitcoin::hashes::{sha256d, Hash};

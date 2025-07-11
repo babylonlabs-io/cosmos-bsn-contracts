@@ -7,8 +7,8 @@ use cosmwasm_std::Binary;
 #[cfg(feature = "full-validation")]
 use {
     babylon_apis::btc_staking_api::{BTCSigType, ProofOfPossessionBtc},
-    babylon_bitcoin::schnorr::verify_digest,
     babylon_btcstaking::adaptor_sig::AdaptorSignature,
+    babylon_btcstaking::schnorr::verify_digest,
     babylon_btcstaking::sig_verify::enc_verify_transaction_sig_with_output,
     bitcoin::consensus::deserialize,
     cosmwasm_std::CanonicalAddr,
