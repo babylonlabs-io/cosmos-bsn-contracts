@@ -46,8 +46,8 @@ pub enum Error {
     InsufficientSlashingAmount(u64),
     #[error("Slashing transaction must pay to the provided slashing pk script")]
     InvalidSlashingPkScript {},
-    #[error("Invalid slashing tx change output script")]
-    InvalidSlashingTxChangeOutputScript {},
+    #[error("Invalid slashing tx change output script, expected: {expected:?}, got: {actual:?}")]
+    InvalidSlashingTxChangeOutputScript { expected: Vec<u8>, actual: Vec<u8> },
     #[error("Transaction contains dust outputs")]
     TxContainsDustOutputs {},
     #[error("Slashing transaction fee must be larger than {0}")]
@@ -66,4 +66,6 @@ pub enum Error {
     InvalidTxVersion(i32, i32, i32),
     #[error("Pre-signed transaction must not have signature script")]
     TxHasSignatureScript {},
+    #[error("Slashing or staking transaction values must be larger than 0")]
+    InvalidSlashingAmount {},
 }
