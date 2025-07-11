@@ -14,13 +14,13 @@ const MAX_STANDARD_TX_WEIGHT: usize = 400000;
 /// This matches the maxTxVersion constant from Babylon Genesis.
 const MAX_TX_VERSION: i32 = 2;
 
-/// Checks if a script is an OP_RETURN output (matches Babylon Genesis isOPReturn function)
+/// Checks if a script is an OP_RETURN output
 fn is_op_return_output(script: &bitcoin::ScriptBuf) -> bool {
     let script_bytes = script.as_bytes();
     !script_bytes.is_empty() && script_bytes[0] == 0x6a // OP_RETURN opcode
 }
 
-/// Checks pre-signed transaction sanity (matches Babylon Genesis CheckPreSignedTxSanity)
+/// Checks pre-signed transaction sanity
 fn check_pre_signed_tx_sanity(
     tx: &Transaction,
     num_inputs: usize,
@@ -51,7 +51,7 @@ fn check_pre_signed_tx_sanity(
         ));
     }
 
-    // Check transaction weight (matches Babylon Genesis CheckPreSignedTxSanity)
+    // Check transaction weight
     let tx_weight = tx.weight().to_wu() as usize;
     if tx_weight > MAX_STANDARD_TX_WEIGHT {
         return Err(Error::TransactionWeightExceedsLimit(
@@ -163,7 +163,7 @@ fn validate_slashing_tx(
         });
     }
 
-    // Verify that none of the outputs is a dust output (matches Babylon Genesis logic)
+    // Verify that none of the outputs is a dust output
     for output in &slashing_tx.output {
         // OP_RETURN outputs can be dust and are considered standard (skip them like Babylon Genesis)
         if is_op_return_output(&output.script_pubkey) {
@@ -171,18 +171,17 @@ fn validate_slashing_tx(
         }
 
         // Use the standard dust threshold (546 satoshis for non-OP_RETURN outputs)
-        // This matches the behavior of mempool.IsDust() in Babylon Genesis
         if output.value.to_sat() <= 546 {
             return Err(Error::TxContainsDustOutputs {});
         }
     }
 
-    // Check that values of slashing and staking transaction are larger than 0 (matches Babylon Genesis)
+    // Check that values of slashing and staking transaction are larger than 0
     if slashing_tx.output[0].value.to_sat() == 0 || staking_output_value == 0 {
         return Err(Error::InvalidSlashingAmount {});
     }
 
-    // Check fees (matches Babylon Genesis logic)
+    // Check fees
     let total_output_value: u64 = slashing_tx
         .output
         .iter()
