@@ -363,3 +363,83 @@ pub fn is_difficulty_change_boundary(height: u32, chain_params: &Params) -> bool
     // 2. The height is divisible by difficulty_adjustment_interval
     height >= difficulty_adjustment_interval && height % difficulty_adjustment_interval == 0
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use bitcoin::block::Header as BlockHeader;
+    use bitcoin::block::Version;
+    use bitcoin::{BlockHash, CompactTarget};
+    use cosmwasm_std::testing::MockStorage;
+    use std::collections::BTreeMap;
+
+    fn make_header(time: u32, prev_blockhash: BlockHash) -> BlockHeader {
+        BlockHeader {
+            version: Version::TWO,
+            prev_blockhash,
+            merkle_root: bitcoin::TxMerkleNode::all_zeros(),
+            time,
+            bits: CompactTarget::from_consensus(0x1d00ffff), // Bitcoin mainnet initial difficulty
+            nonce: 0,
+        }
+    }
+
+    fn test_headers(times: Vec<u32>) -> (BlockHeader, BTreeMap<BlockHash, BlockHeader>) {
+        let mut pending_headers = BTreeMap::new();
+        let mut prev_hash = BlockHash::all_zeros();
+
+        let mut last_header = None;
+        for &t in &times {
+            let header = make_header(t, prev_hash);
+            prev_hash = header.block_hash();
+            pending_headers.insert(header.block_hash(), header.clone());
+            last_header = Some(header);
+        }
+        let header = last_header.unwrap();
+
+        (header, pending_headers)
+    }
+
+    #[test]
+    fn test_median_time_past_fewer_than_11() {
+        let storage = MockStorage::default();
+        let mut times = vec![1000, 1010, 1020, 1030, 1040];
+        let (header, pending_headers) = test_headers(times.clone());
+        let mtp = calculate_median_time_past(&storage, &header, &pending_headers).unwrap();
+        times.reverse(); // because we build chain backwards
+        times.sort_unstable();
+        assert_eq!(mtp, times[times.len() / 2]);
+    }
+
+    #[test]
+    fn test_median_time_past_exactly_11() {
+        let storage = MockStorage::default();
+        let mut times = vec![
+            1000, 1010, 1020, 1030, 1040, 1050, 1060, 1070, 1080, 1090, 1100,
+        ];
+        let (header, pending_headers) = test_headers(times.clone());
+        let mtp = calculate_median_time_past(&storage, &header, &pending_headers).unwrap();
+        times.reverse();
+        times.sort_unstable();
+        assert_eq!(mtp, times[times.len() / 2]);
+    }
+
+    #[test]
+    fn test_median_time_past_more_than_11() {
+        let storage = MockStorage::default();
+        let mut times = (1000..=1020).step_by(2).collect::<Vec<u32>>(); // 1000, 1002, ..., 1020 (11 values)
+        times.extend(&[1030, 1040, 1050]); // now 14 values
+        let (header, pending_headers) = test_headers(times);
+        // Only the most recent 11 timestamps should be used
+        let mut walk_hash = header.block_hash();
+        let mut used_times = Vec::new();
+        for _ in 0..MEDIAN_TIME_SPAN {
+            let h = pending_headers.get(&walk_hash).unwrap();
+            used_times.push(h.time);
+            walk_hash = h.prev_blockhash;
+        }
+        used_times.sort_unstable();
+        let mtp = calculate_median_time_past(&storage, &header, &pending_headers).unwrap();
+        assert_eq!(mtp, used_times[used_times.len() / 2]);
+    }
+}
