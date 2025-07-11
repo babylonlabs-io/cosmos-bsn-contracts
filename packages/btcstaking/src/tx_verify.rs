@@ -6,6 +6,84 @@ use bitcoin::Transaction;
 use k256::schnorr::VerifyingKey;
 use rust_decimal::{prelude::*, Decimal};
 
+/// Maximum transaction weight allowed in Babylon system.
+/// This matches the MaxStandardTxWeight constant from Babylon Genesis.
+const MAX_STANDARD_TX_WEIGHT: usize = 400000;
+
+/// Maximum transaction version allowed in Babylon system.
+/// This matches the maxTxVersion constant from Babylon Genesis.
+const MAX_TX_VERSION: i32 = 2;
+
+/// Checks pre-signed transaction sanity (matches Babylon Genesis CheckPreSignedTxSanity)
+fn check_pre_signed_tx_sanity(
+    tx: &Transaction,
+    num_inputs: usize,
+    num_outputs: usize,
+    min_tx_version: i32,
+    max_tx_version: i32,
+) -> Result<()> {
+    if tx.input.len() != num_inputs {
+        return Err(Error::TxInputCountMismatch(num_inputs, tx.input.len()));
+    }
+
+    if tx.output.len() != num_outputs {
+        return Err(Error::TxOutputCountMismatch(num_outputs, tx.output.len()));
+    }
+
+    // Pre-signed tx must not have locktime (this requirement makes every pre-signed tx final)
+    if tx.lock_time.to_consensus_u32() != 0 {
+        return Err(Error::TxHasLocktime {});
+    }
+
+    // Check transaction version
+    let version = tx.version.0;
+    if version > max_tx_version || version < min_tx_version {
+        return Err(Error::InvalidTxVersion(version, min_tx_version, max_tx_version));
+    }
+
+    // Check transaction weight (matches Babylon Genesis CheckPreSignedTxSanity)
+    let tx_weight = tx.weight().to_wu() as usize;
+    if tx_weight > MAX_STANDARD_TX_WEIGHT {
+        return Err(Error::TransactionWeightExceedsLimit(tx_weight, MAX_STANDARD_TX_WEIGHT));
+    }
+
+    // Check that all inputs are non-replaceable (final)
+    for input in &tx.input {
+        if input.sequence.is_rbf() {
+            return Err(Error::TxIsReplaceable {});
+        }
+
+        // Pre-signed tx must not have signature script (all babylon pre-signed transactions use witness)
+        if !input.script_sig.is_empty() {
+            return Err(Error::TxHasSignatureScript {});
+        }
+    }
+
+    Ok(())
+}
+
+/// Checks pre-signed unbonding transaction sanity
+pub fn check_pre_signed_unbonding_tx_sanity(tx: &Transaction) -> Result<()> {
+    check_pre_signed_tx_sanity(
+        tx,
+        1, // num_inputs
+        1, // num_outputs
+        MAX_TX_VERSION, // min_tx_version (unbonding tx is always version 2)
+        MAX_TX_VERSION, // max_tx_version
+    )
+}
+
+/// Checks pre-signed slashing transaction sanity
+pub fn check_pre_signed_slashing_tx_sanity(tx: &Transaction) -> Result<()> {
+    check_pre_signed_tx_sanity(
+        tx,
+        1, // num_inputs
+        2, // num_outputs
+        1, // min_tx_version (slashing tx version can be between 1 and 2)
+        MAX_TX_VERSION, // max_tx_version
+    )
+}
+
 /// Checks if a transaction has exactly one input and one output.
 fn is_transfer_tx(tx: &Transaction) -> Result<()> {
     if tx.input.len() != 1 {
@@ -47,21 +125,8 @@ fn validate_slashing_tx(
     staker_pk: &VerifyingKey,
     slashing_change_lock_time: u16,
 ) -> Result<()> {
-    if slashing_tx.input.len() != 1 {
-        return Err(Error::TxInputCountMismatch(1, slashing_tx.input.len()));
-    }
-
-    if slashing_tx.input[0].sequence.is_rbf() {
-        return Err(Error::TxIsReplaceable {});
-    }
-
-    if slashing_tx.lock_time.to_consensus_u32() > 0 {
-        return Err(Error::TxHasLocktime {});
-    }
-
-    if slashing_tx.output.len() != 2 {
-        return Err(Error::TxOutputCountMismatch(2, slashing_tx.output.len()));
-    }
+    // Check pre-signed slashing transaction sanity (includes weight, version, locktime, etc.)
+    check_pre_signed_slashing_tx_sanity(slashing_tx)?;
 
     let expected_slashing_amount = (staking_output_value as f64 * slashing_rate).round() as u64;
     if slashing_tx.output[0].value.to_sat() < expected_slashing_amount {
@@ -200,6 +265,8 @@ mod tests {
         enc_verify_transaction_sig_with_output, verify_transaction_sig_with_output,
     };
     use bitcoin::consensus::deserialize;
+    use bitcoin::{ScriptBuf, TxIn, TxOut, Sequence, OutPoint, Amount};
+    use bitcoin::absolute::LockTime;
 
     use babylon_test_utils::{get_btc_delegation, get_params};
 
@@ -229,6 +296,64 @@ mod tests {
             slashing_change_lock_time,
         )
         .unwrap();
+    }
+
+    #[test]
+    fn test_pre_signed_tx_sanity() {
+        let btc_del = get_btc_delegation(1, vec![1]);
+        let slashing_tx: Transaction = deserialize(&btc_del.slashing_tx).unwrap();
+
+        // Test 1: Valid slashing transaction should pass
+        check_pre_signed_tx_sanity(&slashing_tx, 1, 2, 1, 2).unwrap();
+
+        // Test 2: Valid unbonding transaction should pass
+        if let Some(undelegation_info) = &btc_del.btc_undelegation {
+            let unbonding_tx: Transaction = deserialize(&undelegation_info.unbonding_tx).unwrap();
+            check_pre_signed_tx_sanity(&unbonding_tx, 1, 1, 2, 2).unwrap();
+        }
+
+        // Test 3: Wrong number of inputs should fail
+        let mut invalid_tx = slashing_tx.clone();
+        invalid_tx.input.push(TxIn {
+            previous_output: OutPoint::null(),
+            script_sig: ScriptBuf::new(),
+            sequence: Sequence::MAX,
+            witness: bitcoin::Witness::new(),
+        });
+        assert!(check_pre_signed_tx_sanity(&invalid_tx, 1, 2, 1, 2).is_err());
+
+        // Test 4: Wrong number of outputs should fail
+        let mut invalid_tx = slashing_tx.clone();
+        invalid_tx.output.push(TxOut {
+            value: Amount::from_sat(1000),
+            script_pubkey: ScriptBuf::new(),
+        });
+        assert!(check_pre_signed_tx_sanity(&invalid_tx, 1, 2, 1, 2).is_err());
+
+        // Test 5: Non-zero locktime should fail
+        let mut invalid_tx = slashing_tx.clone();
+        invalid_tx.lock_time = LockTime::from_consensus(100);
+        assert!(check_pre_signed_tx_sanity(&invalid_tx, 1, 2, 1, 2).is_err());
+
+        // Test 6: Invalid transaction version should fail (too high)
+        let mut invalid_tx = slashing_tx.clone();
+        invalid_tx.version = bitcoin::transaction::Version(MAX_TX_VERSION + 1);
+        assert!(check_pre_signed_tx_sanity(&invalid_tx, 1, 2, 1, 2).is_err());
+
+        // Test 7: Invalid transaction version should fail (too low for slashing)
+        let mut invalid_tx = slashing_tx.clone();
+        invalid_tx.version = bitcoin::transaction::Version(0);
+        assert!(check_pre_signed_tx_sanity(&invalid_tx, 1, 2, 1, 2).is_err());
+
+        // Test 8: RBF enabled should fail
+        let mut invalid_tx = slashing_tx.clone();
+        invalid_tx.input[0].sequence = Sequence::from_consensus(0xFFFFFFFD); // RBF enabled (< 0xFFFFFFFE)
+        assert!(check_pre_signed_tx_sanity(&invalid_tx, 1, 2, 1, 2).is_err());
+
+        // Test 9: Non-empty signature script should fail
+        let mut invalid_tx = slashing_tx.clone();
+        invalid_tx.input[0].script_sig = ScriptBuf::from_hex("0014abcd").unwrap();
+        assert!(check_pre_signed_tx_sanity(&invalid_tx, 1, 2, 1, 2).is_err());
     }
 
     #[test]

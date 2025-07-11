@@ -60,4 +60,10 @@ pub enum Error {
     InvalidFundingOutputIndex(u32, usize),
     #[error("Slashing transaction must spend staking output")]
     StakingOutputNotSpentBySlashingTx {},
+    #[error("Transaction weight {0} exceeds maximum standard weight {1}")]
+    TransactionWeightExceedsLimit(usize, usize),
+    #[error("Invalid transaction version {0}, must be between {1} and {2}")]
+    InvalidTxVersion(i32, i32, i32),
+    #[error("Pre-signed transaction must not have signature script")]
+    TxHasSignatureScript {},
 }
