@@ -33,7 +33,6 @@ babylon-apis          = { path = "../../packages/apis" }
 babylon-bindings      = { path = "../../packages/bindings" }
 babylon-merkle        = { path = "../../packages/merkle" }
 babylon-btcstaking    = { path = "../../packages/btcstaking" }
-babylon-bitcoin       = { path = "../../packages/bitcoin" }
 eots                  = { path = "../../packages/eots" }
 
 babylon-contract      = { path = "../babylon", features = [ "library" ] }

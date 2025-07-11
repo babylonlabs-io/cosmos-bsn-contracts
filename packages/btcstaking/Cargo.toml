@@ -5,7 +5,6 @@ version.workspace = true
 edition.workspace = true
 
 [dependencies]
-babylon-bitcoin = { workspace = true }
 bitcoin         = { workspace = true }
 digest          = { workspace = true }
 rust_decimal    = { workspace = true }

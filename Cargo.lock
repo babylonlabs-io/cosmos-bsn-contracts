@@ -228,7 +228,6 @@ checksum = "ace50bade8e6234aa140d9a2f552bbee1db4d353f69b8217bc503490fc1a9f26"
 name = "babylon-apis"
 version = "0.14.0"
 dependencies = [
- "babylon-bitcoin",
  "babylon-merkle",
  "babylon-proto",
  "bech32 0.9.1",
@@ -264,25 +263,9 @@ dependencies = [
 ]
 
 [[package]]
-name = "babylon-bitcoin"
-version = "0.14.0"
-dependencies = [
- "bitcoin",
- "cosmwasm-std",
- "digest",
- "hex",
- "k256",
- "schemars",
- "serde",
- "sha2",
- "thiserror 1.0.69",
-]
-
-[[package]]
 name = "babylon-btcstaking"
 version = "0.14.0"
 dependencies = [
- "babylon-bitcoin",
  "babylon-proto",
  "babylon-test-utils",
  "bitcoin",
@@ -305,7 +288,6 @@ dependencies = [
  "babylon-apis",
  "babylon-bindings",
  "babylon-bindings-test",
- "babylon-bitcoin",
  "babylon-proto",
  "babylon-test-utils",
  "bitcoin",
@@ -368,7 +350,6 @@ name = "babylon-test-utils"
 version = "0.14.0"
 dependencies = [
  "babylon-apis",
- "babylon-bitcoin",
  "babylon-proto",
  "bitcoin",
  "btc-light-client",
@@ -450,7 +431,6 @@ dependencies = [
  "hex-conservative",
  "hex_lit",
  "secp256k1",
- "serde",
 ]
 
 [[package]]
@@ -458,9 +438,6 @@ name = "bitcoin-internals"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "30bdbe14aa07b06e6cfeffc529a1f099e5fbe249524f8125358604df99a4bed2"
-dependencies = [
- "serde",
-]
 
 [[package]]
 name = "bitcoin-io"
@@ -475,7 +452,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5285c8bcaa25876d07f37e3d30c303f2609179716e11d688f51e8f1fe70063e2"
 dependencies = [
  "bitcoin-internals",
- "serde",
 ]
 
 [[package]]
@@ -486,7 +462,6 @@ checksum = "bb18c03d0db0247e147a21a6faafd5a7eb851c743db062de72018b6b7e8e4d16"
 dependencies = [
  "bitcoin-io",
  "hex-conservative",
- "serde",
 ]
 
 [[package]]
@@ -595,7 +570,6 @@ dependencies = [
  "babylon-apis",
  "babylon-bindings",
  "babylon-bindings-test",
- "babylon-bitcoin",
  "babylon-btcstaking",
  "babylon-contract",
  "babylon-merkle",
@@ -631,7 +605,6 @@ dependencies = [
  "babylon-apis",
  "babylon-bindings",
  "babylon-bindings-test",
- "babylon-bitcoin",
  "babylon-proto",
  "babylon-test-utils",
  "bitcoin",
@@ -658,7 +631,6 @@ version = "0.14.0"
 dependencies = [
  "babylon-apis",
  "babylon-bindings",
- "babylon-bitcoin",
  "babylon-btcstaking",
  "babylon-contract",
  "babylon-merkle",
@@ -2655,7 +2627,6 @@ checksum = "9465315bc9d4566e1724f0fffcbcc446268cb522e60f9a27bcded6b19c108113"
 dependencies = [
  "bitcoin_hashes",
  "secp256k1-sys",
- "serde",
 ]
 
 [[package]]
