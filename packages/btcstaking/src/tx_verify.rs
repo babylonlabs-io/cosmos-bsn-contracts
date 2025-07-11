@@ -38,13 +38,20 @@ fn check_pre_signed_tx_sanity(
     // Check transaction version
     let version = tx.version.0;
     if version > max_tx_version || version < min_tx_version {
-        return Err(Error::InvalidTxVersion(version, min_tx_version, max_tx_version));
+        return Err(Error::InvalidTxVersion(
+            version,
+            min_tx_version,
+            max_tx_version,
+        ));
     }
 
     // Check transaction weight (matches Babylon Genesis CheckPreSignedTxSanity)
     let tx_weight = tx.weight().to_wu() as usize;
     if tx_weight > MAX_STANDARD_TX_WEIGHT {
-        return Err(Error::TransactionWeightExceedsLimit(tx_weight, MAX_STANDARD_TX_WEIGHT));
+        return Err(Error::TransactionWeightExceedsLimit(
+            tx_weight,
+            MAX_STANDARD_TX_WEIGHT,
+        ));
     }
 
     // Check that all inputs are non-replaceable (final)
@@ -66,8 +73,8 @@ fn check_pre_signed_tx_sanity(
 pub fn check_pre_signed_unbonding_tx_sanity(tx: &Transaction) -> Result<()> {
     check_pre_signed_tx_sanity(
         tx,
-        1, // num_inputs
-        1, // num_outputs
+        1,              // num_inputs
+        1,              // num_outputs
         MAX_TX_VERSION, // min_tx_version (unbonding tx is always version 2)
         MAX_TX_VERSION, // max_tx_version
     )
@@ -77,9 +84,9 @@ pub fn check_pre_signed_unbonding_tx_sanity(tx: &Transaction) -> Result<()> {
 pub fn check_pre_signed_slashing_tx_sanity(tx: &Transaction) -> Result<()> {
     check_pre_signed_tx_sanity(
         tx,
-        1, // num_inputs
-        2, // num_outputs
-        1, // min_tx_version (slashing tx version can be between 1 and 2)
+        1,              // num_inputs
+        2,              // num_outputs
+        1,              // min_tx_version (slashing tx version can be between 1 and 2)
         MAX_TX_VERSION, // max_tx_version
     )
 }
@@ -264,9 +271,9 @@ mod tests {
     use crate::sig_verify::{
         enc_verify_transaction_sig_with_output, verify_transaction_sig_with_output,
     };
-    use bitcoin::consensus::deserialize;
-    use bitcoin::{ScriptBuf, TxIn, TxOut, Sequence, OutPoint, Amount};
     use bitcoin::absolute::LockTime;
+    use bitcoin::consensus::deserialize;
+    use bitcoin::{Amount, OutPoint, ScriptBuf, Sequence, TxIn, TxOut};
 
     use babylon_test_utils::{get_btc_delegation, get_params};
 
