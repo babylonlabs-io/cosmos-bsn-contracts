@@ -11,7 +11,6 @@ use crate::state::{get_header, get_header_by_hash};
 use babylon_proto::babylon::btclightclient::v1::BtcHeaderInfo;
 use bitcoin::block::Header as BlockHeader;
 use bitcoin::consensus::{deserialize, Params};
-use bitcoin::hashes::Hash;
 use bitcoin::{BlockHash, Target, Work};
 use cosmwasm_std::{StdError, StdResult};
 use cosmwasm_std::{Storage, Uint256};
@@ -19,6 +18,8 @@ use std::collections::BTreeMap;
 
 /// bip-0113 defines the median of the last 11 blocks instead of the block's timestamp for lock-time calculations.
 const MEDIAN_TIME_SPAN: usize = 11;
+
+type PendingHeaders = BTreeMap<BlockHash, (BlockHeader, u32)>;
 
 /// Errors that can occur during BTC header verification.
 #[derive(thiserror::Error, Debug, PartialEq)]
@@ -126,7 +127,7 @@ pub fn verify_headers(
         // this header is good, verify the next one
         cum_work_old = cum_work;
         last_header = new_header.clone();
-        pending_headers.insert(block_header.block_hash(), block_header);
+        pending_headers.insert(block_header.block_hash(), (block_header, new_header.height));
     }
     Ok(())
 }
@@ -140,7 +141,7 @@ fn check_header(
     prev_block_height: u32,
     prev_block_header: &BlockHeader,
     header: &BlockHeader,
-    pending_headers: &BTreeMap<BlockHash, BlockHeader>,
+    pending_headers: &PendingHeaders,
 ) -> Result<(), HeaderError> {
     check_block_header_context(
         storage,
@@ -197,7 +198,7 @@ fn check_block_header_context(
     prev_block_height: u32,
     prev_block_header: &BlockHeader,
     header: &BlockHeader,
-    pending_headers: &BTreeMap<BlockHash, BlockHeader>,
+    pending_headers: &PendingHeaders,
 ) -> Result<(), HeaderError> {
     let expected_target =
         get_next_work_required(storage, prev_block_height, prev_block_header, chain_params)?;
@@ -214,7 +215,7 @@ fn check_block_header_context(
         });
     }
 
-    let mtp = calculate_median_time_past(storage, header, pending_headers)?;
+    let mtp = calculate_median_time_past(storage, header, prev_block_height + 1, pending_headers)?;
     if header.time <= mtp {
         return Err(HeaderError::TimeTooOld);
     }
@@ -223,22 +224,25 @@ fn check_block_header_context(
 }
 
 /// Calculates the median time of the previous few blocks prior to the header (inclusive).
+// TODO: Added `header_height` to make the loop exit condition more robust when fetching previous
+// timestamps, since relying on `BlockHash::all_zeros()` isn't reliable with the current test data.
+// We may remove it in future if the test data is updated.
 fn calculate_median_time_past(
     storage: &dyn Storage,
     header: &BlockHeader,
-    pending_headers: &BTreeMap<BlockHash, BlockHeader>,
+    header_height: u32,
+    pending_headers: &PendingHeaders,
 ) -> Result<u32, HeaderError> {
     let mut timestamps = Vec::with_capacity(MEDIAN_TIME_SPAN);
 
     timestamps.push(header.time);
 
-    let zero_hash = BlockHash::all_zeros();
-
     let mut block_hash = header.prev_blockhash;
+    let mut block_height = header_height - 1;
 
     while timestamps.len() < MEDIAN_TIME_SPAN {
         // Genesis block
-        if block_hash == zero_hash {
+        if block_height == 0 {
             break;
         }
 
@@ -246,6 +250,7 @@ fn calculate_median_time_past(
             Ok(raw_header) => deserialize(raw_header.header.as_ref())?,
             Err(_) => pending_headers
                 .get(&block_hash)
+                .map(|(header, _height)| header)
                 .cloned()
                 .ok_or(HeaderError::MissingHeader(block_hash))?,
         };
@@ -253,6 +258,7 @@ fn calculate_median_time_past(
         timestamps.push(header.time);
 
         block_hash = header.prev_blockhash;
+        block_height -= 1;
     }
 
     timestamps.sort_unstable();
@@ -369,6 +375,7 @@ mod tests {
     use super::*;
     use bitcoin::block::Header as BlockHeader;
     use bitcoin::block::Version;
+    use bitcoin::hashes::Hash;
     use bitcoin::{BlockHash, CompactTarget};
     use cosmwasm_std::testing::MockStorage;
     use std::collections::BTreeMap;
@@ -384,15 +391,15 @@ mod tests {
         }
     }
 
-    fn test_headers(times: Vec<u32>) -> (BlockHeader, BTreeMap<BlockHash, BlockHeader>) {
+    fn test_headers(times: Vec<u32>) -> (BlockHeader, PendingHeaders) {
         let mut pending_headers = BTreeMap::new();
         let mut prev_hash = BlockHash::all_zeros();
 
         let mut last_header = None;
-        for &t in &times {
+        for (i, &t) in times.iter().enumerate() {
             let header = make_header(t, prev_hash);
             prev_hash = header.block_hash();
-            pending_headers.insert(header.block_hash(), header.clone());
+            pending_headers.insert(header.block_hash(), (header, i as u32 + 1));
             last_header = Some(header);
         }
         let header = last_header.unwrap();
@@ -405,7 +412,7 @@ mod tests {
         let storage = MockStorage::default();
         let mut times = vec![1000, 1010, 1020, 1030, 1040];
         let (header, pending_headers) = test_headers(times.clone());
-        let mtp = calculate_median_time_past(&storage, &header, &pending_headers).unwrap();
+        let mtp = calculate_median_time_past(&storage, &header, 5, &pending_headers).unwrap();
         times.reverse(); // because we build chain backwards
         times.sort_unstable();
         assert_eq!(mtp, times[times.len() / 2]);
@@ -418,7 +425,7 @@ mod tests {
             1000, 1010, 1020, 1030, 1040, 1050, 1060, 1070, 1080, 1090, 1100,
         ];
         let (header, pending_headers) = test_headers(times.clone());
-        let mtp = calculate_median_time_past(&storage, &header, &pending_headers).unwrap();
+        let mtp = calculate_median_time_past(&storage, &header, 11, &pending_headers).unwrap();
         times.reverse();
         times.sort_unstable();
         assert_eq!(mtp, times[times.len() / 2]);
@@ -435,11 +442,11 @@ mod tests {
         let mut used_times = Vec::new();
         for _ in 0..MEDIAN_TIME_SPAN {
             let h = pending_headers.get(&walk_hash).unwrap();
-            used_times.push(h.time);
-            walk_hash = h.prev_blockhash;
+            used_times.push(h.0.time);
+            walk_hash = h.0.prev_blockhash;
         }
         used_times.sort_unstable();
-        let mtp = calculate_median_time_past(&storage, &header, &pending_headers).unwrap();
+        let mtp = calculate_median_time_past(&storage, &header, 14, &pending_headers).unwrap();
         assert_eq!(mtp, used_times[used_times.len() / 2]);
     }
 }
