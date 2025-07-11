@@ -169,7 +169,7 @@ pub fn verify_active_delegation(
             .slashing_rate
             .parse::<f64>()
             .map_err(|_| ContractError::InvalidBtcTx("invalid slashing rate".to_string()))?;
-        babylon_btcstaking::tx_verify::check_transactions(
+        babylon_btcstaking::tx_verify::check_slashing_tx_match_funding_tx(
             &slashing_tx,
             staking_tx,
             active_delegation.staking_output_idx,
@@ -300,7 +300,7 @@ pub fn verify_active_delegation(
         let unbonding_time = active_delegation.unbonding_time as u16;
 
         // Check that unbonding tx and unbonding slashing tx are consistent
-        babylon_btcstaking::tx_verify::check_transactions(
+        babylon_btcstaking::tx_verify::check_slashing_tx_match_funding_tx(
             &unbonding_slashing_tx,
             &unbonding_tx,
             unbonding_output_idx,

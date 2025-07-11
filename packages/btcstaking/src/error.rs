@@ -22,8 +22,10 @@ pub enum Error {
     InsufficientMultisigKeys {},
     #[error("Duplicate key in list of keys")]
     DuplicateKeys {},
-    #[error("Quorum cannot be greater than the number of keys")]
-    QuorumExceedsKeyCount {},
+    #[error("Threshold cannot be greater than the number of keys")]
+    ThresholdExceedsKeyCount {},
+    #[error("No keys provided")]
+    NoKeysProvided {},
     #[error("Failed to add leaf")]
     AddLeafFailed {},
     #[error("Failed to finalize taproot")]
@@ -44,8 +46,8 @@ pub enum Error {
     InsufficientSlashingAmount(u64),
     #[error("Slashing transaction must pay to the provided slashing pk script")]
     InvalidSlashingPkScript {},
-    #[error("Invalid slashing tx change output script")]
-    InvalidSlashingTxChangeOutputScript {},
+    #[error("Invalid slashing tx change output script, expected: {expected:?}, got: {actual:?}")]
+    InvalidSlashingTxChangeOutputScript { expected: Vec<u8>, actual: Vec<u8> },
     #[error("Transaction contains dust outputs")]
     TxContainsDustOutputs {},
     #[error("Slashing transaction fee must be larger than {0}")]
@@ -58,4 +60,12 @@ pub enum Error {
     InvalidFundingOutputIndex(u32, usize),
     #[error("Slashing transaction must spend staking output")]
     StakingOutputNotSpentBySlashingTx {},
+    #[error("Transaction weight {0} exceeds maximum standard weight {1}")]
+    TransactionWeightExceedsLimit(usize, usize),
+    #[error("Invalid transaction version {0}, must be between {1} and {2}")]
+    InvalidTxVersion(i32, i32, i32),
+    #[error("Pre-signed transaction must not have signature script")]
+    TxHasSignatureScript {},
+    #[error("Slashing or staking transaction values must be larger than 0")]
+    InvalidSlashingAmount {},
 }

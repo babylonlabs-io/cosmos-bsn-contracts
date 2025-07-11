@@ -39,7 +39,11 @@ pub fn sort_keys(keys: &mut [VerifyingKey]) {
     });
 }
 
-/// prepare_keys_for_multisig_script prepares keys for multisig, ensuring there are no duplicates
+/// prepare_keys_for_multisig_script prepares keys to be used in multisig script
+/// Validates whether there are at least 2 keys
+/// and returns copy of the slice of keys sorted lexicographically.
+///
+/// Note: It is up to the caller to ensure that the keys are unique
 pub fn prepare_keys_for_multisig_script(keys: &[VerifyingKey]) -> Result<Vec<VerifyingKey>> {
     if keys.len() < 2 {
         return Err(Error::InsufficientMultisigKeys {});
@@ -48,26 +52,17 @@ pub fn prepare_keys_for_multisig_script(keys: &[VerifyingKey]) -> Result<Vec<Ver
     let mut sorted_keys = keys.to_vec();
     sort_keys(&mut sorted_keys);
 
-    // Check for duplicates
-    for window in sorted_keys.windows(2) {
-        if window[0] == window[1] {
-            return Err(Error::DuplicateKeys {});
-        }
-    }
-
     Ok(sorted_keys)
 }
 
-/// assemble_multisig_script assembles a multisig script
+/// assemble_multisig_script is a private helper to assemble multisig script
+/// if `withVerify` is true script will end with OP_NUMEQUALVERIFY otherwise with OP_NUMEQUAL
+/// SCRIPT: <Pk1> OP_CHEKCSIG <Pk2> OP_CHECKSIGADD <Pk3> OP_CHECKSIGADD ... <PkN> OP_CHECKSIGADD <threshold> OP_NUMEQUALVERIFY (or OP_NUMEQUAL)
 fn assemble_multisig_script(
     pubkeys: &[VerifyingKey],
-    quorum: usize,
+    threshold: usize,
     with_verify: bool,
 ) -> Result<ScriptBuf> {
-    if quorum > pubkeys.len() {
-        return Err(Error::QuorumExceedsKeyCount {});
-    }
-
     let mut builder = Builder::new();
     for (i, key) in pubkeys.iter().enumerate() {
         let pk_bytes: [u8; 32] = key.to_bytes().into();
@@ -79,7 +74,7 @@ fn assemble_multisig_script(
         }
     }
 
-    builder = builder.push_int(quorum as i64);
+    builder = builder.push_int(threshold as i64);
     if with_verify {
         builder = builder.push_opcode(OP_NUMEQUALVERIFY);
     } else {
@@ -89,14 +84,30 @@ fn assemble_multisig_script(
     Ok(builder.into_script())
 }
 
-/// build_multisig_script creates a multisig script
+/// build_multisig_script creates multisig script with given keys and signer threshold to
+/// successfully execute script
+/// it validates whether threshold is not greater than number of keys
+/// If there is only one key provided it will return single key sig script
+/// Note: It is up to the caller to ensure that the keys are unique
 pub fn build_multisig_script(
     keys: &[VerifyingKey],
-    quorum: usize,
+    threshold: usize,
     with_verify: bool,
 ) -> Result<ScriptBuf> {
+    if keys.is_empty() {
+        return Err(Error::NoKeysProvided {});
+    }
+
+    if threshold > keys.len() {
+        return Err(Error::ThresholdExceedsKeyCount {});
+    }
+
+    if keys.len() == 1 {
+        return build_single_key_sig_script(&keys[0], with_verify);
+    }
+
     let prepared_keys = prepare_keys_for_multisig_script(keys)?;
-    assemble_multisig_script(&prepared_keys, quorum, with_verify)
+    assemble_multisig_script(&prepared_keys, threshold, with_verify)
 }
 
 /// build_time_lock_script creates a timelock script
@@ -112,6 +123,7 @@ pub fn build_time_lock_script(pub_key: &VerifyingKey, lock_time: u16) -> Result<
 }
 
 /// build_single_key_sig_script builds a single key signature script
+/// SCRIPT: <pubKey> OP_CHECKSIGVERIFY
 pub fn build_single_key_sig_script(pub_key: &VerifyingKey, with_verify: bool) -> Result<ScriptBuf> {
     let pk_bytes: [u8; 32] = pub_key.to_bytes().into();
 

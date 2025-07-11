@@ -2,38 +2,103 @@ use crate::error::Error;
 use crate::scripts_utils;
 use crate::Result;
 
+use bitcoin::opcodes::all::OP_RETURN;
 use bitcoin::Transaction;
 use k256::schnorr::VerifyingKey;
 use rust_decimal::{prelude::*, Decimal};
 
-/// Checks if a transaction has exactly one input and one output.
-fn is_transfer_tx(tx: &Transaction) -> Result<()> {
-    if tx.input.len() != 1 {
-        return Err(Error::TxInputCountMismatch(1, tx.input.len()));
+/// Maximum transaction weight allowed in Babylon system.
+/// This matches the MaxStandardTxWeight constant from Babylon Genesis.
+const MAX_STANDARD_TX_WEIGHT: usize = 400000;
+
+/// Maximum transaction version allowed in Babylon system.
+/// This matches the maxTxVersion constant from Babylon Genesis.
+const MAX_TX_VERSION: i32 = 2;
+
+/// Dust threshold defines the maximum value of an output to be considered a dust output.
+const DUST_THRESHOLD: u64 = 546;
+
+/// Checks if a script is an OP_RETURN output
+fn is_op_return_output(script: &bitcoin::ScriptBuf) -> bool {
+    let script_bytes = script.as_bytes();
+    !script_bytes.is_empty() && script_bytes[0] == OP_RETURN.to_u8()
+}
+
+/// Checks pre-signed transaction sanity
+fn check_pre_signed_tx_sanity(
+    tx: &Transaction,
+    num_inputs: usize,
+    num_outputs: usize,
+    min_tx_version: i32,
+    max_tx_version: i32,
+) -> Result<()> {
+    if tx.input.len() != num_inputs {
+        return Err(Error::TxInputCountMismatch(num_inputs, tx.input.len()));
     }
 
-    if tx.output.len() != 1 {
-        return Err(Error::TxOutputCountMismatch(1, tx.output.len()));
+    if tx.output.len() != num_outputs {
+        return Err(Error::TxOutputCountMismatch(num_outputs, tx.output.len()));
+    }
+
+    // Pre-signed tx must not have locktime (this requirement makes every pre-signed tx final)
+    if tx.lock_time.to_consensus_u32() != 0 {
+        return Err(Error::TxHasLocktime {});
+    }
+
+    // Check transaction version
+    let version = tx.version.0;
+    if version > max_tx_version || version < min_tx_version {
+        return Err(Error::InvalidTxVersion(
+            version,
+            min_tx_version,
+            max_tx_version,
+        ));
+    }
+
+    // Check transaction weight
+    let tx_weight = tx.weight().to_wu() as usize;
+    if tx_weight > MAX_STANDARD_TX_WEIGHT {
+        return Err(Error::TransactionWeightExceedsLimit(
+            tx_weight,
+            MAX_STANDARD_TX_WEIGHT,
+        ));
+    }
+
+    // Check that all inputs are non-replaceable (final)
+    for input in &tx.input {
+        if input.sequence.is_rbf() {
+            return Err(Error::TxIsReplaceable {});
+        }
+
+        // Pre-signed tx must not have signature script (all babylon pre-signed transactions use witness)
+        if !input.script_sig.is_empty() {
+            return Err(Error::TxHasSignatureScript {});
+        }
     }
 
     Ok(())
 }
 
-/// Checks if a transaction is a simple transfer, meaning it has exactly one input and one output,
-/// is not replaceable (sequence number is max), and has no locktime.
-#[allow(dead_code)]
-fn is_simple_transfer(tx: &Transaction) -> Result<()> {
-    is_transfer_tx(tx)?; // Reuse the is_transfer_tx check and propagate error if any
+/// Checks pre-signed unbonding transaction sanity
+pub fn check_pre_signed_unbonding_tx_sanity(tx: &Transaction) -> Result<()> {
+    check_pre_signed_tx_sanity(
+        tx,
+        1,              // num_inputs
+        1,              // num_outputs
+        MAX_TX_VERSION, // min_tx_version (unbonding tx is always version 2)
+        MAX_TX_VERSION, // max_tx_version
+    )
+}
 
-    if !tx.input[0].sequence.is_rbf() {
-        return Err(Error::TxIsReplaceable {});
-    }
-
-    if tx.lock_time.to_consensus_u32() > 0 {
-        return Err(Error::TxHasLocktime {});
-    }
-
-    Ok(())
+/// Checks pre-signed slashing transaction sanity
+pub fn check_pre_signed_slashing_tx_sanity(tx: &Transaction) -> Result<()> {
+    check_pre_signed_tx_sanity(
+        tx,
+        1,              // num_inputs
+        2,              // num_outputs
+        1,              // min_tx_version (slashing tx version can be between 1 and 2)
+        MAX_TX_VERSION, // max_tx_version
+    )
 }
 
 /// Validates a slashing transaction with strict criteria
@@ -47,21 +112,8 @@ fn validate_slashing_tx(
     staker_pk: &VerifyingKey,
     slashing_change_lock_time: u16,
 ) -> Result<()> {
-    if slashing_tx.input.len() != 1 {
-        return Err(Error::TxInputCountMismatch(1, slashing_tx.input.len()));
-    }
-
-    if slashing_tx.input[0].sequence.is_rbf() {
-        return Err(Error::TxIsReplaceable {});
-    }
-
-    if slashing_tx.lock_time.to_consensus_u32() > 0 {
-        return Err(Error::TxHasLocktime {});
-    }
-
-    if slashing_tx.output.len() != 2 {
-        return Err(Error::TxOutputCountMismatch(2, slashing_tx.output.len()));
-    }
+    // Check pre-signed slashing transaction sanity (includes weight, version, locktime, etc.)
+    check_pre_signed_slashing_tx_sanity(slashing_tx)?;
 
     let expected_slashing_amount = (staking_output_value as f64 * slashing_rate).round() as u64;
     if slashing_tx.output[0].value.to_sat() < expected_slashing_amount {
@@ -79,21 +131,28 @@ fn validate_slashing_tx(
     let expected_pk_script =
         scripts_utils::build_relative_time_lock_pk_script(staker_pk, slashing_change_lock_time)?;
     if slashing_tx.output[1].script_pubkey.ne(&expected_pk_script) {
-        println!("expected_pk_script: {:?}", expected_pk_script);
-        println!(
-            "slashing_tx.output[1].script_pubkey: {:?}",
-            slashing_tx.output[1].script_pubkey
-        );
-        return Err(Error::InvalidSlashingTxChangeOutputScript {});
+        return Err(Error::InvalidSlashingTxChangeOutputScript {
+            expected: expected_pk_script.to_bytes(),
+            actual: slashing_tx.output[1].script_pubkey.to_bytes(),
+        });
     }
 
-    // Check for dust outputs
-    if slashing_tx
-        .output
-        .iter()
-        .any(|out| out.value.to_sat() <= 546)
-    {
-        return Err(Error::TxContainsDustOutputs {});
+    // Verify that none of the outputs is a dust output
+    for output in &slashing_tx.output {
+        // OP_RETURN outputs can be dust and are considered standard (skip them like Babylon Genesis)
+        if is_op_return_output(&output.script_pubkey) {
+            continue;
+        }
+
+        // Use the standard dust threshold (546 satoshis for non-OP_RETURN outputs)
+        if output.value.to_sat() <= DUST_THRESHOLD {
+            return Err(Error::TxContainsDustOutputs {});
+        }
+    }
+
+    // Check that values of slashing and staking transaction are larger than 0
+    if slashing_tx.output[0].value.to_sat() == 0 || staking_output_value == 0 {
+        return Err(Error::InvalidSlashingAmount {});
     }
 
     // Check fees
@@ -102,10 +161,13 @@ fn validate_slashing_tx(
         .iter()
         .map(|out| out.value.to_sat())
         .sum();
+
+    // Ensure that the staking transaction value is larger than the sum of slashing transaction output values
     if staking_output_value <= total_output_value {
         return Err(Error::SlashingTxOverspend {});
     }
 
+    // Ensure that the slashing transaction fee is larger than the specified minimum fee
     let calculated_fee = staking_output_value - total_output_value;
     if calculated_fee < slashing_tx_min_fee {
         return Err(Error::InsufficientSlashingFee(slashing_tx_min_fee));
@@ -133,7 +195,7 @@ fn is_rate_valid(rate: f64) -> bool {
 
 /// Validates all relevant data of slashing and funding transactions.
 #[allow(clippy::too_many_arguments)]
-pub fn check_transactions(
+pub fn check_slashing_tx_match_funding_tx(
     slashing_tx: &Transaction,
     funding_transaction: &Transaction,
     funding_output_idx: u32,
@@ -199,12 +261,15 @@ mod tests {
     use crate::sig_verify::{
         enc_verify_transaction_sig_with_output, verify_transaction_sig_with_output,
     };
+    use bitcoin::absolute::LockTime;
     use bitcoin::consensus::deserialize;
+    use bitcoin::hashes::Hash;
+    use bitcoin::{Amount, OutPoint, ScriptBuf, Sequence, TxIn, TxOut};
 
     use babylon_test_utils::{get_btc_delegation, get_params};
 
     #[test]
-    fn test_check_transactions() {
+    fn test_check_slashing_tx_match_funding_tx() {
         let btc_del = get_btc_delegation(1, vec![1]);
         let params = get_params();
 
@@ -217,8 +282,8 @@ mod tests {
         let staker_pk: VerifyingKey = VerifyingKey::from_bytes(&btc_del.btc_pk).unwrap();
         let slashing_change_lock_time: u16 = 101;
 
-        // test check_transactions
-        check_transactions(
+        // Test 1: Valid case should pass
+        check_slashing_tx_match_funding_tx(
             &slashing_tx,
             &staking_tx,
             funding_out_idx,
@@ -229,6 +294,171 @@ mod tests {
             slashing_change_lock_time,
         )
         .unwrap();
+
+        // Test 2: Zero slashing tx min fee should fail
+        let result = check_slashing_tx_match_funding_tx(
+            &slashing_tx,
+            &staking_tx,
+            funding_out_idx,
+            0, // Zero minimum fee
+            slashing_rate,
+            slashing_pk_script,
+            &staker_pk,
+            slashing_change_lock_time,
+        );
+        assert!(matches!(result, Err(Error::InsufficientSlashingFee(0))));
+
+        // Test 3: Invalid slashing rate (exactly 0) should fail
+        let result = check_slashing_tx_match_funding_tx(
+            &slashing_tx,
+            &staking_tx,
+            funding_out_idx,
+            slashing_tx_min_fee,
+            0.0, // Invalid rate (exactly 0)
+            slashing_pk_script,
+            &staker_pk,
+            slashing_change_lock_time,
+        );
+        assert!(matches!(result, Err(Error::InvalidSlashingRate {})));
+
+        // Test 4: Invalid slashing rate (> 1) should fail
+        let result = check_slashing_tx_match_funding_tx(
+            &slashing_tx,
+            &staking_tx,
+            funding_out_idx,
+            slashing_tx_min_fee,
+            1.5, // Invalid rate (> 1)
+            slashing_pk_script,
+            &staker_pk,
+            slashing_change_lock_time,
+        );
+        assert!(matches!(result, Err(Error::InvalidSlashingRate {})));
+
+        // Test 5: Invalid slashing rate (too many decimal places) should fail
+        let result = check_slashing_tx_match_funding_tx(
+            &slashing_tx,
+            &staking_tx,
+            funding_out_idx,
+            slashing_tx_min_fee,
+            0.123, // Invalid rate (3 decimal places)
+            slashing_pk_script,
+            &staker_pk,
+            slashing_change_lock_time,
+        );
+        assert!(matches!(result, Err(Error::InvalidSlashingRate {})));
+
+        // Test 6: Out-of-bounds funding output index should fail
+        let result = check_slashing_tx_match_funding_tx(
+            &slashing_tx,
+            &staking_tx,
+            999, // Invalid index (way beyond bounds)
+            slashing_tx_min_fee,
+            slashing_rate,
+            slashing_pk_script,
+            &staker_pk,
+            slashing_change_lock_time,
+        );
+        assert!(matches!(
+            result,
+            Err(Error::InvalidFundingOutputIndex(999, _))
+        ));
+
+        // Test 7: Slashing tx not spending correct funding transaction should fail
+        let mut invalid_slashing_tx = slashing_tx.clone();
+        // Change the input to point to a different transaction (all zeros)
+        invalid_slashing_tx.input[0].previous_output.txid = bitcoin::Txid::from_raw_hash(
+            bitcoin::hashes::sha256d::Hash::from_byte_array([0u8; 32]),
+        );
+        let result = check_slashing_tx_match_funding_tx(
+            &invalid_slashing_tx,
+            &staking_tx,
+            funding_out_idx,
+            slashing_tx_min_fee,
+            slashing_rate,
+            slashing_pk_script,
+            &staker_pk,
+            slashing_change_lock_time,
+        );
+        assert!(matches!(
+            result,
+            Err(Error::StakingOutputNotSpentBySlashingTx {})
+        ));
+
+        // Test 8: Slashing tx spending wrong output index should fail
+        let mut invalid_slashing_tx = slashing_tx.clone();
+        invalid_slashing_tx.input[0].previous_output.vout = 999; // Wrong output index
+        let result = check_slashing_tx_match_funding_tx(
+            &invalid_slashing_tx,
+            &staking_tx,
+            funding_out_idx,
+            slashing_tx_min_fee,
+            slashing_rate,
+            slashing_pk_script,
+            &staker_pk,
+            slashing_change_lock_time,
+        );
+        assert!(matches!(
+            result,
+            Err(Error::StakingOutputNotSpentBySlashingTx {})
+        ));
+    }
+
+    #[test]
+    fn test_pre_signed_tx_sanity() {
+        let btc_del = get_btc_delegation(1, vec![1]);
+        let slashing_tx: Transaction = deserialize(&btc_del.slashing_tx).unwrap();
+
+        // Test 1: Valid slashing transaction should pass
+        check_pre_signed_tx_sanity(&slashing_tx, 1, 2, 1, 2).unwrap();
+
+        // Test 2: Valid unbonding transaction should pass
+        if let Some(undelegation_info) = &btc_del.btc_undelegation {
+            let unbonding_tx: Transaction = deserialize(&undelegation_info.unbonding_tx).unwrap();
+            check_pre_signed_tx_sanity(&unbonding_tx, 1, 1, 2, 2).unwrap();
+        }
+
+        // Test 3: Wrong number of inputs should fail
+        let mut invalid_tx = slashing_tx.clone();
+        invalid_tx.input.push(TxIn {
+            previous_output: OutPoint::null(),
+            script_sig: ScriptBuf::new(),
+            sequence: Sequence::MAX,
+            witness: bitcoin::Witness::new(),
+        });
+        assert!(check_pre_signed_tx_sanity(&invalid_tx, 1, 2, 1, 2).is_err());
+
+        // Test 4: Wrong number of outputs should fail
+        let mut invalid_tx = slashing_tx.clone();
+        invalid_tx.output.push(TxOut {
+            value: Amount::from_sat(1000),
+            script_pubkey: ScriptBuf::new(),
+        });
+        assert!(check_pre_signed_tx_sanity(&invalid_tx, 1, 2, 1, 2).is_err());
+
+        // Test 5: Non-zero locktime should fail
+        let mut invalid_tx = slashing_tx.clone();
+        invalid_tx.lock_time = LockTime::from_consensus(100);
+        assert!(check_pre_signed_tx_sanity(&invalid_tx, 1, 2, 1, 2).is_err());
+
+        // Test 6: Invalid transaction version should fail (too high)
+        let mut invalid_tx = slashing_tx.clone();
+        invalid_tx.version = bitcoin::transaction::Version(MAX_TX_VERSION + 1);
+        assert!(check_pre_signed_tx_sanity(&invalid_tx, 1, 2, 1, 2).is_err());
+
+        // Test 7: Invalid transaction version should fail (too low for slashing)
+        let mut invalid_tx = slashing_tx.clone();
+        invalid_tx.version = bitcoin::transaction::Version(0);
+        assert!(check_pre_signed_tx_sanity(&invalid_tx, 1, 2, 1, 2).is_err());
+
+        // Test 8: RBF enabled should fail
+        let mut invalid_tx = slashing_tx.clone();
+        invalid_tx.input[0].sequence = Sequence::from_consensus(0xFFFFFFFD); // RBF enabled (< 0xFFFFFFFE)
+        assert!(check_pre_signed_tx_sanity(&invalid_tx, 1, 2, 1, 2).is_err());
+
+        // Test 9: Non-empty signature script should fail
+        let mut invalid_tx = slashing_tx.clone();
+        invalid_tx.input[0].script_sig = ScriptBuf::from_hex("0014abcd").unwrap();
+        assert!(check_pre_signed_tx_sanity(&invalid_tx, 1, 2, 1, 2).is_err());
     }
 
     #[test]
@@ -384,5 +614,194 @@ mod tests {
                 .unwrap();
             }
         }
+    }
+
+    #[test]
+    fn test_validate_slashing_tx() {
+        let btc_del = get_btc_delegation(1, vec![1]);
+        let params = get_params();
+
+        let staking_tx: Transaction = deserialize(&btc_del.staking_tx).unwrap();
+        let slashing_tx: Transaction = deserialize(&btc_del.slashing_tx).unwrap();
+        let staker_pk: VerifyingKey = VerifyingKey::from_bytes(&btc_del.btc_pk).unwrap();
+        let slashing_rate: f64 = 0.01;
+        let slashing_tx_min_fee: u64 = 1;
+        // Use the actual staking output value from the test data
+        let staking_output_value: u64 = staking_tx.output[0].value.to_sat();
+        let slashing_change_lock_time: u16 = 101;
+        let slashing_pk_script = &params.slashing_pk_script;
+        let op_return_script = ScriptBuf::from_hex("6a0548656c6c6f").unwrap(); // OP_RETURN "Hello"
+
+        // Test 1: Valid slashing transaction should pass
+        validate_slashing_tx(
+            &slashing_tx,
+            slashing_pk_script,
+            slashing_rate,
+            slashing_tx_min_fee,
+            staking_output_value,
+            &staker_pk,
+            slashing_change_lock_time,
+        )
+        .unwrap();
+
+        // Test 2: Zero slashing output value should fail with InvalidSlashingAmount
+        let mut invalid_tx = slashing_tx.clone();
+        invalid_tx.output[0] = TxOut {
+            value: Amount::from_sat(0),
+            script_pubkey: op_return_script.clone(),
+        };
+        let result = validate_slashing_tx(
+            &invalid_tx,
+            op_return_script.as_bytes(),
+            0.0,
+            slashing_tx_min_fee,
+            staking_output_value,
+            &staker_pk,
+            slashing_change_lock_time,
+        );
+        assert!(matches!(result, Err(Error::InvalidSlashingAmount {})));
+
+        // Test 3: Zero staking output value should fail with InvalidSlashingAmount
+        let result = validate_slashing_tx(
+            &slashing_tx,
+            slashing_pk_script,
+            slashing_rate,
+            slashing_tx_min_fee,
+            0, // Zero staking output value
+            &staker_pk,
+            slashing_change_lock_time,
+        );
+        assert!(matches!(result, Err(Error::InvalidSlashingAmount {})));
+
+        // Test 4: Regular dust outputs should fail
+        let mut invalid_tx = slashing_tx.clone();
+        invalid_tx.output[0].value = Amount::from_sat(DUST_THRESHOLD - 1); // Below 546 sat threshold
+        let result = validate_slashing_tx(
+            &invalid_tx,
+            slashing_pk_script,
+            0.0,
+            slashing_tx_min_fee,
+            staking_output_value,
+            &staker_pk,
+            slashing_change_lock_time,
+        );
+        assert!(matches!(result, Err(Error::TxContainsDustOutputs {})));
+
+        // Test 5: OP_RETURN dust outputs should pass validation (exemption from dust check)
+        let mut tx_with_op_return_slashing = slashing_tx.clone();
+
+        // Replace the first output (slashing output) with an OP_RETURN dust output
+        tx_with_op_return_slashing.output[0] = TxOut {
+            value: Amount::from_sat(50), // Well below 546 sat dust threshold
+            script_pubkey: op_return_script.clone(),
+        };
+
+        // This should succeed because OP_RETURN outputs are exempt from dust validation
+        validate_slashing_tx(
+            &tx_with_op_return_slashing,
+            op_return_script.as_bytes(), // Pass OP_RETURN script as expected slashing script
+            0.0,
+            slashing_tx_min_fee,
+            staking_output_value,
+            &staker_pk,
+            slashing_change_lock_time,
+        )
+        .unwrap();
+
+        // Test 6: Insufficient slashing amount should fail
+        let result = validate_slashing_tx(
+            &slashing_tx,
+            slashing_pk_script,
+            0.99, // 99% slashing rate - way more than the output can provide
+            slashing_tx_min_fee,
+            staking_output_value,
+            &staker_pk,
+            slashing_change_lock_time,
+        );
+        assert!(matches!(result, Err(Error::InsufficientSlashingAmount(_))));
+
+        // Test 7: Invalid slashing pk script should fail
+        let wrong_pk_script = b"wrong_script";
+        let result = validate_slashing_tx(
+            &slashing_tx,
+            wrong_pk_script,
+            slashing_rate,
+            slashing_tx_min_fee,
+            staking_output_value,
+            &staker_pk,
+            slashing_change_lock_time,
+        );
+        assert!(matches!(result, Err(Error::InvalidSlashingPkScript {})));
+
+        // Test 8: Insufficient fee should fail
+        let result = validate_slashing_tx(
+            &slashing_tx,
+            slashing_pk_script,
+            slashing_rate,
+            staking_output_value - 1000, // Very high minimum fee (almost all the staking value)
+            staking_output_value,
+            &staker_pk,
+            slashing_change_lock_time,
+        );
+        assert!(matches!(result, Err(Error::InsufficientSlashingFee(_))));
+
+        // Test 9: Slashing transaction spending more than staking should fail
+        let mut overspend_tx = slashing_tx.clone();
+        // Set outputs to values that total more than the staking output
+        let half_staking = staking_output_value / 2;
+        overspend_tx.output[0].value = Amount::from_sat(half_staking);
+        overspend_tx.output[1].value = Amount::from_sat(half_staking + 1); // Total > staking_output_value
+        let result = validate_slashing_tx(
+            &overspend_tx,
+            slashing_pk_script,
+            slashing_rate,
+            slashing_tx_min_fee,
+            staking_output_value,
+            &staker_pk,
+            slashing_change_lock_time,
+        );
+        assert!(matches!(result, Err(Error::SlashingTxOverspend {})));
+    }
+
+    #[test]
+    fn test_is_rate_valid_comprehensive() {
+        // Test valid rates
+        assert!(is_rate_valid(0.01)); // 1%
+        assert!(is_rate_valid(0.1)); // 10%
+        assert!(is_rate_valid(0.5)); // 50%
+        assert!(is_rate_valid(0.99)); // 99%
+
+        // Test valid rates with 2 decimal places
+        assert!(is_rate_valid(0.05)); // 5%
+        assert!(is_rate_valid(0.25)); // 25%
+
+        // Test invalid rates - boundary cases
+        assert!(!is_rate_valid(0.0)); // Exactly 0
+        assert!(!is_rate_valid(1.0)); // Exactly 1
+        assert!(!is_rate_valid(-0.1)); // Negative
+        assert!(!is_rate_valid(1.1)); // Greater than 1
+
+        // Test invalid rates - too many decimal places
+        assert!(!is_rate_valid(0.001)); // 0.1% (3 decimal places)
+        assert!(!is_rate_valid(0.123)); // 12.3% (3 decimal places)
+    }
+
+    #[test]
+    fn test_op_return_detection() {
+        // Test OP_RETURN script detection
+        let op_return_script = ScriptBuf::from_hex("6a0548656c6c6f").unwrap(); // OP_RETURN "Hello"
+        assert!(is_op_return_output(&op_return_script));
+
+        // Test non-OP_RETURN scripts
+        let p2pkh_script =
+            ScriptBuf::from_hex("76a914abc123456789abcdef123456789abcdef12345678988ac").unwrap();
+        assert!(!is_op_return_output(&p2pkh_script));
+
+        let empty_script = ScriptBuf::new();
+        assert!(!is_op_return_output(&empty_script));
+
+        // Test script that starts with OP_RETURN
+        let simple_op_return = ScriptBuf::from_hex("6a").unwrap(); // Just OP_RETURN
+        assert!(is_op_return_output(&simple_op_return));
     }
 }
