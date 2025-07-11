@@ -5,6 +5,7 @@ use crate::Result;
 use bitcoin::Transaction;
 use k256::schnorr::VerifyingKey;
 use rust_decimal::{prelude::*, Decimal};
+use bitcoin::opcodes::all::OP_RETURN;
 
 /// Maximum transaction weight allowed in Babylon system.
 /// This matches the MaxStandardTxWeight constant from Babylon Genesis.
@@ -14,10 +15,13 @@ const MAX_STANDARD_TX_WEIGHT: usize = 400000;
 /// This matches the maxTxVersion constant from Babylon Genesis.
 const MAX_TX_VERSION: i32 = 2;
 
+/// Dust threshold defines the maximum value of an output to be considered a dust output.
+const DUST_THRESHOLD: u64 = 546;
+
 /// Checks if a script is an OP_RETURN output
 fn is_op_return_output(script: &bitcoin::ScriptBuf) -> bool {
     let script_bytes = script.as_bytes();
-    !script_bytes.is_empty() && script_bytes[0] == 0x6a // OP_RETURN opcode
+    !script_bytes.is_empty() && script_bytes[0] == OP_RETURN.to_u8()
 }
 
 /// Checks pre-signed transaction sanity
@@ -171,7 +175,7 @@ fn validate_slashing_tx(
         }
 
         // Use the standard dust threshold (546 satoshis for non-OP_RETURN outputs)
-        if output.value.to_sat() <= 546 {
+        if output.value.to_sat() <= DUST_THRESHOLD {
             return Err(Error::TxContainsDustOutputs {});
         }
     }
@@ -593,7 +597,7 @@ mod tests {
 
         // Test 4: Regular dust outputs should fail
         let mut invalid_tx = slashing_tx.clone();
-        invalid_tx.output[0].value = Amount::from_sat(545); // Below 546 sat threshold
+        invalid_tx.output[0].value = Amount::from_sat(DUST_THRESHOLD - 1); // Below 546 sat threshold
         let result = validate_slashing_tx(
             &invalid_tx,
             slashing_pk_script,
