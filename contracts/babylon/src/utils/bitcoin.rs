@@ -48,6 +48,23 @@ pub fn parse_tx_info(
     Ok(btc_tx)
 }
 
+fn extract_op_return_data(tx: &Transaction) -> core::result::Result<Vec<u8>, String> {
+    for output in tx.output.iter() {
+        if output.script_pubkey.is_op_return() {
+            let pk_script = output.script_pubkey.as_bytes();
+
+            // if this is OP_PUSHDATA1, we need to drop first 3 bytes as those are related
+            // to script itself i.e OP_RETURN + OP_PUSHDATA1 + len of bytes
+            if pk_script[1] == bitcoin::blockdata::opcodes::all::OP_PUSHDATA1.to_u8() {
+                return Ok(pk_script[3..pk_script.len()].to_vec());
+            } else {
+                return Ok(pk_script[2..pk_script.len()].to_vec());
+            }
+        }
+    }
+    Err("no op_return data in this BTC tx".to_string())
+}
+
 /// Extracts the checkpoint data of the given tx.
 pub fn extract_checkpoint_data(
     btc_tx: &Transaction,
@@ -55,7 +72,7 @@ pub fn extract_checkpoint_data(
     idx: usize,
 ) -> Result<Vec<u8>, String> {
     // get OP_RETURN data
-    let op_return_data = babylon_bitcoin::extract_op_return_data(btc_tx)?;
+    let op_return_data = extract_op_return_data(btc_tx)?;
 
     // verify OP_RETURN length
     if idx == 0 && op_return_data.len() != FIRST_PART_LEN {

@@ -307,6 +307,7 @@ dependencies = [
  "babylon-bitcoin",
  "babylon-proto",
  "babylon-test-utils",
+ "bitcoin",
  "blst",
  "btc-finality",
  "btc-light-client",
