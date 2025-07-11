@@ -2,10 +2,10 @@ use crate::error::Error;
 use crate::scripts_utils;
 use crate::Result;
 
+use bitcoin::opcodes::all::OP_RETURN;
 use bitcoin::Transaction;
 use k256::schnorr::VerifyingKey;
 use rust_decimal::{prelude::*, Decimal};
-use bitcoin::opcodes::all::OP_RETURN;
 
 /// Maximum transaction weight allowed in Babylon system.
 /// This matches the MaxStandardTxWeight constant from Babylon Genesis.
