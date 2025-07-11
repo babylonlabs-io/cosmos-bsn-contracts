@@ -7,12 +7,12 @@
 //!
 //! It mirrors the logic used in Bitcoin Core and Babylon's Go implementation.
 
-use crate::state::{get_base_header, get_header, get_header_by_hash};
+use crate::state::{get_header, get_header_by_hash};
 use babylon_proto::babylon::btclightclient::v1::BtcHeaderInfo;
 use bitcoin::block::Header as BlockHeader;
 use bitcoin::consensus::{deserialize, Params};
 use bitcoin::hashes::Hash;
-use bitcoin::{BlockHash, Network, Target, Work};
+use bitcoin::{BlockHash, Target, Work};
 use cosmwasm_std::{StdError, StdResult};
 use cosmwasm_std::{Storage, Uint256};
 use std::collections::BTreeMap;
@@ -214,24 +214,9 @@ fn check_block_header_context(
         });
     }
 
-    // BIP 113
-    let height = prev_block_height + 1;
-
-    let csv_height = match chain_params.network {
-        Network::Bitcoin => 419328, // 000000000000000004a1b34462cb8aeebd5799177f7a29cf28f2d1961716b5b5
-        Network::Testnet => 770112, // 00000000025e930139bac5c6c31a403776da130831ab85be56578f3fa75369bb
-        Network::Signet => 1,       // Always active unless overridden
-        Network::Regtest => 1,      // Always active unless overridden
-        _ => unreachable!("Unsupported network"),
-    };
-
-    let base_height = get_base_header(storage)?.height;
-
-    if height >= base_height + MEDIAN_TIME_SPAN as u32 && height >= csv_height {
-        let mtp = calculate_median_time_past(storage, header, pending_headers)?;
-        if header.time <= mtp {
-            return Err(HeaderError::TimeTooOld);
-        }
+    let mtp = calculate_median_time_past(storage, header, pending_headers)?;
+    if header.time <= mtp {
+        return Err(HeaderError::TimeTooOld);
     }
 
     Ok(())
