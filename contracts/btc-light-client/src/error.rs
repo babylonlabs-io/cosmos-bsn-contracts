@@ -1,4 +1,4 @@
-use babylon_bitcoin::Work;
+use bitcoin::Work;
 use cosmwasm_std::StdError;
 use cw_utils::ParseReplyError;
 use hex::FromHexError;
@@ -26,7 +26,7 @@ pub enum ContractError {
     InsufficientWork(Work, Work),
 
     #[error(transparent)]
-    BitcoinHex(#[from] babylon_bitcoin::HexError),
+    BitcoinHex(#[from] bitcoin::hashes::hex::HexToArrayError),
 
     #[error(transparent)]
     Hex(#[from] FromHexError),
@@ -48,8 +48,8 @@ pub enum ContractError {
     Store(#[from] crate::state::btc_light_client::StoreError),
 }
 
-impl From<babylon_bitcoin::EncodeError> for ContractError {
-    fn from(e: babylon_bitcoin::EncodeError) -> Self {
+impl From<bitcoin::consensus::encode::Error> for ContractError {
+    fn from(e: bitcoin::consensus::encode::Error) -> Self {
         Self::BitcoinEncode(e.to_string())
     }
 }

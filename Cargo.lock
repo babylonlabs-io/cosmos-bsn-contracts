@@ -228,10 +228,10 @@ checksum = "ace50bade8e6234aa140d9a2f552bbee1db4d353f69b8217bc503490fc1a9f26"
 name = "babylon-apis"
 version = "0.14.0"
 dependencies = [
- "babylon-bitcoin",
  "babylon-merkle",
  "babylon-proto",
  "bech32 0.9.1",
+ "bitcoin",
  "cosmwasm-schema",
  "cosmwasm-std",
  "hex",
@@ -263,25 +263,9 @@ dependencies = [
 ]
 
 [[package]]
-name = "babylon-bitcoin"
-version = "0.14.0"
-dependencies = [
- "bitcoin",
- "cosmwasm-std",
- "digest",
- "hex",
- "k256",
- "schemars",
- "serde",
- "sha2",
- "thiserror 1.0.69",
-]
-
-[[package]]
 name = "babylon-btcstaking"
 version = "0.14.0"
 dependencies = [
- "babylon-bitcoin",
  "babylon-proto",
  "babylon-test-utils",
  "bitcoin",
@@ -304,9 +288,9 @@ dependencies = [
  "babylon-apis",
  "babylon-bindings",
  "babylon-bindings-test",
- "babylon-bitcoin",
  "babylon-proto",
  "babylon-test-utils",
+ "bitcoin",
  "blst",
  "btc-finality",
  "btc-light-client",
@@ -366,7 +350,6 @@ name = "babylon-test-utils"
 version = "0.14.0"
 dependencies = [
  "babylon-apis",
- "babylon-bitcoin",
  "babylon-proto",
  "bitcoin",
  "btc-light-client",
@@ -587,7 +570,6 @@ dependencies = [
  "babylon-apis",
  "babylon-bindings",
  "babylon-bindings-test",
- "babylon-bitcoin",
  "babylon-btcstaking",
  "babylon-contract",
  "babylon-merkle",
@@ -623,7 +605,6 @@ dependencies = [
  "babylon-apis",
  "babylon-bindings",
  "babylon-bindings-test",
- "babylon-bitcoin",
  "babylon-proto",
  "babylon-test-utils",
  "bitcoin",
@@ -638,6 +619,7 @@ dependencies = [
  "derivative",
  "hex",
  "prost",
+ "schemars",
  "serde",
  "thiserror 1.0.69",
  "thousands",
@@ -649,7 +631,6 @@ version = "0.14.0"
 dependencies = [
  "babylon-apis",
  "babylon-bindings",
- "babylon-bitcoin",
  "babylon-btcstaking",
  "babylon-contract",
  "babylon-merkle",

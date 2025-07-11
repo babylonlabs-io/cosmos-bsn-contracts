@@ -1,4 +1,4 @@
-use babylon_bitcoin::Network;
+use btc_light_client::BitcoinNetwork;
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::Addr;
 
@@ -31,8 +31,8 @@ pub struct Params {
     /// Minimum number of signatures needed for the covenant multi-signature.
     pub covenant_quorum: u32,
     /// Network the BTC staking protocol is running on.
-    #[derivative(Default(value = "Network::Regtest"))]
-    pub btc_network: Network,
+    #[derivative(Default(value = "BitcoinNetwork::Regtest"))]
+    pub btc_network: BitcoinNetwork,
     // Chain-wide minimum commission rate that a finality provider can charge their delegators.
     // pub min_commission_rate: Decimal,
     /// Pk script that the slashed BTC goes to, in string format on Bitcoin.

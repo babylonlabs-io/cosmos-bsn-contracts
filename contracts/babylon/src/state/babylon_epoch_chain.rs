@@ -2,7 +2,7 @@
 //! It maintains a chain of finalised Babylon epochs.
 //! NOTE: the Babylon epoch chain is always finalised, i.e. w-deep on BTC.
 
-use babylon_bitcoin::BlockHeader;
+use bitcoin::block::Header as BlockHeader;
 use btc_light_client::msg::btc_header::BtcHeaderResponse;
 use prost::Message;
 use std::cmp::min;

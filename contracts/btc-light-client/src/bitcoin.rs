@@ -8,13 +8,13 @@
 //! It mirrors the logic used in Bitcoin Core and Babylon's Go implementation.
 
 use crate::state::{get_base_header, get_header, get_header_by_hash};
-use babylon_bitcoin::{deserialize, BlockHeader, Work};
-use babylon_bitcoin::{Params, Uint256};
 use babylon_proto::babylon::btclightclient::v1::BtcHeaderInfo;
+use bitcoin::block::Header as BlockHeader;
+use bitcoin::consensus::{deserialize, Params};
 use bitcoin::hashes::Hash;
-use bitcoin::{BlockHash, Network, Target};
-use cosmwasm_std::Storage;
+use bitcoin::{BlockHash, Network, Target, Work};
 use cosmwasm_std::{StdError, StdResult};
+use cosmwasm_std::{Storage, Uint256};
 use std::collections::BTreeMap;
 
 /// bip-0113 defines the median of the last 11 blocks instead of the block's timestamp for lock-time calculations.
@@ -61,8 +61,8 @@ pub enum HeaderError {
     Store(#[from] crate::state::btc_light_client::StoreError),
 }
 
-impl From<babylon_bitcoin::EncodeError> for HeaderError {
-    fn from(e: babylon_bitcoin::EncodeError) -> Self {
+impl From<bitcoin::consensus::encode::Error> for HeaderError {
+    fn from(e: bitcoin::consensus::encode::Error) -> Self {
         Self::DecodeError(e.to_string())
     }
 }

@@ -24,7 +24,6 @@ integration     = "./scripts/integration_test.sh"
 anybuf = { version = "0.5.0" }
 babylon-apis = { path = "./packages/apis" }
 babylon-proto = { path = "./packages/proto" }
-babylon-bitcoin = { path = "./packages/bitcoin" }
 babylon-btcstaking = { path = "./packages/btcstaking" }
 babylon-contract = { path = "./contracts/babylon" }
 eots = { path = "./packages/eots" }

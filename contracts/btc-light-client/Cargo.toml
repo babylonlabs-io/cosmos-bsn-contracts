@@ -33,7 +33,6 @@ library = []
 babylon-apis     = { path = "../../packages/apis" }
 babylon-bindings = { path = "../../packages/bindings" }
 babylon-proto    = { path = "../../packages/proto" }
-babylon-bitcoin  = { path = "../../packages/bitcoin" }
 bitcoin          = { workspace = true }
 cosmwasm-schema  = { workspace = true }
 cosmwasm-std     = { workspace = true }
@@ -43,6 +42,7 @@ cw-utils         = { workspace = true }
 hex              = { workspace = true }
 thiserror        = { workspace = true }
 prost            = { workspace = true }
+schemars         = { workspace = true }
 serde            = { workspace = true, features = ["derive"] }
 
 [dev-dependencies]

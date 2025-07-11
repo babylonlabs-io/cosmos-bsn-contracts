@@ -1,4 +1,5 @@
-use babylon_bitcoin::{deserialize, Transaction};
+use bitcoin::consensus::deserialize;
+use bitcoin::Transaction;
 
 use cosmwasm_std::StdError;
 

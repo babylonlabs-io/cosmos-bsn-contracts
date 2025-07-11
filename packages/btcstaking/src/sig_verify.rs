@@ -1,7 +1,6 @@
 use crate::adaptor_sig::AdaptorSignature;
 use crate::error::Error;
 use crate::Result;
-use babylon_bitcoin::schnorr;
 use bitcoin::hashes::Hash;
 use bitcoin::sighash::{Prevouts, SighashCache};
 use bitcoin::{Script, TxOut};
@@ -59,7 +58,7 @@ pub fn verify_transaction_sig_with_output(
     // calculate the sig hash of the tx for the given spending path
     let sighash = calc_sighash(transaction, funding_output, path_script)?;
 
-    schnorr::verify_digest(pub_key, &sighash, signature).map_err(Error::BitcoinError)
+    crate::schnorr::verify_digest(pub_key, &sighash, signature)
 }
 
 /// `enc_verify_transaction_sig_with_output` verifies the validity of a Schnorr adaptor signature
