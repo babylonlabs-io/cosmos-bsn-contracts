@@ -386,11 +386,14 @@ pub fn is_difficulty_change_boundary(height: u32, chain_params: &Params) -> bool
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::state::btc_light_client::handle_btc_headers_from_babylon;
+    use crate::state::btc_light_client::tests::{init_contract, setup};
+    use babylon_test_utils::get_btc_lc_headers;
     use bitcoin::block::Header as BlockHeader;
     use bitcoin::block::Version;
     use bitcoin::hashes::Hash;
     use bitcoin::{BlockHash, CompactTarget};
-    use cosmwasm_std::testing::MockStorage;
+    use cosmwasm_std::testing::{mock_dependencies, MockStorage};
     use std::collections::BTreeMap;
 
     fn make_header(time: u32, prev_blockhash: BlockHash) -> BlockHeader {
@@ -461,5 +464,22 @@ mod tests {
         used_times.sort_unstable();
         let mtp = calculate_median_time_past(&storage, &header, 14, &pending_headers).unwrap();
         assert_eq!(mtp, used_times[used_times.len() / 2]);
+    }
+
+    #[test]
+    fn median_time_check_should_work_when_there_are_less_than_11_headers_in_store() {
+        let deps = mock_dependencies();
+        let mut storage = deps.storage;
+        setup(&mut storage);
+
+        let test_headers = get_btc_lc_headers();
+
+        // Initialize the contract with only the base header.
+        let initial_headers = vec![test_headers[0].clone()];
+        init_contract(&mut storage, &initial_headers).unwrap();
+
+        // Submit one header.
+        let new_headers = vec![test_headers[1].clone()];
+        handle_btc_headers_from_babylon(&mut storage, &new_headers).unwrap();
     }
 }
