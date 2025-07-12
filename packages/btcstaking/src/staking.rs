@@ -1,11 +1,14 @@
-use crate::error::Error;
-use crate::scripts_utils;
+use crate::errors::Error;
 use crate::Result;
 
+use crate::types::is_rate_valid;
+use babylon_schnorr_adaptor_signature::{verify_digest, AdaptorSignature};
+use bitcoin::hashes::Hash;
 use bitcoin::opcodes::all::OP_RETURN;
-use bitcoin::Transaction;
+use bitcoin::sighash::{Prevouts, SighashCache};
+use bitcoin::{Script, Transaction, TxOut};
+use k256::schnorr::Signature as SchnorrSignature;
 use k256::schnorr::VerifyingKey;
-use rust_decimal::{prelude::*, Decimal};
 
 /// Maximum transaction weight allowed in Babylon system.
 /// This matches the MaxStandardTxWeight constant from Babylon Genesis.
@@ -128,8 +131,10 @@ fn validate_slashing_tx(
     // Verify that the second output pays to the taproot address which locks funds for
     // slashingChangeLockTime
     // Build script based on the timelock details
-    let expected_pk_script =
-        scripts_utils::build_relative_time_lock_pk_script(staker_pk, slashing_change_lock_time)?;
+    let expected_pk_script = crate::types::build_relative_timelock_taproot_script_pk_script(
+        staker_pk,
+        slashing_change_lock_time,
+    )?;
     if slashing_tx.output[1].script_pubkey.ne(&expected_pk_script) {
         return Err(Error::InvalidSlashingTxChangeOutputScript {
             expected: expected_pk_script.to_bytes(),
@@ -174,23 +179,6 @@ fn validate_slashing_tx(
     }
 
     Ok(())
-}
-
-/// Checks if the given rate is between the valid range i.e., (0,1) with a precision of at most 2 decimal places.
-fn is_rate_valid(rate: f64) -> bool {
-    // Check if the slashing rate is between 0 and 1
-    if rate <= 0.0 || rate >= 1.0 {
-        return false;
-    }
-
-    // Multiply by 100 to move the decimal places and check if precision is at most 2 decimal places
-    let multiplied_rate = Decimal::from_f64(rate * 100.0).unwrap();
-
-    // Truncate the rate to remove decimal places
-    let truncated_rate = multiplied_rate.trunc();
-
-    // Check if the truncated rate is equal to the original rate
-    multiplied_rate == truncated_rate
 }
 
 /// Validates all relevant data of slashing and funding transactions.
@@ -253,14 +241,72 @@ pub fn check_slashing_tx_match_funding_tx(
     Ok(())
 }
 
+fn calc_sighash(
+    transaction: &Transaction,
+    funding_output: &TxOut,
+    path_script: &Script,
+) -> Result<[u8; 32]> {
+    // Check for incorrect input count
+    if transaction.input.len() != 1 {
+        return Err(Error::TxInputCountMismatch(1, transaction.input.len()));
+    }
+
+    // calculate tap leaf hash for the given path of the script
+    let tap_leaf_hash = path_script.tapscript_leaf_hash();
+
+    // calculate the sig hash of the tx with the given funding output
+    let mut sighash_cache = SighashCache::new(transaction);
+    let sighash = sighash_cache
+        .taproot_script_spend_signature_hash(
+            0,
+            &Prevouts::All(&[funding_output]),
+            tap_leaf_hash,
+            bitcoin::TapSighashType::Default,
+        )
+        .unwrap();
+
+    Ok(sighash.to_raw_hash().to_byte_array())
+}
+
+/// verify_transaction_sig_with_output verifies the validity of a Schnorr signature for a given transaction
+pub fn verify_transaction_sig_with_output(
+    transaction: &Transaction,
+    funding_output: &TxOut,
+    path_script: &Script,
+    pub_key: &VerifyingKey,
+    signature: &SchnorrSignature,
+) -> Result<()> {
+    // calculate the sig hash of the tx for the given spending path
+    let sighash = calc_sighash(transaction, funding_output, path_script)?;
+
+    verify_digest(pub_key, &sighash, signature)
+        .map_err(|e| Error::InvalidSchnorrSignature(e.to_string()))
+}
+
+/// `enc_verify_transaction_sig_with_output` verifies the validity of a Schnorr adaptor signature
+/// for a given transaction
+pub fn enc_verify_transaction_sig_with_output(
+    transaction: &Transaction,
+    funding_output: &TxOut,
+    path_script: &Script,
+    pub_key: &VerifyingKey,
+    enc_key: &VerifyingKey,
+    signature: &AdaptorSignature,
+) -> Result<()> {
+    // calculate the sig hash of the tx for the given spending path
+    let sighash_msg = calc_sighash(transaction, funding_output, path_script)?;
+
+    // verify the signature w.r.t. the signature, the sig hash, and the public key
+    signature
+        .verify(pub_key, enc_key, sighash_msg)
+        .map_err(|e| Error::InvalidSchnorrSignature(e.to_string()))
+}
+
 #[cfg(test)]
 mod tests {
-    use self::scripts_utils::BabylonScriptPaths;
     use super::*;
-    use crate::adaptor_sig::AdaptorSignature;
-    use crate::sig_verify::{
-        enc_verify_transaction_sig_with_output, verify_transaction_sig_with_output,
-    };
+    use crate::types::BabylonScriptPaths;
+    use babylon_schnorr_adaptor_signature::AdaptorSignature;
     use bitcoin::absolute::LockTime;
     use bitcoin::consensus::deserialize;
     use bitcoin::hashes::Hash;
@@ -340,7 +386,7 @@ mod tests {
             &staking_tx,
             funding_out_idx,
             slashing_tx_min_fee,
-            0.123, // Invalid rate (3 decimal places)
+            0.12345, // Invalid rate (5 decimal places)
             slashing_pk_script,
             &staker_pk,
             slashing_change_lock_time,
@@ -761,29 +807,6 @@ mod tests {
             slashing_change_lock_time,
         );
         assert!(matches!(result, Err(Error::SlashingTxOverspend {})));
-    }
-
-    #[test]
-    fn test_is_rate_valid_comprehensive() {
-        // Test valid rates
-        assert!(is_rate_valid(0.01)); // 1%
-        assert!(is_rate_valid(0.1)); // 10%
-        assert!(is_rate_valid(0.5)); // 50%
-        assert!(is_rate_valid(0.99)); // 99%
-
-        // Test valid rates with 2 decimal places
-        assert!(is_rate_valid(0.05)); // 5%
-        assert!(is_rate_valid(0.25)); // 25%
-
-        // Test invalid rates - boundary cases
-        assert!(!is_rate_valid(0.0)); // Exactly 0
-        assert!(!is_rate_valid(1.0)); // Exactly 1
-        assert!(!is_rate_valid(-0.1)); // Negative
-        assert!(!is_rate_valid(1.1)); // Greater than 1
-
-        // Test invalid rates - too many decimal places
-        assert!(!is_rate_valid(0.001)); // 0.1% (3 decimal places)
-        assert!(!is_rate_valid(0.123)); // 12.3% (3 decimal places)
     }
 
     #[test]

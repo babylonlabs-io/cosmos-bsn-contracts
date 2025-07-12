@@ -7,9 +7,8 @@ use cosmwasm_std::Binary;
 #[cfg(feature = "full-validation")]
 use {
     babylon_apis::btc_staking_api::{BTCSigType, ProofOfPossessionBtc},
-    babylon_btcstaking::adaptor_sig::AdaptorSignature,
-    babylon_btcstaking::schnorr::verify_digest,
-    babylon_btcstaking::sig_verify::enc_verify_transaction_sig_with_output,
+    babylon_btcstaking::staking::enc_verify_transaction_sig_with_output,
+    babylon_schnorr_adaptor_signature::{verify_digest, AdaptorSignature},
     bitcoin::consensus::deserialize,
     cosmwasm_std::CanonicalAddr,
     hex::ToHex,
@@ -169,7 +168,7 @@ pub fn verify_active_delegation(
             .slashing_rate
             .parse::<f64>()
             .map_err(|_| ContractError::InvalidBtcTx("invalid slashing rate".to_string()))?;
-        babylon_btcstaking::tx_verify::check_slashing_tx_match_funding_tx(
+        babylon_btcstaking::staking::check_slashing_tx_match_funding_tx(
             &slashing_tx,
             staking_tx,
             active_delegation.staking_output_idx,
@@ -189,7 +188,7 @@ pub fn verify_active_delegation(
         // get the slashing path script
         let staking_output = &staking_tx.output[active_delegation.staking_output_idx as usize];
         let staking_time = (active_delegation.end_height - active_delegation.start_height) as u16;
-        let babylon_script_paths = babylon_btcstaking::scripts_utils::BabylonScriptPaths::new(
+        let babylon_script_paths = babylon_btcstaking::types::BabylonScriptPaths::new(
             &staker_pk,
             &fp_pks,
             &cov_pks,
@@ -203,7 +202,7 @@ pub fn verify_active_delegation(
             k256::schnorr::Signature::try_from(active_delegation.delegator_slashing_sig.as_slice())
                 .map_err(|e| ContractError::SecP256K1Error(e.to_string()))?;
         // Verify the staker's signature
-        babylon_btcstaking::sig_verify::verify_transaction_sig_with_output(
+        babylon_btcstaking::staking::verify_transaction_sig_with_output(
             &slashing_tx,
             staking_output,
             slashing_path_script.as_script(),
@@ -283,14 +282,13 @@ pub fn verify_active_delegation(
         // - Fee is greater than 0.
         // - Unbonding output value is at least `MinUnbondingValue` percentage of staking output value.
 
-        let babylon_unbonding_script_paths =
-            babylon_btcstaking::scripts_utils::BabylonScriptPaths::new(
-                &staker_pk,
-                &fp_pks,
-                &cov_pks,
-                params.covenant_quorum as usize,
-                staking_time,
-            )?;
+        let babylon_unbonding_script_paths = babylon_btcstaking::types::BabylonScriptPaths::new(
+            &staker_pk,
+            &fp_pks,
+            &cov_pks,
+            params.covenant_quorum as usize,
+            staking_time,
+        )?;
 
         // TODO: Ensure the unbonding tx has valid unbonding output, and get the unbonding output (#7.1)
         // index (#7.1)
@@ -300,7 +298,7 @@ pub fn verify_active_delegation(
         let unbonding_time = active_delegation.unbonding_time as u16;
 
         // Check that unbonding tx and unbonding slashing tx are consistent
-        babylon_btcstaking::tx_verify::check_slashing_tx_match_funding_tx(
+        babylon_btcstaking::staking::check_slashing_tx_match_funding_tx(
             &unbonding_slashing_tx,
             &unbonding_tx,
             unbonding_output_idx,
@@ -324,7 +322,7 @@ pub fn verify_active_delegation(
         let unbonding_slashing_sig = k256::schnorr::Signature::try_from(unbonding_slashing_sig)
             .map_err(|e| ContractError::SecP256K1Error(e.to_string()))?;
         // Verify the staker's signature
-        babylon_btcstaking::sig_verify::verify_transaction_sig_with_output(
+        babylon_btcstaking::staking::verify_transaction_sig_with_output(
             &unbonding_slashing_tx,
             &unbonding_tx.output[unbonding_output_idx as usize],
             unbonding_slashing_path_script.as_script(),
@@ -358,7 +356,7 @@ pub fn verify_active_delegation(
             let sig = Signature::try_from(cov_sig.sig.as_slice())
                 .map_err(|e| ContractError::SecP256K1Error(e.to_string()))?;
             // Verify the covenant member's signature
-            babylon_btcstaking::sig_verify::verify_transaction_sig_with_output(
+            babylon_btcstaking::staking::verify_transaction_sig_with_output(
                 staking_tx,
                 staking_output,
                 unbonding_path_script.as_script(),
@@ -443,7 +441,7 @@ pub fn verify_undelegation(
             .map_err(|_| ContractError::InvalidBtcTx(btc_del.staking_tx.encode_hex()))?;
         let staking_output = &staking_tx.output[btc_del.staking_output_idx as usize];
         let staking_time = (btc_del.end_height - btc_del.start_height) as u16;
-        let babylon_script_paths = babylon_btcstaking::scripts_utils::BabylonScriptPaths::new(
+        let babylon_script_paths = babylon_btcstaking::types::BabylonScriptPaths::new(
             &staker_pk,
             &fp_pks,
             &cov_pks,
@@ -463,7 +461,7 @@ pub fn verify_undelegation(
             .map_err(|e| ContractError::SecP256K1Error(e.to_string()))?;
 
         // Verify the signature
-        babylon_btcstaking::sig_verify::verify_transaction_sig_with_output(
+        babylon_btcstaking::staking::verify_transaction_sig_with_output(
             &unbonding_tx,
             staking_output,
             unbonding_path_script.as_script(),
