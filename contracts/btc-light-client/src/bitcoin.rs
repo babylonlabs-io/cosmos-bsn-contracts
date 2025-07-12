@@ -49,6 +49,9 @@ pub enum HeaderError {
     #[error("Time is the median time of last 11 blocks or before")]
     TimeTooOld,
 
+    #[error("Block version {0} is too old and is no longer accepted")]
+    BlockVersionTooOld(i32),
+
     #[error("Failed to decode BTC header: {0}")]
     DecodeError(String),
 
@@ -215,9 +218,19 @@ fn check_block_header_context(
         });
     }
 
-    let mtp = calculate_median_time_past(storage, header, prev_block_height + 1, pending_headers)?;
+    let block_height = prev_block_height + 1;
+
+    let mtp = calculate_median_time_past(storage, header, block_height, pending_headers)?;
     if header.time <= mtp {
         return Err(HeaderError::TimeTooOld);
+    }
+
+    let block_version = header.version.to_consensus();
+    if (block_version < 2 && block_height >= chain_params.bip34_height)
+        || (block_version < 3 && block_height >= chain_params.bip66_height)
+        || (block_version < 4 && block_height >= chain_params.bip65_height)
+    {
+        return Err(HeaderError::BlockVersionTooOld(block_version));
     }
 
     Ok(())
