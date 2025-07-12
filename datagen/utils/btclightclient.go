@@ -5,10 +5,10 @@ import (
 	"os"
 	"path/filepath"
 
-	bbnapp "github.com/babylonlabs-io/babylon/app"
-	"github.com/babylonlabs-io/babylon/testutil/datagen"
-	"github.com/babylonlabs-io/babylon/types"
-	btclctypes "github.com/babylonlabs-io/babylon/x/btclightclient/types"
+	bbnapp "github.com/babylonlabs-io/babylon/v3/app"
+	"github.com/babylonlabs-io/babylon/v3/testutil/datagen"
+	"github.com/babylonlabs-io/babylon/v3/types"
+	btclctypes "github.com/babylonlabs-io/babylon/v3/x/btclightclient/types"
 )
 
 var (
