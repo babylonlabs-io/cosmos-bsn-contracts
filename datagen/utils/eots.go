@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/babylonlabs-io/babylon/crypto/eots"
+	"github.com/babylonlabs-io/babylon/v3/crypto/eots"
 	"github.com/btcsuite/btcd/btcec/v2/schnorr"
 )
 
