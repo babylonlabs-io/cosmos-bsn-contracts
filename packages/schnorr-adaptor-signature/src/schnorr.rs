@@ -5,7 +5,7 @@
 //! Adapted from `sha2` [sha256.rs](https://github.com/RustCrypto/hashes/blob/master/sha2/src/sha256.rs)
 //! and https://github.com/CosmWasm/cosmwasm/blob/main/packages/crypto/src/identity_digest.rs
 
-use crate::error::Error;
+use crate::errors::Error;
 use crate::Result;
 use digest::consts::U32;
 use digest::generic_array::GenericArray;
