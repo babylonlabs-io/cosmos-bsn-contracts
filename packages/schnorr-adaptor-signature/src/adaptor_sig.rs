@@ -1,4 +1,4 @@
-use crate::error::Error;
+use crate::errors::Error;
 use crate::Result;
 
 use k256::elliptic_curve::group::prime::PrimeCurveAffine;

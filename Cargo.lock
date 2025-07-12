@@ -267,6 +267,7 @@ name = "babylon-btcstaking"
 version = "0.14.0"
 dependencies = [
  "babylon-proto",
+ "babylon-schnorr-adaptor-signature",
  "babylon-test-utils",
  "bitcoin",
  "digest",
@@ -343,6 +344,16 @@ dependencies = [
  "prost",
  "sha2",
  "tendermint-proto",
+]
+
+[[package]]
+name = "babylon-schnorr-adaptor-signature"
+version = "0.14.0"
+dependencies = [
+ "digest",
+ "k256",
+ "sha2",
+ "thiserror 1.0.69",
 ]
 
 [[package]]
@@ -635,6 +646,7 @@ dependencies = [
  "babylon-contract",
  "babylon-merkle",
  "babylon-proto",
+ "babylon-schnorr-adaptor-signature",
  "babylon-test-utils",
  "bitcoin",
  "btc-light-client",

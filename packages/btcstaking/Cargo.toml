@@ -13,6 +13,7 @@ sha2            = { workspace = true }
 k256            = { workspace = true }
 thiserror       = { workspace = true }
 eots            = { path = "../eots" }
+babylon-schnorr-adaptor-signature = { path = "../schnorr-adaptor-signature" }
 
 [dev-dependencies]
 babylon-proto      = { workspace = true }
