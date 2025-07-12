@@ -110,7 +110,10 @@ pub fn get_header(storage: &dyn Storage, height: u32) -> Result<BtcHeaderInfo, S
 }
 
 // Retrieves the BTC header of a given hash.
-pub fn get_header_by_hash(storage: &dyn Storage, hash: &[u8]) -> Result<BtcHeaderInfo, StoreError> {
+pub fn expect_header_by_hash(
+    storage: &dyn Storage,
+    hash: &[u8],
+) -> Result<BtcHeaderInfo, StoreError> {
     // Try to find the height with the given hash
     let height = BTC_HEIGHTS
         .load(storage, hash)
@@ -197,7 +200,7 @@ pub fn handle_btc_headers_from_babylon(
     } else {
         // Here we received a potential new fork
         let parent_hash = first_new_btc_header.prev_blockhash.as_ref();
-        let fork_parent = get_header_by_hash(storage, parent_hash)?;
+        let fork_parent = expect_header_by_hash(storage, parent_hash)?;
 
         verify_headers(storage, &chain_params, &fork_parent, new_headers)?;
 
@@ -242,7 +245,7 @@ pub fn handle_btc_headers_from_user(
     let prev_blockhash = BlockHash::from_str(&first_new_btc_header.prev_blockhash)?;
 
     // Obtain previous header from storage
-    let previous_header = get_header_by_hash(storage, prev_blockhash.as_ref())?;
+    let previous_header = expect_header_by_hash(storage, prev_blockhash.as_ref())?;
 
     // Convert new_headers to `BtcHeaderInfo`s
     let mut prev_height = previous_header.height;
@@ -332,7 +335,7 @@ pub mod tests {
             let header_actual = get_header(storage, header_expected.height).unwrap();
             assert_eq!(*header_expected, header_actual);
             let header_by_hash =
-                get_header_by_hash(storage, header_expected.hash.as_ref()).unwrap();
+                expect_header_by_hash(storage, header_expected.hash.as_ref()).unwrap();
             assert_eq!(*header_expected, header_by_hash);
         }
     }
@@ -342,7 +345,7 @@ pub mod tests {
         // Existence / inclusion check only, as we don't have the height and cumulative work info
         for header_expected in headers {
             let block_header_expected: BlockHeader = header_expected.try_into().unwrap();
-            get_header_by_hash(storage, block_header_expected.block_hash().as_ref()).unwrap();
+            expect_header_by_hash(storage, block_header_expected.block_hash().as_ref()).unwrap();
         }
     }
 

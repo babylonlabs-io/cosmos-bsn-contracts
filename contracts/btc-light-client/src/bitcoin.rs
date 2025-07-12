@@ -7,7 +7,7 @@
 //!
 //! It mirrors the logic used in Bitcoin Core and Babylon's Go implementation.
 
-use crate::state::{get_header, get_header_by_hash};
+use crate::state::{expect_header_by_hash, get_header};
 use babylon_proto::babylon::btclightclient::v1::BtcHeaderInfo;
 use bitcoin::block::Header as BlockHeader;
 use bitcoin::consensus::{deserialize, Params};
@@ -259,7 +259,7 @@ fn calculate_median_time_past(
             break;
         }
 
-        let header: BlockHeader = match get_header_by_hash(storage, block_hash.as_ref()) {
+        let header: BlockHeader = match expect_header_by_hash(storage, block_hash.as_ref()) {
             Ok(raw_header) => deserialize(raw_header.header.as_ref())?,
             Err(_) => pending_headers
                 .get(&block_hash)
