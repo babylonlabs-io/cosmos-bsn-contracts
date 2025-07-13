@@ -114,6 +114,8 @@ pub enum ContractError {
     BTCStaking(#[from] babylon_btcstaking::error::Error),
     #[error(transparent)]
     HexError(#[from] FromHexError),
+    #[error(transparent)]
+    SchnorrAdaptorSignature(#[from] babylon_schnorr_adaptor_signature::Error),
 }
 
 impl From<bitcoin::consensus::encode::Error> for ContractError {
