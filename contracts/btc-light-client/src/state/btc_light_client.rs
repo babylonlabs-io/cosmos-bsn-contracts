@@ -109,12 +109,13 @@ pub fn get_header(storage: &dyn Storage, height: u32) -> Result<BtcHeaderInfo, S
     BtcHeaderInfo::decode(header_bytes.as_slice()).map_err(Into::into)
 }
 
-// Retrieves the BTC header of a given hash.
+/// Retrieves the BTC header associated with the given block hash.
+///
+/// This function assumes the header **must exist**, and will return an error if it is not found.
 pub fn expect_header_by_hash(
     storage: &dyn Storage,
     hash: &[u8],
 ) -> Result<BtcHeaderInfo, StoreError> {
-    // Try to find the height with the given hash
     let height = BTC_HEIGHTS
         .load(storage, hash)
         .map_err(|_| StoreError::HeaderNotFound {
@@ -122,6 +123,22 @@ pub fn expect_header_by_hash(
         })?;
 
     get_header(storage, height)
+}
+
+/// Attempts to retrieve the BTC header associated with the given block hash.
+///
+/// Unlike [`expect_header_by_hash`], this version returns `Ok(None)` if the header does not exist,
+/// allowing for optional handling instead of an error.
+pub fn get_header_by_hash(
+    storage: &dyn Storage,
+    hash: &[u8],
+) -> Result<Option<BtcHeaderInfo>, StoreError> {
+    let maybe_height = BTC_HEIGHTS.may_load(storage, hash)?;
+
+    match maybe_height {
+        Some(height) => Ok(Some(get_header(storage, height)?)),
+        None => Ok(None),
+    }
 }
 
 // Retrieves the BTC header height of a given BTC hash

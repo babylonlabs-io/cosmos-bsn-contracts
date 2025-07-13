@@ -7,7 +7,7 @@
 //!
 //! It mirrors the logic used in Bitcoin Core and Babylon's Go implementation.
 
-use crate::state::{expect_header_by_hash, get_header};
+use crate::state::btc_light_client::{get_header, get_header_by_hash};
 use babylon_proto::babylon::btclightclient::v1::BtcHeaderInfo;
 use bitcoin::block::Header as BlockHeader;
 use bitcoin::consensus::{deserialize, Params};
@@ -19,7 +19,7 @@ use std::collections::BTreeMap;
 /// bip-0113 defines the median of the last 11 blocks instead of the block's timestamp for lock-time calculations.
 const MEDIAN_TIME_SPAN: usize = 11;
 
-type PendingHeaders = BTreeMap<BlockHash, (BlockHeader, u32)>;
+type PendingHeaders = BTreeMap<BlockHash, BlockHeader>;
 
 /// Errors that can occur during BTC header verification.
 #[derive(thiserror::Error, Debug, PartialEq)]
@@ -130,7 +130,7 @@ pub fn verify_headers(
         // this header is good, verify the next one
         cum_work_old = cum_work;
         last_header = new_header.clone();
-        pending_headers.insert(block_header.block_hash(), (block_header, new_header.height));
+        pending_headers.insert(block_header.block_hash(), block_header);
     }
     Ok(())
 }
@@ -220,7 +220,7 @@ fn check_block_header_context(
 
     let block_height = prev_block_height + 1;
 
-    let mtp = calculate_median_time_past(storage, header, block_height, pending_headers)?;
+    let mtp = calculate_median_time_past(storage, prev_block_header, pending_headers)?;
     if header.time <= mtp {
         return Err(HeaderError::TimeTooOld);
     }
@@ -237,41 +237,29 @@ fn check_block_header_context(
 }
 
 /// Calculates the median time of the previous few blocks prior to the header (inclusive).
-// TODO: Added `header_height` to make the loop exit condition more robust when fetching previous
-// timestamps, since relying on `BlockHash::all_zeros()` isn't reliable with the current test data.
-// We may remove it in future if the test data is updated.
 fn calculate_median_time_past(
     storage: &dyn Storage,
-    header: &BlockHeader,
-    header_height: u32,
+    prev_header: &BlockHeader,
     pending_headers: &PendingHeaders,
 ) -> Result<u32, HeaderError> {
     let mut timestamps = Vec::with_capacity(MEDIAN_TIME_SPAN);
 
-    timestamps.push(header.time);
+    let mut block_hash = prev_header.block_hash();
 
-    let mut block_hash = header.prev_blockhash;
-    let mut block_height = header_height - 1;
+    for _ in 0..MEDIAN_TIME_SPAN {
+        let maybe_header: Option<BlockHeader> =
+            match get_header_by_hash(storage, block_hash.as_ref())? {
+                Some(raw_header) => Some(deserialize(raw_header.header.as_ref())?),
+                None => pending_headers.get(&block_hash).cloned(),
+            };
 
-    while timestamps.len() < MEDIAN_TIME_SPAN {
-        // Genesis block
-        if block_height == 0 {
+        let Some(header) = maybe_header else {
             break;
-        }
-
-        let header: BlockHeader = match expect_header_by_hash(storage, block_hash.as_ref()) {
-            Ok(raw_header) => deserialize(raw_header.header.as_ref())?,
-            Err(_) => pending_headers
-                .get(&block_hash)
-                .map(|(header, _height)| header)
-                .cloned()
-                .ok_or(HeaderError::MissingHeader(block_hash))?,
         };
 
         timestamps.push(header.time);
 
         block_hash = header.prev_blockhash;
-        block_height -= 1;
     }
 
     timestamps.sort_unstable();
@@ -279,7 +267,7 @@ fn calculate_median_time_past(
     Ok(timestamps
         .get(timestamps.len() / 2)
         .copied()
-        .expect("Timestamps must be non-empty; qed"))
+        .expect("Timestamps must be non-empty as prev_header must exist; qed"))
 }
 
 /// Usually, it's just the target of last block. However, if we are in a retarget period,
@@ -412,10 +400,10 @@ mod tests {
         let mut prev_hash = BlockHash::all_zeros();
 
         let mut last_header = None;
-        for (i, &t) in times.iter().enumerate() {
+        for &t in &times {
             let header = make_header(t, prev_hash);
             prev_hash = header.block_hash();
-            pending_headers.insert(header.block_hash(), (header, i as u32 + 1));
+            pending_headers.insert(header.block_hash(), header);
             last_header = Some(header);
         }
         let header = last_header.unwrap();
@@ -423,15 +411,19 @@ mod tests {
         (header, pending_headers)
     }
 
+    fn expected_median(mut times: Vec<u32>) -> u32 {
+        times.sort_unstable();
+        times[times.len() / 2]
+    }
+
     #[test]
     fn test_median_time_past_fewer_than_11() {
         let storage = MockStorage::default();
         let mut times = vec![1000, 1010, 1020, 1030, 1040];
         let (header, pending_headers) = test_headers(times.clone());
-        let mtp = calculate_median_time_past(&storage, &header, 5, &pending_headers).unwrap();
+        let mtp = calculate_median_time_past(&storage, &header, &pending_headers).unwrap();
         times.reverse(); // because we build chain backwards
-        times.sort_unstable();
-        assert_eq!(mtp, times[times.len() / 2]);
+        assert_eq!(mtp, expected_median(times));
     }
 
     #[test]
@@ -441,10 +433,9 @@ mod tests {
             1000, 1010, 1020, 1030, 1040, 1050, 1060, 1070, 1080, 1090, 1100,
         ];
         let (header, pending_headers) = test_headers(times.clone());
-        let mtp = calculate_median_time_past(&storage, &header, 11, &pending_headers).unwrap();
+        let mtp = calculate_median_time_past(&storage, &header, &pending_headers).unwrap();
         times.reverse();
-        times.sort_unstable();
-        assert_eq!(mtp, times[times.len() / 2]);
+        assert_eq!(mtp, expected_median(times));
     }
 
     #[test]
@@ -458,28 +449,52 @@ mod tests {
         let mut used_times = Vec::new();
         for _ in 0..MEDIAN_TIME_SPAN {
             let h = pending_headers.get(&walk_hash).unwrap();
-            used_times.push(h.0.time);
-            walk_hash = h.0.prev_blockhash;
+            used_times.push(h.time);
+            walk_hash = h.prev_blockhash;
         }
-        used_times.sort_unstable();
-        let mtp = calculate_median_time_past(&storage, &header, 14, &pending_headers).unwrap();
-        assert_eq!(mtp, used_times[used_times.len() / 2]);
+        let mtp = calculate_median_time_past(&storage, &header, &pending_headers).unwrap();
+        assert_eq!(mtp, expected_median(used_times));
     }
 
     #[test]
     fn median_time_check_should_work_when_there_are_less_than_11_headers_in_store() {
-        let deps = mock_dependencies();
-        let mut storage = deps.storage;
-        setup(&mut storage);
-
         let test_headers = get_btc_lc_headers();
 
-        // Initialize the contract with only the base header.
+        let mut storage = mock_dependencies().storage;
+        setup(&mut storage);
+
+        // Test inserting new headers with only the base header.
         let initial_headers = vec![test_headers[0].clone()];
         init_contract(&mut storage, &initial_headers).unwrap();
 
         // Submit one header.
         let new_headers = vec![test_headers[1].clone()];
-        handle_btc_headers_from_babylon(&mut storage, &new_headers).unwrap();
+        handle_btc_headers_from_babylon(&mut storage, &new_headers)
+            .expect("Insert one single header when only the base header exists");
+
+        let mut storage = mock_dependencies().storage;
+        setup(&mut storage);
+
+        // Initialize the contract with the 4 header.
+        let initial_headers = vec![
+            test_headers[0].clone(),
+            test_headers[1].clone(),
+            test_headers[2].clone(),
+            test_headers[3].clone(),
+        ];
+        init_contract(&mut storage, &initial_headers).unwrap();
+
+        let prev_header: BlockHeader =
+            deserialize(test_headers[3].clone().header.as_ref()).unwrap();
+
+        // Use as many previous headers as available if there are fewer than 11.
+        let mtp = calculate_median_time_past(&storage, &prev_header, &Default::default()).unwrap();
+
+        let times = initial_headers
+            .iter()
+            .map(|h| deserialize::<BlockHeader>(h.header.as_ref()).unwrap().time)
+            .collect::<Vec<_>>();
+
+        assert_eq!(mtp, expected_median(times));
     }
 }
