@@ -73,7 +73,10 @@ pub(crate) fn build_multisig_script(
     }
 
     if threshold > keys.len() {
-        return Err(Error::ThresholdExceedsKeyCount { threshold, keys_count: keys.len() });
+        return Err(Error::ThresholdExceedsKeyCount {
+            threshold,
+            keys_count: keys.len(),
+        });
     }
 
     if keys.len() == 1 {
@@ -135,12 +138,18 @@ mod tests {
         let empty_keys: Vec<VerifyingKey> = vec![];
         let result = prepare_keys_for_multisig_script(&empty_keys);
         assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), Error::InsufficientMultisigKeys {}));
+        assert!(matches!(
+            result.unwrap_err(),
+            Error::InsufficientMultisigKeys {}
+        ));
 
         let single_key = vec![generate_public_key(&[1; 32])];
         let result = prepare_keys_for_multisig_script(&single_key);
         assert!(result.is_err());
-        assert!(matches!(result.unwrap_err(), Error::InsufficientMultisigKeys {}));
+        assert!(matches!(
+            result.unwrap_err(),
+            Error::InsufficientMultisigKeys {}
+        ));
 
         // Test with sufficient keys (3 keys)
         let keys = vec![
@@ -153,8 +162,10 @@ mod tests {
         let prepared_keys = prepare_keys_for_multisig_script(&keys).unwrap();
 
         // Serialize the keys to compare them easily
-        let serialized_keys: Vec<Vec<u8>> =
-            prepared_keys.iter().map(|key| key.to_bytes().to_vec()).collect();
+        let serialized_keys: Vec<Vec<u8>> = prepared_keys
+            .iter()
+            .map(|key| key.to_bytes().to_vec())
+            .collect();
 
         // Ensure they are sorted lexicographically
         assert!(
