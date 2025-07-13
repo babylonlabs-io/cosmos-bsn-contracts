@@ -137,7 +137,6 @@ mod tests {
         // Test with insufficient keys (0 and 1 key)
         let empty_keys: Vec<VerifyingKey> = vec![];
         let result = prepare_keys_for_multisig_script(&empty_keys);
-        assert!(result.is_err());
         assert!(matches!(
             result.unwrap_err(),
             Error::InsufficientMultisigKeys {}
