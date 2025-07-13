@@ -1,4 +1,4 @@
-use crate::errors::Error;
+use crate::error::Error;
 use crate::Result;
 
 use crate::types::is_rate_valid;
@@ -27,7 +27,6 @@ fn is_op_return_output(script: &bitcoin::ScriptBuf) -> bool {
     !script_bytes.is_empty() && script_bytes[0] == OP_RETURN.to_u8()
 }
 
-/// Checks pre-signed transaction sanity
 fn check_pre_signed_tx_sanity(
     tx: &Transaction,
     num_inputs: usize,
@@ -256,14 +255,12 @@ fn calc_sighash(
 
     // calculate the sig hash of the tx with the given funding output
     let mut sighash_cache = SighashCache::new(transaction);
-    let sighash = sighash_cache
-        .taproot_script_spend_signature_hash(
-            0,
-            &Prevouts::All(&[funding_output]),
-            tap_leaf_hash,
-            bitcoin::TapSighashType::Default,
-        )
-        .unwrap();
+    let sighash = sighash_cache.taproot_script_spend_signature_hash(
+        0,
+        &Prevouts::All(&[funding_output]),
+        tap_leaf_hash,
+        bitcoin::TapSighashType::Default,
+    )?;
 
     Ok(sighash.to_raw_hash().to_byte_array())
 }

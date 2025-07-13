@@ -1,4 +1,4 @@
-use crate::errors::Error;
+use crate::error::Error;
 use crate::Result;
 use bitcoin::blockdata::script::Builder;
 use bitcoin::opcodes::all::OP_PUSHNUM_1;
@@ -58,26 +58,16 @@ fn check_for_duplicate_keys(
     fp_keys: &[VerifyingKey],
     covenant_keys: &[VerifyingKey],
 ) -> Result<()> {
-    let mut key_map = std::collections::HashSet::new();
-
-    key_map.insert(key_to_string(staker_key));
-
-    for key in fp_keys {
+    let mut seen = std::collections::HashSet::new();
+    for key in std::iter::once(staker_key)
+        .chain(fp_keys.iter())
+        .chain(covenant_keys.iter())
+    {
         let key_str = key_to_string(key);
-        if key_map.contains(&key_str) {
+        if !seen.insert(key_str) {
             return Err(Error::DuplicateKeys {});
         }
-        key_map.insert(key_str);
     }
-
-    for key in covenant_keys {
-        let key_str = key_to_string(key);
-        if key_map.contains(&key_str) {
-            return Err(Error::DuplicateKeys {});
-        }
-        key_map.insert(key_str);
-    }
-
     Ok(())
 }
 
@@ -240,11 +230,6 @@ mod tests {
         // Test that the output is a valid taproot script
         // Should be: [0x51, 0x20, ...32_byte_tweaked_key...]
         let script_bytes = result.as_bytes();
-        println!(
-            "Script length: {}, bytes: {:?}",
-            script_bytes.len(),
-            script_bytes
-        );
         assert_eq!(
             script_bytes.len(),
             34,

@@ -54,4 +54,6 @@ pub enum Error {
     TxHasSignatureScript {},
     #[error("Slashing or staking transaction values must be larger than 0")]
     InvalidSlashingAmount {},
+    #[error(transparent)]
+    SighashTaproot(#[from] bitcoin::sighash::TaprootError),
 }

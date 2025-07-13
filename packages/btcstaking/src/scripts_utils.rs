@@ -1,4 +1,4 @@
-use crate::errors::Error;
+use crate::error::Error;
 use crate::Result;
 use bitcoin::blockdata::script::Builder;
 use bitcoin::opcodes::all::{
