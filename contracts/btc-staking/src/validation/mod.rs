@@ -11,7 +11,6 @@ use {
     babylon_schnorr_adaptor_signature::{verify_digest, AdaptorSignature},
     bitcoin::consensus::deserialize,
     cosmwasm_std::CanonicalAddr,
-    hex::ToHex,
     k256::schnorr::{Signature, SigningKey, VerifyingKey},
     k256::sha2::{Digest, Sha256},
 };
@@ -32,10 +31,8 @@ fn verify_pop(
         .map_err(|e| ContractError::FinalityProviderVerificationError(e.to_string()))?;
     match btc_sig_type {
         BTCSigType::BIP340 => {
-            let pop_sig = Signature::try_from(pop.btc_sig.as_slice())
-                .map_err(|e| ContractError::SecP256K1Error(e.to_string()))?;
-            verify_digest(btc_pk, &msg_hash, &pop_sig)
-                .map_err(|e| ContractError::SecP256K1Error(e.to_string()))?;
+            let pop_sig = Signature::try_from(pop.btc_sig.as_slice())?;
+            verify_digest(btc_pk, &msg_hash, &pop_sig)?;
         }
         BTCSigType::BIP322 => {
             // TODO?: implement BIP322 verification (#7.0)
@@ -57,31 +54,25 @@ fn decode_pks(
     cov_pk_hex_list: &[String],
 ) -> Result<(VerifyingKey, Vec<VerifyingKey>, Vec<VerifyingKey>), ContractError> {
     // get staker's public key
-    let staker_pk_bytes =
-        hex::decode(staker_pk_hex).map_err(|e| ContractError::SecP256K1Error(e.to_string()))?;
-    let staker_pk = VerifyingKey::from_bytes(&staker_pk_bytes)
-        .map_err(|e| ContractError::SecP256K1Error(e.to_string()))?;
+    let staker_pk_bytes = hex::decode(staker_pk_hex)?;
+    let staker_pk = VerifyingKey::from_bytes(&staker_pk_bytes)?;
 
     // get all FP's public keys
     let fp_pks: Vec<VerifyingKey> = fp_pk_hex_list
         .iter()
         .map(|pk_hex| {
-            let pk_bytes =
-                hex::decode(pk_hex).map_err(|e| ContractError::SecP256K1Error(e.to_string()))?;
-            VerifyingKey::from_bytes(&pk_bytes)
-                .map_err(|e| ContractError::SecP256K1Error(e.to_string()))
+            let pk_bytes = hex::decode(pk_hex)?;
+            VerifyingKey::from_bytes(&pk_bytes).map_err(Into::into)
         })
-        .collect::<Result<Vec<VerifyingKey>, ContractError>>()?;
+        .collect::<Result<Vec<_>, ContractError>>()?;
     // get all covenant members' public keys
     let cov_pks: Vec<VerifyingKey> = cov_pk_hex_list
         .iter()
         .map(|pk_hex| {
-            let pk_bytes =
-                hex::decode(pk_hex).map_err(|e| ContractError::SecP256K1Error(e.to_string()))?;
-            VerifyingKey::from_bytes(&pk_bytes)
-                .map_err(|e| ContractError::SecP256K1Error(e.to_string()))
+            let pk_bytes = hex::decode(pk_hex)?;
+            VerifyingKey::from_bytes(&pk_bytes).map_err(Into::into)
         })
-        .collect::<Result<Vec<VerifyingKey>, ContractError>>()?;
+        .collect::<Result<Vec<_>, ContractError>>()?;
 
     Ok((staker_pk, fp_pks, cov_pks))
 }
@@ -96,10 +87,8 @@ pub fn verify_new_fp(new_fp: &NewFinalityProvider) -> Result<(), ContractError> 
     {
         // get FP's PK
         use babylon_apis::to_canonical_addr;
-        let fp_pk_bytes = hex::decode(&new_fp.btc_pk_hex)
-            .map_err(|e| ContractError::SecP256K1Error(e.to_string()))?;
-        let fp_pk = VerifyingKey::from_bytes(&fp_pk_bytes)
-            .map_err(|e| ContractError::SecP256K1Error(e.to_string()))?;
+        let fp_pk_bytes = hex::decode(&new_fp.btc_pk_hex)?;
+        let fp_pk = VerifyingKey::from_bytes(&fp_pk_bytes)?;
 
         // get canonical FP address
         // FIXME: parameterise `bbn` prefix
@@ -156,12 +145,10 @@ pub fn verify_active_delegation(
         // TODO: Verify staking tx info, i.e. inclusion proof (#7.1)
 
         // Check slashing tx and its consistency with staking tx
-        let slashing_tx: Transaction = deserialize(&active_delegation.slashing_tx)
-            .map_err(|_| ContractError::InvalidBtcTx(active_delegation.slashing_tx.encode_hex()))?;
+        let slashing_tx: Transaction = deserialize(&active_delegation.slashing_tx)?;
 
         // decode slashing address
-        let slashing_pk_script = hex::decode(&params.slashing_pk_script)
-            .map_err(|e| ContractError::SecP256K1Error(e.to_string()))?;
+        let slashing_pk_script = hex::decode(&params.slashing_pk_script)?;
 
         // Check slashing tx and staking tx are valid and consistent
         let slashing_rate = params
@@ -198,9 +185,10 @@ pub fn verify_active_delegation(
         let slashing_path_script = babylon_script_paths.slashing_path_script;
 
         // get the staker's signature on the slashing tx
-        let staker_sig =
-            k256::schnorr::Signature::try_from(active_delegation.delegator_slashing_sig.as_slice())
-                .map_err(|e| ContractError::SecP256K1Error(e.to_string()))?;
+        let staker_sig = k256::schnorr::Signature::try_from(
+            active_delegation.delegator_slashing_sig.as_slice(),
+        )?;
+
         // Verify the staker's signature
         babylon_btcstaking::staking::verify_transaction_sig_with_output(
             &slashing_tx,
@@ -208,15 +196,13 @@ pub fn verify_active_delegation(
             slashing_path_script.as_script(),
             &staker_pk,
             &staker_sig,
-        )
-        .map_err(|e| ContractError::SecP256K1Error(e.to_string()))?;
+        )?;
 
         /*
             Verify covenant signatures over slashing tx
         */
         for cov_sig in active_delegation.covenant_sigs.iter() {
-            let cov_pk = VerifyingKey::from_bytes(&cov_sig.cov_pk)
-                .map_err(|e| ContractError::SecP256K1Error(e.to_string()))?;
+            let cov_pk = VerifyingKey::from_bytes(&cov_sig.cov_pk)?;
             // Check if the covenant public key is in the params.covenant_pks
             if !params
                 .covenant_pks
@@ -242,8 +228,7 @@ pub fn verify_active_delegation(
                     &cov_pk,
                     &fp_pks[idx],
                     sig,
-                )
-                .map_err(|e| ContractError::SecP256K1Error(e.to_string()))?;
+                )?;
             }
         }
 
@@ -262,12 +247,10 @@ pub fn verify_active_delegation(
 
         // decode unbonding tx
         let unbonding_tx = &active_delegation.undelegation_info.unbonding_tx;
-        let unbonding_tx: Transaction = deserialize(unbonding_tx)
-            .map_err(|_| ContractError::InvalidBtcTx(unbonding_tx.encode_hex()))?;
+        let unbonding_tx: Transaction = deserialize(unbonding_tx)?;
         // decode unbonding slashing tx
         let unbonding_slashing_tx = &active_delegation.undelegation_info.slashing_tx;
-        let unbonding_slashing_tx: Transaction = deserialize(unbonding_slashing_tx)
-            .map_err(|_| ContractError::InvalidBtcTx(unbonding_slashing_tx.encode_hex()))?;
+        let unbonding_slashing_tx: Transaction = deserialize(unbonding_slashing_tx)?;
 
         // Check that the unbonding tx input is pointing to staking tx
         if unbonding_tx.input[0].previous_output.txid != staking_tx.compute_txid()
@@ -319,8 +302,7 @@ pub fn verify_active_delegation(
             .undelegation_info
             .delegator_slashing_sig
             .as_slice();
-        let unbonding_slashing_sig = k256::schnorr::Signature::try_from(unbonding_slashing_sig)
-            .map_err(|e| ContractError::SecP256K1Error(e.to_string()))?;
+        let unbonding_slashing_sig = k256::schnorr::Signature::try_from(unbonding_slashing_sig)?;
         // Verify the staker's signature
         babylon_btcstaking::staking::verify_transaction_sig_with_output(
             &unbonding_slashing_tx,
@@ -328,8 +310,7 @@ pub fn verify_active_delegation(
             unbonding_slashing_path_script.as_script(),
             &staker_pk,
             &unbonding_slashing_sig,
-        )
-        .map_err(|e| ContractError::SecP256K1Error(e.to_string()))?;
+        )?;
 
         /*
             verify covenant signatures over unbonding tx
@@ -341,8 +322,7 @@ pub fn verify_active_delegation(
             .iter()
         {
             // get covenant public key
-            let cov_pk = VerifyingKey::from_bytes(&cov_sig.pk)
-                .map_err(|e| ContractError::SecP256K1Error(e.to_string()))?;
+            let cov_pk = VerifyingKey::from_bytes(&cov_sig.pk)?;
             // ensure covenant public key is in the params
             if !params
                 .covenant_pks
@@ -353,8 +333,7 @@ pub fn verify_active_delegation(
                 ));
             }
             // get covenant signature
-            let sig = Signature::try_from(cov_sig.sig.as_slice())
-                .map_err(|e| ContractError::SecP256K1Error(e.to_string()))?;
+            let sig = Signature::try_from(cov_sig.sig.as_slice())?;
             // Verify the covenant member's signature
             babylon_btcstaking::staking::verify_transaction_sig_with_output(
                 staking_tx,
@@ -362,8 +341,7 @@ pub fn verify_active_delegation(
                 unbonding_path_script.as_script(),
                 &cov_pk,
                 &sig,
-            )
-            .map_err(|e| ContractError::SecP256K1Error(e.to_string()))?;
+            )?;
         }
 
         /*
@@ -374,8 +352,7 @@ pub fn verify_active_delegation(
             .covenant_slashing_sigs
             .iter()
         {
-            let cov_pk = VerifyingKey::from_bytes(&cov_sig.cov_pk)
-                .map_err(|e| ContractError::SecP256K1Error(e.to_string()))?;
+            let cov_pk = VerifyingKey::from_bytes(&cov_sig.cov_pk)?;
             // Check if the covenant public key is in the params.covenant_pks
             if !params
                 .covenant_pks
@@ -401,8 +378,7 @@ pub fn verify_active_delegation(
                     &cov_pk,
                     &fp_pks[idx],
                     sig,
-                )
-                .map_err(|e| ContractError::SecP256K1Error(e.to_string()))?;
+                )?;
             }
         }
     }
@@ -437,8 +413,7 @@ pub fn verify_undelegation(
         )?;
 
         // get the unbonding path script
-        let staking_tx: Transaction = deserialize(&btc_del.staking_tx)
-            .map_err(|_| ContractError::InvalidBtcTx(btc_del.staking_tx.encode_hex()))?;
+        let staking_tx: Transaction = deserialize(&btc_del.staking_tx)?;
         let staking_output = &staking_tx.output[btc_del.staking_output_idx as usize];
         let staking_time = (btc_del.end_height - btc_del.start_height) as u16;
         let babylon_script_paths = babylon_btcstaking::types::BabylonScriptPaths::new(
@@ -451,14 +426,10 @@ pub fn verify_undelegation(
         let unbonding_path_script = babylon_script_paths.unbonding_path_script;
 
         // get unbonding tx
-        let unbonding_tx: Transaction = deserialize(&btc_del.undelegation_info.unbonding_tx)
-            .map_err(|_| {
-                ContractError::InvalidBtcTx(btc_del.undelegation_info.unbonding_tx.encode_hex())
-            })?;
+        let unbonding_tx: Transaction = deserialize(&btc_del.undelegation_info.unbonding_tx)?;
 
         // get the staker's signature on the unbonding tx
-        let staker_sig = k256::schnorr::Signature::try_from(sig.as_slice())
-            .map_err(|e| ContractError::SecP256K1Error(e.to_string()))?;
+        let staker_sig = k256::schnorr::Signature::try_from(sig.as_slice())?;
 
         // Verify the signature
         babylon_btcstaking::staking::verify_transaction_sig_with_output(
@@ -467,8 +438,7 @@ pub fn verify_undelegation(
             unbonding_path_script.as_script(),
             &staker_pk,
             &staker_sig,
-        )
-        .map_err(|e| ContractError::SecP256K1Error(e.to_string()))?;
+        )?;
     }
 
     // make static analyser happy with unused parameters
@@ -493,10 +463,8 @@ pub fn verify_slashed_delegation(
         */
 
         // get the slashed FP's SK
-        let slashed_fp_sk = hex::decode(slashed_fp_sk_hex)
-            .map_err(|e| ContractError::SecP256K1Error(e.to_string()))?;
-        let slashed_fp_sk = SigningKey::from_bytes(&slashed_fp_sk)
-            .map_err(|e| ContractError::SecP256K1Error(e.to_string()))?;
+        let slashed_fp_sk = hex::decode(slashed_fp_sk_hex)?;
+        let slashed_fp_sk = SigningKey::from_bytes(&slashed_fp_sk)?;
 
         // calculate the corresponding VerifyingKey
         let slashed_fp_pk = slashed_fp_sk.verifying_key();
