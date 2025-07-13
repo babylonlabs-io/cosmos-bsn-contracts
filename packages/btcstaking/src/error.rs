@@ -8,8 +8,8 @@ pub enum Error {
     InsufficientMultisigKeys {},
     #[error("Duplicate key in list of keys")]
     DuplicateKeys {},
-    #[error("Threshold cannot be greater than the number of keys")]
-    ThresholdExceedsKeyCount {},
+    #[error("Threshold {threshold} cannot be greater than the number of keys {keys_count}")]
+    ThresholdExceedsKeyCount { threshold: usize, keys_count: usize },
     #[error("No keys provided")]
     NoKeysProvided {},
     #[error("Failed to add leaf")]

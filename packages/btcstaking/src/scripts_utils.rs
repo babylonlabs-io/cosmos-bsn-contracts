@@ -9,7 +9,7 @@ use bitcoin::ScriptBuf;
 
 use k256::schnorr::VerifyingKey;
 
-/// assemble_multisig_script is a private helper to assemble multisig script
+/// private helper to assemble multisig script
 /// if `withVerify` is true script will end with OP_NUMEQUALVERIFY otherwise with OP_NUMEQUAL
 /// SCRIPT: <Pk1> OP_CHEKCSIG <Pk2> OP_CHECKSIGADD <Pk3> OP_CHECKSIGADD ... <PkN> OP_CHECKSIGADD <threshold> OP_NUMEQUALVERIFY (or OP_NUMEQUAL)
 fn assemble_multisig_script(
@@ -38,15 +38,6 @@ fn assemble_multisig_script(
     Ok(builder.into_script())
 }
 
-/// sort_keys sorts public keys in lexicographical order
-fn sort_keys(keys: &mut [VerifyingKey]) {
-    keys.sort_by(|a, b| {
-        let a_serialized = a.to_bytes();
-        let b_serialized = b.to_bytes();
-        a_serialized.cmp(&b_serialized)
-    });
-}
-
 /// prepare_keys_for_multisig_script prepares keys to be used in multisig script
 /// Validates whether there are at least 2 keys
 /// and returns copy of the slice of keys sorted lexicographically.
@@ -58,7 +49,11 @@ fn prepare_keys_for_multisig_script(keys: &[VerifyingKey]) -> Result<Vec<Verifyi
     }
 
     let mut sorted_keys = keys.to_vec();
-    sort_keys(&mut sorted_keys);
+    sorted_keys.sort_by(|a, b| {
+        let a_serialized = a.to_bytes();
+        let b_serialized = b.to_bytes();
+        a_serialized.cmp(&b_serialized)
+    });
 
     Ok(sorted_keys)
 }
@@ -78,7 +73,7 @@ pub(crate) fn build_multisig_script(
     }
 
     if threshold > keys.len() {
-        return Err(Error::ThresholdExceedsKeyCount {});
+        return Err(Error::ThresholdExceedsKeyCount { threshold, keys_count: keys.len() });
     }
 
     if keys.len() == 1 {
@@ -135,20 +130,31 @@ mod tests {
     }
 
     #[test]
-    fn test_sort_keys() {
-        // Generate public keys with known secret keys
-        let mut keys = vec![
-            generate_public_key(&[1; 32]), // Minimal valid secret key
-            generate_public_key(&[2; 32]), // Another minimal valid secret key
-            generate_public_key(&[3; 32]), // Another minimal valid secret key
+    fn test_prepare_keys_for_multisig_script() {
+        // Test with insufficient keys (0 and 1 key)
+        let empty_keys: Vec<VerifyingKey> = vec![];
+        let result = prepare_keys_for_multisig_script(&empty_keys);
+        assert!(result.is_err());
+        assert!(matches!(result.unwrap_err(), Error::InsufficientMultisigKeys {}));
+
+        let single_key = vec![generate_public_key(&[1; 32])];
+        let result = prepare_keys_for_multisig_script(&single_key);
+        assert!(result.is_err());
+        assert!(matches!(result.unwrap_err(), Error::InsufficientMultisigKeys {}));
+
+        // Test with sufficient keys (3 keys)
+        let keys = vec![
+            generate_public_key(&[3; 32]), // Third key
+            generate_public_key(&[1; 32]), // First key
+            generate_public_key(&[2; 32]), // Second key
         ];
 
-        // Sort the keys using the function under test
-        sort_keys(&mut keys);
+        // Prepare the keys using the function under test
+        let prepared_keys = prepare_keys_for_multisig_script(&keys).unwrap();
 
         // Serialize the keys to compare them easily
         let serialized_keys: Vec<Vec<u8>> =
-            keys.iter().map(|key| key.to_bytes().to_vec()).collect();
+            prepared_keys.iter().map(|key| key.to_bytes().to_vec()).collect();
 
         // Ensure they are sorted lexicographically
         assert!(
