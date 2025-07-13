@@ -192,10 +192,7 @@ pub fn verify_active_delegation(
         let sigs = cov_sig
             .adaptor_sigs
             .iter()
-            .map(|sig| {
-                AdaptorSignature::new(sig.as_slice())
-                    .map_err(|e| ContractError::SecP256K1Error(e.to_string()))
-            })
+            .map(|sig| AdaptorSignature::new(sig.as_slice()).map_err(Into::into))
             .collect::<Result<Vec<AdaptorSignature>, ContractError>>()?;
         for (idx, sig) in sigs.iter().enumerate() {
             enc_verify_transaction_sig_with_output(
@@ -342,10 +339,7 @@ pub fn verify_active_delegation(
         let sigs = cov_sig
             .adaptor_sigs
             .iter()
-            .map(|sig| {
-                AdaptorSignature::new(sig.as_slice())
-                    .map_err(|e| ContractError::SecP256K1Error(e.to_string()))
-            })
+            .map(|sig| AdaptorSignature::new(sig.as_slice()).map_err(Into::into))
             .collect::<Result<Vec<AdaptorSignature>, ContractError>>()?;
         for (idx, sig) in sigs.iter().enumerate() {
             enc_verify_transaction_sig_with_output(
