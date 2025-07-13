@@ -48,31 +48,31 @@ fn verify_pop(
 }
 
 #[cfg(feature = "full-validation")]
+fn verifying_key_from_hex(v: impl AsRef<[u8]>) -> Result<VerifyingKey, ContractError> {
+    let pk_bytes = hex::decode(v)?;
+    VerifyingKey::from_bytes(&pk_bytes).map_err(Into::into)
+}
+
+#[cfg(feature = "full-validation")]
 fn decode_pks(
     staker_pk_hex: &str,
     fp_pk_hex_list: &[String],
     cov_pk_hex_list: &[String],
 ) -> Result<(VerifyingKey, Vec<VerifyingKey>, Vec<VerifyingKey>), ContractError> {
     // get staker's public key
-    let staker_pk_bytes = hex::decode(staker_pk_hex)?;
-    let staker_pk = VerifyingKey::from_bytes(&staker_pk_bytes)?;
+    let staker_pk = verifying_key_from_hex(staker_pk_hex)?;
 
     // get all FP's public keys
     let fp_pks: Vec<VerifyingKey> = fp_pk_hex_list
         .iter()
-        .map(|pk_hex| {
-            let pk_bytes = hex::decode(pk_hex)?;
-            VerifyingKey::from_bytes(&pk_bytes).map_err(Into::into)
-        })
-        .collect::<Result<Vec<_>, ContractError>>()?;
+        .map(verifying_key_from_hex)
+        .collect::<Result<Vec<_>, _>>()?;
+
     // get all covenant members' public keys
     let cov_pks: Vec<VerifyingKey> = cov_pk_hex_list
         .iter()
-        .map(|pk_hex| {
-            let pk_bytes = hex::decode(pk_hex)?;
-            VerifyingKey::from_bytes(&pk_bytes).map_err(Into::into)
-        })
-        .collect::<Result<Vec<_>, ContractError>>()?;
+        .map(verifying_key_from_hex)
+        .collect::<Result<Vec<_>, _>>()?;
 
     Ok((staker_pk, fp_pks, cov_pks))
 }
@@ -87,8 +87,7 @@ pub fn verify_new_fp(new_fp: &NewFinalityProvider) -> Result<(), ContractError> 
     {
         // get FP's PK
         use babylon_apis::to_canonical_addr;
-        let fp_pk_bytes = hex::decode(&new_fp.btc_pk_hex)?;
-        let fp_pk = VerifyingKey::from_bytes(&fp_pk_bytes)?;
+        let fp_pk = verifying_key_from_hex(&new_fp.btc_pk_hex)?;
 
         // get canonical FP address
         // FIXME: parameterise `bbn` prefix
