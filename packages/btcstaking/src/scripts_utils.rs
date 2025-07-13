@@ -144,7 +144,6 @@ mod tests {
 
         let single_key = vec![generate_public_key(&[1; 32])];
         let result = prepare_keys_for_multisig_script(&single_key);
-        assert!(result.is_err());
         assert!(matches!(
             result.unwrap_err(),
             Error::InsufficientMultisigKeys {}
