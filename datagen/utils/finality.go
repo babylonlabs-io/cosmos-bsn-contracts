@@ -9,7 +9,9 @@ import (
 	"github.com/btcsuite/btcd/btcec/v2"
 	"github.com/btcsuite/btcd/btcec/v2/schnorr"
 	"github.com/cometbft/cometbft/crypto/merkle"
+	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 
+	"github.com/babylonlabs-io/babylon/v3/app/signingcontext"
 	"github.com/babylonlabs-io/babylon/v3/crypto/eots"
 	"github.com/babylonlabs-io/babylon/v3/testutil/datagen"
 	bbn "github.com/babylonlabs-io/babylon/v3/types"
@@ -23,9 +25,11 @@ const (
 )
 
 const (
-	commitPubRandHeight = 100
-	commitPubRandAmount = 1000
-	pubRandIndex        = 1
+	commitPubRandHeight         = 100
+	commitPubRandAmount         = 1000
+	pubRandIndex                = 1
+	FinalityModuleName          = "finality"
+	BabylonGenesisMainetChainID = "bbn-1"
 )
 
 func GenRandomPubRandList(r *rand.Rand, numPubRand uint64) (*datagen.RandListInfo, error) {
@@ -184,9 +188,10 @@ func GenRandomEvidence(r *rand.Rand, sk *btcec.PrivateKey, height uint64) (*ftyp
 
 func GenFinalityData(dir string) {
 	GenEOTSTestData(dir)
-	pubRandSigningContext := "" // FIXME:
+	finalityModuleAddress := authtypes.NewModuleAddress(FinalityModuleName).String()
+	pubRandSigningContext := signingcontext.FpRandCommitContextV0(BabylonGenesisMainetChainID, finalityModuleAddress)
 	randListInfo := GenCommitPubRandListMsg(commitPubRandHeight, commitPubRandAmount, pubRandIndex, fpSK, pubRandSigningContext, dir)
-	fpSigningContext := "" // FIXME:
+	fpSigningContext := signingcontext.FpPopContextV0(BabylonGenesisMainetChainID, finalityModuleAddress)
 	GenAddFinalitySig(commitPubRandHeight, pubRandIndex, randListInfo, fpSK, fpSigningContext, dir, 1)
 	// Conflicting signature / double signing
 	GenAddFinalitySig(commitPubRandHeight, pubRandIndex, randListInfo, fpSK, fpSigningContext, dir, 2)
