@@ -82,9 +82,9 @@ func GenFinalityProviders(dir string, numFPs int) {
 			fpPK = fpBTCPK
 		}
 
-		fp, err := datagen.GenRandomFinalityProviderWithBTCSK(r, fpBTCSK, "")
+		fp, err := datagen.GenRandomFinalityProviderWithBTCSK(r, fpBTCSK, "", "")
 		require.NoError(t, err)
-		fp.ConsumerId = fmt.Sprintf("consumer-%d", i)
+		fp.BsnId = fmt.Sprintf("bsn-%d", i)
 		fpBytes, err := fp.Marshal()
 		require.NoError(t, err)
 
@@ -169,6 +169,7 @@ func GenBTCDelegations(dir string, covenantSKs []*btcec.PrivateKey, covenantQuor
 		net,
 		fpBTCPKs,
 		delSK,
+		"",
 		covenantSigners,
 		covPKs,
 		covenantQuorum,
