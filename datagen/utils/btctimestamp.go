@@ -82,12 +82,12 @@ func GenBTCTimestamp(dir string) {
 	h.NoError(err)
 
 	// generate inclusion proof
-	proof, err := zck.ProveCZHeaderInEpoch(h.Ctx, indexedHeader, epochWithHeader)
+	proof, err := zck.ProveConsumerHeaderInEpoch(h.Ctx, indexedHeader, epochWithHeader)
 	h.NoError(err)
 
 	btcTs.EpochInfo = epochWithHeader
 	btcTs.Header = indexedHeader
-	btcTs.Proof.ProofCzHeaderInEpoch = proof
+	btcTs.Proof.ProofConsumerHeaderInEpoch = proof
 
 	/*
 		seal the epoch and generate ProofEpochSealed

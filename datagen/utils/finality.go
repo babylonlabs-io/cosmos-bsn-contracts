@@ -53,7 +53,7 @@ func GenRandomPubRandList(r *rand.Rand, numPubRand uint64) (*datagen.RandListInf
 	return &datagen.RandListInfo{SRList: srList, PRList: prList, Commitment: commitment, ProofList: proofList}, nil
 }
 
-func GenCommitPubRandListMsg(startHeight uint64, numPubRand uint64, pubRandIndex uint64, sk *btcec.PrivateKey, dir string) *datagen.RandListInfo {
+func GenCommitPubRandListMsg(startHeight uint64, numPubRand uint64, pubRandIndex uint64, sk *btcec.PrivateKey, signingContext string, dir string) *datagen.RandListInfo {
 	randListInfo, err := GenRandomPubRandList(r, numPubRand)
 	if err != nil {
 		panic(err)
@@ -66,7 +66,7 @@ func GenCommitPubRandListMsg(startHeight uint64, numPubRand uint64, pubRandIndex
 		NumPubRand:  numPubRand,
 		Commitment:  randListInfo.Commitment,
 	}
-	hash, err := msg.HashToSign()
+	hash, err := msg.HashToSign(signingContext)
 	if err != nil {
 		panic(err)
 	}
@@ -100,6 +100,7 @@ func GenCommitPubRandListMsg(startHeight uint64, numPubRand uint64, pubRandIndex
 func NewMsgAddFinalitySig(
 	signer string,
 	sk *btcec.PrivateKey,
+	signingContext string,
 	startHeight uint64,
 	blockHeight uint64,
 	randListInfo *datagen.RandListInfo,
@@ -116,7 +117,7 @@ func NewMsgAddFinalitySig(
 		BlockAppHash: blockAppHash,
 		FinalitySig:  nil,
 	}
-	msgToSign := msg.MsgToSign()
+	msgToSign := msg.MsgToSign(signingContext)
 	sig, err := eots.Sign(sk, randListInfo.SRList[idx], msgToSign)
 	if err != nil {
 		return nil, err
@@ -126,12 +127,12 @@ func NewMsgAddFinalitySig(
 	return msg, nil
 }
 
-func GenAddFinalitySig(startHeight uint64, index uint64, randListInfo *datagen.RandListInfo, sk *btcec.PrivateKey, dir string, signatureIndex uint32) *ftypes.MsgAddFinalitySig {
+func GenAddFinalitySig(startHeight uint64, index uint64, randListInfo *datagen.RandListInfo, sk *btcec.PrivateKey, signingContext string, dir string, signatureIndex uint32) *ftypes.MsgAddFinalitySig {
 	blockHeight := startHeight + index
 	blockHash := datagen.GenRandomByteArray(r, 32)
 
 	signer := datagen.GenRandomAccount().Address
-	msg, err := NewMsgAddFinalitySig(signer, sk, startHeight, blockHeight, randListInfo, blockHash)
+	msg, err := NewMsgAddFinalitySig(signer, sk, signingContext, startHeight, blockHeight, randListInfo, blockHash)
 	if err != nil {
 		panic(err)
 	}
@@ -183,8 +184,10 @@ func GenRandomEvidence(r *rand.Rand, sk *btcec.PrivateKey, height uint64) (*ftyp
 
 func GenFinalityData(dir string) {
 	GenEOTSTestData(dir)
-	randListInfo := GenCommitPubRandListMsg(commitPubRandHeight, commitPubRandAmount, pubRandIndex, fpSK, dir)
-	GenAddFinalitySig(commitPubRandHeight, pubRandIndex, randListInfo, fpSK, dir, 1)
+	pubRandSigningContext := "" // FIXME:
+	randListInfo := GenCommitPubRandListMsg(commitPubRandHeight, commitPubRandAmount, pubRandIndex, fpSK, pubRandSigningContext, dir)
+	fpSigningContext := "" // FIXME:
+	GenAddFinalitySig(commitPubRandHeight, pubRandIndex, randListInfo, fpSK, fpSigningContext, dir, 1)
 	// Conflicting signature / double signing
-	GenAddFinalitySig(commitPubRandHeight, pubRandIndex, randListInfo, fpSK, dir, 2)
+	GenAddFinalitySig(commitPubRandHeight, pubRandIndex, randListInfo, fpSK, fpSigningContext, dir, 2)
 }
