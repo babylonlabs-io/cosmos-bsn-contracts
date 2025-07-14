@@ -5,7 +5,7 @@ use cosmwasm_std::Deps;
 
 use crate::error::ContractError;
 use crate::msg::btc_header::{BtcHeaderResponse, BtcHeadersResponse};
-use crate::state::{get_base_header, get_header, get_header_by_hash, get_headers, get_tip};
+use crate::state::{expect_header_by_hash, get_base_header, get_header, get_headers, get_tip};
 
 const MAX_LIMIT: u32 = 30;
 const DEFAULT_LIMIT: u32 = 10;
@@ -24,7 +24,7 @@ pub fn btc_header(deps: &Deps, height: u32) -> Result<BtcHeaderResponse, Contrac
 
 pub fn btc_header_by_hash(deps: &Deps, hash: &str) -> Result<BtcHeaderResponse, ContractError> {
     let hash = BlockHash::from_str(hash)?;
-    get_header_by_hash(deps.storage, hash.as_ref())?.try_into()
+    expect_header_by_hash(deps.storage, hash.as_ref())?.try_into()
 }
 
 pub fn btc_headers(

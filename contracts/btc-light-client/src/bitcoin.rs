@@ -7,15 +7,19 @@
 //!
 //! It mirrors the logic used in Bitcoin Core and Babylon's Go implementation.
 
-use crate::state::get_header;
+use crate::state::btc_light_client::{get_header, get_header_by_hash};
 use babylon_proto::babylon::btclightclient::v1::BtcHeaderInfo;
 use bitcoin::block::Header as BlockHeader;
-use bitcoin::consensus::deserialize;
-use bitcoin::consensus::Params;
-use bitcoin::Work;
-use bitcoin::{BlockHash, Target};
+use bitcoin::consensus::{deserialize, Params};
+use bitcoin::{BlockHash, Target, Work};
 use cosmwasm_std::{StdError, StdResult};
 use cosmwasm_std::{Storage, Uint256};
+use std::collections::BTreeMap;
+
+/// bip-0113 defines the median of the last 11 blocks instead of the block's timestamp for lock-time calculations.
+const MEDIAN_TIME_SPAN: usize = 11;
+
+type PendingHeaders = BTreeMap<BlockHash, BlockHeader>;
 
 /// Errors that can occur during BTC header verification.
 #[derive(thiserror::Error, Debug, PartialEq)]
@@ -41,8 +45,18 @@ pub enum HeaderError {
     #[error("Header's prev_blockhash {got} does not match parent header's hash {expected}")]
     PrevHashMismatch { got: BlockHash, expected: BlockHash },
 
+    /// Block's timestamp is too old.
+    #[error("Time is the median time of last 11 blocks or before")]
+    TimeTooOld,
+
+    #[error("Block version {0} is too old and is no longer accepted")]
+    BlockVersionTooOld(i32),
+
     #[error("Failed to decode BTC header: {0}")]
     DecodeError(String),
+
+    #[error("Header {0} missing from store and pending")]
+    MissingHeader(BlockHash),
 
     #[error(transparent)]
     Std(#[from] StdError),
@@ -69,6 +83,12 @@ pub fn verify_headers(
     let mut last_header = first_header.clone();
     let mut cum_work_old = total_work(last_header.work.as_ref())?;
 
+    // A collection of headers that have been verified but not yet committed to storage.
+    // This is necessary for the `calculate_median_time_past` function, which needs
+    // to look at the last 11 headers. Some of those headers might be in the
+    // `new_headers` slice, which is not yet in storage.
+    let mut pending_headers = BTreeMap::new();
+
     for (i, new_header) in new_headers.iter().enumerate() {
         let prev_block_header: BlockHeader = deserialize(last_header.header.as_ref())?;
         let block_header: BlockHeader = deserialize(new_header.header.as_ref())?;
@@ -87,6 +107,7 @@ pub fn verify_headers(
             last_header.height,
             &prev_block_header,
             &block_header,
+            &pending_headers,
         )?;
 
         let cum_work = total_work(new_header.work.as_ref())?;
@@ -109,6 +130,7 @@ pub fn verify_headers(
         // this header is good, verify the next one
         cum_work_old = cum_work;
         last_header = new_header.clone();
+        pending_headers.insert(block_header.block_hash(), block_header);
     }
     Ok(())
 }
@@ -122,6 +144,7 @@ fn check_header(
     prev_block_height: u32,
     prev_block_header: &BlockHeader,
     header: &BlockHeader,
+    pending_headers: &PendingHeaders,
 ) -> Result<(), HeaderError> {
     check_block_header_context(
         storage,
@@ -129,6 +152,7 @@ fn check_header(
         prev_block_height,
         prev_block_header,
         header,
+        pending_headers,
     )?;
 
     // Perform proof-of-work check as specified in:
@@ -177,6 +201,7 @@ fn check_block_header_context(
     prev_block_height: u32,
     prev_block_header: &BlockHeader,
     header: &BlockHeader,
+    pending_headers: &PendingHeaders,
 ) -> Result<(), HeaderError> {
     let expected_target =
         get_next_work_required(storage, prev_block_height, prev_block_header, chain_params)?;
@@ -193,7 +218,56 @@ fn check_block_header_context(
         });
     }
 
+    let block_height = prev_block_height + 1;
+
+    let mtp = calculate_median_time_past(storage, prev_block_header, pending_headers)?;
+    if header.time <= mtp {
+        return Err(HeaderError::TimeTooOld);
+    }
+
+    let block_version = header.version.to_consensus();
+    if (block_version < 2 && block_height >= chain_params.bip34_height)
+        || (block_version < 3 && block_height >= chain_params.bip66_height)
+        || (block_version < 4 && block_height >= chain_params.bip65_height)
+    {
+        return Err(HeaderError::BlockVersionTooOld(block_version));
+    }
+
     Ok(())
+}
+
+/// Calculates the median time of the previous few blocks prior to the header (inclusive).
+fn calculate_median_time_past(
+    storage: &dyn Storage,
+    prev_header: &BlockHeader,
+    pending_headers: &PendingHeaders,
+) -> Result<u32, HeaderError> {
+    let mut timestamps = Vec::with_capacity(MEDIAN_TIME_SPAN);
+
+    let mut block_hash = prev_header.block_hash();
+
+    for _ in 0..MEDIAN_TIME_SPAN {
+        let maybe_header: Option<BlockHeader> =
+            match get_header_by_hash(storage, block_hash.as_ref())? {
+                Some(raw_header) => Some(deserialize(raw_header.header.as_ref())?),
+                None => pending_headers.get(&block_hash).cloned(),
+            };
+
+        let Some(header) = maybe_header else {
+            break;
+        };
+
+        timestamps.push(header.time);
+
+        block_hash = header.prev_blockhash;
+    }
+
+    timestamps.sort_unstable();
+
+    Ok(timestamps
+        .get(timestamps.len() / 2)
+        .copied()
+        .expect("Timestamps must be non-empty as prev_header must exist; qed"))
 }
 
 /// Usually, it's just the target of last block. However, if we are in a retarget period,
@@ -240,6 +314,7 @@ fn get_next_work_required(
 }
 
 // <https://github.com/bitcoin/bitcoin/blob/89b910711c004c21b7d67baa888073742f7f94f0/src/pow.cpp#L49-L72>
+// TODO: see if we can directly reuse the rust-bitcoin API https://github.com/rust-bitcoin/rust-bitcoin/blob/f7274a57c36d0b8d8cc528426e269c27d496bd5f/bitcoin/src/pow.rs#L374
 fn calculate_next_work_required(
     previous_target: Uint256,
     first_block_time: u64,
@@ -294,4 +369,132 @@ pub fn is_difficulty_change_boundary(height: u32, chain_params: &Params) -> bool
     // 1. The height is >= difficulty_adjustment_interval (2016 for mainnet)
     // 2. The height is divisible by difficulty_adjustment_interval
     height >= difficulty_adjustment_interval && height % difficulty_adjustment_interval == 0
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::state::btc_light_client::handle_btc_headers_from_babylon;
+    use crate::state::btc_light_client::tests::{init_contract, setup};
+    use babylon_test_utils::get_btc_lc_headers;
+    use bitcoin::block::Header as BlockHeader;
+    use bitcoin::block::Version;
+    use bitcoin::hashes::Hash;
+    use bitcoin::{BlockHash, CompactTarget};
+    use cosmwasm_std::testing::{mock_dependencies, MockStorage};
+    use std::collections::BTreeMap;
+
+    fn make_header(time: u32, prev_blockhash: BlockHash) -> BlockHeader {
+        BlockHeader {
+            version: Version::TWO,
+            prev_blockhash,
+            merkle_root: bitcoin::TxMerkleNode::all_zeros(),
+            time,
+            bits: CompactTarget::from_consensus(0x1d00ffff), // Bitcoin mainnet initial difficulty
+            nonce: 0,
+        }
+    }
+
+    fn test_headers(times: Vec<u32>) -> (BlockHeader, PendingHeaders) {
+        let mut pending_headers = BTreeMap::new();
+        let mut prev_hash = BlockHash::all_zeros();
+
+        let mut last_header = None;
+        for &t in &times {
+            let header = make_header(t, prev_hash);
+            prev_hash = header.block_hash();
+            pending_headers.insert(header.block_hash(), header);
+            last_header = Some(header);
+        }
+        let header = last_header.unwrap();
+
+        (header, pending_headers)
+    }
+
+    fn expected_median(mut times: Vec<u32>) -> u32 {
+        times.sort_unstable();
+        times[times.len() / 2]
+    }
+
+    #[test]
+    fn test_median_time_past_fewer_than_11() {
+        let storage = MockStorage::default();
+        let mut times = vec![1000, 1010, 1020, 1030, 1040];
+        let (header, pending_headers) = test_headers(times.clone());
+        let mtp = calculate_median_time_past(&storage, &header, &pending_headers).unwrap();
+        times.reverse(); // because we build chain backwards
+        assert_eq!(mtp, expected_median(times));
+    }
+
+    #[test]
+    fn test_median_time_past_exactly_11() {
+        let storage = MockStorage::default();
+        let mut times = vec![
+            1000, 1010, 1020, 1030, 1040, 1050, 1060, 1070, 1080, 1090, 1100,
+        ];
+        let (header, pending_headers) = test_headers(times.clone());
+        let mtp = calculate_median_time_past(&storage, &header, &pending_headers).unwrap();
+        times.reverse();
+        assert_eq!(mtp, expected_median(times));
+    }
+
+    #[test]
+    fn test_median_time_past_more_than_11() {
+        let storage = MockStorage::default();
+        let mut times = (1000..=1020).step_by(2).collect::<Vec<u32>>(); // 1000, 1002, ..., 1020 (11 values)
+        times.extend(&[1030, 1040, 1050]); // now 14 values
+        let (header, pending_headers) = test_headers(times);
+        // Only the most recent 11 timestamps should be used
+        let mut walk_hash = header.block_hash();
+        let mut used_times = Vec::new();
+        for _ in 0..MEDIAN_TIME_SPAN {
+            let h = pending_headers.get(&walk_hash).unwrap();
+            used_times.push(h.time);
+            walk_hash = h.prev_blockhash;
+        }
+        let mtp = calculate_median_time_past(&storage, &header, &pending_headers).unwrap();
+        assert_eq!(mtp, expected_median(used_times));
+    }
+
+    #[test]
+    fn median_time_check_should_work_when_there_are_less_than_11_headers_in_store() {
+        let test_headers = get_btc_lc_headers();
+
+        let mut storage = mock_dependencies().storage;
+        setup(&mut storage);
+
+        // Test inserting new headers with only the base header.
+        let initial_headers = vec![test_headers[0].clone()];
+        init_contract(&mut storage, &initial_headers).unwrap();
+
+        // Submit one header.
+        let new_headers = vec![test_headers[1].clone()];
+        handle_btc_headers_from_babylon(&mut storage, &new_headers)
+            .expect("Insert one single header when only the base header exists");
+
+        let mut storage = mock_dependencies().storage;
+        setup(&mut storage);
+
+        // Initialize the contract with the 4 header.
+        let initial_headers = vec![
+            test_headers[0].clone(),
+            test_headers[1].clone(),
+            test_headers[2].clone(),
+            test_headers[3].clone(),
+        ];
+        init_contract(&mut storage, &initial_headers).unwrap();
+
+        let prev_header: BlockHeader =
+            deserialize(test_headers[3].clone().header.as_ref()).unwrap();
+
+        // Use as many previous headers as available if there are fewer than 11.
+        let mtp = calculate_median_time_past(&storage, &prev_header, &Default::default()).unwrap();
+
+        let times = initial_headers
+            .iter()
+            .map(|h| deserialize::<BlockHeader>(h.header.as_ref()).unwrap().time)
+            .collect::<Vec<_>>();
+
+        assert_eq!(mtp, expected_median(times));
+    }
 }

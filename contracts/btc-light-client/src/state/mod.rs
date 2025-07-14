@@ -2,7 +2,9 @@ pub mod btc_light_client;
 pub mod config;
 
 use bitcoin::params::Params;
-pub use btc_light_client::{get_base_header, get_header, get_header_by_hash, get_headers, get_tip};
+pub use btc_light_client::{
+    expect_header_by_hash, get_base_header, get_header, get_headers, get_tip,
+};
 pub use config::{Config, CONFIG};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
