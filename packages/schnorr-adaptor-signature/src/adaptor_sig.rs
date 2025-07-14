@@ -27,12 +27,6 @@ const ADAPTOR_SIGNATURE_SIZE: usize = JACOBIAN_POINT_SIZE + MODNSCALAR_SIZE + 1;
 
 const CHALLENGE_TAG: &[u8] = b"BIP0340/challenge";
 
-pub struct AdaptorSignature {
-    r: ProjectivePoint,
-    s_hat: Scalar,
-    needs_negation: bool,
-}
-
 // Adapted from https://github.com/RustCrypto/elliptic-curves/blob/520f67d26be1773bd600d05796cc26d797dd7182/k256/src/schnorr.rs#L181-L187
 fn tagged_hash(tag: &[u8]) -> Sha256 {
     let tag_hash = Sha256::digest(tag);
@@ -57,7 +51,50 @@ pub fn bytes_to_point(bytes: &[u8]) -> Result<ProjectivePoint> {
     Ok(ProjectivePoint::from(r))
 }
 
+#[derive(Debug)]
+pub struct AdaptorSignature {
+    r: ProjectivePoint,
+    s_hat: Scalar,
+    needs_negation: bool,
+}
+
 impl AdaptorSignature {
+    pub fn new(asig_bytes: &[u8]) -> Result<Self> {
+        if asig_bytes.len() != ADAPTOR_SIGNATURE_SIZE {
+            return Err(Error::MalformedAdaptorSignature(
+                ADAPTOR_SIGNATURE_SIZE,
+                asig_bytes.len(),
+            ));
+        }
+        // get R
+        if asig_bytes[0] != 0x02 && asig_bytes[0] != 0x03 {
+            return Err(Error::InvalidAdaptorSignatureFirstByte(asig_bytes[0]));
+        }
+        let is_y_odd = asig_bytes[0] == 0x03;
+        let r_option = AffinePoint::decompress(
+            k256::FieldBytes::from_slice(&asig_bytes[1..JACOBIAN_POINT_SIZE]),
+            k256::elliptic_curve::subtle::Choice::from(is_y_odd as u8),
+        );
+        let r = if r_option.is_some().into() {
+            r_option.unwrap().into()
+        } else {
+            return Err(Error::DecompressPointFailed {});
+        };
+
+        // get s_hat
+        let s_hat_bytes = &asig_bytes[JACOBIAN_POINT_SIZE..JACOBIAN_POINT_SIZE + MODNSCALAR_SIZE];
+        let s_hat_field_bytes = *k256::FieldBytes::from_slice(s_hat_bytes);
+        let s_hat =
+            Scalar::from_repr_vartime(s_hat_field_bytes).ok_or(Error::FailedToParseScalar {})?;
+
+        let needs_negation = asig_bytes[JACOBIAN_POINT_SIZE + MODNSCALAR_SIZE] == 0x01;
+        Ok(AdaptorSignature {
+            r,
+            s_hat,
+            needs_negation,
+        })
+    }
+
     pub fn verify(
         &self,
         pub_key: &VerifyingKey,
@@ -115,41 +152,5 @@ impl AdaptorSignature {
         }
 
         Ok(())
-    }
-
-    pub fn new(asig_bytes: &[u8]) -> Result<Self> {
-        if asig_bytes.len() != ADAPTOR_SIGNATURE_SIZE {
-            return Err(Error::MalformedAdaptorSignature(
-                ADAPTOR_SIGNATURE_SIZE,
-                asig_bytes.len(),
-            ));
-        }
-        // get R
-        if asig_bytes[0] != 0x02 && asig_bytes[0] != 0x03 {
-            return Err(Error::InvalidAdaptorSignatureFirstByte(asig_bytes[0]));
-        }
-        let is_y_odd = asig_bytes[0] == 0x03;
-        let r_option = AffinePoint::decompress(
-            k256::FieldBytes::from_slice(&asig_bytes[1..JACOBIAN_POINT_SIZE]),
-            k256::elliptic_curve::subtle::Choice::from(is_y_odd as u8),
-        );
-        let r = if r_option.is_some().into() {
-            r_option.unwrap().into()
-        } else {
-            return Err(Error::DecompressPointFailed {});
-        };
-
-        // get s_hat
-        let s_hat_bytes = &asig_bytes[JACOBIAN_POINT_SIZE..JACOBIAN_POINT_SIZE + MODNSCALAR_SIZE];
-        let s_hat_field_bytes = *k256::FieldBytes::from_slice(s_hat_bytes);
-        let s_hat =
-            Scalar::from_repr_vartime(s_hat_field_bytes).ok_or(Error::FailedToParseScalar {})?;
-
-        let needs_negation = asig_bytes[JACOBIAN_POINT_SIZE + MODNSCALAR_SIZE] == 0x01;
-        Ok(AdaptorSignature {
-            r,
-            s_hat,
-            needs_negation,
-        })
     }
 }
