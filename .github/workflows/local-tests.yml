@@ -1,6 +1,7 @@
 name: Local Tests
 
 on:
+  workflow_dispatch:
   pull_request:
     branches:
       - '**'
