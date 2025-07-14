@@ -2,6 +2,8 @@ name: Local Tests
 
 on:
   workflow_dispatch:
+  push:
+    branches: [ "xlc/upgrade-datagen-v3" ]
   pull_request:
     branches:
       - '**'
