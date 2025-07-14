@@ -189,6 +189,7 @@ func GenRandomEvidence(r *rand.Rand, sk *btcec.PrivateKey, height uint64) (*ftyp
 func GenFinalityData(dir string) {
 	GenEOTSTestData(dir)
 	finalityModuleAddress := authtypes.NewModuleAddress(FinalityModuleName).String()
+	fmt.Println("finalityModuleAddress:", finalityModuleAddress)
 	pubRandSigningContext := signingcontext.FpRandCommitContextV0(BabylonGenesisMainetChainID, finalityModuleAddress)
 	randListInfo := GenCommitPubRandListMsg(commitPubRandHeight, commitPubRandAmount, pubRandIndex, fpSK, pubRandSigningContext, dir)
 	fpSigningContext := signingcontext.FpPopContextV0(BabylonGenesisMainetChainID, finalityModuleAddress)
