@@ -45,6 +45,7 @@ babylon-contract   = { path = "../babylon", features = [ "library" ] }
 babylon-merkle     = { path = "../../packages/merkle" }
 babylon-proto      = { path = "../../packages/proto" }
 babylon-btcstaking = { path = "../../packages/btcstaking" }
+babylon-schnorr-adaptor-signature = { path = "../../packages/schnorr-adaptor-signature" }
 babylon-test-utils = { path = "../../packages/test-utils" }
 eots               = { path = "../../packages/eots" }
 
