@@ -20,8 +20,6 @@ pub enum ContractError {
     Std(#[from] StdError),
     #[error("{0}")]
     Payment(#[from] PaymentError),
-    #[error("{0}")]
-    BTCStaking(#[from] babylon_btcstaking::error::Error),
     #[error("error converting from hex to array: {0}")]
     HexArrayError(#[from] HexToArrayError),
     #[error("{0}")]
@@ -32,14 +30,10 @@ pub enum ContractError {
     MerkleError(#[from] MerkleError),
     #[error("{0}")]
     ProtoError(#[from] DecodeError),
-    #[error("{0}")]
-    HexError(#[from] FromHexError),
     #[error("EOTS error: {0}")]
     EotsError(#[from] eots::Error),
     #[error("{0}")]
     Conversion(#[from] ConversionOverflowError),
-    #[error("{0}")]
-    SecP256K1Error(String), // TODO: inherit errors from k256
     #[error("Unauthorized")]
     Unauthorized,
     #[error("Failed to verify the finality provider registration request: {0}")]
@@ -110,4 +104,26 @@ pub enum ContractError {
     RecipientRequired,
     #[error("Delegation {0} to FP {1} not found")]
     DelegationToFpNotFound(String, String),
+    #[error("Ecdsa error: {0}")]
+    Ecdsa(String),
+    #[error("Bitcoin encode error: {0}")]
+    BitcoinEncode(String),
+    #[error(transparent)]
+    BTCStaking(#[from] babylon_btcstaking::error::Error),
+    #[error(transparent)]
+    HexError(#[from] FromHexError),
+    #[error(transparent)]
+    SchnorrAdaptorSignature(#[from] babylon_schnorr_adaptor_signature::Error),
+}
+
+impl From<bitcoin::consensus::encode::Error> for ContractError {
+    fn from(e: bitcoin::consensus::encode::Error) -> Self {
+        Self::BitcoinEncode(e.to_string())
+    }
+}
+
+impl From<k256::ecdsa::Error> for ContractError {
+    fn from(e: k256::ecdsa::Error) -> Self {
+        Self::Ecdsa(e.to_string())
+    }
 }

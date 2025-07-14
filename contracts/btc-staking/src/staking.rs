@@ -7,7 +7,6 @@ use cosmwasm_std::{
     Response, StdResult, Storage, Uint128, Uint256,
 };
 use cw_storage_plus::Bound;
-use hex::ToHex;
 
 use crate::error::ContractError;
 use crate::state::config::{Config, ADMIN, CONFIG, PARAMS};
@@ -126,8 +125,7 @@ pub fn handle_active_delegation(
     // - They have timestamped public randomness (#130)
 
     // Parse staking tx
-    let staking_tx: Transaction = deserialize(&active_delegation.staking_tx)
-        .map_err(|_| ContractError::InvalidBtcTx(active_delegation.staking_tx.encode_hex()))?;
+    let staking_tx: Transaction = deserialize(&active_delegation.staking_tx)?;
     // Check staking time is at most uint16
     match staking_tx.lock_time {
         LockTime::Blocks(b) if b.to_consensus_u32() > u16::MAX as u32 => {
