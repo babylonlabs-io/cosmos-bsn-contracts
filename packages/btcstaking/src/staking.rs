@@ -2,6 +2,7 @@ use crate::error::Error;
 use crate::types::is_rate_valid;
 use crate::Result;
 use babylon_schnorr_adaptor_signature::{verify_digest, AdaptorSignature};
+use bitcoin::constants::WITNESS_SCALE_FACTOR;
 use bitcoin::hashes::Hash;
 use bitcoin::opcodes::all::OP_RETURN;
 use bitcoin::sighash::{Prevouts, SighashCache};
@@ -18,9 +19,6 @@ const MAX_STANDARD_TX_WEIGHT: usize = 400000;
 /// This matches the maxTxVersion constant from Babylon Genesis.
 const MAX_TX_VERSION: i32 = 2;
 
-/// Dust threshold defines the maximum value of an output to be considered a dust output.
-const DUST_THRESHOLD: u64 = 546;
-
 /// Maximum number of bytes within a block which can be allocated to non-witness data.
 const MAX_BLOCK_BASE_SIZE: usize = 1000000;
 
@@ -29,6 +27,9 @@ const MIN_COINBASE_SCRIPT_LEN: usize = 2;
 
 /// Maximum length a coinbase script can be.
 const MAX_COINBASE_SCRIPT_LEN: usize = 100;
+
+// https://pkg.go.dev/github.com/btcsuite/btcd@v0.24.2/mempool#DefaultMinRelayTxFee
+const DEFAULT_MIN_RELAY_TX_FEE: Amount = Amount::from_sat(1000);
 
 /// Checks if a script is an OP_RETURN output
 fn is_op_return_output(script: &bitcoin::ScriptBuf) -> bool {
@@ -194,6 +195,26 @@ pub fn check_pre_signed_slashing_tx_sanity(tx: &Transaction) -> Result<()> {
     )
 }
 
+// https://pkg.go.dev/github.com/btcsuite/btcd@v0.24.2/mempool#GetDustThreshold
+fn get_dust_threshold(txout: &TxOut) -> u64 {
+    let mut total_size = txout.size() + 41;
+    if txout.script_pubkey.is_witness_program() {
+        total_size += 107 / WITNESS_SCALE_FACTOR;
+    } else {
+        total_size += 107;
+    }
+    3 * total_size as u64
+}
+
+// https://pkg.go.dev/github.com/btcsuite/btcd@v0.24.2/mempool#IsDust
+fn is_dust(txout: &TxOut, min_relay_tx_fee: Amount) -> bool {
+    if txout.script_pubkey.is_op_return() {
+        return true;
+    }
+
+    txout.value * 1000 / get_dust_threshold(txout) < min_relay_tx_fee
+}
+
 /// Validates a slashing transaction with strict criteria
 #[allow(clippy::too_many_arguments)]
 fn validate_slashing_tx(
@@ -240,7 +261,7 @@ fn validate_slashing_tx(
         }
 
         // Use the standard dust threshold (546 satoshis for non-OP_RETURN outputs)
-        if output.value.to_sat() <= DUST_THRESHOLD {
+        if is_dust(output, DEFAULT_MIN_RELAY_TX_FEE) {
             return Err(Error::TxContainsDustOutputs {});
         }
     }
@@ -811,7 +832,10 @@ mod tests {
 
         // Test 4: Regular dust outputs should fail
         let mut invalid_tx = slashing_tx.clone();
-        invalid_tx.output[0].value = Amount::from_sat(DUST_THRESHOLD - 1); // Below 546 sat threshold
+        invalid_tx.output[0].value = Amount::from_sat(
+            DEFAULT_MIN_RELAY_TX_FEE.to_sat() * get_dust_threshold(&invalid_tx.output[0]) / 1000
+                - 1,
+        ); // Right Below the dust threshold
         let result = validate_slashing_tx(
             &invalid_tx,
             slashing_pk_script,
