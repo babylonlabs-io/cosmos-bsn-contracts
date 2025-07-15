@@ -191,7 +191,7 @@ func GenFinalityData(dir string) {
 	finalityModuleAddress := authtypes.NewModuleAddress(FinalityModuleName).String()
 	pubRandSigningContext := signingcontext.FpRandCommitContextV0(BabylonGenesisMainetChainID, finalityModuleAddress)
 	randListInfo := GenCommitPubRandListMsg(commitPubRandHeight, commitPubRandAmount, pubRandIndex, fpSK, pubRandSigningContext, dir)
-	fpSigningContext := signingcontext.FpPopContextV0(BabylonGenesisMainetChainID, finalityModuleAddress)
+	fpSigningContext := signingcontext.FpFinVoteContextV0(BabylonGenesisMainetChainID, finalityModuleAddress)
 	GenAddFinalitySig(commitPubRandHeight, pubRandIndex, randListInfo, fpSK, fpSigningContext, dir, 1)
 	// Conflicting signature / double signing
 	GenAddFinalitySig(commitPubRandHeight, pubRandIndex, randListInfo, fpSK, fpSigningContext, dir, 2)
