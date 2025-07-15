@@ -505,7 +505,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "unimplemented https://github.com/babylonlabs-io/cosmos-bsn-contracts/issues/143"]
     fn test_verify_unbonding_tx_schnorr_sig() {
         let btc_del = get_btc_delegation(1, vec![1]);
         let params = get_params();
@@ -556,7 +555,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "unimplemented https://github.com/babylonlabs-io/cosmos-bsn-contracts/issues/143"]
     fn test_verify_slashing_tx_adaptor_sig() {
         let btc_del = get_btc_delegation(1, vec![1]);
         let params = get_params();
@@ -606,7 +604,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "unimplemented https://github.com/babylonlabs-io/cosmos-bsn-contracts/issues/143"]
     fn test_verify_unbonding_slashing_tx_adaptor_sig() {
         let btc_del = get_btc_delegation(1, vec![1]);
         let params = get_params();

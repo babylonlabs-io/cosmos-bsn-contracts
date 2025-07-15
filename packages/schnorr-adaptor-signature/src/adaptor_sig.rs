@@ -124,6 +124,8 @@ impl AdaptorSignature {
         }
 
         /* TODO: disable the checks to workaround the tests in full-validation.
+         * Can be removed once https://github.com/babylonlabs-io/cosmos-bsn-contracts/issues/143 is
+         * resolved.
         // Ensure R.y is even
         if self.r.to_affine().y_is_odd().into() {
             return Err(Error::PointWithOddY("R".to_string()));
