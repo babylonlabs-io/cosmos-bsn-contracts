@@ -331,7 +331,7 @@ pub fn check_slashing_tx_match_funding_tx(
     Ok(())
 }
 
-fn calc_sighash(
+fn calc_tapscript_signature_hash(
     transaction: &Transaction,
     funding_output: &TxOut,
     path_script: &Script,
@@ -357,6 +357,8 @@ fn calc_sighash(
 }
 
 /// verify_transaction_sig_with_output verifies the validity of a Schnorr signature for a given transaction
+///
+/// https://github.com/babylonlabs-io/babylon/blob/ecb3a6dbbfbf528ae40a9cc191d978fc0b3d2755/btcstaking/staking.go#L710
 pub fn verify_transaction_sig_with_output(
     transaction: &Transaction,
     funding_output: &TxOut,
@@ -365,7 +367,7 @@ pub fn verify_transaction_sig_with_output(
     signature: &SchnorrSignature,
 ) -> Result<()> {
     // calculate the sig hash of the tx for the given spending path
-    let sighash = calc_sighash(transaction, funding_output, path_script)?;
+    let sighash = calc_tapscript_signature_hash(transaction, funding_output, path_script)?;
 
     verify_digest(pub_key, &sighash, signature)
         .map_err(|e| Error::InvalidSchnorrSignature(e.to_string()))
@@ -382,11 +384,11 @@ pub fn enc_verify_transaction_sig_with_output(
     signature: &AdaptorSignature,
 ) -> Result<()> {
     // calculate the sig hash of the tx for the given spending path
-    let sighash_msg = calc_sighash(transaction, funding_output, path_script)?;
+    let sighash = calc_tapscript_signature_hash(transaction, funding_output, path_script)?;
 
     // verify the signature w.r.t. the signature, the sig hash, and the public key
     signature
-        .verify(pub_key, enc_key, sighash_msg)
+        .verify(pub_key, enc_key, sighash)
         .map_err(|e| Error::InvalidSchnorrSignature(e.to_string()))
 }
 
