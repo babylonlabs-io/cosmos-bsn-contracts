@@ -2,11 +2,10 @@ name: Local Tests
 
 on:
   workflow_dispatch:
-  push:
-    branches: [ "xlc/upgrade-datagen-v3" ]
   pull_request:
     branches:
       - '**'
+
 permissions:
   contents: read
 
@@ -32,10 +31,10 @@ jobs:
       - uses: actions/setup-go@v3
         with:
           go-version: '1.23'
-      - name: "Tidy go modules"
+      - name: Tidy go modules
         run: go mod tidy
         working-directory: ./datagen
-      - name: "Check datagen"
+      - name: Check datagen
         run: go run datagen/*.go
 
   local-build-test:
@@ -53,8 +52,11 @@ jobs:
       image: rust:1.86.0
     steps:
     - uses: actions/checkout@v4.1.0
-    - name: Build contracts, check formats, and run unit tests (full validation)
-      run: |
-        rustup component add rustfmt clippy
-        - name: "Run rustfmt"
-        run: cargo fmt --all -- --check
+    - name: Install dependencies
+      run: rustup component add rustfmt clippy
+    - name: Check format
+      run: cargo fmt -- --check
+    - name: Check clippy
+      run: cargo clippy --workspace --all-features --all-targets -- -D warnings
+    - name: Run unit tests (full validation)
+      run: cargo test --lib --features full-validation
