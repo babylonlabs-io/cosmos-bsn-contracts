@@ -1,14 +1,15 @@
 use crate::error::Error;
-use crate::Result;
-
 use crate::types::is_rate_valid;
+use crate::Result;
 use babylon_schnorr_adaptor_signature::{verify_digest, AdaptorSignature};
+use bitcoin::constants::WITNESS_SCALE_FACTOR;
 use bitcoin::hashes::Hash;
 use bitcoin::opcodes::all::OP_RETURN;
 use bitcoin::sighash::{Prevouts, SighashCache};
-use bitcoin::{Script, Transaction, TxOut};
+use bitcoin::{Amount, Script, Transaction, TxOut};
 use k256::schnorr::Signature as SchnorrSignature;
 use k256::schnorr::VerifyingKey;
+use std::collections::HashSet;
 
 /// Maximum transaction weight allowed in Babylon system.
 /// This matches the MaxStandardTxWeight constant from Babylon Genesis.
@@ -18,8 +19,17 @@ const MAX_STANDARD_TX_WEIGHT: usize = 400000;
 /// This matches the maxTxVersion constant from Babylon Genesis.
 const MAX_TX_VERSION: i32 = 2;
 
-/// Dust threshold defines the maximum value of an output to be considered a dust output.
-const DUST_THRESHOLD: u64 = 546;
+/// Maximum number of bytes within a block which can be allocated to non-witness data.
+const MAX_BLOCK_BASE_SIZE: usize = 1000000;
+
+/// Minimum length a coinbase script can be.
+const MIN_COINBASE_SCRIPT_LEN: usize = 2;
+
+/// Maximum length a coinbase script can be.
+const MAX_COINBASE_SCRIPT_LEN: usize = 100;
+
+// https://pkg.go.dev/github.com/btcsuite/btcd@v0.24.2/mempool#DefaultMinRelayTxFee
+const DEFAULT_MIN_RELAY_TX_FEE: Amount = Amount::from_sat(1000);
 
 /// Checks if a script is an OP_RETURN output
 fn is_op_return_output(script: &bitcoin::ScriptBuf) -> bool {
@@ -27,6 +37,86 @@ fn is_op_return_output(script: &bitcoin::ScriptBuf) -> bool {
     !script_bytes.is_empty() && script_bytes[0] == OP_RETURN.to_u8()
 }
 
+/// Transaction verification error.
+#[derive(Debug, thiserror::Error, PartialEq)]
+pub enum TxError {
+    #[error("Transaction has no inputs")]
+    NoInputs,
+    #[error("Transaction has no outputs")]
+    NoOutputs,
+    #[error("Transaction is too large")]
+    TxTooBig,
+    #[error("Transaction contains duplicate inputs at index {0}")]
+    DuplicateTxInput(usize),
+    #[error("Output value ({0}) is too large")]
+    TxOutValueTooLarge(Amount),
+    #[error("Total output value ({0}) is too large")]
+    TotalTxOutValueTooLarge(Amount),
+    #[error(
+        "Coinbase transaction script length of {0} is out of range \
+        (min: {MIN_COINBASE_SCRIPT_LEN}, max: {MAX_COINBASE_SCRIPT_LEN})"
+    )]
+    BadCoinbaseScriptLength(usize),
+    #[error("Transaction input refers to a previous output that is null")]
+    PreviousOutputNull,
+}
+
+// https://pkg.go.dev/github.com/btcsuite/btcd@v0.24.2/blockchain#CheckTransactionSanity
+pub fn check_transaction_sanity(tx: &Transaction) -> std::result::Result<(), TxError> {
+    if tx.input.is_empty() {
+        return Err(TxError::NoInputs);
+    }
+
+    if tx.output.is_empty() {
+        return Err(TxError::NoOutputs);
+    }
+
+    if tx.base_size() > MAX_BLOCK_BASE_SIZE {
+        return Err(TxError::TxTooBig);
+    }
+
+    let mut value_out = Amount::ZERO;
+    tx.output.iter().try_for_each(|txout| {
+        if txout.value > Amount::MAX_MONEY {
+            return Err(TxError::TxOutValueTooLarge(txout.value));
+        }
+
+        value_out += txout.value;
+
+        if value_out > Amount::MAX_MONEY {
+            return Err(TxError::TotalTxOutValueTooLarge(value_out));
+        }
+
+        Ok(())
+    })?;
+
+    // Check for duplicate inputs.
+    let mut seen_inputs = HashSet::with_capacity(tx.input.len());
+    for (index, txin) in tx.input.iter().enumerate() {
+        if !seen_inputs.insert(txin.previous_output) {
+            return Err(TxError::DuplicateTxInput(index));
+        }
+    }
+
+    // Coinbase script length must be between min and max length.
+    if tx.is_coinbase() {
+        let script_sig_len = tx.input[0].script_sig.len();
+
+        if !(MIN_COINBASE_SCRIPT_LEN..=MAX_COINBASE_SCRIPT_LEN).contains(&script_sig_len) {
+            return Err(TxError::BadCoinbaseScriptLength(script_sig_len));
+        }
+    } else {
+        // Previous transaction outputs referenced by the inputs to this
+        // transaction must not be null.
+        if tx.input.iter().any(|txin| txin.previous_output.is_null()) {
+            return Err(TxError::PreviousOutputNull);
+        }
+    }
+
+    Ok(())
+}
+
+// https://github.com/babylonlabs-io/babylon/blob/ecb3a6dbbfbf528ae40a9cc191d978fc0b3d2755/btcstaking/staking.go#L195
 fn check_pre_signed_tx_sanity(
     tx: &Transaction,
     num_inputs: usize,
@@ -34,6 +124,8 @@ fn check_pre_signed_tx_sanity(
     min_tx_version: i32,
     max_tx_version: i32,
 ) -> Result<()> {
+    check_transaction_sanity(tx)?;
+
     if tx.input.len() != num_inputs {
         return Err(Error::TxInputCountMismatch(num_inputs, tx.input.len()));
     }
@@ -68,7 +160,7 @@ fn check_pre_signed_tx_sanity(
 
     // Check that all inputs are non-replaceable (final)
     for input in &tx.input {
-        if input.sequence.is_rbf() {
+        if !input.sequence.is_final() {
             return Err(Error::TxIsReplaceable {});
         }
 
@@ -101,6 +193,26 @@ pub fn check_pre_signed_slashing_tx_sanity(tx: &Transaction) -> Result<()> {
         1,              // min_tx_version (slashing tx version can be between 1 and 2)
         MAX_TX_VERSION, // max_tx_version
     )
+}
+
+// https://pkg.go.dev/github.com/btcsuite/btcd@v0.24.2/mempool#GetDustThreshold
+fn get_dust_threshold(txout: &TxOut) -> u64 {
+    let mut total_size = txout.size() + 41;
+    if txout.script_pubkey.is_witness_program() {
+        total_size += 107 / WITNESS_SCALE_FACTOR;
+    } else {
+        total_size += 107;
+    }
+    3 * total_size as u64
+}
+
+// https://pkg.go.dev/github.com/btcsuite/btcd@v0.24.2/mempool#IsDust
+fn is_dust(txout: &TxOut, min_relay_tx_fee: Amount) -> bool {
+    if txout.script_pubkey.is_op_return() {
+        return true;
+    }
+
+    txout.value * 1000 / get_dust_threshold(txout) < min_relay_tx_fee
 }
 
 /// Validates a slashing transaction with strict criteria
@@ -149,7 +261,7 @@ fn validate_slashing_tx(
         }
 
         // Use the standard dust threshold (546 satoshis for non-OP_RETURN outputs)
-        if output.value.to_sat() <= DUST_THRESHOLD {
+        if is_dust(output, DEFAULT_MIN_RELAY_TX_FEE) {
             return Err(Error::TxContainsDustOutputs {});
         }
     }
@@ -240,7 +352,7 @@ pub fn check_slashing_tx_match_funding_tx(
     Ok(())
 }
 
-fn calc_sighash(
+fn calc_tapscript_signature_hash(
     transaction: &Transaction,
     funding_output: &TxOut,
     path_script: &Script,
@@ -266,6 +378,8 @@ fn calc_sighash(
 }
 
 /// verify_transaction_sig_with_output verifies the validity of a Schnorr signature for a given transaction
+///
+/// https://github.com/babylonlabs-io/babylon/blob/ecb3a6dbbfbf528ae40a9cc191d978fc0b3d2755/btcstaking/staking.go#L710
 pub fn verify_transaction_sig_with_output(
     transaction: &Transaction,
     funding_output: &TxOut,
@@ -274,7 +388,7 @@ pub fn verify_transaction_sig_with_output(
     signature: &SchnorrSignature,
 ) -> Result<()> {
     // calculate the sig hash of the tx for the given spending path
-    let sighash = calc_sighash(transaction, funding_output, path_script)?;
+    let sighash = calc_tapscript_signature_hash(transaction, funding_output, path_script)?;
 
     verify_digest(pub_key, &sighash, signature)
         .map_err(|e| Error::InvalidSchnorrSignature(e.to_string()))
@@ -291,11 +405,11 @@ pub fn enc_verify_transaction_sig_with_output(
     signature: &AdaptorSignature,
 ) -> Result<()> {
     // calculate the sig hash of the tx for the given spending path
-    let sighash_msg = calc_sighash(transaction, funding_output, path_script)?;
+    let sighash = calc_tapscript_signature_hash(transaction, funding_output, path_script)?;
 
     // verify the signature w.r.t. the signature, the sig hash, and the public key
     signature
-        .verify(pub_key, enc_key, sighash_msg)
+        .verify(pub_key, enc_key, sighash)
         .map_err(|e| Error::InvalidSchnorrSignature(e.to_string()))
 }
 
@@ -718,7 +832,10 @@ mod tests {
 
         // Test 4: Regular dust outputs should fail
         let mut invalid_tx = slashing_tx.clone();
-        invalid_tx.output[0].value = Amount::from_sat(DUST_THRESHOLD - 1); // Below 546 sat threshold
+        invalid_tx.output[0].value = Amount::from_sat(
+            DEFAULT_MIN_RELAY_TX_FEE.to_sat() * get_dust_threshold(&invalid_tx.output[0]) / 1000
+                - 1,
+        ); // Right Below the dust threshold
         let result = validate_slashing_tx(
             &invalid_tx,
             slashing_pk_script,
