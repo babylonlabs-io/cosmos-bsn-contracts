@@ -1,14 +1,14 @@
 use crate::error::Error;
-use crate::Result;
-
 use crate::types::is_rate_valid;
+use crate::Result;
 use babylon_schnorr_adaptor_signature::{verify_digest, AdaptorSignature};
 use bitcoin::hashes::Hash;
 use bitcoin::opcodes::all::OP_RETURN;
 use bitcoin::sighash::{Prevouts, SighashCache};
-use bitcoin::{Script, Transaction, TxOut};
+use bitcoin::{Amount, Script, Transaction, TxOut};
 use k256::schnorr::Signature as SchnorrSignature;
 use k256::schnorr::VerifyingKey;
+use std::collections::HashSet;
 
 /// Maximum transaction weight allowed in Babylon system.
 /// This matches the MaxStandardTxWeight constant from Babylon Genesis.
@@ -21,10 +21,98 @@ const MAX_TX_VERSION: i32 = 2;
 /// Dust threshold defines the maximum value of an output to be considered a dust output.
 const DUST_THRESHOLD: u64 = 546;
 
+/// Maximum number of bytes within a block which can be allocated to non-witness data.
+const MAX_BLOCK_BASE_SIZE: usize = 1000000;
+
+/// Minimum length a coinbase script can be.
+const MIN_COINBASE_SCRIPT_LEN: usize = 2;
+
+/// Maximum length a coinbase script can be.
+const MAX_COINBASE_SCRIPT_LEN: usize = 100;
+
 /// Checks if a script is an OP_RETURN output
 fn is_op_return_output(script: &bitcoin::ScriptBuf) -> bool {
     let script_bytes = script.as_bytes();
     !script_bytes.is_empty() && script_bytes[0] == OP_RETURN.to_u8()
+}
+
+/// Transaction verification error.
+#[derive(Debug, thiserror::Error, PartialEq)]
+pub enum TxError {
+    #[error("Transaction has no inputs")]
+    NoInputs,
+    #[error("Transaction has no outputs")]
+    NoOutputs,
+    #[error("Transaction is too large")]
+    TxTooBig,
+    #[error("Transaction contains duplicate inputs at index {0}")]
+    DuplicateTxInput(usize),
+    #[error("Output value ({0}) is too large")]
+    TxOutValueTooLarge(Amount),
+    #[error("Total output value ({0}) is too large")]
+    TotalTxOutValueTooLarge(Amount),
+    #[error(
+        "Coinbase transaction script length of {0} is out of range \
+        (min: {MIN_COINBASE_SCRIPT_LEN}, max: {MAX_COINBASE_SCRIPT_LEN})"
+    )]
+    BadCoinbaseScriptLength(usize),
+    #[error("Transaction input refers to a previous output that is null")]
+    PreviousOutputNull,
+}
+
+// https://pkg.go.dev/github.com/btcsuite/btcd@v0.24.2/blockchain#CheckTransactionSanity
+pub fn check_transaction_sanity(tx: &Transaction) -> std::result::Result<(), TxError> {
+    if tx.input.is_empty() {
+        return Err(TxError::NoInputs);
+    }
+
+    if tx.output.is_empty() {
+        return Err(TxError::NoOutputs);
+    }
+
+    if tx.base_size() > MAX_BLOCK_BASE_SIZE {
+        return Err(TxError::TxTooBig);
+    }
+
+    let mut value_out = Amount::ZERO;
+    tx.output.iter().try_for_each(|txout| {
+        if txout.value > Amount::MAX_MONEY {
+            return Err(TxError::TxOutValueTooLarge(txout.value));
+        }
+
+        value_out += txout.value;
+
+        if value_out > Amount::MAX_MONEY {
+            return Err(TxError::TotalTxOutValueTooLarge(value_out));
+        }
+
+        Ok(())
+    })?;
+
+    // Check for duplicate inputs.
+    let mut seen_inputs = HashSet::with_capacity(tx.input.len());
+    for (index, txin) in tx.input.iter().enumerate() {
+        if !seen_inputs.insert(txin.previous_output) {
+            return Err(TxError::DuplicateTxInput(index));
+        }
+    }
+
+    // Coinbase script length must be between min and max length.
+    if tx.is_coinbase() {
+        let script_sig_len = tx.input[0].script_sig.len();
+
+        if !(MIN_COINBASE_SCRIPT_LEN..=MAX_COINBASE_SCRIPT_LEN).contains(&script_sig_len) {
+            return Err(TxError::BadCoinbaseScriptLength(script_sig_len));
+        }
+    } else {
+        // Previous transaction outputs referenced by the inputs to this
+        // transaction must not be null.
+        if tx.input.iter().any(|txin| txin.previous_output.is_null()) {
+            return Err(TxError::PreviousOutputNull);
+        }
+    }
+
+    Ok(())
 }
 
 // https://github.com/babylonlabs-io/babylon/blob/ecb3a6dbbfbf528ae40a9cc191d978fc0b3d2755/btcstaking/staking.go#L195
@@ -35,6 +123,8 @@ fn check_pre_signed_tx_sanity(
     min_tx_version: i32,
     max_tx_version: i32,
 ) -> Result<()> {
+    check_transaction_sanity(tx)?;
+
     if tx.input.len() != num_inputs {
         return Err(Error::TxInputCountMismatch(num_inputs, tx.input.len()));
     }
