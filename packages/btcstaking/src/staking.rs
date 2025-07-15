@@ -27,6 +27,7 @@ fn is_op_return_output(script: &bitcoin::ScriptBuf) -> bool {
     !script_bytes.is_empty() && script_bytes[0] == OP_RETURN.to_u8()
 }
 
+// https://github.com/babylonlabs-io/babylon/blob/ecb3a6dbbfbf528ae40a9cc191d978fc0b3d2755/btcstaking/staking.go#L195
 fn check_pre_signed_tx_sanity(
     tx: &Transaction,
     num_inputs: usize,
@@ -68,7 +69,7 @@ fn check_pre_signed_tx_sanity(
 
     // Check that all inputs are non-replaceable (final)
     for input in &tx.input {
-        if input.sequence.is_rbf() {
+        if !input.sequence.is_final() {
             return Err(Error::TxIsReplaceable {});
         }
 
