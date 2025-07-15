@@ -18,6 +18,8 @@ pub enum Error {
     InvalidAdaptorSignatureFirstByte(u8),
     #[error("Failed to parse bytes as a mod n scalar")]
     FailedToParseScalar {},
+    #[error("Old format requires negation byte")]
+    InvalidNeedsNegationByte,
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
