@@ -1,3 +1,8 @@
+//! Signing context utilities for BTC staking-related operations.
+//!
+//! This module is a direct Rust translation of the signing context builder:
+//! <https://github.com/babylonlabs-io/babylon/blob/bb2139fdeba412d6704e90f809bbbae6be082fa7/app/signingcontext/builder.go>
+
 use sha2::{Digest, Sha256};
 
 const PROTOCOL_NAME: &str = "btcstaking";

@@ -118,7 +118,7 @@ fn verify_commitment_signature(
         Signature::try_from(signature).map_err(|e| ContractError::SecP256K1Error(e.to_string()))?;
 
     // TODO: proper signing context
-    let signing_context = crate::signing_context::fp_rand_commit_context_v0(
+    let signing_context = babylon_btcstaking::signing_context::fp_rand_commit_context_v0(
         "bbn-1",
         "bbn1lhf40qkva2f2n3snjjaglsx2yvwz7da9qa0tup",
     );
@@ -462,7 +462,7 @@ fn verify_finality_signature(
 ///
 /// The EOTS signature on a block will be (block_height || block_app_hash)
 fn msg_to_sign(height: u64, block_app_hash: &[u8]) -> Vec<u8> {
-    let signing_context = crate::signing_context::fp_pop_context_v0(
+    let signing_context = babylon_btcstaking::signing_context::fp_pop_context_v0(
         "bbn-1",
         "bbn1lhf40qkva2f2n3snjjaglsx2yvwz7da9qa0tup",
     );
