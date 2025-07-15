@@ -117,8 +117,15 @@ fn verify_commitment_signature(
     let schnorr_sig =
         Signature::try_from(signature).map_err(|e| ContractError::SecP256K1Error(e.to_string()))?;
 
+    // TODO: proper signing context
+    let signing_context = babylon_btcstaking::signing_context::fp_rand_commit_context_v0(
+        "bbn-1",
+        "bbn1lhf40qkva2f2n3snjjaglsx2yvwz7da9qa0tup",
+    );
+
     // get signed message
     let mut msg: Vec<u8> = vec![];
+    msg.extend_from_slice(signing_context.as_bytes());
     msg.extend_from_slice(&start_height.to_be_bytes());
     msg.extend_from_slice(&num_pub_rand.to_be_bytes());
     msg.extend_from_slice(commitment);
@@ -455,7 +462,12 @@ fn verify_finality_signature(
 ///
 /// The EOTS signature on a block will be (block_height || block_app_hash)
 fn msg_to_sign(height: u64, block_app_hash: &[u8]) -> Vec<u8> {
-    let mut msg: Vec<u8> = height.to_be_bytes().to_vec();
+    let signing_context = babylon_btcstaking::signing_context::fp_fin_vote_context_v0(
+        "bbn-1",
+        "bbn1lhf40qkva2f2n3snjjaglsx2yvwz7da9qa0tup",
+    );
+    let mut msg: Vec<u8> = signing_context.as_bytes().to_vec();
+    msg.extend(height.to_be_bytes());
     msg.extend_from_slice(block_app_hash);
     msg
 }
