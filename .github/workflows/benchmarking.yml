@@ -1,6 +1,7 @@
 name: Benchmarking
 
 on:
+  workflow_dispatch:
   push:
     branches: [ "disabled" ]
   pull_request:

@@ -56,4 +56,6 @@ pub enum Error {
     InvalidSlashingAmount {},
     #[error(transparent)]
     SighashTaproot(#[from] bitcoin::sighash::TaprootError),
+    #[error(transparent)]
+    Tx(#[from] crate::staking::TxError),
 }
