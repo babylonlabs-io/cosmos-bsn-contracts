@@ -35,27 +35,6 @@ pub struct IndexedHeader {
     #[prost(bytes="bytes", tag="8")]
     pub babylon_tx_hash: ::prost::bytes::Bytes,
 }
-/// Forks is a list of non-canonical `IndexedHeader`s at the same height.
-/// For example, assuming the following blockchain
-/// ```
-/// A <- B <- C <- D <- E
-///             \ -- D1
-///             \ -- D2
-/// ```
-/// Then the fork will be {[D1, D2]} where each item is in struct `IndexedBlock`.
-///
-/// Note that each `IndexedHeader` in the fork should have a valid quorum
-/// certificate. Such forks exist since Babylon considers Consumers might have
-/// dishonest majority. Also note that the IBC-Go implementation will only
-/// consider the first header in a fork valid, since the subsequent headers
-/// cannot be verified without knowing the validator set in the previous header.
-#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct Forks {
-    /// blocks is the list of non-canonical indexed headers at the same height
-    #[prost(message, repeated, tag="3")]
-    pub headers: ::prost::alloc::vec::Vec<IndexedHeader>,
-}
 /// ChainInfo is the information of a Consumer
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -66,13 +45,9 @@ pub struct ChainInfo {
     /// latest_header is the latest header in Consumer's canonical chain
     #[prost(message, optional, tag="2")]
     pub latest_header: ::core::option::Option<IndexedHeader>,
-    /// latest_forks is the latest forks, formed as a series of IndexedHeader (from
-    /// low to high)
-    #[prost(message, optional, tag="3")]
-    pub latest_forks: ::core::option::Option<Forks>,
     /// timestamped_headers_count is the number of timestamped headers in the Consumer's
     /// canonical chain
-    #[prost(uint64, tag="4")]
+    #[prost(uint64, tag="3")]
     pub timestamped_headers_count: u64,
 }
 /// FinalizedChainInfo is the information of a Consumer that is BTC-finalised
@@ -175,7 +150,7 @@ pub mod outbound_packet {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct InboundPacket {
     /// packet is the actual message carried in the IBC packet
-    #[prost(oneof="inbound_packet::Packet", tags="1")]
+    #[prost(oneof="inbound_packet::Packet", tags="1, 2")]
     pub packet: ::core::option::Option<inbound_packet::Packet>,
 }
 /// Nested message and enum types in `InboundPacket`.
@@ -186,6 +161,8 @@ pub mod inbound_packet {
     pub enum Packet {
         #[prost(message, tag="1")]
         ConsumerSlashing(super::ConsumerSlashingIbcPacket),
+        #[prost(message, tag="2")]
+        BsnBaseBtcHeader(super::BsnBaseBtcHeaderIbcPacket),
     }
 }
 /// BTCHeaders contains BTC headers that have been verified and inserted into Babylon's BTC light client
@@ -200,7 +177,7 @@ pub struct BtcHeaders {
 /// It includes a number of BTC headers, a raw checkpoint, an epoch metadata, and
 /// a Cosmos Consumer header if there exists Cosmos Consumer headers checkpointed to this epoch.
 /// Upon a newly finalised epoch in Babylon, Babylon will send a BTC timestamp to each
-/// Cosmos zone that has phase-2 integration with Babylon via IBC.
+/// consumer chain via IBC.
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct BtcTimestamp {
@@ -242,5 +219,14 @@ pub struct ConsumerSlashingIbcPacket {
     /// / evidence is the FP slashing evidence that the Consumer sends to Babylon
     #[prost(message, optional, tag="1")]
     pub evidence: ::core::option::Option<super::super::finality::v1::Evidence>,
+}
+/// BSNBaseBTCHeaderIBCPacket defines the base BTC header information that a BSN sends to Babylon's ZoneConcierge
+/// to inform Babylon about which BTC header the BSN considers as its starting point for BTC light client synchronization
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct BsnBaseBtcHeaderIbcPacket {
+    /// base_btc_header is the BTC header that the BSN uses as the base for its BTC light client
+    #[prost(message, optional, tag="1")]
+    pub base_btc_header: ::core::option::Option<super::super::btclightclient::v1::BtcHeaderInfo>,
 }
 // @@protoc_insertion_point(module)

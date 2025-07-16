@@ -10,7 +10,6 @@ types:
     - babylon.checkpointing.v1.RawCheckpoint
     - babylon.epoching.v1.Epoch
     - babylon.zoneconcierge.v1.IndexedHeader
-    - babylon.zoneconcierge.v1.Forks
     - babylon.zoneconcierge.v1.ProofEpochSealed
     - babylon.zoneconcierge.v1.ProofFinalizedChainInfo
     - babylon.zoneconcierge.v1.FinalizedChainInfo
