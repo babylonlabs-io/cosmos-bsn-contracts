@@ -251,7 +251,7 @@ pub fn new_finality_provider(fp: FinalityProvider) -> NewFinalityProvider {
             }),
             None => None,
         },
-        consumer_id: fp.consumer_id,
+        consumer_id: fp.bsn_id,
     }
 }
 
