@@ -12,6 +12,8 @@ require (
 	github.com/btcsuite/btcd/btcec/v2 v2.3.4
 	github.com/cometbft/cometbft v0.38.17
 	github.com/stretchr/testify v1.10.0
+	github.com/cosmos/cosmos-sdk v0.53.3
+	github.com/go-viper/mapstructure/v2 v2.3.0
 )
 
 require (
