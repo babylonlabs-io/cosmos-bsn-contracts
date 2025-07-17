@@ -19,12 +19,12 @@
       "minimum": 0.0
     },
     "network": {
-      "$ref": "#/definitions/Network"
+      "$ref": "#/definitions/BitcoinNetwork"
     }
   },
   "additionalProperties": false,
   "definitions": {
-    "Network": {
+    "BitcoinNetwork": {
       "type": "string",
       "enum": [
         "mainnet",

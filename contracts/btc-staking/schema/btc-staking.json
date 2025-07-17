@@ -1,6 +1,6 @@
 {
   "contract_name": "btc-staking",
-  "contract_version": "0.14.0",
+  "contract_version": "0.15.0",
   "idl_version": "1.0.0",
   "instantiate": {
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -26,7 +26,7 @@
     },
     "additionalProperties": false,
     "definitions": {
-      "Network": {
+      "BitcoinNetwork": {
         "type": "string",
         "enum": [
           "mainnet",
@@ -51,7 +51,7 @@
             "description": "Network the BTC staking protocol is running on.",
             "allOf": [
               {
-                "$ref": "#/definitions/Network"
+                "$ref": "#/definitions/BitcoinNetwork"
               }
             ]
           },
@@ -2115,7 +2115,7 @@
           "description": "Network the BTC staking protocol is running on.",
           "allOf": [
             {
-              "$ref": "#/definitions/Network"
+              "$ref": "#/definitions/BitcoinNetwork"
             }
           ]
         },
@@ -2149,7 +2149,7 @@
       },
       "additionalProperties": false,
       "definitions": {
-        "Network": {
+        "BitcoinNetwork": {
           "type": "string",
           "enum": [
             "mainnet",

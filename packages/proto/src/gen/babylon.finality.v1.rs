@@ -12,7 +12,8 @@ pub struct PubRandCommit {
     #[prost(uint64, tag="2")]
     pub num_pub_rand: u64,
     /// commitment is the value of the commitment
-    /// currently, it is the root of the merkle tree constructed by the public randomness
+    /// currently, it is the root of the merkle tree constructed by the public
+    /// randomness
     #[prost(bytes="bytes", tag="3")]
     pub commitment: ::prost::bytes::Bytes,
     /// epoch_num defines the epoch number that the commit falls into
@@ -42,13 +43,18 @@ pub struct Evidence {
     /// canonical_finality_sig is the finality signature to the canonical block
     /// where finality signature is an EOTS signature, i.e.,
     /// the `s` in a Schnorr signature `(r, s)`
-    /// `r` is the public randomness that is already committed by the finality provider
+    /// `r` is the public randomness that is already committed by the finality
+    /// provider
     #[prost(bytes="bytes", tag="6")]
     pub canonical_finality_sig: ::prost::bytes::Bytes,
     /// fork_finality_sig is the finality signature to the fork block
     /// where finality signature is an EOTS signature
     #[prost(bytes="bytes", tag="7")]
     pub fork_finality_sig: ::prost::bytes::Bytes,
+    /// signing_context is the context in which the finality signatures were used.
+    /// It must be hex encoded 32 bytes, of the sha256 hash of the context string
+    #[prost(string, tag="8")]
+    pub signing_context: ::prost::alloc::string::String,
 }
 /// MsgCommitPubRandList defines a message for committing a list of public randomness for EOTS
 #[allow(clippy::derive_partial_eq_without_eq)]

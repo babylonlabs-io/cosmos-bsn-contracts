@@ -22,7 +22,7 @@
   },
   "additionalProperties": false,
   "definitions": {
-    "Network": {
+    "BitcoinNetwork": {
       "type": "string",
       "enum": [
         "mainnet",
@@ -47,7 +47,7 @@
           "description": "Network the BTC staking protocol is running on.",
           "allOf": [
             {
-              "$ref": "#/definitions/Network"
+              "$ref": "#/definitions/BitcoinNetwork"
             }
           ]
         },

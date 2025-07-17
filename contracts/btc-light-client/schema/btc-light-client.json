@@ -1,6 +1,6 @@
 {
   "contract_name": "btc-light-client",
-  "contract_version": "0.14.0",
+  "contract_version": "0.15.0",
   "idl_version": "1.0.0",
   "instantiate": {
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -32,7 +32,7 @@
         ]
       },
       "network": {
-        "$ref": "#/definitions/Network"
+        "$ref": "#/definitions/BitcoinNetwork"
       }
     },
     "additionalProperties": false,
@@ -40,6 +40,15 @@
       "Binary": {
         "description": "Binary is a wrapper around Vec<u8> to add base64 de/serialization with serde. It also adds some helper methods to help encode inline.\n\nThis is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>. See also <https://github.com/CosmWasm/cosmwasm/blob/main/docs/MESSAGE_TYPES.md>.",
         "type": "string"
+      },
+      "BitcoinNetwork": {
+        "type": "string",
+        "enum": [
+          "mainnet",
+          "testnet",
+          "signet",
+          "regtest"
+        ]
       },
       "BtcHeader": {
         "description": "Bitcoin header.\n\nContains all the block's information except the actual transactions, but including a root of a [merkle tree] committing to all transactions in the block.\n\nThis struct is for use in RPC requests and responses. It has convenience trait impls to convert to the internal representation (`BlockHeader`), and to the Babylon extended representation (`BtcHeaderInfo`). Adapted from `BlockHeader`.",
@@ -118,15 +127,6 @@
           }
         },
         "additionalProperties": false
-      },
-      "Network": {
-        "type": "string",
-        "enum": [
-          "mainnet",
-          "testnet",
-          "signet",
-          "regtest"
-        ]
       }
     }
   },
@@ -135,7 +135,7 @@
     "title": "ExecuteMsg",
     "oneOf": [
       {
-        "description": "Add BTC headers to the light client. If not initialized, this will initialize the light client with the provided headers. Otherwise, it will update the existing chain with the new headers.",
+        "description": "Submit new BTC headers to the light client.",
         "type": "object",
         "required": [
           "btc_headers"
@@ -835,12 +835,12 @@
           "minimum": 0.0
         },
         "network": {
-          "$ref": "#/definitions/Network"
+          "$ref": "#/definitions/BitcoinNetwork"
         }
       },
       "additionalProperties": false,
       "definitions": {
-        "Network": {
+        "BitcoinNetwork": {
           "type": "string",
           "enum": [
             "mainnet",

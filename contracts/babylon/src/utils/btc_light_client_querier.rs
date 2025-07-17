@@ -6,10 +6,7 @@ use cosmwasm_std::Deps;
 /// Get the BTC light client contract address
 fn get_contract_addr(deps: Deps) -> Result<String, ContractError> {
     let cfg = CONFIG.load(deps.storage)?;
-    Ok(cfg
-        .btc_light_client
-        .ok_or(ContractError::BtcLightClientNotSet {})?
-        .to_string())
+    cfg.btc_light_client_addr()
 }
 
 /// Query the tip header from the BTC light client

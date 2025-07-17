@@ -40,6 +40,9 @@ pub enum ContractError {
     #[error(transparent)]
     Utf8(#[from] Utf8Error),
 
+    #[error(transparent)]
+    ProstEncode(#[from] prost::EncodeError),
+
     /// Header verification error.
     #[error(transparent)]
     Header(#[from] crate::bitcoin::HeaderError),

@@ -95,7 +95,7 @@ impl TryFrom<&babylon_proto::babylon::btcstaking::v1::NewFinalityProvider> for N
                 btc_sig_type: pop.btc_sig_type,
                 btc_sig: pop.btc_sig.to_vec().into(),
             }),
-            consumer_id: fp.consumer_id.clone(),
+            consumer_id: fp.bsn_id.clone(),
         })
     }
 }

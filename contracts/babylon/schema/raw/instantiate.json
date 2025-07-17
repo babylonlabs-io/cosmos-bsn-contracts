@@ -118,7 +118,7 @@
       ]
     },
     "network": {
-      "$ref": "#/definitions/Network"
+      "$ref": "#/definitions/BitcoinNetwork"
     },
     "notify_cosmos_zone": {
       "description": "Whether to send Cosmos zone messages notifying BTC-finalised headers. NOTE: If set to true, then the Cosmos zone needs to integrate the corresponding message handler as well",
@@ -131,7 +131,7 @@
       "description": "Binary is a wrapper around Vec<u8> to add base64 de/serialization with serde. It also adds some helper methods to help encode inline.\n\nThis is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>. See also <https://github.com/CosmWasm/cosmwasm/blob/main/docs/MESSAGE_TYPES.md>.",
       "type": "string"
     },
-    "Network": {
+    "BitcoinNetwork": {
       "type": "string",
       "enum": [
         "mainnet",

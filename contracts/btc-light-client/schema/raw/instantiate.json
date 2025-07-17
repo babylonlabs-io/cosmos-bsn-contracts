@@ -28,7 +28,7 @@
       ]
     },
     "network": {
-      "$ref": "#/definitions/Network"
+      "$ref": "#/definitions/BitcoinNetwork"
     }
   },
   "additionalProperties": false,
@@ -36,6 +36,15 @@
     "Binary": {
       "description": "Binary is a wrapper around Vec<u8> to add base64 de/serialization with serde. It also adds some helper methods to help encode inline.\n\nThis is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>. See also <https://github.com/CosmWasm/cosmwasm/blob/main/docs/MESSAGE_TYPES.md>.",
       "type": "string"
+    },
+    "BitcoinNetwork": {
+      "type": "string",
+      "enum": [
+        "mainnet",
+        "testnet",
+        "signet",
+        "regtest"
+      ]
     },
     "BtcHeader": {
       "description": "Bitcoin header.\n\nContains all the block's information except the actual transactions, but including a root of a [merkle tree] committing to all transactions in the block.\n\nThis struct is for use in RPC requests and responses. It has convenience trait impls to convert to the internal representation (`BlockHeader`), and to the Babylon extended representation (`BtcHeaderInfo`). Adapted from `BlockHeader`.",
@@ -114,15 +123,6 @@
         }
       },
       "additionalProperties": false
-    },
-    "Network": {
-      "type": "string",
-      "enum": [
-        "mainnet",
-        "testnet",
-        "signet",
-        "regtest"
-      ]
     }
   }
 }

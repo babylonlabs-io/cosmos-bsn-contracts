@@ -17,6 +17,8 @@ pub enum ContractError {
     BtcHeaderEmpty {},
     #[error("The BTC light client contract is not set")]
     BtcLightClientNotSet {},
+    #[error("Missing base_header in the response of BTC light client contract instantiation")]
+    MissingBaseHeaderInBtcLightClientResponse,
     #[error("{0}")]
     BtcError(#[from] BTCLightclientError),
     #[error("{0}")]
@@ -49,6 +51,8 @@ pub enum ContractError {
     IbcTransferInfoNotSet {},
     #[error(transparent)]
     Hex(#[from] hex::FromHexError),
+    #[error(transparent)]
+    ProstEncode(#[from] prost::EncodeError),
     #[error(transparent)]
     ProstDecode(#[from] prost::DecodeError),
     #[error("SerdeJson error: {0}")]

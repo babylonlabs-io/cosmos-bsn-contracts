@@ -85,11 +85,9 @@ pub struct FinalityProvider {
     /// finality provider has voted
     #[prost(uint32, tag="9")]
     pub highest_voted_height: u32,
-    /// consumer_id is the ID of the consumer the finality provider is operating
-    /// on. If it's missing / empty, it's assumed the finality provider is
-    /// operating in the Babylon chain.
+    /// bsn_id is the ID of the BSN the finality provider is securing
     #[prost(string, tag="10")]
-    pub consumer_id: ::prost::alloc::string::String,
+    pub bsn_id: ::prost::alloc::string::String,
     /// commission_info contains information details of the finality provider commission.
     #[prost(message, optional, tag="11")]
     pub commission_info: ::core::option::Option<CommissionInfo>,
@@ -125,8 +123,7 @@ pub struct BtcDelegation {
     pub pop: ::core::option::Option<ProofOfPossessionBtc>,
     /// fp_btc_pk_list is the list of BIP-340 PKs of the finality providers that
     /// this BTC delegation delegates to
-    /// If there is more than 1 PKs, then this means the delegation is restaked
-    /// to multiple finality providers
+    /// If there are more than 1 PKs, then this means the delegation is multi-staked
     #[prost(bytes="bytes", repeated, tag="4")]
     pub fp_btc_pk_list: ::prost::alloc::vec::Vec<::prost::bytes::Bytes>,
     /// staking_time is the number of blocks for which the delegation is locked on
@@ -181,6 +178,34 @@ pub struct BtcDelegation {
     /// the delegation creation
     #[prost(uint32, tag="17")]
     pub btc_tip_height: u32,
+    /// stk_exp is contains the relevant information about the previous staking that
+    /// originated this stake. If nil it is NOT a stake expansion.
+    #[prost(message, optional, tag="18")]
+    pub stk_exp: ::core::option::Option<StakeExpansion>,
+}
+/// StakeExpansion stores information necessary to construct the expanded BTC staking
+/// transaction created from a previous BTC staking.
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct StakeExpansion {
+    /// previous_staking_tx_hash is the hash of the staking tx that was used as
+    /// input to the stake expansion.
+    #[prost(bytes="bytes", tag="1")]
+    pub previous_staking_tx_hash: ::prost::bytes::Bytes,
+    /// other_funding_tx_out is the other funding output (TxOut) which was used
+    /// as input to construct the BTC delegation. The stake expansion has a set of
+    /// 2 inputs, the first input is the previous staking transaction and the
+    /// second input (this one) is to pay for fees and optionally to add more
+    /// stake to the BTC delegation.
+    #[prost(bytes="bytes", tag="2")]
+    pub other_funding_tx_out: ::prost::bytes::Bytes,
+    /// previous_stk_covenant_sigs is a list of signatures on the stake expansion
+    /// transaction (i.e., the transaction spending the previous staking transaction
+    /// {previous_staking_tx_hash}) by each covenant member.
+    /// It must be provided to allow the previous staking tx to be spent as
+    /// an transaction input of another BTC staking transaction.
+    #[prost(message, repeated, tag="3")]
+    pub previous_stk_covenant_sigs: ::prost::alloc::vec::Vec<SignatureInfo>,
 }
 /// DelegatorUnbondingInfo contains the information about transaction which spent
 /// the staking output. It contains:
@@ -247,8 +272,9 @@ pub struct CovenantAdaptorSignatures {
     /// of the adaptor signature
     #[prost(bytes="bytes", tag="1")]
     pub cov_pk: ::prost::bytes::Bytes,
-    /// adaptor_sigs is a list of adaptor signatures, each encrypted by a restaked
-    /// BTC finality provider's public key
+    /// adaptor_sigs is a list of adaptor signatures, each encrypted
+    /// by the finality provider public keys involved in the multi-staking
+    /// procedure
     #[prost(bytes="bytes", repeated, tag="2")]
     pub adaptor_sigs: ::prost::alloc::vec::Vec<::prost::bytes::Bytes>,
 }
@@ -335,6 +361,10 @@ pub struct Params {
     /// (inclusive)
     #[prost(uint32, tag="15")]
     pub btc_activation_height: u32,
+    /// max_finality_providers is the maximum number of finality providers that can
+    /// be used in staking script
+    #[prost(uint32, tag="16")]
+    pub max_finality_providers: u32,
 }
 /// BTCStakingIBCPacket is an IBC packet sent from Babylon to a consumer
 /// It carries a set of events related to BTC staking for a given consumer
@@ -374,10 +404,10 @@ pub struct NewFinalityProvider {
     /// pop is the proof of possession of babylon_pk and btc_pk
     #[prost(message, optional, tag="5")]
     pub pop: ::core::option::Option<ProofOfPossessionBtc>,
-    /// consumer_id is the ID of the consumer the finality provider is operating on.
+    /// bsn_id is the ID of the BSN the finality provider is operating on.
     /// If it's missing / empty, it's assumed the finality provider is operating in Babylon.
     #[prost(string, tag="8")]
-    pub consumer_id: ::prost::alloc::string::String,
+    pub bsn_id: ::prost::alloc::string::String,
 }
 /// ActiveBTCDelegation is an IBC packet sent from Babylon to consumer
 /// upon a BTC delegation newly receives covenant signatures and thus becomes active
@@ -471,9 +501,9 @@ pub struct BtcUndelegationInfo {
     #[prost(message, optional, tag="6")]
     pub delegator_unbonding_info: ::core::option::Option<DelegatorUnbondingInfo>,
 }
-/// SlashedBTCDelegation is an IBC packet sent from Babylon to consumer
-/// about a slashed BTC delegation restaked to >=1 of this consumer's 
-/// finality provider
+/// SlashedBTCDelegation is an IBC packet sent from Babylon Genesis to consumer
+/// about a slashed BTC delegation multi-staked to a finality provider
+/// securing the consumer.
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct SlashedBtcDelegation {
