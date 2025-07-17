@@ -167,12 +167,12 @@ pub fn reply(
 }
 
 /// Tries to get contract address from events in reply
-fn reply_init_get_contract_address(reply: SubMsgResponse) -> Result<Addr, ContractError> {
-    for event in reply.events {
+fn reply_init_get_contract_address(reply: &SubMsgResponse) -> Result<Addr, ContractError> {
+    for event in &reply.events {
         if event.ty == "instantiate" {
-            for attr in event.attributes {
+            for attr in &event.attributes {
                 if attr.key == "_contract_address" {
-                    return Ok(Addr::unchecked(attr.value));
+                    return Ok(Addr::unchecked(attr.value.clone()));
                 }
             }
         }
@@ -188,11 +188,21 @@ fn reply_init_callback_light_client(
     reply: SubMsgResponse,
 ) -> Result<Response<BabylonMsg>, ContractError> {
     // Try to get contract address from events in reply
-    let addr = reply_init_get_contract_address(reply)?;
+    let addr = reply_init_get_contract_address(&reply)?;
+
+    // Fetch the first msg_response as the base header data of BTC light client.
+    let base_header_bytes = reply
+        .msg_responses
+        .into_iter()
+        .next()
+        .ok_or(ContractError::MissingBaseHeaderInBtcLightClientResponse)?
+        .value;
+
     CONFIG.update(deps.storage, |mut cfg| {
-        cfg.btc_light_client = Some(addr);
+        cfg.btc_light_client = Some((addr, base_header_bytes));
         Ok::<_, ContractError>(cfg)
     })?;
+
     Ok(Response::new())
 }
 
@@ -202,7 +212,7 @@ fn reply_init_callback_staking(
     reply: SubMsgResponse,
 ) -> Result<Response<BabylonMsg>, ContractError> {
     // Try to get contract address from events in reply
-    let addr = reply_init_get_contract_address(reply)?;
+    let addr = reply_init_get_contract_address(&reply)?;
     CONFIG.update(deps.storage, |mut cfg| {
         cfg.btc_staking = Some(addr);
         Ok::<_, ContractError>(cfg)
@@ -216,7 +226,7 @@ fn reply_init_callback_finality(
     reply: SubMsgResponse,
 ) -> Result<Response<BabylonMsg>, ContractError> {
     // Try to get contract address from events in reply
-    let finality_addr = reply_init_get_contract_address(reply)?;
+    let finality_addr = reply_init_get_contract_address(&reply)?;
     CONFIG.update(deps.storage, |mut cfg| {
         cfg.btc_finality = Some(finality_addr.clone());
         Ok::<_, ContractError>(cfg)
@@ -224,10 +234,7 @@ fn reply_init_callback_finality(
     // Set the BTC finality contract address to the BTC staking contract
     let cfg = CONFIG.load(deps.storage)?;
     let msg = btc_staking_api::ExecuteMsg::UpdateContractAddresses {
-        btc_light_client: cfg
-            .btc_light_client
-            .ok_or(ContractError::BtcLightClientNotSet {})?
-            .to_string(),
+        btc_light_client: cfg.btc_light_client_addr()?,
         finality: cfg
             .btc_finality
             .ok_or(ContractError::BtcFinalityNotSet {})?

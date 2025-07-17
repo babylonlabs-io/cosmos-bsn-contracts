@@ -31,8 +31,8 @@ mod instantiation {
         // Confirm the btc-light-client contract has been instantiated and set
         let config = suite.get_babylon_config();
         assert_eq!(
-            config.btc_light_client,
-            Some(Addr::unchecked(BTC_LIGHT_CLIENT_CONTRACT_ADDR))
+            config.btc_light_client_addr().unwrap().as_str(),
+            BTC_LIGHT_CLIENT_CONTRACT_ADDR
         );
         // Confirm the btc-staking contract has been instantiated and set
         assert_eq!(

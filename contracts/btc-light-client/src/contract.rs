@@ -1,5 +1,6 @@
 use cosmwasm_std::{to_json_binary, Binary, Deps, DepsMut, Empty, Env, MessageInfo, Response};
 use cw2::set_contract_version;
+use prost::Message;
 
 use babylon_bindings::BabylonMsg;
 use bitcoin::block::Header as BlockHeader;
@@ -50,7 +51,12 @@ pub fn instantiate(
     // Set contract version
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
 
-    Ok(Response::new().add_attribute("action", "instantiate"))
+    let mut buf = Vec::with_capacity(base_header.encoded_len());
+    base_header.encode(&mut buf)?;
+
+    Ok(Response::new()
+        .set_data(Binary::from(buf))
+        .add_attribute("action", "instantiate"))
 }
 
 pub fn migrate(
