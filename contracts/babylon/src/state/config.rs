@@ -15,7 +15,12 @@ pub struct Config {
     /// NOTE: if set to true, then the Cosmos zone needs to integrate the corresponding message
     /// handler as well
     pub notify_cosmos_zone: bool,
-    /// If set, this stores a BTC light client contract used for BTC light client on the Consumer
+    /// If set, this stores the config for BTC light client contract on the Consumer.
+    ///
+    /// This consists of a tuple: `(btc_light_client_address, encoded_btc_base_header)`,
+    /// where:
+    /// - `btc_light_client_address` is the address of the BTC light client contract.
+    /// - `encoded_btc_base_header` is the encoded base Bitcoin header to initialize the light client.
     pub btc_light_client: Option<(Addr, Binary)>,
     /// If set, this stores a BTC staking contract used for BTC re-staking
     pub btc_staking: Option<Addr>,

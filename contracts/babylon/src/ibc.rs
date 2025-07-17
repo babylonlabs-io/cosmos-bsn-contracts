@@ -95,7 +95,7 @@ pub fn ibc_channel_connect(
         .btc_light_client
         .as_ref()
         .map(|(_addr, base_header_bytes)| base_header_bytes)
-        .ok_or(ContractError::BtcStakingNotSet {})?;
+        .ok_or(ContractError::BtcLightClientNotSet {})?;
 
     let base_btc_header: BtcHeaderInfo = BtcHeaderInfo::decode(base_header_bytes.as_slice())?;
 
