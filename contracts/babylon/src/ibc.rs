@@ -176,15 +176,13 @@ pub fn ibc_packet_receive(
 pub(crate) mod ibc_packet {
     use super::*;
     use crate::state::config::CONFIG;
-    use babylon_apis::btc_staking_api::SlashedBtcDelegation;
     use babylon_apis::btc_staking_api::{
-        ActiveBtcDelegation, NewFinalityProvider, UnbondedBtcDelegation,
+        ActiveBtcDelegation, NewFinalityProvider, SlashedBtcDelegation, UnbondedBtcDelegation,
     };
     use babylon_apis::finality_api::Evidence;
     use babylon_proto::babylon::btcstaking::v1::BtcStakingIbcPacket;
-    use babylon_proto::babylon::zoneconcierge::v1::{
-        inbound_packet::Packet as InboundPacketType, ConsumerSlashingIbcPacket, InboundPacket,
-    };
+    use babylon_proto::babylon::zoneconcierge::v1::inbound_packet::Packet as InboundPacketType;
+    use babylon_proto::babylon::zoneconcierge::v1::{ConsumerSlashingIbcPacket, InboundPacket};
     use cosmwasm_std::{to_json_binary, IbcChannel, IbcMsg, WasmMsg};
 
     pub fn handle_btc_timestamp(
@@ -358,9 +356,9 @@ mod tests {
     use super::*;
     use crate::contract::instantiate;
     use crate::msg::contract::InstantiateMsg;
-    use cosmwasm_std::testing::message_info;
     use cosmwasm_std::testing::{
-        mock_dependencies, mock_env, mock_ibc_channel_open_try, MockApi, MockQuerier, MockStorage,
+        message_info, mock_dependencies, mock_env, mock_ibc_channel_open_try, MockApi, MockQuerier,
+        MockStorage,
     };
     use cosmwasm_std::OwnedDeps;
 

@@ -3,7 +3,8 @@ use crate::bitcoin::{total_work, verify_headers};
 use crate::error::ContractError;
 use crate::msg::btc_header::BtcHeader;
 use babylon_proto::babylon::btclightclient::v1::BtcHeaderInfo;
-use bitcoin::{block::Header as BlockHeader, BlockHash};
+use bitcoin::block::Header as BlockHeader;
+use bitcoin::BlockHash;
 use cosmwasm_std::Order::{Ascending, Descending};
 use cosmwasm_std::{StdError, StdResult, Storage};
 use cw_storage_plus::{Bound, Item, Map};
@@ -281,15 +282,14 @@ pub fn handle_btc_headers_from_user(
 #[cfg(test)]
 pub mod tests {
     use crate::bitcoin::HeaderError;
-    use crate::{
-        state::{Config, CONFIG},
-        ExecuteMsg,
-    };
+    use crate::state::{Config, CONFIG};
+    use crate::ExecuteMsg;
 
     use super::*;
     use crate::state::BitcoinNetwork;
     use babylon_test_utils::{get_btc_lc_fork_headers, get_btc_lc_fork_msg, get_btc_lc_headers};
-    use cosmwasm_std::{from_json, testing::mock_dependencies};
+    use cosmwasm_std::from_json;
+    use cosmwasm_std::testing::mock_dependencies;
 
     /// Initialze the contract state with given headers.
     pub(crate) fn init_contract(

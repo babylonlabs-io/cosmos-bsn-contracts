@@ -3,8 +3,7 @@ use crate::msg::{
     ActiveFinalityProvidersResponse, BlocksResponse, EvidenceResponse, FinalitySignatureResponse,
     JailedFinalityProvider, JailedFinalityProvidersResponse,
 };
-use crate::state::config::{Config, Params};
-use crate::state::config::{CONFIG, PARAMS};
+use crate::state::config::{Config, Params, CONFIG, PARAMS};
 use crate::state::finality::{BLOCKS, EVIDENCES, FP_SET, JAIL, SIGNATURES};
 use babylon_apis::finality_api::IndexedBlock;
 use cosmwasm_std::Order::{Ascending, Descending};

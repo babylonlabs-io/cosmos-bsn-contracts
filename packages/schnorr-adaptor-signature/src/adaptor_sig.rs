@@ -1,15 +1,11 @@
 use crate::error::Error;
 use crate::Result;
 use k256::elliptic_curve::group::prime::PrimeCurveAffine;
+use k256::elliptic_curve::ops::{MulByGenerator, Reduce};
+use k256::elliptic_curve::point::{AffineCoordinates, DecompressPoint};
+use k256::elliptic_curve::PrimeField;
 use k256::schnorr::VerifyingKey;
-use k256::{
-    elliptic_curve::{
-        ops::{MulByGenerator, Reduce},
-        point::{AffineCoordinates, DecompressPoint},
-        PrimeField,
-    },
-    AffinePoint, ProjectivePoint, Scalar, U256,
-};
+use k256::{AffinePoint, ProjectivePoint, Scalar, U256};
 use sha2::{Digest, Sha256};
 
 /// MODNSCALAR_SIZE is the size of a scalar on the secp256k1 curve

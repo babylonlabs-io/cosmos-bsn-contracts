@@ -7,16 +7,16 @@ use bitcoin::blockdata::script::Builder;
 use bitcoin::opcodes::all::OP_PUSHNUM_1;
 use bitcoin::secp256k1::PublicKey;
 use bitcoin::taproot::LeafVersion;
-use bitcoin::ScriptBuf;
-use bitcoin::{TapNodeHash, TapTweakHash, XOnlyPublicKey};
+use bitcoin::{ScriptBuf, TapNodeHash, TapTweakHash, XOnlyPublicKey};
+use k256::elliptic_curve::ops::MulByGenerator;
+use k256::elliptic_curve::point::DecompressPoint;
 use k256::elliptic_curve::sec1::ToEncodedPoint;
 use k256::elliptic_curve::subtle::Choice;
+use k256::elliptic_curve::PrimeField;
 use k256::schnorr::VerifyingKey;
-use k256::{
-    elliptic_curve::{ops::MulByGenerator, point::DecompressPoint, PrimeField},
-    AffinePoint, ProjectivePoint, Scalar,
-};
-use rust_decimal::{prelude::*, Decimal};
+use k256::{AffinePoint, ProjectivePoint, Scalar};
+use rust_decimal::prelude::*;
+use rust_decimal::Decimal;
 
 const UNSPENDABLE_KEY: &str = "0250929b74c1a04954b78b4b6035e97a5e078a5a0f28ec96d547bfee9ace803ac0";
 

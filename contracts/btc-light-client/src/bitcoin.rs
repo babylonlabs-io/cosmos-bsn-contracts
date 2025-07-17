@@ -12,8 +12,7 @@ use babylon_proto::babylon::btclightclient::v1::BtcHeaderInfo;
 use bitcoin::block::Header as BlockHeader;
 use bitcoin::consensus::{deserialize, Params};
 use bitcoin::{BlockHash, Target, Work};
-use cosmwasm_std::{StdError, StdResult};
-use cosmwasm_std::{Storage, Uint256};
+use cosmwasm_std::{StdError, StdResult, Storage, Uint256};
 use std::collections::BTreeMap;
 
 /// bip-0113 defines the median of the last 11 blocks instead of the block's timestamp for lock-time calculations.
@@ -377,8 +376,7 @@ mod tests {
     use crate::state::btc_light_client::handle_btc_headers_from_babylon;
     use crate::state::btc_light_client::tests::{init_contract, setup};
     use babylon_test_utils::get_btc_lc_headers;
-    use bitcoin::block::Header as BlockHeader;
-    use bitcoin::block::Version;
+    use bitcoin::block::{Header as BlockHeader, Version};
     use bitcoin::hashes::Hash;
     use bitcoin::{BlockHash, CompactTarget};
     use cosmwasm_std::testing::{mock_dependencies, MockStorage};

@@ -280,7 +280,8 @@ impl From<BtcHeaderResponse> for BtcHeader {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use bitcoin::{block::Version, CompactTarget, Work};
+    use bitcoin::block::Version;
+    use bitcoin::{CompactTarget, Work};
 
     fn block_header_1234() -> BlockHeader {
         BlockHeader {

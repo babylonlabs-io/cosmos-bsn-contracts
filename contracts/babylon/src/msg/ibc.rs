@@ -1,5 +1,6 @@
 use cosmwasm_schema::cw_serde;
-use ibc_proto::ibc::core::channel::v1::{acknowledgement::Response, Acknowledgement};
+use ibc_proto::ibc::core::channel::v1::acknowledgement::Response;
+use ibc_proto::ibc::core::channel::v1::Acknowledgement;
 
 pub type TransferInfoResponse = Option<String>;
 

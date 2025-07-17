@@ -1,17 +1,16 @@
+use crate::error::ContractError;
 use crate::state::config::Params;
-use crate::{error::ContractError, state::staking::BtcDelegation};
-use babylon_apis::btc_staking_api::{ActiveBtcDelegation, NewFinalityProvider};
-use bitcoin::Transaction;
-use cosmwasm_std::Binary;
-use {
-    babylon_apis::btc_staking_api::{BTCSigType, ProofOfPossessionBtc},
-    babylon_btcstaking::staking::enc_verify_transaction_sig_with_output,
-    babylon_schnorr_adaptor_signature::{verify_digest, AdaptorSignature},
-    bitcoin::consensus::deserialize,
-    cosmwasm_std::CanonicalAddr,
-    k256::schnorr::{Signature, SigningKey, VerifyingKey},
-    k256::sha2::{Digest, Sha256},
+use crate::state::staking::BtcDelegation;
+use babylon_apis::btc_staking_api::{
+    ActiveBtcDelegation, BTCSigType, NewFinalityProvider, ProofOfPossessionBtc,
 };
+use babylon_btcstaking::staking::enc_verify_transaction_sig_with_output;
+use babylon_schnorr_adaptor_signature::{verify_digest, AdaptorSignature};
+use bitcoin::consensus::deserialize;
+use bitcoin::Transaction;
+use cosmwasm_std::{Binary, CanonicalAddr};
+use k256::schnorr::{Signature, SigningKey, VerifyingKey};
+use k256::sha2::{Digest, Sha256};
 
 /// Verifies the proof of possession of the given address.
 fn verify_pop(

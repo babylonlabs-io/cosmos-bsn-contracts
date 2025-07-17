@@ -11,8 +11,7 @@ use digest::consts::U32;
 use digest::generic_array::GenericArray;
 use digest::{FixedOutput, HashMarker, Output, OutputSizeUser, Reset, Update};
 use k256::schnorr::signature::DigestVerifier;
-use k256::schnorr::Signature as SchnorrSignature;
-use k256::schnorr::VerifyingKey;
+use k256::schnorr::{Signature as SchnorrSignature, VerifyingKey};
 use sha2::Digest;
 
 /// The 256-bits identity container

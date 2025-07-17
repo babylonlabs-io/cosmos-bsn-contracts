@@ -350,8 +350,7 @@ mod tests {
     use super::*;
     use babylon_test_utils::{initial_header, initial_header_in_hex};
     use bitcoin::block::Header as BlockHeader;
-    use cosmwasm_std::testing::message_info;
-    use cosmwasm_std::testing::{mock_dependencies, mock_env};
+    use cosmwasm_std::testing::{message_info, mock_dependencies, mock_env};
 
     const CREATOR: &str = "creator";
 

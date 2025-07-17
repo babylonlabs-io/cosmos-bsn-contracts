@@ -5,8 +5,7 @@ use crate::msg::{
     FinalityProvidersResponse, PendingRewards, PendingRewardsResponse,
 };
 use crate::staking::calculate_reward;
-use crate::state::config::{Config, Params};
-use crate::state::config::{CONFIG, PARAMS};
+use crate::state::config::{Config, Params, CONFIG, PARAMS};
 use crate::state::delegations;
 use crate::state::staking::{
     fps, BtcDelegation, FinalityProviderState, ACTIVATED_HEIGHT, BTC_DELEGATIONS, FPS,
@@ -263,8 +262,7 @@ pub fn all_pending_rewards(
 #[cfg(test)]
 mod tests {
     use cosmwasm_std::storage_keys::namespace_with_key;
-    use cosmwasm_std::testing::message_info;
-    use cosmwasm_std::testing::{mock_dependencies, mock_env};
+    use cosmwasm_std::testing::{message_info, mock_dependencies, mock_env};
     use cosmwasm_std::StdError::NotFound;
     use cosmwasm_std::{from_json, Env, Storage};
 

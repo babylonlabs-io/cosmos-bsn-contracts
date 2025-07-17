@@ -1,8 +1,9 @@
 #[cfg(feature = "full-validation")]
 mod full;
 
+use crate::error::ContractError;
 use crate::state::config::Params;
-use crate::{error::ContractError, state::staking::BtcDelegation};
+use crate::state::staking::BtcDelegation;
 use babylon_apis::btc_staking_api::{ActiveBtcDelegation, NewFinalityProvider};
 use bitcoin::Transaction;
 use cosmwasm_std::Binary;

@@ -7,8 +7,7 @@ use bitcoin::hashes::Hash;
 use bitcoin::opcodes::all::OP_RETURN;
 use bitcoin::sighash::{Prevouts, SighashCache};
 use bitcoin::{Amount, Script, Transaction, TxOut};
-use k256::schnorr::Signature as SchnorrSignature;
-use k256::schnorr::VerifyingKey;
+use k256::schnorr::{Signature as SchnorrSignature, VerifyingKey};
 use std::collections::HashSet;
 
 /// Maximum transaction weight allowed in Babylon system.
