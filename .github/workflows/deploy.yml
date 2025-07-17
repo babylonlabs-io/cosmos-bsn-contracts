@@ -112,7 +112,7 @@ jobs:
         asset_name: checksums.txt
         asset_content_type: text/plain
     - name: Build and run schema generator
-      run: bash schema.sh
+      run: bash scripts/schema.sh
     - name: Consolidate schemas
       run: |-
         mkdir -p ./schemas
