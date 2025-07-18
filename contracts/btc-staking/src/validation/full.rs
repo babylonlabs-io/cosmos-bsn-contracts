@@ -326,19 +326,14 @@ pub fn verify_active_delegation(
         if !params.contains_covenant_pk(&cov_pk) {
             return Err(FullValidationError::MissingCovenantPublicKeyInParams.into());
         }
-        let sigs = cov_sig
-            .adaptor_sigs
-            .iter()
-            .map(|sig| AdaptorSignature::new(sig.as_slice()).map_err(Into::into))
-            .collect::<Result<Vec<AdaptorSignature>, ContractError>>()?;
-        for (idx, sig) in sigs.iter().enumerate() {
+        for (sig, fp_pk) in cov_sig.adaptor_sigs.iter().zip(fp_pks.iter()) {
             enc_verify_transaction_sig_with_output(
                 &unbonding_slashing_tx,
                 unbonding_output,
                 unbonding_slashing_path_script.as_script(),
                 &cov_pk,
-                &fp_pks[idx],
-                sig,
+                fp_pk,
+                &AdaptorSignature::new(sig.as_slice())?,
             )?;
         }
     }
