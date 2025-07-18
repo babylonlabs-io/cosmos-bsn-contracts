@@ -62,7 +62,6 @@ fn instantiate_works() {
     let info = message_info(&Addr::unchecked(CREATOR), &[]);
     let res: ContractResult<Response> = instantiate(&mut deps, mock_env(), info, msg);
     let msgs = res.unwrap().messages;
-    println!("msgs: {msgs:?}");
     assert_eq!(0, msgs.len());
 }
 
