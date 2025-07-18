@@ -12,6 +12,7 @@ use babylon_apis::finality_api::{IndexedBlock, PubRandCommit};
 use babylon_apis::{btc_staking_api, finality_api, to_bech32_addr, to_canonical_addr};
 use babylon_bindings::BabylonMsg;
 use babylon_bindings_test::BabylonApp;
+use btc_light_client::msg::InstantiateMsg as BtcLightClientInstantiateMsg;
 use btc_light_client::BitcoinNetwork;
 
 use btc_staking::msg::{
@@ -117,6 +118,18 @@ impl SuiteBuilder {
         let contract_code_id = app.store_code_with_creator(owner.clone(), contract_babylon());
         let staking_params = btc_staking::test_utils::staking_params();
         let finality_params = crate::test_utils::finality_params(self.missed_blocks_window);
+
+        let btc_light_client_msg = {
+            let btc_lc_init_msg = BtcLightClientInstantiateMsg {
+                network: BitcoinNetwork::Testnet,
+                btc_confirmation_depth: 1,
+                checkpoint_finalization_timeout: 1,
+                initial_header: babylon_test_utils::initial_header(),
+            };
+
+            to_json_binary(&btc_lc_init_msg).unwrap()
+        };
+
         let contract = app
             .instantiate_contract(
                 contract_code_id,
@@ -128,8 +141,7 @@ impl SuiteBuilder {
                     checkpoint_finalization_timeout: 1,
                     notify_cosmos_zone: false,
                     btc_light_client_code_id: Some(btc_light_client_code_id),
-                    btc_light_client_initial_header: babylon_test_utils::initial_header_in_hex(),
-                    btc_light_client_msg: None,
+                    btc_light_client_msg: Some(btc_light_client_msg),
                     btc_staking_code_id: Some(btc_staking_code_id),
                     btc_staking_msg: Some(
                         to_json_binary(&btc_staking::msg::InstantiateMsg {
