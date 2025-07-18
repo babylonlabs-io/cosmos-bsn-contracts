@@ -188,19 +188,14 @@ pub fn verify_active_delegation(
                 "Covenant public key not found in params".to_string(),
             ));
         }
-        let sigs = cov_sig
-            .adaptor_sigs
-            .iter()
-            .map(|sig| AdaptorSignature::new(sig.as_slice()).map_err(Into::into))
-            .collect::<Result<Vec<AdaptorSignature>, ContractError>>()?;
-        for (sig, fp_pk) in sigs.iter().zip(fp_pks.iter()) {
+        for (sig, fp_pk) in cov_sig.adaptor_sigs.iter().zip(fp_pks.iter()) {
             enc_verify_transaction_sig_with_output(
                 &slashing_tx,
                 staking_output,
                 slashing_path_script.as_script(),
                 &cov_pk,
                 fp_pk,
-                sig,
+                &AdaptorSignature::new(sig.as_slice())?,
             )?;
         }
     }
