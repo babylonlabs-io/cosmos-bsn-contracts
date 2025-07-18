@@ -4,8 +4,9 @@ use derivative::Derivative;
 
 use babylon_bindings::BabylonMsg;
 use babylon_bindings_test::BabylonApp;
+use btc_light_client::msg::InstantiateMsg as BtcLightClientInstantiateMsg;
 use btc_light_client::BitcoinNetwork;
-use cosmwasm_std::{Addr, Binary, Empty};
+use cosmwasm_std::{to_json_binary, Addr, Binary, Empty};
 use cw_multi_test::{AppResponse, Contract, ContractWrapper, Executor};
 
 use crate::msg::contract::{InstantiateMsg, QueryMsg};
@@ -121,9 +122,22 @@ impl SuiteBuilder {
             app.store_code_with_creator(owner.clone(), contract_btc_finality());
         let contract_code_id = app.store_code_with_creator(owner.clone(), contract_babylon());
 
-        let light_client_msg = self
-            .light_client_msg
-            .map(|msg| Binary::from(msg.as_bytes()));
+        let checkpoint_finalization_timeout = self.checkpoint_finalization_timeout.unwrap_or(1);
+
+        let light_client_msg = match &self.light_client_msg {
+            Some(msg) => Binary::from(msg.as_bytes()),
+            None => {
+                let btc_lc_init_msg = BtcLightClientInstantiateMsg {
+                    network: BitcoinNetwork::Testnet,
+                    btc_confirmation_depth: 1,
+                    checkpoint_finalization_timeout,
+                    initial_header: babylon_test_utils::initial_header(),
+                };
+
+                to_json_binary(&btc_lc_init_msg).unwrap()
+            }
+        };
+
         let staking_msg = self.staking_msg.map(|msg| Binary::from(msg.as_bytes()));
         let finality_msg = self.finality_msg.map(|msg| Binary::from(msg.as_bytes()));
         let contract = app
@@ -134,13 +148,10 @@ impl SuiteBuilder {
                     network: BitcoinNetwork::Testnet,
                     babylon_tag: "01020304".to_string(),
                     btc_confirmation_depth: 1,
-                    checkpoint_finalization_timeout: self
-                        .checkpoint_finalization_timeout
-                        .unwrap_or(1),
+                    checkpoint_finalization_timeout,
                     notify_cosmos_zone: false,
                     btc_light_client_code_id: Some(btc_light_client_code_id),
-                    btc_light_client_initial_header: babylon_test_utils::initial_header_in_hex(),
-                    btc_light_client_msg: light_client_msg,
+                    btc_light_client_msg: Some(light_client_msg),
                     btc_staking_code_id: Some(btc_staking_code_id),
                     btc_staking_msg: staking_msg,
                     btc_finality_code_id: Some(btc_finality_code_id),

@@ -1,5 +1,5 @@
 use cosmwasm_std::testing::{message_info, mock_ibc_channel_open_try};
-use cosmwasm_std::{Addr, ContractResult, IbcOrder, Response};
+use cosmwasm_std::{to_json_binary, Addr, ContractResult, IbcOrder, Response};
 use cosmwasm_vm::testing::{
     ibc_channel_open, instantiate, mock_env, mock_instance, mock_instance_with_gas_limit, MockApi,
     MockQuerier, MockStorage,
@@ -8,6 +8,8 @@ use cosmwasm_vm::Instance;
 
 use babylon_contract::ibc::IBC_VERSION;
 use babylon_contract::msg::contract::InstantiateMsg;
+use btc_light_client::msg::InstantiateMsg as BtcLightClientInstantiateMsg;
+use btc_light_client::BitcoinNetwork;
 
 #[cfg(clippy)]
 static BABYLON_CONTRACT_WASM: &[u8] = &[];
@@ -26,6 +28,15 @@ fn setup() -> Instance<MockApi, MockStorage, MockQuerier> {
     let mut msg = InstantiateMsg::new_test();
     msg.btc_confirmation_depth = 10;
     msg.checkpoint_finalization_timeout = 99;
+    msg.btc_light_client_msg.replace(
+        to_json_binary(&BtcLightClientInstantiateMsg {
+            network: BitcoinNetwork::Testnet,
+            btc_confirmation_depth: 1,
+            checkpoint_finalization_timeout: 1,
+            initial_header: babylon_test_utils::initial_header(),
+        })
+        .unwrap(),
+    );
     let info = message_info(&Addr::unchecked(CREATOR), &[]);
     let res: Response = instantiate(&mut deps, mock_env(), info, msg).unwrap();
     assert_eq!(0, res.messages.len());
