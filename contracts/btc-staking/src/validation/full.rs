@@ -6,6 +6,7 @@ use cosmwasm_std::Binary;
 
 use {
     babylon_apis::btc_staking_api::{BTCSigType, ProofOfPossessionBtc},
+    babylon_apis::to_canonical_addr,
     babylon_btcstaking::staking::enc_verify_transaction_sig_with_output,
     babylon_schnorr_adaptor_signature::{verify_digest, AdaptorSignature},
     bitcoin::consensus::deserialize,
@@ -76,24 +77,22 @@ fn decode_pks(
 /// Verifies the new finality provider data (full validation version).
 pub fn verify_new_fp(new_fp: &NewFinalityProvider) -> Result<(), ContractError> {
     // get FP's PK
-    use babylon_apis::to_canonical_addr;
     let fp_pk = verifying_key_from_hex(&new_fp.btc_pk_hex)?;
 
     // get canonical FP address
     // FIXME: parameterise `bbn` prefix
-    let addr = new_fp.addr.clone();
-    let address = to_canonical_addr(&addr, "bbn")?;
+    let address = to_canonical_addr(&new_fp.addr, "bbn")?;
 
     // get FP's PoP
     let pop = new_fp
         .pop
-        .clone()
+        .as_ref()
         .ok_or(ContractError::FinalityProviderVerificationError(
             "proof of possession is missing".to_string(),
         ))?;
 
     // verify PoP
-    verify_pop(&fp_pk, address, &pop)?;
+    verify_pop(&fp_pk, address, pop)?;
 
     Ok(())
 }
@@ -194,13 +193,13 @@ pub fn verify_active_delegation(
             .iter()
             .map(|sig| AdaptorSignature::new(sig.as_slice()).map_err(Into::into))
             .collect::<Result<Vec<AdaptorSignature>, ContractError>>()?;
-        for (idx, sig) in sigs.iter().enumerate() {
+        for (sig, fp_pk) in sigs.iter().zip(fp_pks.iter()) {
             enc_verify_transaction_sig_with_output(
                 &slashing_tx,
                 staking_output,
                 slashing_path_script.as_script(),
                 &cov_pk,
-                &fp_pks[idx],
+                fp_pk,
                 sig,
             )?;
         }
