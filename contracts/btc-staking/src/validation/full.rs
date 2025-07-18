@@ -15,6 +15,24 @@ use {
     k256::sha2::{Digest, Sha256},
 };
 
+#[derive(thiserror::Error, Debug, PartialEq)]
+pub enum FullValidationError {
+    #[error("Covenant public key not found in params")]
+    MissingCovenantPublicKeyInParams,
+
+    #[error("Proof of possession is missing")]
+    MissingProofOfPossession,
+
+    #[error("Failed to parse slashing rate: {0}")]
+    InvalidSlashingRate(std::num::ParseFloatError),
+
+    #[error("Unbonding transaction must spend staking output")]
+    UnbondingTxMustSpendStakingOutput,
+
+    #[error("Invalid BTC sig type: {0}")]
+    InvalidBtcSigType(String),
+}
+
 /// Verifies the proof of possession of the given address.
 fn verify_pop(
     btc_pk: &VerifyingKey,
@@ -26,8 +44,9 @@ fn verify_pop(
     let msg_hash: [u8; 32] = Sha256::new_with_prefix(address_bytes).finalize().into();
 
     // verify PoP
-    let btc_sig_type = BTCSigType::try_from(pop.btc_sig_type)
-        .map_err(|e| ContractError::FinalityProviderVerificationError(e.to_string()))?;
+    let btc_sig_type =
+        BTCSigType::try_from(pop.btc_sig_type).map_err(FullValidationError::InvalidBtcSigType)?;
+
     match btc_sig_type {
         BTCSigType::BIP340 => {
             let pop_sig = Signature::try_from(pop.btc_sig.as_slice())?;
@@ -76,7 +95,6 @@ fn decode_pks(
 
 /// Verifies the new finality provider data (full validation version).
 pub fn verify_new_fp(new_fp: &NewFinalityProvider) -> Result<(), ContractError> {
-    // get FP's PK
     let fp_pk = verifying_key_from_hex(&new_fp.btc_pk_hex)?;
 
     // get canonical FP address
@@ -87,11 +105,8 @@ pub fn verify_new_fp(new_fp: &NewFinalityProvider) -> Result<(), ContractError> 
     let pop = new_fp
         .pop
         .as_ref()
-        .ok_or(ContractError::FinalityProviderVerificationError(
-            "proof of possession is missing".to_string(),
-        ))?;
+        .ok_or(FullValidationError::MissingProofOfPossession)?;
 
-    // verify PoP
     verify_pop(&fp_pk, address, pop)?;
 
     Ok(())
@@ -131,7 +146,8 @@ pub fn verify_active_delegation(
     let slashing_rate = params
         .slashing_rate
         .parse::<f64>()
-        .map_err(|_| ContractError::InvalidBtcTx("invalid slashing rate".to_string()))?;
+        .map_err(FullValidationError::InvalidSlashingRate)?;
+
     babylon_btcstaking::staking::check_slashing_tx_match_funding_tx(
         &slashing_tx,
         staking_tx,
@@ -184,9 +200,7 @@ pub fn verify_active_delegation(
             .covenant_pks
             .contains(&hex::encode(cov_sig.cov_pk.as_slice()))
         {
-            return Err(ContractError::InvalidCovenantSig(
-                "Covenant public key not found in params".to_string(),
-            ));
+            return Err(FullValidationError::MissingCovenantPublicKeyInParams.into());
         }
         for (sig, fp_pk) in cov_sig.adaptor_sigs.iter().zip(fp_pks.iter()) {
             enc_verify_transaction_sig_with_output(
@@ -224,9 +238,7 @@ pub fn verify_active_delegation(
     if unbonding_tx.input[0].previous_output.txid != staking_tx.compute_txid()
         || unbonding_tx.input[0].previous_output.vout != active_delegation.staking_output_idx
     {
-        return Err(ContractError::InvalidBtcTx(
-            "Unbonding transaction must spend staking output".to_string(),
-        ));
+        return Err(FullValidationError::UnbondingTxMustSpendStakingOutput.into());
     }
 
     // TODO: Check unbonding tx fees against staking tx (#7.1)
@@ -296,9 +308,7 @@ pub fn verify_active_delegation(
             .covenant_pks
             .contains(&hex::encode(cov_pk.to_bytes()))
         {
-            return Err(ContractError::InvalidCovenantSig(
-                "Covenant public key not found in params".to_string(),
-            ));
+            return Err(FullValidationError::MissingCovenantPublicKeyInParams.into());
         }
         // get covenant signature
         let sig = Signature::try_from(cov_sig.sig.as_slice())?;
@@ -326,9 +336,7 @@ pub fn verify_active_delegation(
             .covenant_pks
             .contains(&hex::encode(cov_sig.cov_pk.as_slice()))
         {
-            return Err(ContractError::InvalidCovenantSig(
-                "Covenant public key not found in params".to_string(),
-            ));
+            return Err(FullValidationError::MissingCovenantPublicKeyInParams.into());
         }
         let sigs = cov_sig
             .adaptor_sigs
