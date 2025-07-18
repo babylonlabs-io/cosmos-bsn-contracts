@@ -100,13 +100,12 @@ pub fn verify_new_fp(new_fp: &NewFinalityProvider) -> Result<(), ContractError> 
     // FIXME: parameterise `bbn` prefix
     let address = to_canonical_addr(&new_fp.addr, "bbn")?;
 
-    // get FP's PoP
-    let pop = new_fp
+    let fp_pop = new_fp
         .pop
         .as_ref()
         .ok_or(FullValidationError::MissingProofOfPossession)?;
 
-    verify_pop(&fp_pk, address, pop)?;
+    verify_pop(&fp_pk, address, fp_pop)?;
 
     Ok(())
 }
@@ -194,11 +193,7 @@ pub fn verify_active_delegation(
     */
     for cov_sig in active_delegation.covenant_sigs.iter() {
         let cov_pk = VerifyingKey::from_bytes(&cov_sig.cov_pk)?;
-        // Check if the covenant public key is in the params.covenant_pks
-        if !params
-            .covenant_pks
-            .contains(&hex::encode(cov_sig.cov_pk.as_slice()))
-        {
+        if !params.contains_covenant_pk(&cov_pk) {
             return Err(FullValidationError::MissingCovenantPublicKeyInParams.into());
         }
         for (sig, fp_pk) in cov_sig.adaptor_sigs.iter().zip(fp_pks.iter()) {
@@ -303,10 +298,7 @@ pub fn verify_active_delegation(
         // get covenant public key
         let cov_pk = VerifyingKey::from_bytes(&cov_sig.pk)?;
         // ensure covenant public key is in the params
-        if !params
-            .covenant_pks
-            .contains(&hex::encode(cov_pk.to_bytes()))
-        {
+        if !params.contains_covenant_pk(&cov_pk) {
             return Err(FullValidationError::MissingCovenantPublicKeyInParams.into());
         }
         // get covenant signature
@@ -331,10 +323,7 @@ pub fn verify_active_delegation(
     {
         let cov_pk = VerifyingKey::from_bytes(&cov_sig.cov_pk)?;
         // Check if the covenant public key is in the params.covenant_pks
-        if !params
-            .covenant_pks
-            .contains(&hex::encode(cov_sig.cov_pk.as_slice()))
-        {
+        if !params.contains_covenant_pk(&cov_pk) {
             return Err(FullValidationError::MissingCovenantPublicKeyInParams.into());
         }
         let sigs = cov_sig

@@ -47,3 +47,11 @@ pub struct Params {
     #[derivative(Default(value = "String::from(\"0.1\")"))]
     pub slashing_rate: String,
 }
+
+impl Params {
+    /// Check if the covenant public key is in the params.covenant_pks
+    #[cfg(feature = "full-validation")]
+    pub fn contains_covenant_pk(&self, pk: &k256::schnorr::VerifyingKey) -> bool {
+        self.covenant_pks.contains(&hex::encode(pk.to_bytes()))
+    }
+}
