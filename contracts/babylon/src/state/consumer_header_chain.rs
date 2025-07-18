@@ -1,17 +1,15 @@
 //! `consumer_header_chain` is the storage for the chain of **finalised** Consumer headers.
 //! It maintains a chain of finalised Consumer headers.
 //! NOTE: The Consumer header chain is always finalised, i.e., w-deep on BTC.
-use prost::Message;
-use tendermint_proto::crypto::ProofOps;
-
-use cosmwasm_std::{Deps, DepsMut, StdResult};
-use cw_storage_plus::{Item, Map};
-
-use babylon_proto::babylon::epoching::v1::Epoch;
-use babylon_proto::babylon::zoneconcierge::v1::IndexedHeader;
 
 use crate::state::config::CONFIG;
 use crate::{error, utils};
+use babylon_proto::babylon::epoching::v1::Epoch;
+use babylon_proto::babylon::zoneconcierge::v1::IndexedHeader;
+use cosmwasm_std::{Deps, DepsMut, StdResult};
+use cw_storage_plus::{Item, Map};
+use prost::Message;
+use tendermint_proto::crypto::ProofOps;
 
 pub const CONSUMER_HEADERS: Map<u64, Vec<u8>> = Map::new("consumer_headers");
 pub const CONSUMER_HEADER_LAST: Item<Vec<u8>> = Item::new("consumer_header_last");

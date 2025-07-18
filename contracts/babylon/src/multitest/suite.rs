@@ -1,18 +1,16 @@
+use crate::msg::contract::{InstantiateMsg, QueryMsg};
 use crate::msg::ibc::TransferInfoResponse;
+use crate::multitest::{
+    BTC_FINALITY_CONTRACT_ADDR, BTC_LIGHT_CLIENT_CONTRACT_ADDR, BTC_STAKING_CONTRACT_ADDR,
+};
+use crate::state::config::Config;
 use anyhow::Result as AnyResult;
-use derivative::Derivative;
-
 use babylon_bindings::BabylonMsg;
 use babylon_bindings_test::BabylonApp;
 use btc_light_client::BitcoinNetwork;
 use cosmwasm_std::{Addr, Binary, Empty};
 use cw_multi_test::{AppResponse, Contract, ContractWrapper, Executor};
-
-use crate::msg::contract::{InstantiateMsg, QueryMsg};
-use crate::multitest::{
-    BTC_FINALITY_CONTRACT_ADDR, BTC_LIGHT_CLIENT_CONTRACT_ADDR, BTC_STAKING_CONTRACT_ADDR,
-};
-use crate::state::config::Config;
+use derivative::Derivative;
 
 fn contract_btc_light_client() -> Box<dyn Contract<BabylonMsg>> {
     let contract = ContractWrapper::new(

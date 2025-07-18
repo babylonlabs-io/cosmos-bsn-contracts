@@ -1,14 +1,12 @@
-use cosmwasm_std::{to_json_binary, Binary, Deps, DepsMut, Empty, Env, MessageInfo, Response};
-use cw2::set_contract_version;
-use prost::Message;
-
-use babylon_bindings::BabylonMsg;
-use bitcoin::block::Header as BlockHeader;
-
 use crate::error::ContractError;
 use crate::msg::contract::{ExecuteMsg, InstantiateMsg, QueryMsg};
 use crate::state::btc_light_client::{handle_btc_headers_from_user, set_base_header, set_tip};
 use crate::state::config::{Config, CONFIG};
+use babylon_bindings::BabylonMsg;
+use bitcoin::block::Header as BlockHeader;
+use cosmwasm_std::{to_json_binary, Binary, Deps, DepsMut, Empty, Env, MessageInfo, Response};
+use cw2::set_contract_version;
+use prost::Message;
 
 pub const CONTRACT_NAME: &str = env!("CARGO_PKG_NAME");
 pub const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");

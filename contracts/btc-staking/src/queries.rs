@@ -1,12 +1,3 @@
-use std::str::FromStr;
-
-use bitcoin::hashes::Hash;
-use bitcoin::Txid;
-
-use cosmwasm_std::Order::Descending;
-use cosmwasm_std::{coin, Deps, Order, StdResult, Uint128};
-use cw_storage_plus::{Bound, Bounder};
-
 use crate::error::ContractError;
 use crate::msg::{
     ActivatedHeightResponse, AllPendingRewardsResponse, BtcDelegationsResponse,
@@ -23,6 +14,12 @@ use crate::state::staking::{
 };
 use babylon_apis::btc_staking_api::FinalityProvider;
 use babylon_apis::to_canonical_addr;
+use bitcoin::hashes::Hash;
+use bitcoin::Txid;
+use cosmwasm_std::Order::Descending;
+use cosmwasm_std::{coin, Deps, Order, StdResult, Uint128};
+use cw_storage_plus::{Bound, Bounder};
+use std::str::FromStr;
 
 pub fn config(deps: Deps) -> StdResult<Config> {
     CONFIG.load(deps.storage)

@@ -1,9 +1,8 @@
+use crate::bitcoin::total_work;
+use crate::{error::ContractError, msg::btc_header::BtcHeader};
 use babylon_proto::babylon::btclightclient::v1::BtcHeaderInfo;
 use cosmwasm_schema::{cw_serde, QueryResponses};
 use cosmwasm_std::Binary;
-
-use crate::bitcoin::total_work;
-use crate::{error::ContractError, msg::btc_header::BtcHeader};
 #[cfg(not(target_arch = "wasm32"))]
 use {
     crate::msg::btc_header::{BtcHeaderResponse, BtcHeadersResponse},

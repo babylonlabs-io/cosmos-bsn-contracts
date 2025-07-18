@@ -1,3 +1,5 @@
+use babylon_contract::ibc::IBC_VERSION;
+use babylon_contract::msg::contract::InstantiateMsg;
 use cosmwasm_std::testing::{message_info, mock_ibc_channel_open_try};
 use cosmwasm_std::{Addr, ContractResult, IbcOrder, Response};
 use cosmwasm_vm::testing::{
@@ -5,9 +7,6 @@ use cosmwasm_vm::testing::{
     MockQuerier, MockStorage,
 };
 use cosmwasm_vm::Instance;
-
-use babylon_contract::ibc::IBC_VERSION;
-use babylon_contract::msg::contract::InstantiateMsg;
 
 #[cfg(clippy)]
 static BABYLON_CONTRACT_WASM: &[u8] = &[];

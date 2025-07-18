@@ -1,9 +1,3 @@
-use cosmwasm_std::Order::{Ascending, Descending};
-use cosmwasm_std::{Deps, StdResult};
-use cw_storage_plus::Bound;
-
-use babylon_apis::finality_api::IndexedBlock;
-
 use crate::error::ContractError;
 use crate::msg::{
     ActiveFinalityProvidersResponse, BlocksResponse, EvidenceResponse, FinalitySignatureResponse,
@@ -12,6 +6,10 @@ use crate::msg::{
 use crate::state::config::{Config, Params};
 use crate::state::config::{CONFIG, PARAMS};
 use crate::state::finality::{BLOCKS, EVIDENCES, FP_SET, JAIL, SIGNATURES};
+use babylon_apis::finality_api::IndexedBlock;
+use cosmwasm_std::Order::{Ascending, Descending};
+use cosmwasm_std::{Deps, StdResult};
+use cw_storage_plus::Bound;
 
 pub fn config(deps: Deps) -> StdResult<Config> {
     CONFIG.load(deps.storage)

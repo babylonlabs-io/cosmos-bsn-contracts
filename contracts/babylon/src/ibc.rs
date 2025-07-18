@@ -2,9 +2,9 @@ use crate::error::ContractError;
 use crate::state::config::CONFIG;
 use babylon_bindings::BabylonMsg;
 use babylon_proto::babylon::btclightclient::v1::BtcHeaderInfo;
+use babylon_proto::babylon::zoneconcierge::v1::outbound_packet::Packet as OutboundPacketType;
 use babylon_proto::babylon::zoneconcierge::v1::{
-    outbound_packet::Packet as OutboundPacketType, BsnBaseBtcHeaderIbcPacket, BtcHeaders,
-    BtcTimestamp, OutboundPacket,
+    BsnBaseBtcHeaderIbcPacket, BtcHeaders, BtcTimestamp, OutboundPacket,
 };
 use cosmwasm_std::{
     Binary, DepsMut, Env, Event, Ibc3ChannelOpenResponse, IbcBasicResponse, IbcChannel,

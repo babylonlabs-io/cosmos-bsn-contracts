@@ -3,7 +3,6 @@ use crate::{error::ContractError, state::staking::BtcDelegation};
 use babylon_apis::btc_staking_api::{ActiveBtcDelegation, NewFinalityProvider};
 use bitcoin::Transaction;
 use cosmwasm_std::Binary;
-
 use {
     babylon_apis::btc_staking_api::{BTCSigType, ProofOfPossessionBtc},
     babylon_btcstaking::staking::enc_verify_transaction_sig_with_output,

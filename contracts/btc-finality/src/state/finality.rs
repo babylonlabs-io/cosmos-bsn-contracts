@@ -1,9 +1,7 @@
-use cosmwasm_std::Uint128;
-
-use cw_storage_plus::{Item, Map};
-
 use babylon_apis::finality_api::{Evidence, IndexedBlock};
 use btc_staking::msg::FinalityProviderInfo;
+use cosmwasm_std::Uint128;
+use cw_storage_plus::{Item, Map};
 
 /// Map of signatures by block height and FP
 pub const SIGNATURES: Map<(u64, &str), Vec<u8>> = Map::new("fp_sigs");

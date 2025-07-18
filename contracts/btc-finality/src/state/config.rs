@@ -1,10 +1,8 @@
-use derivative::Derivative;
-
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{Addr, Decimal};
-
 use cw_controllers::Admin;
 use cw_storage_plus::Item;
+use derivative::Derivative;
 
 pub(crate) const CONFIG: Item<Config> = Item::new("config");
 pub(crate) const PARAMS: Item<Params> = Item::new("params");

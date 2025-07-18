@@ -3,22 +3,19 @@
 //! the workspace root.
 //! Then running `cargo bench` will validate we can properly call into that generated Wasm.
 
-use criterion::{criterion_group, criterion_main, Criterion, PlottingBackend};
-
-use std::time::Duration;
-use thousands::Separable;
-
+use babylon_bindings::BabylonMsg;
+use babylon_test_utils::{get_btc_lc_mainchain_resp, initial_header};
+use btc_light_client::msg::btc_header::BtcHeader;
+use btc_light_client::msg::contract::{ExecuteMsg, InstantiateMsg};
 use cosmwasm_std::{Env, MessageInfo, Response};
 use cosmwasm_vm::testing::{
     execute, instantiate, mock_env, mock_info, mock_instance_with_gas_limit, MockApi, MockQuerier,
     MockStorage,
 };
 use cosmwasm_vm::Instance;
-
-use babylon_bindings::BabylonMsg;
-use babylon_test_utils::{get_btc_lc_mainchain_resp, initial_header};
-use btc_light_client::msg::btc_header::BtcHeader;
-use btc_light_client::msg::contract::{ExecuteMsg, InstantiateMsg};
+use criterion::{criterion_group, criterion_main, Criterion, PlottingBackend};
+use std::time::Duration;
+use thousands::Separable;
 
 #[cfg(clippy)]
 static WASM: &[u8] = &[];

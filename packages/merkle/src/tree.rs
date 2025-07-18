@@ -1,7 +1,6 @@
-use sha2::{Digest, Sha256};
-
 use crate::error::MerkleError;
 use crate::hash::{empty_hash, inner_hash_opt, leaf_hash_opt};
+use sha2::{Digest, Sha256};
 
 /// Computes a Merkle tree where the leaves are the byte slice,
 /// in the provided order. It follows RFC-6962.

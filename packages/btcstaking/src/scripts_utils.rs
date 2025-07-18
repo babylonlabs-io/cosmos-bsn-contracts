@@ -4,9 +4,7 @@ use bitcoin::blockdata::script::Builder;
 use bitcoin::opcodes::all::{
     OP_CHECKSIG, OP_CHECKSIGADD, OP_CHECKSIGVERIFY, OP_CSV, OP_NUMEQUAL, OP_NUMEQUALVERIFY,
 };
-
 use bitcoin::ScriptBuf;
-
 use k256::schnorr::VerifyingKey;
 
 /// private helper to assemble multisig script

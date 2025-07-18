@@ -1,13 +1,11 @@
-use bitcoin::consensus::deserialize;
-use bitcoin::Transaction;
-
-use cosmwasm_std::StdError;
-
 use crate::btc_staking_api::{
     ActiveBtcDelegation, FinalityProviderDescription, NewFinalityProvider, ProofOfPossessionBtc,
     SlashedBtcDelegation, UnbondedBtcDelegation, HASH_SIZE,
 };
 use crate::error::StakingApiError;
+use bitcoin::consensus::deserialize;
+use bitcoin::Transaction;
+use cosmwasm_std::StdError;
 
 /// Trait for validating the API structs / input.
 pub trait Validate {

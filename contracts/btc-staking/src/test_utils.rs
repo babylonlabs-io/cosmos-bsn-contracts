@@ -1,7 +1,6 @@
+use crate::state::config::Params;
 use babylon_test_utils::get_params;
 use btc_light_client::BitcoinNetwork;
-
-use crate::state::config::Params;
 
 pub fn staking_params() -> Params {
     let proto_params = get_params();

@@ -1,14 +1,11 @@
-use std::str::FromStr;
-
-use cosmwasm_schema::cw_serde;
-
+use crate::error::ContractError;
 use babylon_proto::babylon::btclightclient::v1::{BtcHeaderInfo, BtcHeaderInfoResponse};
 use bitcoin::block::Header as BlockHeader;
 use bitcoin::hash_types::TxMerkleNode;
 use bitcoin::BlockHash;
+use cosmwasm_schema::cw_serde;
 use cosmwasm_std::StdError;
-
-use crate::error::ContractError;
+use std::str::FromStr;
 
 /// Bitcoin header.
 ///

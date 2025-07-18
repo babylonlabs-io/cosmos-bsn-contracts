@@ -1,4 +1,5 @@
-/// Based on comebft@0.38.6/crypto/merkle/hash.go
+//! Based on comebft@0.38.6/crypto/merkle/hash.go
+
 use sha2::{Digest, Sha256};
 
 const LEAF_PREFIX: u8 = 0;

@@ -1,23 +1,3 @@
-use anyhow::Result as AnyResult;
-use derivative::Derivative;
-use hex::ToHex;
-
-use cosmwasm_std::testing::mock_dependencies;
-use cosmwasm_std::{to_json_binary, Addr, BlockInfo, Coin, Timestamp};
-use cw_multi_test::{next_block, AppResponse, Contract, ContractWrapper, Executor};
-
-use babylon_apis::btc_staking_api::{ActiveBtcDelegation, FinalityProvider, NewFinalityProvider};
-use babylon_apis::error::StakingApiError;
-use babylon_apis::finality_api::{IndexedBlock, PubRandCommit};
-use babylon_apis::{btc_staking_api, finality_api, to_bech32_addr, to_canonical_addr};
-use babylon_bindings::BabylonMsg;
-use babylon_bindings_test::BabylonApp;
-use btc_light_client::BitcoinNetwork;
-
-use btc_staking::msg::{
-    ActivatedHeightResponse, AllPendingRewardsResponse, FinalityProviderInfo, PendingRewards,
-};
-
 use crate::msg::QueryMsg::JailedFinalityProviders;
 use crate::msg::{
     ActiveFinalityProvidersResponse, EvidenceResponse, FinalitySignatureResponse, InstantiateMsg,
@@ -27,6 +7,22 @@ use crate::multitest::{
     BTC_FINALITY_CONTRACT_ADDR, BTC_LIGHT_CLIENT_CONTRACT_ADDR, BTC_STAKING_CONTRACT_ADDR,
     USER_ADDR,
 };
+use anyhow::Result as AnyResult;
+use babylon_apis::btc_staking_api::{ActiveBtcDelegation, FinalityProvider, NewFinalityProvider};
+use babylon_apis::error::StakingApiError;
+use babylon_apis::finality_api::{IndexedBlock, PubRandCommit};
+use babylon_apis::{btc_staking_api, finality_api, to_bech32_addr, to_canonical_addr};
+use babylon_bindings::BabylonMsg;
+use babylon_bindings_test::BabylonApp;
+use btc_light_client::BitcoinNetwork;
+use btc_staking::msg::{
+    ActivatedHeightResponse, AllPendingRewardsResponse, FinalityProviderInfo, PendingRewards,
+};
+use cosmwasm_std::testing::mock_dependencies;
+use cosmwasm_std::{to_json_binary, Addr, BlockInfo, Coin, Timestamp};
+use cw_multi_test::{next_block, AppResponse, Contract, ContractWrapper, Executor};
+use derivative::Derivative;
+use hex::ToHex;
 
 fn contract_btc_light_client() -> Box<dyn Contract<BabylonMsg>> {
     let contract = ContractWrapper::new(

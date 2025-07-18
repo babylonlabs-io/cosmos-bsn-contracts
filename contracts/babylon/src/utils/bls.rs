@@ -1,7 +1,6 @@
-use std::vec;
-
 use babylon_proto::babylon::checkpointing::v1::ValidatorWithBlsKeySet;
 use blst::min_sig::*;
+use std::vec;
 
 fn agg_pk(valset: &ValidatorWithBlsKeySet) -> Result<PublicKey, String> {
     let mut pks: Vec<&[u8]> = vec![];

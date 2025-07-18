@@ -1,15 +1,13 @@
-use bech32::Variant::Bech32;
-use bech32::{FromBase32, ToBase32, Variant};
-use sha2::Digest;
-
-use cosmwasm_std::{Addr, Binary, CanonicalAddr, CustomQuery, QueryRequest, WasmQuery};
-
-use error::StakingApiError;
-
 pub mod btc_staking_api;
 pub mod error;
 pub mod finality_api;
 mod validate;
+
+use bech32::Variant::Bech32;
+use bech32::{FromBase32, ToBase32, Variant};
+use cosmwasm_std::{Addr, Binary, CanonicalAddr, CustomQuery, QueryRequest, WasmQuery};
+use error::StakingApiError;
+use sha2::Digest;
 
 pub type Bytes = Vec<u8>;
 

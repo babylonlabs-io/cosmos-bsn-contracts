@@ -1,11 +1,9 @@
-use std::str::FromStr;
-
-use bitcoin::BlockHash;
-use cosmwasm_std::Deps;
-
 use crate::error::ContractError;
 use crate::msg::btc_header::{BtcHeaderResponse, BtcHeadersResponse};
 use crate::state::{expect_header_by_hash, get_base_header, get_header, get_headers, get_tip};
+use bitcoin::BlockHash;
+use cosmwasm_std::Deps;
+use std::str::FromStr;
 
 const MAX_LIMIT: u32 = 30;
 const DEFAULT_LIMIT: u32 = 10;

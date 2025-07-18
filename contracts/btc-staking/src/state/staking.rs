@@ -1,10 +1,9 @@
-use cosmwasm_schema::cw_serde;
-use cosmwasm_std::Uint256;
-use cw_storage_plus::{IndexedSnapshotMap, Item, Map, MultiIndex, Strategy};
-
 use crate::state::fp_index::FinalityProviderIndexes;
 use babylon_apis::btc_staking_api::{BTCDelegationStatus, FinalityProvider, HASH_SIZE};
 use babylon_apis::{btc_staking_api, Bytes};
+use cosmwasm_schema::cw_serde;
+use cosmwasm_std::Uint256;
+use cw_storage_plus::{IndexedSnapshotMap, Item, Map, MultiIndex, Strategy};
 
 #[cw_serde]
 pub struct BtcDelegation {

@@ -1,12 +1,11 @@
-/// Based on comebft@0.38.6/crypto/merkle/proof.go
-use sha2::{Digest, Sha256};
+//! Based on comebft@0.38.6/crypto/merkle/proof.go
 
 use crate::error::MerkleError;
-use cosmwasm_schema::cw_serde;
-use cosmwasm_std::Binary;
-
 use crate::hash::{inner_hash, leaf_hash};
 use crate::tree::get_split_point;
+use cosmwasm_schema::cw_serde;
+use cosmwasm_std::Binary;
+use sha2::{Digest, Sha256};
 
 /// A `Proof` is a proof of a leaf's existence in a Merkle tree.
 ///

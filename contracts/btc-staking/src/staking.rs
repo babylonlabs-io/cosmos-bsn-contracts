@@ -1,13 +1,3 @@
-use bitcoin::absolute::LockTime;
-use bitcoin::consensus::deserialize;
-use bitcoin::hashes::Hash;
-use bitcoin::{Transaction, Txid};
-use cosmwasm_std::{
-    coin, BankMsg, CanonicalAddr, CosmosMsg, DepsMut, Env, Event, IbcMsg, MessageInfo, Order,
-    Response, StdResult, Storage, Uint128, Uint256,
-};
-use cw_storage_plus::Bound;
-
 use crate::error::ContractError;
 use crate::state::config::{Config, ADMIN, CONFIG, PARAMS};
 use crate::state::delegations::{delegations, DelegationDistribution};
@@ -26,7 +16,16 @@ use babylon_apis::{to_canonical_addr, Validate};
 use babylon_bindings::BabylonMsg;
 use babylon_contract::ibc::packet_timeout;
 use babylon_contract::msg::ibc::TransferInfoResponse;
+use bitcoin::absolute::LockTime;
+use bitcoin::consensus::deserialize;
+use bitcoin::hashes::Hash;
+use bitcoin::{Transaction, Txid};
 use btc_light_client::msg::btc_header::BtcHeaderResponse;
+use cosmwasm_std::{
+    coin, BankMsg, CanonicalAddr, CosmosMsg, DepsMut, Env, Event, IbcMsg, MessageInfo, Order,
+    Response, StdResult, Storage, Uint128, Uint256,
+};
+use cw_storage_plus::Bound;
 use cw_utils::{must_pay, nonpayable};
 use std::str::FromStr;
 

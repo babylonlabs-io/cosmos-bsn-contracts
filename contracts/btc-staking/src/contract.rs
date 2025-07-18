@@ -1,14 +1,3 @@
-#[cfg(not(feature = "library"))]
-use cosmwasm_std::entry_point;
-use cosmwasm_std::{
-    attr, to_json_binary, Addr, Deps, DepsMut, Empty, Env, MessageInfo, QueryResponse, Reply,
-    Response, StdResult,
-};
-use cw2::set_contract_version;
-use cw_utils::{maybe_addr, nonpayable};
-
-use babylon_bindings::BabylonMsg;
-
 use crate::error::ContractError;
 use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
 use crate::queries;
@@ -18,6 +7,15 @@ use crate::staking::{
 };
 use crate::state::config::{Config, ADMIN, CONFIG, PARAMS};
 use babylon_apis::btc_staking_api::SudoMsg;
+use babylon_bindings::BabylonMsg;
+#[cfg(not(feature = "library"))]
+use cosmwasm_std::entry_point;
+use cosmwasm_std::{
+    attr, to_json_binary, Addr, Deps, DepsMut, Empty, Env, MessageInfo, QueryResponse, Reply,
+    Response, StdResult,
+};
+use cw2::set_contract_version;
+use cw_utils::{maybe_addr, nonpayable};
 
 pub const CONTRACT_NAME: &str = env!("CARGO_PKG_NAME");
 pub const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");

@@ -1,14 +1,12 @@
-#[cfg(not(feature = "library"))]
-use cosmwasm_std::entry_point;
-use cosmwasm_std::{Binary, Deps, DepsMut, Empty, Env, MessageInfo, Response};
-
-use babylon_bindings::BabylonMsg;
-
 use crate::error::ContractError;
 pub use crate::msg::ExecuteMsg;
 use crate::msg::InstantiateMsg;
 use crate::msg::QueryMsg;
 pub use crate::state::BitcoinNetwork;
+use babylon_bindings::BabylonMsg;
+#[cfg(not(feature = "library"))]
+use cosmwasm_std::entry_point;
+use cosmwasm_std::{Binary, Deps, DepsMut, Empty, Env, MessageInfo, Response};
 
 mod bitcoin;
 pub mod contract;

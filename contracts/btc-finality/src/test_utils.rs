@@ -1,6 +1,5 @@
-use cosmwasm_std::Decimal;
-
 use crate::state::config::Params;
+use cosmwasm_std::Decimal;
 
 // TODO: Support the other param overrides
 pub fn finality_params(missed_blocks_window: Option<u64>) -> Params {

@@ -1,3 +1,7 @@
+use super::CONFIG;
+use crate::bitcoin::{total_work, verify_headers};
+use crate::error::ContractError;
+use crate::msg::btc_header::BtcHeader;
 use babylon_proto::babylon::btclightclient::v1::BtcHeaderInfo;
 use bitcoin::{block::Header as BlockHeader, BlockHash};
 use cosmwasm_std::Order::{Ascending, Descending};
@@ -6,12 +10,6 @@ use cw_storage_plus::{Bound, Item, Map};
 use hex::ToHex;
 use prost::Message;
 use std::str::FromStr;
-
-use crate::bitcoin::{total_work, verify_headers};
-use crate::error::ContractError;
-use crate::msg::btc_header::BtcHeader;
-
-use super::CONFIG;
 
 pub const BTC_TIP_KEY: &str = "btc_lc_tip";
 

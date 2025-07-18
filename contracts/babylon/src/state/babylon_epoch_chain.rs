@@ -2,26 +2,23 @@
 //! It maintains a chain of finalised Babylon epochs.
 //! NOTE: the Babylon epoch chain is always finalised, i.e. w-deep on BTC.
 
-use bitcoin::block::Header as BlockHeader;
-use btc_light_client::msg::btc_header::BtcHeaderResponse;
-use prost::Message;
-use std::cmp::min;
-
-use cosmwasm_std::{Deps, DepsMut, StdError, StdResult};
-use cw_storage_plus::{Item, Map};
-
-use babylon_proto::babylon::btccheckpoint::v1::TransactionInfo;
-use babylon_proto::babylon::checkpointing::v1::RawCheckpoint;
-use babylon_proto::babylon::epoching::v1::Epoch;
-use babylon_proto::babylon::zoneconcierge::v1::{BtcHeaders, BtcTimestamp, ProofEpochSealed};
-
 use crate::error::BabylonEpochChainError;
 use crate::state::config::CONFIG;
 use crate::utils::babylon_epoch_chain::{
     verify_checkpoint_submitted, verify_epoch_sealed, NUM_BTC_TXS,
 };
 use crate::utils::btc_light_client_querier::{query_header_by_hash, query_tip_header};
+use babylon_proto::babylon::btccheckpoint::v1::TransactionInfo;
+use babylon_proto::babylon::checkpointing::v1::RawCheckpoint;
+use babylon_proto::babylon::epoching::v1::Epoch;
+use babylon_proto::babylon::zoneconcierge::v1::{BtcHeaders, BtcTimestamp, ProofEpochSealed};
+use bitcoin::block::Header as BlockHeader;
 use btc_light_client::error::ContractError as BtcLightclientError;
+use btc_light_client::msg::btc_header::BtcHeaderResponse;
+use cosmwasm_std::{Deps, DepsMut, StdError, StdResult};
+use cw_storage_plus::{Item, Map};
+use prost::Message;
+use std::cmp::min;
 
 pub const BABYLON_EPOCHS: Map<u64, Vec<u8>> = Map::new("babylon_epochs");
 pub const BABYLON_EPOCH_BASE: Item<Vec<u8>> = Item::new("babylon_epoch_base");

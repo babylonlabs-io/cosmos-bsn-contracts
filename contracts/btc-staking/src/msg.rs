@@ -1,3 +1,6 @@
+use crate::state::config::Params;
+use crate::state::staking::BtcDelegation;
+use babylon_apis::btc_staking_api::FinalityProvider;
 use cosmwasm_schema::{cw_serde, QueryResponses};
 use cosmwasm_std::{coin, Coin};
 #[cfg(not(target_arch = "wasm32"))]
@@ -5,11 +8,6 @@ use {
     crate::state::config::Config, babylon_apis::btc_staking_api::ActiveBtcDelegation,
     cw_controllers::AdminResponse,
 };
-
-use babylon_apis::btc_staking_api::FinalityProvider;
-
-use crate::state::config::Params;
-use crate::state::staking::BtcDelegation;
 
 #[cw_serde]
 #[derive(Default)]

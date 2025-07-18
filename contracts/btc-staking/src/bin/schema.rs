@@ -1,7 +1,6 @@
+use btc_staking::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
 use cosmwasm_schema::write_api;
 use cosmwasm_std::Empty;
-
-use btc_staking::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
 
 fn main() {
     // Clear & write standard API

@@ -1,8 +1,6 @@
+use babylon_apis::finality_api::Evidence;
 use cosmwasm_schema::{cw_serde, QueryResponses};
 use cosmwasm_std::{Binary, StdError, StdResult};
-
-use babylon_apis::finality_api::Evidence;
-
 #[cfg(not(target_arch = "wasm32"))]
 use {
     crate::msg::consumer_header::{ConsumerHeaderResponse, ConsumerHeightResponse},

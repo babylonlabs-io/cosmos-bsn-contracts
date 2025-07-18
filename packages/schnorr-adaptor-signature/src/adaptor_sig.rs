@@ -1,6 +1,5 @@
 use crate::error::Error;
 use crate::Result;
-
 use k256::elliptic_curve::group::prime::PrimeCurveAffine;
 use k256::schnorr::VerifyingKey;
 use k256::{

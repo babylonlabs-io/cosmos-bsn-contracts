@@ -1,22 +1,20 @@
-use cosmwasm_std::{
-    to_json_binary, Addr, Binary, Deps, DepsMut, Empty, Env, MessageInfo, QueryResponse, Reply,
-    Response, SubMsg, SubMsgResponse, WasmMsg,
-};
-use cw2::set_contract_version;
-use cw_utils::ParseReplyError;
-
-use babylon_apis::{btc_staking_api, finality_api};
-use babylon_bindings::BabylonMsg;
-use btc_light_client::msg::contract::{
-    InitialHeader, InstantiateMsg as BtcLightClientInstantiateMsg,
-};
-
 use crate::error::ContractError;
 use crate::ibc::{ibc_packet, IBC_CHANNEL, IBC_TRANSFER};
 use crate::msg::contract::{ContractMsg, ExecuteMsg, InstantiateMsg, QueryMsg};
 use crate::queries;
 use crate::state::config::{Config, CONFIG};
 use crate::state::consumer_header_chain::CONSUMER_HEIGHT_LAST;
+use babylon_apis::{btc_staking_api, finality_api};
+use babylon_bindings::BabylonMsg;
+use btc_light_client::msg::contract::{
+    InitialHeader, InstantiateMsg as BtcLightClientInstantiateMsg,
+};
+use cosmwasm_std::{
+    to_json_binary, Addr, Binary, Deps, DepsMut, Empty, Env, MessageInfo, QueryResponse, Reply,
+    Response, SubMsg, SubMsgResponse, WasmMsg,
+};
+use cw2::set_contract_version;
+use cw_utils::ParseReplyError;
 
 pub const CONTRACT_NAME: &str = env!("CARGO_PKG_NAME");
 pub const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
