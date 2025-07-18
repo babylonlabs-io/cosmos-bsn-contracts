@@ -40,8 +40,7 @@ fn verify_pop(
     pop: &ProofOfPossessionBtc,
 ) -> Result<(), ContractError> {
     // get signed msg, i.e., the hash of the canonicalised address
-    let address_bytes = address.as_slice();
-    let msg_hash: [u8; 32] = Sha256::new_with_prefix(address_bytes).finalize().into();
+    let msg_hash: [u8; 32] = Sha256::digest(address.as_slice()).into();
 
     // verify PoP
     let btc_sig_type =
