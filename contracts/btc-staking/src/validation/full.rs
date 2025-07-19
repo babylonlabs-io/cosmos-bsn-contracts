@@ -24,7 +24,7 @@ pub enum FullValidationError {
     MissingProofOfPossession,
 
     #[error("Failed to parse slashing rate: {0}")]
-    InvalidSlashingRate(std::num::ParseFloatError),
+    InvalidSlashingRate(#[from] std::num::ParseFloatError),
 
     #[error("Unbonding transaction must spend staking output")]
     UnbondingTxMustSpendStakingOutput,
@@ -139,10 +139,7 @@ pub fn verify_active_delegation(
     let slashing_pk_script = hex::decode(&params.slashing_pk_script)?;
 
     // Check slashing tx and staking tx are valid and consistent
-    let slashing_rate = params
-        .slashing_rate
-        .parse::<f64>()
-        .map_err(FullValidationError::InvalidSlashingRate)?;
+    let slashing_rate = params.slashing_rate()?;
 
     babylon_btcstaking::staking::check_slashing_tx_match_funding_tx(
         &slashing_tx,

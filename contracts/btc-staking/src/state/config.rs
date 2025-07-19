@@ -54,4 +54,8 @@ impl Params {
     pub fn contains_covenant_pk(&self, pk: &k256::schnorr::VerifyingKey) -> bool {
         self.covenant_pks.contains(&hex::encode(pk.to_bytes()))
     }
+
+    pub fn slashing_rate(&self) -> Result<f64, std::num::ParseFloatError> {
+        self.slashing_rate.parse::<f64>()
+    }
 }
