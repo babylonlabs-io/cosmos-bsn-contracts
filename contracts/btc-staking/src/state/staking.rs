@@ -1,7 +1,9 @@
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::Uint256;
 use cw_storage_plus::{IndexedSnapshotMap, Item, Map, MultiIndex, Strategy};
+use k256::schnorr::SigningKey;
 
+use crate::error::ContractError;
 use crate::state::fp_index::FinalityProviderIndexes;
 use babylon_apis::btc_staking_api::{BTCDelegationStatus, FinalityProvider, HASH_SIZE};
 use babylon_apis::{btc_staking_api, Bytes};
@@ -75,6 +77,18 @@ impl BtcDelegation {
             // an unbonding tx with the delegator's signature
             BTCDelegationStatus::ACTIVE
         }
+    }
+
+    /// Checks whether the given signing key corresponds to any finality provider the staker has
+    /// delegated to.
+    pub fn matches_delegated_fp(&self, fp_sk_hex: &str) -> Result<bool, ContractError> {
+        let fp_sk = SigningKey::from_bytes(&hex::decode(fp_sk_hex)?)?;
+
+        // calculate the corresponding VerifyingKey
+        let fp_pk = fp_sk.verifying_key();
+        let fp_pk_hex = hex::encode(fp_pk.to_bytes());
+
+        Ok(self.fp_btc_pk_list.contains(&fp_pk_hex))
     }
 }
 

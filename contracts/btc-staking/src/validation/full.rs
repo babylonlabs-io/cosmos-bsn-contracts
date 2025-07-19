@@ -11,7 +11,7 @@ use {
     babylon_schnorr_adaptor_signature::{verify_digest, AdaptorSignature},
     bitcoin::consensus::deserialize,
     cosmwasm_std::CanonicalAddr,
-    k256::schnorr::{Signature, SigningKey, VerifyingKey},
+    k256::schnorr::{Signature, VerifyingKey},
     k256::sha2::{Digest, Sha256},
 };
 
@@ -31,6 +31,9 @@ pub enum FullValidationError {
 
     #[error("Invalid BTC sig type: {0}")]
     InvalidBtcSigType(String),
+
+    #[error("The finality provider corresponding to signing key {0} is not among the staker's delegated FPs.")]
+    FpNotInDelegationList(String),
 }
 
 /// Verifies the new finality provider data.
@@ -378,26 +381,10 @@ pub fn verify_slashed_delegation(
     active_delegation: &BtcDelegation,
     slashed_fp_sk_hex: &str,
 ) -> Result<(), ContractError> {
-    /*
-        check if the SK corresponds to a FP PK that the delegation restakes to
-    */
-
-    // get the slashed FP's SK
-    let slashed_fp_sk = hex::decode(slashed_fp_sk_hex)?;
-    let slashed_fp_sk = SigningKey::from_bytes(&slashed_fp_sk)?;
-
-    // calculate the corresponding VerifyingKey
-    let slashed_fp_pk = slashed_fp_sk.verifying_key();
-    let slashed_fp_pk_hex = hex::encode(slashed_fp_pk.to_bytes());
-
-    // check if the PK corresponds to a FP PK that the delegation restakes to
-    if !active_delegation
-        .fp_btc_pk_list
-        .contains(&slashed_fp_pk_hex)
-    {
-        return Err(ContractError::FinalityProviderNotFound(
-            slashed_fp_pk_hex.to_string(),
-        ));
+    if !active_delegation.matches_delegated_fp(slashed_fp_sk_hex)? {
+        return Err(
+            FullValidationError::FpNotInDelegationList(slashed_fp_sk_hex.to_string()).into(),
+        );
     }
 
     Ok(())
