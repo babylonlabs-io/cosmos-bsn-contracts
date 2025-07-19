@@ -58,7 +58,7 @@ fn decode_pks(
     Ok((staker_pk, fp_pks, cov_pks))
 }
 
-/// Verifies the new finality provider data (full validation version).
+/// Verifies the new finality provider data.
 pub fn verify_new_fp(new_fp: &NewFinalityProvider) -> Result<(), ContractError> {
     let fp_pk = verifying_key_from_hex(&new_fp.btc_pk_hex)?;
 
