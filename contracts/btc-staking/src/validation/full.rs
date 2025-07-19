@@ -254,13 +254,6 @@ pub fn verify_active_delegation(
     /*
         Check staker signature against slashing path of the unbonding tx
     */
-    let babylon_unbonding_script_paths = babylon_btcstaking::types::BabylonScriptPaths::new(
-        &staker_pk,
-        &fp_pks,
-        &cov_pks,
-        params.covenant_quorum as usize,
-        staking_time,
-    )?;
     // get the staker's signature on the unbonding slashing tx
     let unbonding_slashing_sig = active_delegation
         .undelegation_info
@@ -271,7 +264,7 @@ pub fn verify_active_delegation(
     babylon_btcstaking::staking::verify_transaction_sig_with_output(
         &unbonding_slashing_tx,
         &unbonding_tx.output[unbonding_output_idx as usize],
-        babylon_unbonding_script_paths.slashing_path_script(),
+        babylon_script_paths.slashing_path_script(),
         &staker_pk,
         &unbonding_slashing_sig,
     )?;
@@ -318,7 +311,7 @@ pub fn verify_active_delegation(
             enc_verify_transaction_sig_with_output(
                 &unbonding_slashing_tx,
                 unbonding_output,
-                babylon_unbonding_script_paths.slashing_path_script(),
+                babylon_script_paths.slashing_path_script(),
                 &cov_pk,
                 fp_pk,
                 &AdaptorSignature::new(sig.as_slice())?,
