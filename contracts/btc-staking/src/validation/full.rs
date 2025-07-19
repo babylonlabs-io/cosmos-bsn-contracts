@@ -33,6 +33,49 @@ pub enum FullValidationError {
     InvalidBtcSigType(String),
 }
 
+fn verifying_key_from_hex(v: impl AsRef<[u8]>) -> Result<VerifyingKey, ContractError> {
+    let pk_bytes = hex::decode(v)?;
+    VerifyingKey::from_bytes(&pk_bytes).map_err(Into::into)
+}
+
+fn decode_pks(
+    staker_pk_hex: &str,
+    fp_pk_hex_list: &[String],
+    cov_pk_hex_list: &[String],
+) -> Result<(VerifyingKey, Vec<VerifyingKey>, Vec<VerifyingKey>), ContractError> {
+    let staker_pk = verifying_key_from_hex(staker_pk_hex)?;
+
+    let fp_pks: Vec<VerifyingKey> = fp_pk_hex_list
+        .iter()
+        .map(verifying_key_from_hex)
+        .collect::<Result<Vec<_>, _>>()?;
+
+    let cov_pks: Vec<VerifyingKey> = cov_pk_hex_list
+        .iter()
+        .map(verifying_key_from_hex)
+        .collect::<Result<Vec<_>, _>>()?;
+
+    Ok((staker_pk, fp_pks, cov_pks))
+}
+
+/// Verifies the new finality provider data (full validation version).
+pub fn verify_new_fp(new_fp: &NewFinalityProvider) -> Result<(), ContractError> {
+    let fp_pk = verifying_key_from_hex(&new_fp.btc_pk_hex)?;
+
+    // get canonical FP address
+    // FIXME: parameterise `bbn` prefix
+    let fp_address = to_canonical_addr(&new_fp.addr, "bbn")?;
+
+    let fp_pop = new_fp
+        .pop
+        .as_ref()
+        .ok_or(FullValidationError::MissingProofOfPossession)?;
+
+    verify_pop(&fp_pk, fp_address, fp_pop)?;
+
+    Ok(())
+}
+
 /// Verifies the proof of possession of the given address.
 fn verify_pop(
     btc_pk: &VerifyingKey,
@@ -42,7 +85,6 @@ fn verify_pop(
     // get signed msg, i.e., the hash of the canonicalised address
     let msg_hash: [u8; 32] = Sha256::digest(address.as_slice()).into();
 
-    // verify PoP
     let btc_sig_type =
         BTCSigType::try_from(pop.btc_sig_type).map_err(FullValidationError::InvalidBtcSigType)?;
 
@@ -60,52 +102,6 @@ fn verify_pop(
             return Ok(());
         }
     }
-
-    Ok(())
-}
-
-fn verifying_key_from_hex(v: impl AsRef<[u8]>) -> Result<VerifyingKey, ContractError> {
-    let pk_bytes = hex::decode(v)?;
-    VerifyingKey::from_bytes(&pk_bytes).map_err(Into::into)
-}
-
-fn decode_pks(
-    staker_pk_hex: &str,
-    fp_pk_hex_list: &[String],
-    cov_pk_hex_list: &[String],
-) -> Result<(VerifyingKey, Vec<VerifyingKey>, Vec<VerifyingKey>), ContractError> {
-    // get staker's public key
-    let staker_pk = verifying_key_from_hex(staker_pk_hex)?;
-
-    // get all FP's public keys
-    let fp_pks: Vec<VerifyingKey> = fp_pk_hex_list
-        .iter()
-        .map(verifying_key_from_hex)
-        .collect::<Result<Vec<_>, _>>()?;
-
-    // get all covenant members' public keys
-    let cov_pks: Vec<VerifyingKey> = cov_pk_hex_list
-        .iter()
-        .map(verifying_key_from_hex)
-        .collect::<Result<Vec<_>, _>>()?;
-
-    Ok((staker_pk, fp_pks, cov_pks))
-}
-
-/// Verifies the new finality provider data (full validation version).
-pub fn verify_new_fp(new_fp: &NewFinalityProvider) -> Result<(), ContractError> {
-    let fp_pk = verifying_key_from_hex(&new_fp.btc_pk_hex)?;
-
-    // get canonical FP address
-    // FIXME: parameterise `bbn` prefix
-    let address = to_canonical_addr(&new_fp.addr, "bbn")?;
-
-    let fp_pop = new_fp
-        .pop
-        .as_ref()
-        .ok_or(FullValidationError::MissingProofOfPossession)?;
-
-    verify_pop(&fp_pk, address, fp_pop)?;
 
     Ok(())
 }
