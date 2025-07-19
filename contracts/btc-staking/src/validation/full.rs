@@ -33,36 +33,10 @@ pub enum FullValidationError {
     InvalidBtcSigType(String),
 }
 
-fn verifying_key_from_hex(v: impl AsRef<[u8]>) -> Result<VerifyingKey, ContractError> {
-    let pk_bytes = hex::decode(v)?;
-    VerifyingKey::from_bytes(&pk_bytes).map_err(Into::into)
-}
-
-fn decode_pks(
-    staker_pk_hex: &str,
-    fp_pk_hex_list: &[String],
-    cov_pk_hex_list: &[String],
-) -> Result<(VerifyingKey, Vec<VerifyingKey>, Vec<VerifyingKey>), ContractError> {
-    let staker_pk = verifying_key_from_hex(staker_pk_hex)?;
-
-    let fp_pks: Vec<VerifyingKey> = fp_pk_hex_list
-        .iter()
-        .map(verifying_key_from_hex)
-        .collect::<Result<Vec<_>, _>>()?;
-
-    let cov_pks: Vec<VerifyingKey> = cov_pk_hex_list
-        .iter()
-        .map(verifying_key_from_hex)
-        .collect::<Result<Vec<_>, _>>()?;
-
-    Ok((staker_pk, fp_pks, cov_pks))
-}
-
 /// Verifies the new finality provider data.
 pub fn verify_new_fp(new_fp: &NewFinalityProvider) -> Result<(), ContractError> {
     let fp_pk = verifying_key_from_hex(&new_fp.btc_pk_hex)?;
 
-    // get canonical FP address
     // FIXME: parameterise `bbn` prefix
     let fp_address = to_canonical_addr(&new_fp.addr, "bbn")?;
 
@@ -104,6 +78,31 @@ fn verify_pop(
     }
 
     Ok(())
+}
+
+fn verifying_key_from_hex(v: impl AsRef<[u8]>) -> Result<VerifyingKey, ContractError> {
+    let pk_bytes = hex::decode(v)?;
+    VerifyingKey::from_bytes(&pk_bytes).map_err(Into::into)
+}
+
+fn decode_pks(
+    staker_pk_hex: &str,
+    fp_pk_hex_list: &[String],
+    cov_pk_hex_list: &[String],
+) -> Result<(VerifyingKey, Vec<VerifyingKey>, Vec<VerifyingKey>), ContractError> {
+    let staker_pk = verifying_key_from_hex(staker_pk_hex)?;
+
+    let fp_pks: Vec<VerifyingKey> = fp_pk_hex_list
+        .iter()
+        .map(verifying_key_from_hex)
+        .collect::<Result<Vec<_>, _>>()?;
+
+    let cov_pks: Vec<VerifyingKey> = cov_pk_hex_list
+        .iter()
+        .map(verifying_key_from_hex)
+        .collect::<Result<Vec<_>, _>>()?;
+
+    Ok((staker_pk, fp_pks, cov_pks))
 }
 
 /// Verifies the active delegation data.
@@ -217,12 +216,7 @@ pub fn verify_active_delegation(
         Early unbonding logic
     */
 
-    // decode unbonding tx
-    let unbonding_tx = &active_delegation.undelegation_info.unbonding_tx;
-    let unbonding_tx: Transaction = deserialize(unbonding_tx)?;
-    // decode unbonding slashing tx
-    let unbonding_slashing_tx = &active_delegation.undelegation_info.slashing_tx;
-    let unbonding_slashing_tx: Transaction = deserialize(unbonding_slashing_tx)?;
+    let unbonding_tx: Transaction = deserialize(&active_delegation.undelegation_info.unbonding_tx)?;
 
     // Check that the unbonding tx input is pointing to staking tx
     if unbonding_tx.input[0].previous_output.txid != staking_tx.compute_txid()
@@ -235,20 +229,13 @@ pub fn verify_active_delegation(
     // - Fee is greater than 0.
     // - Unbonding output value is at least `MinUnbondingValue` percentage of staking output value.
 
-    let babylon_unbonding_script_paths = babylon_btcstaking::types::BabylonScriptPaths::new(
-        &staker_pk,
-        &fp_pks,
-        &cov_pks,
-        params.covenant_quorum as usize,
-        staking_time,
-    )?;
-
     // TODO: Ensure the unbonding tx has valid unbonding output, and get the unbonding output (#7.1)
     // index (#7.1)
     let unbonding_output_idx = 0;
     let unbonding_output = &unbonding_tx.output[unbonding_output_idx as usize];
 
-    let unbonding_time = active_delegation.unbonding_time as u16;
+    let unbonding_slashing_tx: Transaction =
+        deserialize(&active_delegation.undelegation_info.slashing_tx)?;
 
     // Check that unbonding tx and unbonding slashing tx are consistent
     babylon_btcstaking::staking::check_slashing_tx_match_funding_tx(
@@ -259,12 +246,19 @@ pub fn verify_active_delegation(
         slashing_rate,
         &slashing_pk_script,
         &staker_pk,
-        unbonding_time,
+        active_delegation.unbonding_time as u16,
     )?;
 
     /*
         Check staker signature against slashing path of the unbonding tx
     */
+    let babylon_unbonding_script_paths = babylon_btcstaking::types::BabylonScriptPaths::new(
+        &staker_pk,
+        &fp_pks,
+        &cov_pks,
+        params.covenant_quorum as usize,
+        staking_time,
+    )?;
     // get unbonding slashing path script
     let unbonding_slashing_path_script = babylon_unbonding_script_paths.slashing_path_script;
     // get the staker's signature on the unbonding slashing tx
@@ -293,7 +287,6 @@ pub fn verify_active_delegation(
     {
         // get covenant public key
         let cov_pk = VerifyingKey::from_bytes(&cov_sig.pk)?;
-        // ensure covenant public key is in the params
         if !params.contains_covenant_pk(&cov_pk) {
             return Err(FullValidationError::MissingCovenantPublicKeyInParams.into());
         }
@@ -318,7 +311,6 @@ pub fn verify_active_delegation(
         .iter()
     {
         let cov_pk = VerifyingKey::from_bytes(&cov_sig.cov_pk)?;
-        // Check if the covenant public key is in the params.covenant_pks
         if !params.contains_covenant_pk(&cov_pk) {
             return Err(FullValidationError::MissingCovenantPublicKeyInParams.into());
         }
@@ -346,7 +338,6 @@ pub fn verify_undelegation(
         Verify the signature on the unbonding tx is from the delegator
     */
 
-    // get keys
     let (staker_pk, fp_pks, cov_pks) = decode_pks(
         &btc_del.btc_pk_hex,
         &btc_del.fp_btc_pk_list,
@@ -366,7 +357,6 @@ pub fn verify_undelegation(
     )?;
     let unbonding_path_script = babylon_script_paths.unbonding_path_script;
 
-    // get unbonding tx
     let unbonding_tx: Transaction = deserialize(&btc_del.undelegation_info.unbonding_tx)?;
 
     // get the staker's signature on the unbonding tx
