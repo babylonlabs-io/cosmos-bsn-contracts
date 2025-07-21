@@ -139,7 +139,9 @@ pub fn verify_active_delegation(
     let slashing_pk_script = hex::decode(&params.slashing_pk_script)?;
 
     // Check slashing tx and staking tx are valid and consistent
-    let slashing_rate = params.slashing_rate()?;
+    let slashing_rate = params
+        .slashing_rate()
+        .map_err(FullValidationError::InvalidSlashingRate)?;
 
     babylon_btcstaking::staking::check_slashing_tx_match_funding_tx(
         &slashing_tx,
@@ -269,7 +271,7 @@ pub fn verify_active_delegation(
     /*
         verify covenant signatures over unbonding tx
     */
-    let unbonding_path_script = babylon_script_paths.unbonding_path_script;
+    let unbonding_path_script = babylon_script_paths.unbonding_path_script.as_script();
     for cov_sig in active_delegation
         .undelegation_info
         .covenant_unbonding_sig_list
@@ -286,7 +288,7 @@ pub fn verify_active_delegation(
         babylon_btcstaking::staking::verify_transaction_sig_with_output(
             staking_tx,
             staking_output,
-            unbonding_path_script.as_script(),
+            unbonding_path_script,
             &cov_pk,
             &sig,
         )?;
