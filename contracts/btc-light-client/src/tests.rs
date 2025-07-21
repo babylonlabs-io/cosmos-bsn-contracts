@@ -1,31 +1,39 @@
-use crate::contract::instantiate;
+use crate::contract::{execute, instantiate};
+use crate::msg::contract::InitialHeader;
 use crate::msg::InstantiateMsg;
 use crate::state::btc_light_client::{BTC_HEADERS, BTC_HEIGHTS};
 use crate::state::config::CONFIG;
-use crate::BitcoinNetwork;
+use crate::state::get_tip;
+use crate::{BitcoinNetwork, ExecuteMsg};
 use babylon_proto::babylon::btclightclient::v1::BtcHeaderInfo;
 use bitcoin::block::Header as BlockHeader;
+use bitcoin::consensus::deserialize;
 use cosmwasm_std::testing::{message_info, mock_dependencies, mock_env};
 use prost::Message;
 
-/// Returns the initial BTC header for the babylon contract instantiation.
-pub fn initial_header() -> crate::msg::contract::InitialHeader {
-    // Initial base header on Babylon Genesis mainnet, https://www.blockchain.com/explorer/blocks/btc/854784.
-    // TODO: This hardcodes a mainnet header in `initial_header()`, which may be incorrect in a
-    // different network context, and we do often use different networks (e.g., testnet or regtest) in the test environment.
-    // It's fine for now, but we should make this function network-aware to avoid subtle bugs down the line.
-    let header = "0000c020f382af1f6d228721b49f3da2f5b831587803b16597b301000000000000000000e4f76aae64d8316d195a92424871b74168b58d1c3c6988548e0e9890b15fc2fc3c00aa66be1a0317082e4bc7";
-    let height = 854784;
-    let header: BlockHeader =
-        bitcoin::consensus::encode::deserialize_hex(header).expect("Static value must be correct");
-    let btc_header_info = BtcHeaderInfo {
-        header: bitcoin::consensus::serialize(&header).into(),
-        hash: bitcoin::consensus::serialize(&header.block_hash()).into(),
-        height,
-        work: header.work().to_be_bytes().to_vec().into(),
-    };
+// TODO: update the test headers in babylon-test-utils so that we can reuse it here.
+fn test_headers() -> Vec<BtcHeaderInfo> {
+    let headers = vec![
+        // Initial base header on Babylon Genesis mainnet, https://www.blockchain.com/explorer/blocks/btc/854784.
+        ("0000c020f382af1f6d228721b49f3da2f5b831587803b16597b301000000000000000000e4f76aae64d8316d195a92424871b74168b58d1c3c6988548e0e9890b15fc2fc3c00aa66be1a0317082e4bc7", 854784),
+        ("0000003acbfbbb0a8d32aa0e739dc4f910a58299a8015b1cd48902000000000000000000a32c4a6ca3d399cc5146c28af944b807f298c6de063c161c13a1b3ca6fd2632e6500aa66be1a031783eb001c", 854785)
+    ];
 
-    btc_header_info.try_into().unwrap()
+    headers
+        .into_iter()
+        .map(|(header, height)| {
+            let header: BlockHeader = bitcoin::consensus::encode::deserialize_hex(header)
+                .expect("Static value must be correct");
+            let btc_header_info = BtcHeaderInfo {
+                header: bitcoin::consensus::serialize(&header).into(),
+                hash: bitcoin::consensus::serialize(&header.block_hash()).into(),
+                height,
+                work: header.work().to_be_bytes().to_vec().into(),
+            };
+
+            btc_header_info.try_into().unwrap()
+        })
+        .collect()
 }
 
 #[test]
@@ -34,16 +42,18 @@ fn instantiate_should_work() {
 
     let info = message_info(&deps.api.addr_make("creator"), &[]);
 
-    let initial_header = initial_header();
+    let headers = test_headers();
+
+    let initial_header: InitialHeader = headers[0].clone().try_into().unwrap();
 
     let msg = InstantiateMsg {
-        network: BitcoinNetwork::Regtest,
+        network: BitcoinNetwork::Mainnet,
         btc_confirmation_depth: 6,
         checkpoint_finalization_timeout: 100,
         initial_header: initial_header.clone(),
     };
 
-    let res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
+    let res = instantiate(deps.as_mut(), mock_env(), info.clone(), msg).unwrap();
 
     // Basic assertions
     assert_eq!(res.attributes[0].key, "action");
@@ -63,4 +73,15 @@ fn instantiate_should_work() {
 
     let base_header_in_storage = BTC_HEADERS.load(&deps.storage, base_header_height).unwrap();
     assert_eq!(base_header_in_storage, initial_header_info.encode_to_vec());
+
+    // Submit new headers should work.
+    let new_header: BlockHeader = deserialize(&headers[1].header).unwrap();
+    let msg = ExecuteMsg::BtcHeaders {
+        headers: vec![new_header.into()],
+    };
+    execute(deps.as_mut(), mock_env(), info, msg).expect("Submit new headers should work");
+
+    // Tip updated when new headers are submitted successfully.
+    let tip = get_tip(&deps.storage).unwrap();
+    assert_eq!(tip.height, headers[1].height);
 }
