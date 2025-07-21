@@ -35,12 +35,6 @@ pub enum StoreError {
 
 // getters for storages
 
-// is_initialized checks if the BTC light client has been initialised or not
-// the check is done by checking the existence of the base header
-pub fn is_initialized(storage: &mut dyn Storage) -> bool {
-    BTC_HEADER_BASE.load(storage).is_ok()
-}
-
 // getter/setter for base header
 pub fn get_base_header(storage: &dyn Storage) -> Result<BtcHeaderInfo, StoreError> {
     // NOTE: if init is successful, then base header is guaranteed to be in storage and decodable
