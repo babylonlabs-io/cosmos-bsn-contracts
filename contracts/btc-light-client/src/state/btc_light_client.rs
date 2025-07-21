@@ -15,8 +15,8 @@ use super::CONFIG;
 
 pub const BTC_TIP_KEY: &str = "btc_lc_tip";
 
+pub const BTC_BASE_HEADER_HEIGHT: Item<u32> = Item::new("btc_lc_base_header_height");
 pub const BTC_HEADERS: Map<u32, Vec<u8>> = Map::new("btc_lc_headers");
-pub const BTC_HEADER_BASE: Item<Vec<u8>> = Item::new("btc_lc_header_base");
 pub const BTC_HEIGHTS: Map<&[u8], u32> = Map::new("btc_lc_heights");
 pub const BTC_TIP: Item<Vec<u8>> = Item::new(BTC_TIP_KEY);
 
@@ -38,13 +38,13 @@ pub enum StoreError {
 // getter/setter for base header
 pub fn get_base_header(storage: &dyn Storage) -> Result<BtcHeaderInfo, StoreError> {
     // NOTE: if init is successful, then base header is guaranteed to be in storage and decodable
-    let base_header_bytes = BTC_HEADER_BASE.load(storage)?;
-    BtcHeaderInfo::decode(base_header_bytes.as_slice()).map_err(Into::into)
+    let base_header_height = BTC_BASE_HEADER_HEIGHT.load(storage)?;
+    get_header(storage, base_header_height)
 }
 
 pub fn set_base_header(storage: &mut dyn Storage, base_header: &BtcHeaderInfo) -> StdResult<()> {
-    let base_header_bytes = base_header.encode_to_vec();
-    BTC_HEADER_BASE.save(storage, &base_header_bytes)
+    BTC_BASE_HEADER_HEIGHT.save(storage, &base_header.height)?;
+    insert_header(storage, base_header)
 }
 
 // getter/setter for chain tip
@@ -66,12 +66,16 @@ pub fn set_tip(storage: &mut dyn Storage, tip: &BtcHeaderInfo) -> StdResult<()> 
 pub fn insert_headers(storage: &mut dyn Storage, new_headers: &[BtcHeaderInfo]) -> StdResult<()> {
     // Add all the headers by height
     for new_header in new_headers.iter() {
-        // insert header
-        let hash_bytes: &[u8] = new_header.hash.as_ref();
-        let header_bytes = new_header.encode_to_vec();
-        BTC_HEADERS.save(storage, new_header.height, &header_bytes)?;
-        BTC_HEIGHTS.save(storage, hash_bytes, &new_header.height)?;
+        insert_header(storage, new_header)?;
     }
+    Ok(())
+}
+
+fn insert_header(storage: &mut dyn Storage, new_header: &BtcHeaderInfo) -> StdResult<()> {
+    let hash_bytes: &[u8] = new_header.hash.as_ref();
+    let header_bytes = new_header.encode_to_vec();
+    BTC_HEADERS.save(storage, new_header.height, &header_bytes)?;
+    BTC_HEIGHTS.save(storage, hash_bytes, &new_header.height)?;
     Ok(())
 }
 
