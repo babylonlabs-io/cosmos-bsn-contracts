@@ -24,14 +24,12 @@ fn test_headers() -> Vec<BtcHeaderInfo> {
         .map(|(header, height)| {
             let header: BlockHeader = bitcoin::consensus::encode::deserialize_hex(header)
                 .expect("Static value must be correct");
-            let btc_header_info = BtcHeaderInfo {
+            BtcHeaderInfo {
                 header: bitcoin::consensus::serialize(&header).into(),
                 hash: bitcoin::consensus::serialize(&header.block_hash()).into(),
                 height,
                 work: header.work().to_be_bytes().to_vec().into(),
-            };
-
-            btc_header_info.try_into().unwrap()
+            }
         })
         .collect()
 }
@@ -63,7 +61,7 @@ fn instantiate_should_work() {
     let cfg = CONFIG.load(&deps.storage).unwrap();
     assert_eq!(cfg.btc_confirmation_depth, 6);
     assert_eq!(cfg.checkpoint_finalization_timeout, 100);
-    assert_eq!(cfg.network, BitcoinNetwork::Regtest);
+    assert_eq!(cfg.network, BitcoinNetwork::Mainnet);
 
     let initial_header_info = initial_header.to_btc_header_info().unwrap();
     let base_header_height = BTC_HEIGHTS
