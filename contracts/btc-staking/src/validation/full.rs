@@ -259,11 +259,15 @@ pub fn verify_active_delegation(
         .delegator_slashing_sig
         .as_slice();
     let unbonding_slashing_sig = k256::schnorr::Signature::try_from(unbonding_slashing_sig)?;
+    // The unbonding slashing and regular slashing share the same script structure,
+    // the only difference is in the timelock value.
+    let unbonding_slashing_path_script = babylon_script_paths.slashing_path_script();
+
     // Verify the staker's signature
     babylon_btcstaking::staking::verify_transaction_sig_with_output(
         &unbonding_slashing_tx,
         &unbonding_tx.output[unbonding_output_idx as usize],
-        babylon_script_paths.slashing_path_script(),
+        unbonding_slashing_path_script,
         &staker_pk,
         &unbonding_slashing_sig,
     )?;
@@ -310,7 +314,7 @@ pub fn verify_active_delegation(
             enc_verify_transaction_sig_with_output(
                 &unbonding_slashing_tx,
                 unbonding_output,
-                babylon_script_paths.slashing_path_script(),
+                unbonding_slashing_path_script,
                 &cov_pk,
                 fp_pk,
                 &AdaptorSignature::new(sig.as_slice())?,
