@@ -1,6 +1,6 @@
 {
   "contract_name": "babylon-contract",
-  "contract_version": "0.15.0",
+  "contract_version": "0.15.1",
   "idl_version": "1.0.0",
   "instantiate": {
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -717,15 +717,21 @@
           ]
         },
         "btc_light_client": {
-          "description": "If set, this stores a BTC light client contract used for BTC light client on the Consumer",
-          "anyOf": [
+          "description": "If set, this stores the config for BTC light client contract on the Consumer.\n\nThis consists of a tuple: `(btc_light_client_address, encoded_btc_base_header)`, where: - `btc_light_client_address` is the address of the BTC light client contract. - `encoded_btc_base_header` is the encoded base Bitcoin header to initialize the light client.",
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": [
             {
               "$ref": "#/definitions/Addr"
             },
             {
-              "type": "null"
+              "$ref": "#/definitions/Binary"
             }
-          ]
+          ],
+          "maxItems": 2,
+          "minItems": 2
         },
         "btc_staking": {
           "description": "If set, this stores a BTC staking contract used for BTC re-staking",
@@ -772,6 +778,10 @@
       "definitions": {
         "Addr": {
           "description": "A human readable address.\n\nIn Cosmos, this is typically bech32 encoded. But for multi-chain smart contracts no assumptions should be made other than being UTF-8 encoded and of reasonable length.\n\nThis type represents a validated address. It can be created in the following ways 1. Use `Addr::unchecked(input)` 2. Use `let checked: Addr = deps.api.addr_validate(input)?` 3. Use `let checked: Addr = deps.api.addr_humanize(canonical_addr)?` 4. Deserialize from JSON. This must only be done from JSON that was validated before such as a contract's state. `Addr` must not be used in messages sent by the user because this would result in unvalidated instances.\n\nThis type is immutable. If you really need to mutate it (Really? Are you sure?), create a mutable copy using `let mut mutable = Addr::to_string()` and operate on that `String` instance.",
+          "type": "string"
+        },
+        "Binary": {
+          "description": "Binary is a wrapper around Vec<u8> to add base64 de/serialization with serde. It also adds some helper methods to help encode inline.\n\nThis is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>. See also <https://github.com/CosmWasm/cosmwasm/blob/main/docs/MESSAGE_TYPES.md>.",
           "type": "string"
         },
         "BitcoinNetwork": {
