@@ -19,6 +19,7 @@ concurrency:
 jobs:
   build_and_upload_contracts:
     runs-on: ubuntu-latest
+
     permissions:
       packages: read
       pull-requests: read
@@ -27,28 +28,36 @@ jobs:
       pages: write
       repository-projects: write
       statuses: write
+
     steps:
     - uses: actions/checkout@v4.1.0
+
     - name: Build optimised Wasm binaries
       run: "./scripts/optimizer.sh"
+
     - uses: actions/upload-artifact@v4.1.0
       with:
         path: |-
           artifacts/babylon_contract.wasm
           artifacts/btc_staking.wasm
+          artifacts/btc_staking-full-validation.wasm
           artifacts/btc_finality.wasm
           artifacts/btc_light_client.wasm
           artifacts/checksums.txt
-    - name: Show data
+
+    - name: Show built artifacts
       run: |-
         ls -l artifacts
         cat artifacts/checksums.txt
-    - name: Zip artefacts
+
+    - name: Zip artifacts
       run: |-
         zip ./babylon_contract.wasm.zip artifacts/babylon_contract.wasm
         zip ./btc_staking.wasm.zip artifacts/btc_staking.wasm
+        zip ./btc_staking-full-validation.wasm.zip artifacts/btc_staking-full-validation.wasm
         zip ./btc_finality.wasm.zip artifacts/btc_finality.wasm
         zip ./btc_light_client.wasm.zip artifacts/btc_light_client.wasm
+
     - name: Create a Release
       id: create-release
       uses: actions/create-release@v1
@@ -61,6 +70,7 @@ jobs:
             Attached there are some build artifacts generated at this tag.
           draft: false
           prerelease: false
+
     - name: Upload babylon_contract
       id: upload-babylon_contract
       uses: actions/upload-release-asset@v1
@@ -71,6 +81,7 @@ jobs:
         asset_path: ./babylon_contract.wasm.zip
         asset_name: babylon_contract.wasm.zip
         asset_content_type: application/zip
+
     - name: Upload btc_staking
       id: upload-btc_staking
       uses: actions/upload-release-asset@v1
@@ -81,6 +92,18 @@ jobs:
         asset_path: ./btc_staking.wasm.zip
         asset_name: btc_staking.wasm.zip
         asset_content_type: application/zip
+
+    - name: Upload btc_staking (full-validation)
+      id: upload-btc_staking-full-validation
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+      with:
+        upload_url: ${{ steps.create-release.outputs.upload_url }}
+        asset_path: ./btc_staking-full-validation.wasm.zip
+        asset_name: btc_staking-full-validation.wasm.zip
+        asset_content_type: application/zip
+
     - name: Upload btc_finality
       id: upload-btc_finality
       uses: actions/upload-release-asset@v1
@@ -91,6 +114,7 @@ jobs:
         asset_path: ./btc_finality.wasm.zip
         asset_name: btc_finality.wasm.zip
         asset_content_type: application/zip
+
     - name: Upload btc_light_client
       id: upload-btc_light_client
       uses: actions/upload-release-asset@v1
@@ -101,6 +125,7 @@ jobs:
         asset_path: ./btc_light_client.wasm.zip
         asset_name: btc_light_client.wasm.zip
         asset_content_type: application/zip
+
     - name: Upload checksums
       id: upload-checksums
       uses: actions/upload-release-asset@v1
@@ -111,17 +136,20 @@ jobs:
         asset_path: ./artifacts/checksums.txt
         asset_name: checksums.txt
         asset_content_type: text/plain
+
     - name: Build and run schema generator
       run: bash scripts/schema.sh
     - name: Consolidate schemas
       run: |-
         mkdir -p ./schemas
         cp -a ./contracts/*/schema/* ./schemas
-    - name: Show data
+
+    - name: Show consolidated schemas
       run: ls -l ./schemas
+
     - name: Zip schemas
-      run: |-
-        zip -r ./schemas.zip schemas/
+      run: zip -r ./schemas.zip schemas/
+
     - name: Upload schemas
       id: upload-schemas
       uses: actions/upload-release-asset@v1
