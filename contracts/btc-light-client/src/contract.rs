@@ -51,11 +51,8 @@ pub fn instantiate(
     // Set contract version
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
 
-    let mut buf = Vec::with_capacity(base_header.encoded_len());
-    base_header.encode(&mut buf)?;
-
     Ok(Response::new()
-        .set_data(Binary::from(buf))
+        .set_data(Binary::from(base_header.encode_to_vec()))
         .add_attribute("action", "instantiate"))
 }
 
