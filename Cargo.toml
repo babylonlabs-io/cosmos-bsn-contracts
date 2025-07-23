@@ -19,6 +19,7 @@ precommit       = "./scripts/precommit.sh"
 lint            = "./scripts/lint.sh"
 fix-lint        = "./scripts/fix-lint.sh"
 integration     = "./scripts/integration_test.sh"
+e2e             = "./scripts/e2e_test.sh"
 
 [workspace.dependencies]
 anybuf = { version = "0.5.0" }
