@@ -4,6 +4,15 @@ use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{CanonicalAddr, Order, StdResult, Storage, Uint128};
 use cw_storage_plus::{Index, IndexList, IndexedMap, KeyDeserialize, MultiIndex};
 
+const DELEGATIONS_KEY: &str = "delegations";
+const FP_SUBKEY: &str = "fp";
+const STAKER_SUBKEY: &str = "staker";
+
+/// Indexed map for delegations and finality providers.
+pub fn delegations<'a>() -> Delegations<'a> {
+    Delegations::new(DELEGATIONS_KEY, FP_SUBKEY, STAKER_SUBKEY)
+}
+
 /// Single delegation related information - entry per `(staking hash, finality provider public key)`
 /// pair, including distribution alignment
 #[cw_serde]
@@ -143,13 +152,4 @@ impl Delegations<'_> {
             })
             .collect::<StdResult<Vec<(Vec<u8>, DelegationDistribution)>>>()
     }
-}
-
-const DELEGATIONS_KEY: &str = "delegations";
-const FP_SUBKEY: &str = "fp";
-const STAKER_SUBKEY: &str = "staker";
-
-/// Indexed map for delegations and finality providers.
-pub fn delegations<'a>() -> Delegations<'a> {
-    Delegations::new(DELEGATIONS_KEY, FP_SUBKEY, STAKER_SUBKEY)
 }

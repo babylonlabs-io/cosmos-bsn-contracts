@@ -76,7 +76,7 @@ pub fn handle_btc_staking(
 }
 
 /// Handles registering a new finality provider.
-pub fn handle_new_fp(
+fn handle_new_fp(
     storage: &mut dyn Storage,
     new_fp: &NewFinalityProvider,
     height: u64,
@@ -105,7 +105,7 @@ pub fn handle_new_fp(
     Ok(())
 }
 
-pub fn handle_active_delegation(
+fn handle_active_delegation(
     storage: &mut dyn Storage,
     height: u64,
     active_delegation: &ActiveBtcDelegation,

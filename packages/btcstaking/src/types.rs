@@ -5,7 +5,7 @@ use bitcoin::opcodes::all::OP_PUSHNUM_1;
 
 use bitcoin::secp256k1::PublicKey;
 use bitcoin::taproot::LeafVersion;
-use bitcoin::ScriptBuf;
+use bitcoin::{Script, ScriptBuf};
 use bitcoin::{TapNodeHash, TapTweakHash, XOnlyPublicKey};
 
 use rust_decimal::{prelude::*, Decimal};
@@ -172,6 +172,10 @@ impl BabylonScriptPaths {
             unbonding_path_script,
             slashing_path_script,
         })
+    }
+
+    pub fn slashing_path_script(&self) -> &Script {
+        &self.slashing_path_script
     }
 
     // TODO: implement a function for aggregating all scripts to a single ScriptBuf
