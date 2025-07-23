@@ -12,8 +12,16 @@ pub fn new_btc_headers_msg(
     let cfg = CONFIG.load(deps.storage)?;
     let contract_addr = cfg.btc_light_client_addr()?;
 
+    let btc_headers = btc_headers_from_info(headers)?;
+
+    let base_header = headers.first().ok_or(ContractError::BtcHeaderEmpty {})?;
+    let first_work = hex::encode(base_header.work.as_ref());
+    let first_height = base_header.height;
+
     let msg = BtcLightClientExecuteMsg::BtcHeaders {
-        headers: btc_headers_from_info(headers)?,
+        headers: btc_headers,
+        first_work: Some(first_work),
+        first_height: Some(first_height),
     };
     let wasm_msg = WasmMsg::Execute {
         contract_addr,
