@@ -15,6 +15,8 @@ pub enum ContractError {
     InvalidReplyId(u64),
     #[error("The BTC header is empty")]
     BtcHeaderEmpty {},
+    #[error("BTC light client init message is missing")]
+    MissingBtcLightClientInitMsg,
     #[error("The BTC light client contract is not set")]
     BtcLightClientNotSet {},
     #[error("Missing base_header in the response of BTC light client contract instantiation")]
