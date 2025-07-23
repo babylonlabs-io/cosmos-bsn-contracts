@@ -43,6 +43,7 @@ jobs:
           artifacts/btc_staking-full-validation.wasm
           artifacts/btc_finality.wasm
           artifacts/btc_light_client.wasm
+          artifacts/btc_light_client-full-validation.wasm
           artifacts/checksums.txt
 
     - name: Show built artifacts
@@ -57,6 +58,7 @@ jobs:
         zip ./btc_staking-full-validation.wasm.zip artifacts/btc_staking-full-validation.wasm
         zip ./btc_finality.wasm.zip artifacts/btc_finality.wasm
         zip ./btc_light_client.wasm.zip artifacts/btc_light_client.wasm
+        zip ./btc_light_client-full-validation.wasm.zip artifacts/btc_light_client-full-validation.wasm
 
     - name: Create a Release
       id: create-release
@@ -124,6 +126,17 @@ jobs:
         upload_url: ${{ steps.create-release.outputs.upload_url }}
         asset_path: ./btc_light_client.wasm.zip
         asset_name: btc_light_client.wasm.zip
+        asset_content_type: application/zip
+
+    - name: Upload btc_light_client (full-validation)
+      id: upload-btc_light_client-full-validation
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+      with:
+        upload_url: ${{ steps.create-release.outputs.upload_url }}
+        asset_path: ./btc_light_client-full-validation.wasm.zip
+        asset_name: btc_light_client-full-validation.wasm.zip
         asset_content_type: application/zip
 
     - name: Upload checksums
