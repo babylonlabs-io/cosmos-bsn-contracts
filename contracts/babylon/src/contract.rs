@@ -370,7 +370,7 @@ mod tests {
             network: btc_light_client::BitcoinNetwork::Regtest,
             btc_confirmation_depth: msg.btc_confirmation_depth,
             checkpoint_finalization_timeout: msg.checkpoint_finalization_timeout,
-            initial_header: initial_header(),
+            initial_header: Some(initial_header()),
         };
 
         msg.btc_light_client_msg

@@ -33,7 +33,7 @@ fn setup() -> Instance<MockApi, MockStorage, MockQuerier> {
             network: BitcoinNetwork::Testnet,
             btc_confirmation_depth: 1,
             checkpoint_finalization_timeout: 1,
-            initial_header: babylon_test_utils::initial_header(),
+            initial_header: Some(babylon_test_utils::initial_header()),
         })
         .unwrap(),
     );

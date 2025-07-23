@@ -49,7 +49,7 @@ pub fn setup_instance() -> Instance<MockApi, MockStorage, MockQuerier> {
         network: btc_light_client::BitcoinNetwork::Regtest,
         btc_confirmation_depth: 10,
         checkpoint_finalization_timeout: 2,
-        initial_header: initial_header(),
+        initial_header: Some(initial_header()),
     };
     let info = mock_info(CREATOR, &[]);
     let res: Response = instantiate(&mut deps, mock_env(), info, msg).unwrap();
