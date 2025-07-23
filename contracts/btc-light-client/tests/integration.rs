@@ -32,7 +32,7 @@ fn instantiate_works() {
         network: btc_light_client::BitcoinNetwork::Regtest,
         btc_confirmation_depth: 10,
         checkpoint_finalization_timeout: 100,
-        initial_header: Some(babylon_test_utils::initial_header()),
+        initial_header: babylon_test_utils::get_btc_initial_header(),
     };
     let info = message_info(&Addr::unchecked(CREATOR), &[]);
     let res: ContractResult<Response> = instantiate(&mut deps, mock_env(), info, msg);

@@ -13,6 +13,19 @@ use bitcoin::consensus::deserialize;
 use cosmwasm_std::testing::{message_info, mock_dependencies, mock_env};
 use prost::Message;
 
+/// Helper function to get the appropriate initial header value based on the full-validation feature
+fn get_btc_initial_header() -> Option<InitialHeader> {
+    #[cfg(feature = "full-validation")]
+    {
+        let headers = test_headers();
+        Some(headers[0].clone().try_into().unwrap())
+    }
+    #[cfg(not(feature = "full-validation"))]
+    {
+        None
+    }
+}
+
 // TODO: update the test headers in babylon-test-utils so that we can reuse it here.
 fn test_headers() -> Vec<BtcHeaderInfo> {
     let headers = vec![
@@ -44,13 +57,11 @@ fn instantiate_should_work() {
 
     let headers = test_headers();
 
-    let initial_header: InitialHeader = headers[0].clone().try_into().unwrap();
-
     let msg = InstantiateMsg {
         network: BitcoinNetwork::Mainnet,
         btc_confirmation_depth: 6,
         checkpoint_finalization_timeout: 100,
-        initial_header: Some(initial_header.clone()),
+        initial_header: get_btc_initial_header(),
     };
 
     let res = instantiate(deps.as_mut(), mock_env(), info.clone(), msg).unwrap();
@@ -65,25 +76,30 @@ fn instantiate_should_work() {
     assert_eq!(cfg.checkpoint_finalization_timeout, 100);
     assert_eq!(cfg.network, BitcoinNetwork::Mainnet);
 
-    let initial_header_info = initial_header.to_btc_header_info().unwrap();
-    let base_header_height = BTC_HEIGHTS
-        .load(&deps.storage, initial_header_info.hash.as_ref())
-        .unwrap();
-    assert_eq!(base_header_height, 854784);
+    // Test header storage only if initial_header was provided
+    if let Some(initial_header) = get_btc_initial_header() {
+        let initial_header_info = initial_header.to_btc_header_info().unwrap();
+        let base_header_height = BTC_HEIGHTS
+            .load(&deps.storage, initial_header_info.hash.as_ref())
+            .unwrap();
+        assert_eq!(base_header_height, 854784);
 
-    let base_header_in_storage = BTC_HEADERS.load(&deps.storage, base_header_height).unwrap();
-    assert_eq!(base_header_in_storage, initial_header_info.encode_to_vec());
+        let base_header_in_storage = BTC_HEADERS.load(&deps.storage, base_header_height).unwrap();
+        assert_eq!(base_header_in_storage, initial_header_info.encode_to_vec());
+    }
 
-    // Submit new headers should work.
-    let new_header: BlockHeader = deserialize(&headers[1].header).unwrap();
-    let msg = ExecuteMsg::BtcHeaders {
-        headers: vec![new_header.into()],
-    };
-    execute(deps.as_mut(), mock_env(), info, msg).expect("Submit new headers should work");
+    // Submit new headers should work only if we have an initial header
+    if get_btc_initial_header().is_some() {
+        let new_header: BlockHeader = deserialize(&headers[1].header).unwrap();
+        let msg = ExecuteMsg::BtcHeaders {
+            headers: vec![new_header.into()],
+        };
+        execute(deps.as_mut(), mock_env(), info, msg).expect("Submit new headers should work");
 
-    // Tip updated when new headers are submitted successfully.
-    let tip = get_tip(&deps.storage).unwrap();
-    assert_eq!(tip.height, headers[1].height);
+        // Tip updated when new headers are submitted successfully.
+        let tip = get_tip(&deps.storage).unwrap();
+        assert_eq!(tip.height, headers[1].height);
+    }
 }
 
 #[cfg(not(feature = "full-validation"))]
