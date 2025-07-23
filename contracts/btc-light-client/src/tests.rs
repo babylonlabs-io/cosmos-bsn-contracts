@@ -48,7 +48,7 @@ fn instantiate_should_work() {
         network: BitcoinNetwork::Mainnet,
         btc_confirmation_depth: 6,
         checkpoint_finalization_timeout: 100,
-        initial_header: initial_header.clone(),
+        initial_header: Some(initial_header.clone()),
     };
 
     let res = instantiate(deps.as_mut(), mock_env(), info.clone(), msg).unwrap();

@@ -46,7 +46,8 @@ pub struct InstantiateMsg {
     pub btc_confirmation_depth: u32,
     pub checkpoint_finalization_timeout: u32,
     /// Initial BTC header.
-    pub initial_header: InitialHeader,
+    /// If not provided, the light client will rely on and trust Babylon's provided initial header
+    pub initial_header: Option<InitialHeader>,
 }
 
 impl InstantiateMsg {
@@ -59,15 +60,16 @@ impl InstantiateMsg {
             return Err(ContractError::ZeroCheckpointFinalizationTimeout);
         }
 
-        if !crate::bitcoin::is_difficulty_change_boundary(
-            self.initial_header.height,
-            &self.network.chain_params(),
-        ) {
-            return Err(ContractError::NotOnDifficultyBoundary(
-                self.initial_header.height,
-            ));
+        if let Some(ref initial_header) = self.initial_header {
+            if !crate::bitcoin::is_difficulty_change_boundary(
+                initial_header.height,
+                &self.network.chain_params(),
+            ) {
+                return Err(ContractError::NotOnDifficultyBoundary(
+                    initial_header.height,
+                ));
+            }
         }
-
         // TODO: the height should be larger than a recent block?
 
         Ok(())

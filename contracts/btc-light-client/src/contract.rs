@@ -34,26 +34,26 @@ pub fn instantiate(
         checkpoint_finalization_timeout,
     };
 
-    // Initialises the BTC header chain storage.
-    let base_header = initial_header.to_btc_header_info()?;
-
-    let base_btc_header: BlockHeader =
-        bitcoin::consensus::deserialize(base_header.header.as_ref())?;
-
-    crate::bitcoin::check_proof_of_work(&cfg.network.chain_params(), &base_btc_header)?;
-
-    // Store base header (immutable) and tip.
-    set_base_header(deps.storage, &base_header)?;
-    set_tip(deps.storage, &base_header)?;
-
-    CONFIG.save(deps.storage, &cfg)?;
-
-    // Set contract version
-    set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
-
-    Ok(Response::new()
-        .set_data(Binary::from(base_header.encode_to_vec()))
-        .add_attribute("action", "instantiate"))
+    // Initialises the BTC header chain storage if initial_header is provided.
+    if let Some(initial_header) = initial_header {
+        let base_header = initial_header.to_btc_header_info()?;
+        let base_btc_header: BlockHeader =
+            bitcoin::consensus::deserialize(base_header.header.as_ref())?;
+        crate::bitcoin::check_proof_of_work(&cfg.network.chain_params(), &base_btc_header)?;
+        // Store base header (immutable) and tip.
+        set_base_header(deps.storage, &base_header)?;
+        set_tip(deps.storage, &base_header)?;
+        CONFIG.save(deps.storage, &cfg)?;
+        // Set contract version
+        set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
+        Ok(Response::new()
+            .set_data(Binary::from(base_header.encode_to_vec()))
+            .add_attribute("action", "instantiate"))
+    } else {
+        CONFIG.save(deps.storage, &cfg)?;
+        set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
+        Ok(Response::new().add_attribute("action", "instantiate"))
+    }
 }
 
 pub fn migrate(
