@@ -61,6 +61,14 @@ impl InstantiateMsg {
             return Err(ContractError::ZeroCheckpointFinalizationTimeout);
         }
 
+        #[cfg(feature = "full-validation")]
+        {
+            // In full validation mode, initial_header must be provided
+            if self.initial_header.is_none() {
+                return Err(ContractError::InitialHeaderRequired);
+            }
+        }
+
         if let Some(ref initial_header) = self.initial_header {
             if !crate::bitcoin::is_difficulty_change_boundary(
                 initial_header.height,

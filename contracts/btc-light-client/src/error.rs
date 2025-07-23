@@ -16,6 +16,9 @@ pub enum ContractError {
     #[error("Header {0} is not on the difficulty boundary")]
     NotOnDifficultyBoundary(u32),
 
+    #[error("Initial header is required")]
+    InitialHeaderRequired,
+
     #[error("The BTC header cannot be decoded: {0}")]
     BitcoinEncode(String),
 

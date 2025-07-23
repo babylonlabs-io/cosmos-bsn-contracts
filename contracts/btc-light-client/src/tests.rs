@@ -4,6 +4,8 @@ use crate::msg::InstantiateMsg;
 use crate::state::btc_light_client::{BTC_HEADERS, BTC_HEIGHTS};
 use crate::state::config::CONFIG;
 use crate::state::get_tip;
+#[cfg(feature = "full-validation")]
+use crate::ContractError;
 use crate::{BitcoinNetwork, ExecuteMsg};
 use babylon_proto::babylon::btclightclient::v1::BtcHeaderInfo;
 use bitcoin::block::Header as BlockHeader;
@@ -82,4 +84,48 @@ fn instantiate_should_work() {
     // Tip updated when new headers are submitted successfully.
     let tip = get_tip(&deps.storage).unwrap();
     assert_eq!(tip.height, headers[1].height);
+}
+
+#[cfg(not(feature = "full-validation"))]
+#[test]
+fn instantiate_without_initial_header_should_work() {
+    let mut deps = mock_dependencies();
+    let info = message_info(&deps.api.addr_make("creator"), &[]);
+
+    let msg = InstantiateMsg {
+        network: BitcoinNetwork::Mainnet,
+        btc_confirmation_depth: 6,
+        checkpoint_finalization_timeout: 100,
+        initial_header: None,
+    };
+
+    let res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
+
+    // Basic assertions
+    assert_eq!(res.attributes[0].key, "action");
+    assert_eq!(res.attributes[0].value, "instantiate");
+
+    // Config should be saved
+    let cfg = CONFIG.load(&deps.storage).unwrap();
+    assert_eq!(cfg.btc_confirmation_depth, 6);
+    assert_eq!(cfg.checkpoint_finalization_timeout, 100);
+    assert_eq!(cfg.network, BitcoinNetwork::Mainnet);
+}
+
+#[cfg(feature = "full-validation")]
+#[test]
+fn instantiate_without_initial_header_should_fail_in_full_validation_mode() {
+    let mut deps = mock_dependencies();
+    let info = message_info(&deps.api.addr_make("creator"), &[]);
+
+    let msg = InstantiateMsg {
+        network: BitcoinNetwork::Mainnet,
+        btc_confirmation_depth: 6,
+        checkpoint_finalization_timeout: 100,
+        initial_header: None,
+    };
+
+    let res = instantiate(deps.as_mut(), mock_env(), info, msg);
+    assert!(res.is_err());
+    assert_eq!(res.unwrap_err(), ContractError::InitialHeaderRequired);
 }
