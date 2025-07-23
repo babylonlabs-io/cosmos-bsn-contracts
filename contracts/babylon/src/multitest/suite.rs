@@ -131,7 +131,7 @@ impl SuiteBuilder {
                     network: BitcoinNetwork::Testnet,
                     btc_confirmation_depth: 1,
                     checkpoint_finalization_timeout,
-                    initial_header: Some(babylon_test_utils::initial_header()),
+                    initial_header: babylon_test_utils::get_btc_initial_header(),
                 };
 
                 to_json_binary(&btc_lc_init_msg).unwrap()
