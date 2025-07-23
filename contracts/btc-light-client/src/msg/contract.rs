@@ -88,7 +88,20 @@ impl InstantiateMsg {
 #[cw_serde]
 pub enum ExecuteMsg {
     /// Submit new BTC headers to the light client.
-    BtcHeaders { headers: Vec<BtcHeader> },
+    /// If not initialized, this will initialize the light client with
+    /// the provided headers.
+    /// Otherwise, it will update the existing chain with the new headers
+    BtcHeaders {
+        headers: Vec<BtcHeader>,
+        /// The work of the epoch boundary header for the batch.
+        /// Used during / for auto-initialization of the light client
+        #[serde(skip_serializing_if = "Option::is_none")]
+        first_work: Option<String>,
+        /// The epoch boundary height for the batch.
+        /// Used during / for auto-initialization of the light client
+        #[serde(skip_serializing_if = "Option::is_none")]
+        first_height: Option<u32>,
+    },
 }
 
 #[cw_serde]

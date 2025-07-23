@@ -5,8 +5,24 @@ use hex::FromHexError;
 use std::str::Utf8Error;
 use thiserror::Error;
 
+/// Error type for the base headers auto-initialization
+#[derive(Error, Debug, PartialEq)]
+pub enum InitHeadersError {
+    #[error("Missing base work during initialization")]
+    MissingBaseWork,
+    #[error("Missing base height during initialization")]
+    MissingBaseHeight,
+    #[error("Missing tip header")]
+    MissingTipHeader,
+    #[error("Not enough headers (expected at least {0})")]
+    NotEnoughHeaders(u32),
+}
+
 #[derive(Error, Debug, PartialEq)]
 pub enum ContractError {
+    #[error("The given headers during initialization cannot be verified: {0:?}")]
+    Init(#[from] InitHeadersError),
+
     #[error("BTC confirmation depth must be greater than 0")]
     ZeroConfirmationDepth,
 
