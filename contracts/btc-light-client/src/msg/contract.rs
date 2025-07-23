@@ -47,6 +47,7 @@ pub struct InstantiateMsg {
     pub checkpoint_finalization_timeout: u32,
     /// Initial BTC header.
     /// If not provided, the light client will rely on and trust Babylon's provided initial header
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub initial_header: Option<InitialHeader>,
 }
 
