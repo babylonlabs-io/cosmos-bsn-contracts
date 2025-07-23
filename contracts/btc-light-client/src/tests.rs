@@ -145,3 +145,56 @@ fn instantiate_without_initial_header_should_fail_in_full_validation_mode() {
     assert!(res.is_err());
     assert_eq!(res.unwrap_err(), ContractError::InitialHeaderRequired);
 }
+
+#[cfg(not(feature = "full-validation"))]
+#[test]
+fn auto_init_on_first_header_works() {
+    use crate::contract::{execute, instantiate};
+    use crate::msg::btc_header::BtcHeader;
+    use crate::msg::{ExecuteMsg, InstantiateMsg};
+    use crate::state::btc_light_client::BTC_HEIGHTS;
+    use babylon_test_utils::get_btc_lc_mainchain_resp;
+    use bitcoin::block::Header as BlockHeader;
+    use cosmwasm_std::testing::{mock_dependencies, mock_env};
+    use cosmwasm_std::Addr;
+
+    let mut deps = mock_dependencies();
+
+    // Instantiate without initial header
+    let msg = InstantiateMsg {
+        network: crate::state::BitcoinNetwork::Regtest,
+        btc_confirmation_depth: 6,
+        checkpoint_finalization_timeout: 100,
+        initial_header: None,
+    };
+    let info = message_info(&Addr::unchecked("creator"), &[]);
+    instantiate(deps.as_mut(), mock_env(), info.clone(), msg).unwrap();
+
+    // Submit a batch of headers (from the boundary test vector)
+    let res = get_btc_lc_mainchain_resp();
+    let headers: Vec<BtcHeader> = res
+        .headers
+        .iter()
+        .map(|h| h.clone().try_into().unwrap())
+        .collect();
+
+    let exec_msg = ExecuteMsg::BtcHeaders {
+        headers: headers.clone(),
+    };
+    let result = execute(deps.as_mut(), mock_env(), info, exec_msg);
+
+    // This should fail (panic or error) if auto-init logic is missing
+    assert!(result.is_ok(), "Auto-init on first header should succeed");
+
+    // Convert BtcHeader to BlockHeader to get the hash
+    let base_header = &headers[0];
+    let base_block_header: BlockHeader = base_header.clone().try_into().unwrap();
+    let base_header_hash = base_block_header.block_hash();
+
+    // The height should be the first height in the test vector
+    let expected_height = res.headers[0].height;
+    let stored_height = BTC_HEIGHTS
+        .load(&deps.storage, base_header_hash.as_ref())
+        .unwrap();
+    assert_eq!(stored_height, expected_height);
+}
