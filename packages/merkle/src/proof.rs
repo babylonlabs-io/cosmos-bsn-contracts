@@ -110,8 +110,7 @@ impl Proof {
         let computed_hash = self.compute_root_hash()?;
         if computed_hash != root_hash {
             return Err(MerkleError::generic_err(format!(
-                "Invalid root hash: wanted {:X?} got {:X?}",
-                root_hash, computed_hash
+                "Invalid root hash: wanted {root_hash:X?} got {computed_hash:X?}"
             )));
         }
         Ok(true)
@@ -143,8 +142,7 @@ pub fn compute_hash_from_aunts(
 ) -> Result<Vec<u8>, MerkleError> {
     if index >= total || total == 0 {
         return Err(MerkleError::generic_err(format!(
-            "Invalid index ({}) and/or total ({})",
-            index, total
+            "Invalid index ({index}) and/or total ({total})"
         )));
     }
     match total {
@@ -309,7 +307,6 @@ mod tests {
             aunts: vec![vec![0; 32].into()],
         };
         let err = proof.verify(&root_hash, leaf).unwrap_err();
-        println!("{}", err);
         assert!(err
             .to_string()
             .starts_with("Merkle error: Unexpected inner hashes"));
