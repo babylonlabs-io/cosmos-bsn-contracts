@@ -5,7 +5,6 @@
   "required": [
     "btc_confirmation_depth",
     "checkpoint_finalization_timeout",
-    "initial_header",
     "network"
   ],
   "properties": {
@@ -20,10 +19,13 @@
       "minimum": 0.0
     },
     "initial_header": {
-      "description": "Initial BTC header.",
-      "allOf": [
+      "description": "Initial BTC header. If not provided, the light client will rely on and trust Babylon's provided initial header",
+      "anyOf": [
         {
           "$ref": "#/definitions/InitialHeader"
+        },
+        {
+          "type": "null"
         }
       ]
     },
