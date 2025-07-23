@@ -93,6 +93,8 @@ fn instantiate_should_work() {
         let new_header: BlockHeader = deserialize(&headers[1].header).unwrap();
         let msg = ExecuteMsg::BtcHeaders {
             headers: vec![new_header.into()],
+            first_work: None,
+            first_height: None,
         };
         execute(deps.as_mut(), mock_env(), info, msg).expect("Submit new headers should work");
 
@@ -149,14 +151,17 @@ fn instantiate_without_initial_header_should_fail_in_full_validation_mode() {
 #[cfg(not(feature = "full-validation"))]
 #[test]
 fn auto_init_on_first_header_works() {
+    use std::str::FromStr;
+
     use crate::contract::{execute, instantiate};
     use crate::msg::btc_header::BtcHeader;
     use crate::msg::{ExecuteMsg, InstantiateMsg};
     use crate::state::btc_light_client::BTC_HEIGHTS;
+    use babylon_proto::babylon::btclightclient::v1::BtcHeaderInfoResponse;
     use babylon_test_utils::get_btc_lc_mainchain_resp;
     use bitcoin::block::Header as BlockHeader;
     use cosmwasm_std::testing::{mock_dependencies, mock_env};
-    use cosmwasm_std::Addr;
+    use cosmwasm_std::{Addr, Uint256};
 
     let mut deps = mock_dependencies();
 
@@ -164,7 +169,7 @@ fn auto_init_on_first_header_works() {
     let msg = InstantiateMsg {
         network: crate::state::BitcoinNetwork::Regtest,
         btc_confirmation_depth: 6,
-        checkpoint_finalization_timeout: 100,
+        checkpoint_finalization_timeout: 99,
         initial_header: None,
     };
     let info = message_info(&Addr::unchecked("creator"), &[]);
@@ -178,12 +183,23 @@ fn auto_init_on_first_header_works() {
         .map(|h| h.clone().try_into().unwrap())
         .collect();
 
+    let base_header: BtcHeaderInfoResponse = res.headers.first().unwrap().clone();
+    // Convert work from Uint256 to Bytes
+    let first_work_bytes = Uint256::from_str(&base_header.work)
+        .unwrap()
+        .to_be_bytes()
+        .to_vec();
+    // And hex encode it
+    let first_work_hex = hex::encode(first_work_bytes);
+    let first_height = base_header.height;
+
     let exec_msg = ExecuteMsg::BtcHeaders {
         headers: headers.clone(),
+        first_work: Some(first_work_hex),
+        first_height: Some(first_height),
     };
     let result = execute(deps.as_mut(), mock_env(), info, exec_msg);
 
-    // This should fail (panic or error) if auto-init logic is missing
     assert!(result.is_ok(), "Auto-init on first header should succeed");
 
     // Convert BtcHeader to BlockHeader to get the hash
