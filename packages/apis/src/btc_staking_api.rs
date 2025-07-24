@@ -88,7 +88,7 @@ impl TryFrom<&babylon_proto::babylon::btcstaking::v1::NewFinalityProvider> for N
                     details: d.details.clone(),
                 }),
             commission: Decimal::from_str(&fp.commission)
-                .map_err(|e| format!("Failed to parse commission: {}", e))?,
+                .map_err(|e| format!("Failed to parse commission: {e}"))?,
             addr: fp.addr.clone(),
             btc_pk_hex: fp.btc_pk_hex.clone(),
             pop: fp.pop.as_ref().map(|pop| ProofOfPossessionBtc {
@@ -179,7 +179,7 @@ impl TryFrom<i32> for BTCSigType {
             0 => Ok(BTCSigType::BIP340),
             1 => Ok(BTCSigType::BIP322),
             2 => Ok(BTCSigType::ECDSA),
-            _ => Err(format!("Invalid BTCSigType value: {}", value)),
+            _ => Err(format!("Invalid BTCSigType value: {value}")),
         }
     }
 }

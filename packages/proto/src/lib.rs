@@ -5,6 +5,8 @@ pub mod babylon {
     pub mod btccheckpoint {
         // @@protoc_insertion_point(attribute:babylon.btccheckpoint.v1)
         pub mod v1 {
+            #![allow(clippy::uninlined_format_args)]
+            #![allow(clippy::large_enum_variant)]
             include!("gen/babylon.btccheckpoint.v1.rs");
             // @@protoc_insertion_point(babylon.btccheckpoint.v1)
         }
@@ -12,6 +14,8 @@ pub mod babylon {
     pub mod btclightclient {
         // @@protoc_insertion_point(attribute:babylon.btclightclient.v1)
         pub mod v1 {
+            #![allow(clippy::uninlined_format_args)]
+            #![allow(clippy::large_enum_variant)]
             include!("gen/babylon.btclightclient.v1.rs");
             // @@protoc_insertion_point(babylon.btclightclient.v1)
         }
@@ -19,6 +23,8 @@ pub mod babylon {
     pub mod checkpointing {
         // @@protoc_insertion_point(attribute:babylon.checkpointing.v1)
         pub mod v1 {
+            #![allow(clippy::uninlined_format_args)]
+            #![allow(clippy::large_enum_variant)]
             include!("gen/babylon.checkpointing.v1.rs");
             // @@protoc_insertion_point(babylon.checkpointing.v1)
             include!("impl/babylon.checkpointing.v1.impl.rs");
@@ -27,6 +33,8 @@ pub mod babylon {
     pub mod epoching {
         // @@protoc_insertion_point(attribute:babylon.epoching.v1)
         pub mod v1 {
+            #![allow(clippy::uninlined_format_args)]
+            #![allow(clippy::large_enum_variant)]
             include!("gen/babylon.epoching.v1.rs");
             // @@protoc_insertion_point(babylon.epoching.v1)
         }
@@ -34,6 +42,8 @@ pub mod babylon {
     pub mod zoneconcierge {
         // @@protoc_insertion_point(attribute:babylon.zoneconcierge.v1)
         pub mod v1 {
+            #![allow(clippy::uninlined_format_args)]
+            #![allow(clippy::large_enum_variant)]
             include!("gen/babylon.zoneconcierge.v1.rs");
             // @@protoc_insertion_point(babylon.zoneconcierge.v1)
         }
@@ -41,6 +51,8 @@ pub mod babylon {
     pub mod btcstaking {
         // @@protoc_insertion_point(attribute:babylon.btcstaking.v1)
         pub mod v1 {
+            #![allow(clippy::uninlined_format_args)]
+            #![allow(clippy::large_enum_variant)]
             include!("gen/babylon.btcstaking.v1.rs");
             // @@protoc_insertion_point(babylon.btcstaking.v1)
         }
@@ -48,6 +60,8 @@ pub mod babylon {
     pub mod finality {
         // @@protoc_insertion_point(attribute:babylon.finality.v1)
         pub mod v1 {
+            #![allow(clippy::uninlined_format_args)]
+            #![allow(clippy::large_enum_variant)]
             include!("gen/babylon.finality.v1.rs");
             // @@protoc_insertion_point(babylon.finality.v1)
         }
