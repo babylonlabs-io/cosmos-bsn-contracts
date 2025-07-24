@@ -445,7 +445,7 @@ impl Suite {
         self.app.set_block(block);
 
         // Hash is not used in the begin-block handler
-        let hash_hex = format!("deadbeef{}", height);
+        let hash_hex = format!("deadbeef{height}");
         let app_hash_hex: String = app_hash.encode_hex();
 
         self.app.wasm_sudo(
@@ -465,7 +465,7 @@ impl Suite {
         self.app.set_block(block);
 
         // Hash is not used in the begin-block handler
-        let hash_hex = format!("deadbeef{}", height);
+        let hash_hex = format!("deadbeef{height}");
         let app_hash_hex: String = app_hash.encode_hex();
 
         self.app.wasm_sudo(

@@ -21,8 +21,7 @@ use cosmwasm_std::{
     to_json_binary, Addr, Coin, Decimal, DepsMut, Env, Event, MessageInfo, QuerierWrapper,
     Response, StdResult, Storage, Uint128, WasmMsg,
 };
-use k256::schnorr::signature::Verifier;
-use k256::schnorr::{Signature, VerifyingKey};
+use k256::schnorr::{signature::Verifier, Signature, VerifyingKey};
 use k256::sha2::{Digest, Sha256};
 use std::cmp::max;
 use std::collections::HashSet;
