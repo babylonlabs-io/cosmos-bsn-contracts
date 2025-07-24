@@ -18,4 +18,8 @@ pub enum Error {
     InvalidHexString(#[from] hex::FromHexError),
     #[error("Elliptic curve error: {0}")]
     EllipticCurveError(String),
+    #[error("The two signatures need to be different in order to extract")]
+    ExtractDifferentSignatures,
+    #[error("Extracted private key does not match public key")]
+    ExtractedKeyMismatch,
 }
