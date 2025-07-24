@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -67,6 +68,8 @@ func GenBTCTimestamp(dir string) {
 
 	// ensure the header is successfully inserted
 	indexedHeader, err := zck.GetFinalizedHeader(h.Ctx, consumerID, height)
+	fmt.Println("err: ", err)
+	fmt.Println("indexedHeader: ", indexedHeader)
 	h.NoError(err)
 
 	// enter block 21, 1st block of epoch 3
