@@ -21,6 +21,7 @@ use cosmwasm_std::{
     to_json_binary, Addr, Coin, Decimal, DepsMut, Env, Event, MessageInfo, QuerierWrapper,
     Response, StdResult, Storage, Uint128, WasmMsg,
 };
+use k256::schnorr::signature::Verifier;
 use k256::schnorr::{Signature, VerifyingKey};
 use k256::sha2::{Digest, Sha256};
 use std::cmp::max;
@@ -114,14 +115,14 @@ fn verify_commitment_signature(
 ) -> Result<(), ContractError> {
     // get BTC public key for verification
     let btc_pk_raw = hex::decode(fp_btc_pk_hex)?;
-    let _btc_pk = VerifyingKey::from_bytes(&btc_pk_raw)
+    let btc_pk = VerifyingKey::from_bytes(&btc_pk_raw)
         .map_err(|e| ContractError::SecP256K1Error(e.to_string()))?;
 
     // get signature
     if signature.is_empty() {
         return Err(ContractError::EmptySignature);
     }
-    let _schnorr_sig =
+    let schnorr_sig =
         Signature::try_from(signature).map_err(|e| ContractError::SecP256K1Error(e.to_string()))?;
 
     // get signed message
@@ -131,11 +132,10 @@ fn verify_commitment_signature(
     msg.extend_from_slice(&num_pub_rand.to_be_bytes());
     msg.extend_from_slice(commitment);
 
-    // TODO: Update testdata and fix tests https://github.com/babylonlabs-io/cosmos-bsn-contracts/issues/212
     // Verify the signature
-    // btc_pk
-    // .verify(&msg, &schnorr_sig)
-    // .map_err(|e| ContractError::SecP256K1Error(e.to_string()))
+    btc_pk
+        .verify(&msg, &schnorr_sig)
+        .map_err(|e| ContractError::SecP256K1Error(e.to_string()))?;
 
     Ok(())
 }
@@ -493,7 +493,6 @@ fn verify_finality_signature(
 
     let msg_hash = Sha256::digest(msg);
 
-    // TODO: Update testdata and fix tests https://github.com/babylonlabs-io/cosmos-bsn-contracts/issues/212
     if !pubkey.verify(pub_rand, &msg_hash, signature)? {
         return Err(ContractError::FailedSignatureVerification("EOTS".into()));
     }
