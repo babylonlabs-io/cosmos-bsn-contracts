@@ -82,7 +82,7 @@ func GenBTCTimestamp(dir string) {
 
 	// ensure the header is successfully inserted
 	indexedHeader := zck.GetLatestEpochHeader(h.Ctx, consumerID)
-	h.NoError(err)
+	require.NotNil(t, indexedHeader, "Indexed header should not be nil")
 
 	// enter block 21, 1st block of epoch 3
 	for j := 0; j < int(epochInterval); j++ {
