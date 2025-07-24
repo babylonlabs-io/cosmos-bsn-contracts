@@ -39,8 +39,8 @@ pub fn instantiate(
     };
 
     // Initialises the BTC header chain storage if initial_header is provided.
-    if let Some(initial_header) = initial_header {
-        let base_header = initial_header.to_btc_header_info()?;
+    if let Some(header) = initial_header {
+        let base_header = header.to_btc_header_info()?;
         let base_btc_header: BlockHeader =
             bitcoin::consensus::deserialize(base_header.header.as_ref())?;
         crate::bitcoin::check_proof_of_work(&cfg.network.chain_params(), &base_btc_header)?;

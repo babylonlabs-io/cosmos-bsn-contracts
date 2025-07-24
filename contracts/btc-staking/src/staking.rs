@@ -358,7 +358,7 @@ pub fn process_expired_btc_delegations(
             // We should propagate this error instead of silently returning.
             // See https://github.com/babylonlabs-io/cosmos-bsn-contracts/issues/114
             deps.api
-                .debug(&format!("Failed to get BTC tip height: {}", e));
+                .debug(&format!("Failed to get BTC tip height: {e}"));
             return Ok(Response::new()
                 .add_attribute("action", "process_expired_delegations")
                 .add_attribute("result", "skipped")
