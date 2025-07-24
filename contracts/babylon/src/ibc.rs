@@ -183,7 +183,7 @@ pub(crate) mod ibc_packet {
     use babylon_apis::finality_api::Evidence;
     use babylon_proto::babylon::btcstaking::v1::BtcStakingIbcPacket;
     use babylon_proto::babylon::zoneconcierge::v1::{
-        inbound_packet::Packet as InboundPacketType, ConsumerSlashingIbcPacket, InboundPacket,
+        inbound_packet::Packet as InboundPacketType, BsnSlashingIbcPacket, InboundPacket,
     };
     use cosmwasm_std::{to_json_binary, IbcChannel, IbcMsg, WasmMsg};
 
@@ -298,24 +298,21 @@ pub(crate) mod ibc_packet {
         evidence: &Evidence,
     ) -> Result<IbcMsg, ContractError> {
         let packet = InboundPacket {
-            packet: Some(InboundPacketType::ConsumerSlashing(
-                ConsumerSlashingIbcPacket {
-                    evidence: Some(babylon_proto::babylon::finality::v1::Evidence {
-                        fp_btc_pk: evidence.fp_btc_pk.to_vec().into(),
-                        block_height: evidence.block_height,
-                        pub_rand: evidence.pub_rand.to_vec().into(),
-                        canonical_app_hash: evidence.canonical_app_hash.to_vec().into(),
-                        fork_app_hash: evidence.fork_app_hash.to_vec().into(),
-                        canonical_finality_sig: evidence.canonical_finality_sig.to_vec().into(),
-                        fork_finality_sig: evidence.fork_finality_sig.to_vec().into(),
-                        signing_context:
-                            babylon_btcstaking::signing_context::fp_fin_vote_context_v0(
-                                &env.block.chain_id,
-                                env.contract.address.as_str(),
-                            ),
-                    }),
-                },
-            )),
+            packet: Some(InboundPacketType::BsnSlashing(BsnSlashingIbcPacket {
+                evidence: Some(babylon_proto::babylon::finality::v1::Evidence {
+                    fp_btc_pk: evidence.fp_btc_pk.to_vec().into(),
+                    block_height: evidence.block_height,
+                    pub_rand: evidence.pub_rand.to_vec().into(),
+                    canonical_app_hash: evidence.canonical_app_hash.to_vec().into(),
+                    fork_app_hash: evidence.fork_app_hash.to_vec().into(),
+                    canonical_finality_sig: evidence.canonical_finality_sig.to_vec().into(),
+                    fork_finality_sig: evidence.fork_finality_sig.to_vec().into(),
+                    signing_context: babylon_btcstaking::signing_context::fp_fin_vote_context_v0(
+                        &env.block.chain_id,
+                        env.contract.address.as_str(),
+                    ),
+                }),
+            })),
         };
         let msg = IbcMsg::SendPacket {
             channel_id: channel.endpoint.channel_id.clone(),
