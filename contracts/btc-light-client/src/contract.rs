@@ -101,7 +101,7 @@ pub fn execute(
 }
 
 pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> Result<Binary, ContractError> {
-    use crate::queries::btc_header::*;
+    use crate::queries::*;
 
     match msg {
         QueryMsg::Config {} => Ok(to_json_binary(&CONFIG.load(deps.storage)?)?),
