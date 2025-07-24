@@ -38,7 +38,7 @@ pub fn btc_headers(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::state::btc_light_client::tests::{init_contract, setup};
+    use crate::contract::tests::{init_contract, setup};
     use crate::state::config::{Config, CONFIG};
     use crate::state::BitcoinNetwork;
     use babylon_test_utils::get_btc_lc_headers;
@@ -144,7 +144,7 @@ mod tests {
     #[test]
     fn btc_headers_reverse_order_work() {
         let mut deps = mock_dependencies();
-        crate::state::btc_light_client::tests::setup(deps.as_mut().storage);
+        crate::contract::tests::setup(deps.as_mut().storage);
 
         let test_headers = get_btc_lc_headers();
 

@@ -374,8 +374,8 @@ pub fn is_difficulty_change_boundary(height: u32, chain_params: &Params) -> bool
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::state::btc_light_client::handle_btc_headers_from_babylon;
-    use crate::state::btc_light_client::tests::{init_contract, setup};
+    use crate::contract::handle_btc_headers_from_babylon;
+    use crate::contract::tests::{init_contract, setup};
     use babylon_test_utils::get_btc_lc_headers;
     use bitcoin::block::Header as BlockHeader;
     use bitcoin::block::Version;
