@@ -33,7 +33,7 @@ pub fn instantiate(
         network,
         btc_confirmation_depth,
         checkpoint_finalization_timeout,
-        initial_header,
+        base_header: maybe_base_header,
     } = msg;
 
     let cfg = Config {
@@ -44,8 +44,8 @@ pub fn instantiate(
 
     let mut res = Response::new();
 
-    // Initialises the BTC header chain storage if initial_header is provided.
-    if let Some(header) = initial_header {
+    // Initialises the BTC header chain storage if base header is provided.
+    if let Some(header) = maybe_base_header {
         let base_header = header.to_btc_header_info()?;
         let base_btc_header: BlockHeader =
             bitcoin::consensus::deserialize(base_header.header.as_ref())?;

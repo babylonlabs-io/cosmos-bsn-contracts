@@ -84,7 +84,7 @@ mod instantiation {
             network: btc_light_client::BitcoinNetwork::Regtest,
             btc_confirmation_depth: 1,
             checkpoint_finalization_timeout: 1,
-            initial_header: babylon_test_utils::get_btc_initial_header(),
+            base_header: babylon_test_utils::get_btc_base_header(),
         };
         let suite = SuiteBuilder::new()
             .with_light_client_msg(&to_json_string(&params).unwrap())
