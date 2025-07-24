@@ -60,7 +60,7 @@ mod tests {
         ];
         for (length, want) in tests {
             let got = get_split_point(length).unwrap();
-            assert_eq!(got, want, "got {}, want {}", got, want);
+            assert_eq!(got, want, "got {got}, want {want}");
         }
     }
 }
