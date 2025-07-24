@@ -721,14 +721,8 @@ github.com/aws/aws-sdk-go v1.44.122/go.mod h1:y4AeaBuwd2Lk+GepC1E9v0qOiTws0MIWAX
 github.com/aws/aws-sdk-go v1.44.312 h1:llrElfzeqG/YOLFFKjg1xNpZCFJ2xraIi3PqSuP+95k=
 github.com/aws/aws-sdk-go v1.44.312/go.mod h1:aVsgQcEevwlmQ7qHE9I3h+dtQgpqhFB+i8Phjh7fkwI=
 github.com/aws/aws-sdk-go-v2 v0.18.0/go.mod h1:JWVYvqSMppoMJC0x5wdwiImzgXTI9FuZwxzkQq9wy+g=
-github.com/babylonlabs-io/babylon-sdk/demo v0.0.0-20250407051200-a5d652116d6d h1:ppzP2tzqzamnOMZHfMon2+3m6vVVDHDA0SOq610hES4=
-github.com/babylonlabs-io/babylon-sdk/demo v0.0.0-20250407051200-a5d652116d6d/go.mod h1:LFP3RyYhoNS9sLHsxZlpEKkhuzAB5T9Z3Wd70rOTBZE=
-github.com/babylonlabs-io/babylon-sdk/demo v0.0.0-20250722135405-14bc9df21042 h1:6SUJ7bKgJqT5e1LAm6xZED80+gAsIhC68e++jTeCJug=
-github.com/babylonlabs-io/babylon-sdk/demo v0.0.0-20250722135405-14bc9df21042/go.mod h1:geoi2XSmafoktELui0G9X+Z0jzJlNO3I0anBv2Yz7h8=
 github.com/babylonlabs-io/babylon-sdk/demo v0.0.0-20250723095925-43a61e06a978 h1:rvg6fE5xLy1n5tkGsyZ57+Dk5rltwiTSPVt0Fdu5scA=
 github.com/babylonlabs-io/babylon-sdk/demo v0.0.0-20250723095925-43a61e06a978/go.mod h1:geoi2XSmafoktELui0G9X+Z0jzJlNO3I0anBv2Yz7h8=
-github.com/babylonlabs-io/babylon-sdk/x v0.0.0-20250407051200-a5d652116d6d h1:9zDJCLFvtKP3hPueFDERuedikSL6Aw1pG7CMF8Q7h5Y=
-github.com/babylonlabs-io/babylon-sdk/x v0.0.0-20250407051200-a5d652116d6d/go.mod h1:ks4/p72aNJTIN8+CnCFxNX0HqfgHdClEwU4LxAxryJQ=
 github.com/babylonlabs-io/babylon-sdk/x v0.0.0-20250723095925-43a61e06a978 h1:W6WvVjxG0ODRmnL4aTGRDOX1Y9TDGiVvIDWkfy/UXp8=
 github.com/babylonlabs-io/babylon-sdk/x v0.0.0-20250723095925-43a61e06a978/go.mod h1:seS4E882FYvlzi07MpIgtCtcC7AISJp1oo30AWMbGfE=
 github.com/babylonlabs-io/babylon/v3 v3.0.0-20250707142850-fd530110d705 h1:1mP3efoFoHCSNr1JB/SqYMt/r7xIEYq9SC9+YaF7imA=
@@ -893,8 +887,6 @@ github.com/cosmos/ibc-go/modules/light-clients/08-wasm/v10 v10.1.1 h1:mbdtYhi77o
 github.com/cosmos/ibc-go/modules/light-clients/08-wasm/v10 v10.1.1/go.mod h1:KkndDnWkEY1c1VnX0cpES7dDJzm7PKlBMdKLDZB3Ww8=
 github.com/cosmos/ibc-go/v10 v10.2.0 h1:wlk/zqz2O0WRyE6UConoR1ci2HSW02P9ywamZCh5/N4=
 github.com/cosmos/ibc-go/v10 v10.2.0/go.mod h1:ijeyJ1FDvXoc5w+rlhpMntjhZ558EF02SBFjroW1hPo=
-github.com/cosmos/ibc-go/v8 v8.7.0 h1:HqhVOkO8bDpClXE81DFQgFjroQcTvtpm0tCS7SQVKVY=
-github.com/cosmos/ibc-go/v8 v8.7.0/go.mod h1:G2z+Q6ZQSMcyHI2+BVcJdvfOupb09M2h/tgpXOEdY6k=
 github.com/cosmos/ics23/go v0.11.0 h1:jk5skjT0TqX5e5QJbEnwXIS2yI2vnmLOgpQPeM5RtnU=
 github.com/cosmos/ics23/go v0.11.0/go.mod h1:A8OjxPE67hHST4Icw94hOxxFEJMBG031xIGF/JHNIY0=
 github.com/cosmos/keyring v1.2.0 h1:8C1lBP9xhImmIabyXW4c3vFjjLiBdGCmfLUfeZlV1Yo=
