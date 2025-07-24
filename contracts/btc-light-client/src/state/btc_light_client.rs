@@ -8,7 +8,7 @@ use prost::Message;
 use std::str::FromStr;
 
 use crate::bitcoin::{total_work, verify_headers};
-use crate::error::ContractError;
+use crate::error::{ContractError, InitHeadersError};
 use crate::msg::btc_header::BtcHeader;
 
 use super::CONFIG;
@@ -34,6 +34,12 @@ pub enum StoreError {
 }
 
 // getters for storages
+
+// Checks if the BTC light client has been initialised or not.
+// The check is done by checking the existence of the base header height
+pub fn is_initialized(storage: &mut dyn Storage) -> bool {
+    BTC_BASE_HEADER_HEIGHT.load(storage).is_ok()
+}
 
 // getter/setter for base header
 pub fn get_base_header(storage: &dyn Storage) -> Result<BtcHeaderInfo, StoreError> {
@@ -177,6 +183,65 @@ pub fn get_headers(
     Ok(headers)
 }
 
+/// Initialises the BTC header chain storage.
+///
+/// It takes BTC headers between the BTC tip upon the last finalised epoch and the current tip.
+pub fn init_btc_headers(
+    storage: &mut dyn Storage,
+    headers: &[BtcHeader],
+    first_work: &bitcoin::Work,
+    first_height: u32,
+) -> Result<(), ContractError> {
+    let cfg = CONFIG.load(storage)?;
+
+    // ensure there are >=w+1 headers, i.e. a base header and at least w subsequent
+    // ones as a w-deep proof
+    if (headers.len() as u32) < cfg.checkpoint_finalization_timeout + 1 {
+        return Err(
+            InitHeadersError::NotEnoughHeaders(cfg.checkpoint_finalization_timeout + 1).into(),
+        );
+    }
+
+    let chain_params = cfg.network.chain_params();
+
+    // base header is the first header in the list
+    let base_header = headers.first().ok_or(InitHeadersError::MissingTipHeader)?;
+    let base_header = base_header.to_btc_header_info(first_height, *first_work)?;
+
+    // let base_btc_header: BlockHeader =
+    // bitcoin::consensus::deserialize(base_header.header.as_ref())?;
+
+    // babylon_bitcoin::pow::verify_header_pow(&chain_params, &base_btc_header)?;
+
+    // Convert headers to BtcHeaderInfo with work/height based on first block
+    let mut cur_height = base_header.height;
+    let mut cur_work = total_work(base_header.work.as_ref())?;
+    let mut processed_headers = Vec::with_capacity(headers.len());
+    processed_headers.push(base_header.clone());
+    for header in headers.iter().skip(1) {
+        let new_header_info = header.to_btc_header_info_from_prev(cur_height, cur_work)?;
+        cur_height += 1;
+        cur_work = total_work(new_header_info.work.as_ref())?;
+        processed_headers.push(new_header_info);
+    }
+
+    // We need to initialize the base header (immutable) ahead of the subsequent headers
+    // processing as `verify_headers` assumes the base header must already exist.
+    set_base_header(storage, &base_header)?;
+
+    // verify subsequent headers
+    let new_headers = &processed_headers[1..];
+    verify_headers(storage, &chain_params, &base_header, new_headers)?;
+
+    insert_headers(storage, &processed_headers)?;
+    let tip = processed_headers
+        .last()
+        .ok_or(InitHeadersError::MissingTipHeader)?;
+    set_tip(storage, tip)?;
+
+    Ok(())
+}
+
 /// handle_btc_headers_from_babylon verifies and inserts a number of
 /// finalised BTC headers to the header chain storage, and update
 /// the chain tip.
@@ -241,14 +306,9 @@ pub fn handle_btc_headers_from_babylon(
     Ok(())
 }
 
-/// handle_btc_headers_from_user verifies and inserts a number of finalised BTC headers to the
+/// extend_btc_headers verifies and inserts a number of finalised BTC headers to the
 /// header chain storage, and updates the chain's tip.
-///
-/// This can be used as an alternative to `handle_btc_headers_from_babylon`, for cases in which
-/// Babylon itself is unavailable / unresponsive.
-/// The user wants to submit BTC headers directly, such that the Babylon contract maintains the same
-/// canonical BTC header chain as Babylon.
-pub fn handle_btc_headers_from_user(
+pub fn extend_btc_headers(
     storage: &mut dyn Storage,
     new_btc_headers: &[BtcHeader],
 ) -> Result<(), ContractError> {
@@ -636,7 +696,7 @@ pub mod tests {
     // btc_lc_fork_msg_accepted simulates initialization of BTC light client storage,
     // then insertion of a number of headers through a user execution message.
     // It checks the correctness of the fork choice rule for an accepted fork received through
-    // the `handle_btc_headers_from_user` function.
+    // the `handle_btc_headers` function.
     #[test]
     fn btc_lc_fork_msg_accepted() {
         let deps = mock_dependencies();
@@ -657,7 +717,7 @@ pub mod tests {
         let test_fork_msg_headers = get_fork_msg_test_headers();
 
         // handling fork headers
-        handle_btc_headers_from_user(&mut storage, &test_fork_msg_headers).unwrap();
+        extend_btc_headers(&mut storage, &test_fork_msg_headers).unwrap();
 
         // ensure the base header is set
         let base_expected = test_headers.first().unwrap();
