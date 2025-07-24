@@ -7,12 +7,12 @@ use k256::{
         ops::{MulByGenerator, Reduce},
         point::{AffineCoordinates, DecompressPoint},
         subtle::Choice,
-        Group, PrimeField,
+        PrimeField,
     },
     AffinePoint, ProjectivePoint, Scalar, U256,
 };
 use sha2::{Digest, Sha256};
-use std::ops::Deref;
+use std::ops::{Deref, Mul};
 
 pub const CHALLENGE_TAG: &[u8] = b"BIP0340/challenge";
 
@@ -200,61 +200,21 @@ impl SecretKey {
         let msg_hash: [u8; 32] = msg_hash
             .try_into()
             .map_err(|_| Error::InvalidInputLength(msg_hash.len()))?;
-
-        // Check if private key is zero
-        let priv_key_scalar = self.inner.to_nonzero_scalar();
-        if priv_key_scalar.is_zero().into() {
-            return Err(Error::SignatureParseFailed {});
-        }
-
-        // Get public key
-        let pub_key = self.pubkey();
-
-        // Always negate d to avoid timing attack and pick the
-        // negated value later if P.y odd
-        let pub_key_compressed = pub_key.inner.to_encoded_point(true);
-        let priv_key_scalar_negated = -priv_key_scalar;
-        let is_py_odd = pub_key_compressed.as_bytes()[0] == 0x03;
-
-        let k = SecRand::new(sec_rand)?;
-
-        // R = kG (with blinding in order to prevent timing side channel attacks)
-        let r_point = ProjectivePoint::mul_by_generator(&k);
-
-        // Always negate nonce k to avoid timing attack and pick the
-        // negated value later if R.y is odd
-        // (R.y is the y coordinate of the point R)
-        //
-        // Note that R must be in affine coordinates for this check.
-        let r_affine = r_point.to_affine();
-        let k_negated = -*k;
-        let is_ry_odd = r_affine.y_is_odd().into();
-
-        // e = tagged_hash("BIP0340/challenge", bytes(R) || bytes(P) || m) mod n
+        let x = self.inner.to_nonzero_scalar();
+        let p = ProjectivePoint::mul_by_generator(&x);
+        let p_bytes = point_to_bytes(&p);
+        let r = SecRand::new(sec_rand)?;
+        let r_point = ProjectivePoint::mul_by_generator(&r);
         let r_bytes = point_to_bytes(&r_point);
-        // Use compressed public key bytes but skip the first byte (parity prefix) like Go
-        let p_bytes = &pub_key_compressed.as_bytes()[1..];
+        let c = <Scalar as Reduce<U256>>::reduce_bytes(
+            &tagged_hash(CHALLENGE_TAG)
+                .chain_update(r_bytes)
+                .chain_update(p_bytes)
+                .chain_update(msg_hash)
+                .finalize(),
+        );
 
-        let commitment = tagged_hash(CHALLENGE_TAG)
-            .chain_update(r_bytes)
-            .chain_update(p_bytes)
-            .chain_update(msg_hash)
-            .finalize();
-
-        let e = <Scalar as Reduce<U256>>::reduce_bytes(&commitment);
-
-        // s = k + e*d mod n
-        // choose negated values for
-        // privKeyScalar and k to avoid timing attack
-        let sig = match (is_py_odd, is_ry_odd) {
-            (true, true) => e * *priv_key_scalar_negated + k_negated,
-            (true, false) => e * *priv_key_scalar_negated + *k,
-            (false, true) => e * *priv_key_scalar + k_negated,
-            (false, false) => e * *priv_key_scalar + *k,
-        };
-
-        // Return s
-        Ok(Signature::from(sig))
+        Ok(Signature::from(*r + c * *x))
     }
 
     /// Converts the secret key into bytes.
@@ -317,58 +277,21 @@ impl PublicKey {
         let msg_hash: [u8; 32] = msg_hash
             .try_into()
             .map_err(|_| Error::InvalidInputLength(msg_hash.len()))?;
-
-        // Step 2.
-        //
-        // P = lift_x(int(pk))
-        //
-        // Fail if P is not a point on the curve
-        // Note: k256 points are always on curve by construction, so we skip this check
-
-        // Fail if r >= p is already handled by the fact r is a field element.
-        // Fail if s >= n is already handled by the fact s is a mod n scalar.
-
+        let p_bytes = self.to_bytes();
         let r = PubRand::new(pub_rand)?;
-        let s = Signature::new(sig)?;
-
-        // e = int(tagged_hash("BIP0340/challenge", bytes(r) || bytes(P) || M)) mod n.
         let r_bytes = r.to_bytes();
-        // Use compressed public key bytes but skip the first byte (parity prefix) like Go
-        let compressed_pubkey = self.inner.to_encoded_point(true);
-        let p_bytes = &compressed_pubkey.as_bytes()[1..];
+        let c = <Scalar as Reduce<U256>>::reduce_bytes(
+            &tagged_hash(CHALLENGE_TAG)
+                .chain_update(r_bytes)
+                .chain_update(p_bytes)
+                .chain_update(msg_hash)
+                .finalize(),
+        );
 
-        let commitment = tagged_hash(CHALLENGE_TAG)
-            .chain_update(r_bytes)
-            .chain_update(p_bytes)
-            .chain_update(msg_hash)
-            .finalize();
+        let s = Signature::new(sig)?;
+        let recovered_r =
+            ProjectivePoint::mul_by_generator(&*s) - self.inner.to_projective().mul(c);
 
-        let e = <Scalar as Reduce<U256>>::reduce_bytes(&commitment);
-
-        // Negate e here so we can use AddNonConst below to subtract the s*G
-        // point from e*P.
-        let e_neg = -e;
-
-        // R = s*G - e*P
-        let p_point = self.inner.to_projective();
-        let s_g = ProjectivePoint::mul_by_generator(&*s);
-        let e_p = p_point * e_neg;
-        let recovered_r = s_g + e_p;
-
-        // Fail if R is the point at infinity
-        if recovered_r.is_identity().into() {
-            return Ok(false);
-        }
-
-        // Fail if R.y is odd
-        //
-        // Note that R must be in affine coordinates for this check.
-        let recovered_r_affine = recovered_r.to_affine();
-        if recovered_r_affine.y_is_odd().into() {
-            return Ok(false);
-        }
-
-        // verify signed with the right k random value
         Ok(recovered_r.eq(&*r))
     }
 
@@ -388,54 +311,37 @@ impl PublicKey {
         if msg2_hash.len() != 32 {
             return Err(Error::InvalidInputLength(msg2_hash.len()));
         }
-
+        let p_bytes = self.to_bytes();
         let r = PubRand::new(pub_rand)?;
         let r_bytes = r.to_bytes();
-        // Use compressed public key bytes but skip the first byte (parity prefix) like Go
-        let compressed_pubkey = self.inner.to_encoded_point(true);
-        let p_bytes = &compressed_pubkey.as_bytes()[1..];
 
+        // calculate e1 - e2
+        let e1 = <Scalar as Reduce<U256>>::reduce_bytes(
+            &tagged_hash(CHALLENGE_TAG)
+                .chain_update(r_bytes.clone())
+                .chain_update(p_bytes.clone())
+                .chain_update(msg1_hash)
+                .finalize(),
+        );
+        let e2 = <Scalar as Reduce<U256>>::reduce_bytes(
+            &tagged_hash(CHALLENGE_TAG)
+                .chain_update(r_bytes)
+                .chain_update(p_bytes)
+                .chain_update(msg2_hash)
+                .finalize(),
+        );
+        let e_delta = e1 - e2;
+
+        // calculate s1 - s2
         let s1 = Signature::new(sig1)?;
         let s2 = Signature::new(sig2)?;
+        let s_delta = *s1 - *s2;
 
-        if s1.inner.eq(&s2.inner) {
-            return Err(Error::ExtractDifferentSignatures);
-        }
-
-        let commitment1 = tagged_hash(CHALLENGE_TAG)
-            .chain_update(&r_bytes)
-            .chain_update(p_bytes)
-            .chain_update(msg1_hash)
-            .finalize();
-        let e1 = <Scalar as Reduce<U256>>::reduce_bytes(&commitment1);
-
-        let commitment2 = tagged_hash(CHALLENGE_TAG)
-            .chain_update(&r_bytes)
-            .chain_update(p_bytes)
-            .chain_update(msg2_hash)
-            .finalize();
-        let e2 = <Scalar as Reduce<U256>>::reduce_bytes(&commitment2);
-
-        // x = (s1 - s2) / (e1 - e2)
-        let denom = e1 - e2;
-        let x = (*s1 - *s2) * denom.invert().unwrap();
-
-        // Get compressed public key bytes to check y-coordinate parity
-        let compressed_pubkey_bytes = self.inner.to_encoded_point(true);
-        let x_final = if compressed_pubkey_bytes.as_bytes()[0] == 0x03 {
-            -x
-        } else {
-            x
-        };
-
-        let priv_key = k256::SecretKey::new(x_final.into());
-        let extracted_sk = SecretKey { inner: priv_key };
-
-        if extracted_sk.pubkey().inner == self.inner {
-            Ok(extracted_sk)
-        } else {
-            Err(Error::ExtractedKeyMismatch)
-        }
+        // calculate (s1-s2) / (e1 - e2)
+        let inverted_e_delta = e_delta.invert().unwrap();
+        let sk = s_delta * inverted_e_delta;
+        let sk = k256::SecretKey::new(sk.into());
+        Ok(SecretKey { inner: sk })
     }
 }
 
