@@ -32,7 +32,7 @@ pub enum StoreError {
 
 #[cw_serde]
 pub struct Config {
-    pub network: crate::state::BitcoinNetwork,
+    pub network: BitcoinNetwork,
     pub btc_confirmation_depth: u32,
     pub checkpoint_finalization_timeout: u32,
 }
