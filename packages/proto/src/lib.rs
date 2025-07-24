@@ -18,6 +18,7 @@ pub mod babylon {
             #![allow(clippy::large_enum_variant)]
             include!("gen/babylon.btclightclient.v1.rs");
             // @@protoc_insertion_point(babylon.btclightclient.v1)
+            include!("impl/babylon.btclightclient.v1.impl.rs");
         }
     }
     pub mod checkpointing {

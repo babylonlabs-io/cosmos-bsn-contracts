@@ -339,6 +339,7 @@ dependencies = [
 name = "babylon-proto"
 version = "0.15.1"
 dependencies = [
+ "bitcoin",
  "bitvec",
  "cosmos-sdk-proto 0.27.0",
  "pbjson-types",
