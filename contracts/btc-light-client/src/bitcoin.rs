@@ -7,7 +7,7 @@
 //!
 //! It mirrors the logic used in Bitcoin Core and Babylon's Go implementation.
 
-use crate::state::btc_light_client::{get_header, get_header_by_hash};
+use crate::state::{get_header, get_header_by_hash};
 use babylon_proto::babylon::btclightclient::v1::BtcHeaderInfo;
 use bitcoin::block::Header as BlockHeader;
 use bitcoin::consensus::{deserialize, Params};
@@ -62,7 +62,7 @@ pub enum HeaderError {
     Std(#[from] StdError),
 
     #[error(transparent)]
-    Store(#[from] crate::state::btc_light_client::StoreError),
+    Store(#[from] crate::state::StoreError),
 }
 
 impl From<bitcoin::consensus::encode::Error> for HeaderError {

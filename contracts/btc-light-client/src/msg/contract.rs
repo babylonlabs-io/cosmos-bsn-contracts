@@ -7,7 +7,7 @@ use crate::{error::ContractError, msg::btc_header::BtcHeader};
 #[cfg(not(target_arch = "wasm32"))]
 use {
     crate::msg::btc_header::{BtcHeaderResponse, BtcHeadersResponse},
-    crate::state::config::Config,
+    crate::state::Config,
 };
 
 #[cw_serde]

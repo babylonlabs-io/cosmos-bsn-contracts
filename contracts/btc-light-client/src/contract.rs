@@ -2,11 +2,10 @@ use crate::bitcoin::{total_work, verify_headers};
 use crate::error::{ContractError, InitHeadersError};
 use crate::msg::btc_header::BtcHeader;
 use crate::msg::contract::{ExecuteMsg, InstantiateMsg, QueryMsg};
-use crate::state::btc_light_client::{
+use crate::state::{
     expect_header_by_hash, get_tip, insert_headers, is_initialized, remove_headers,
-    set_base_header, set_tip,
+    set_base_header, set_tip, Config, CONFIG,
 };
-use crate::state::config::{Config, CONFIG};
 use babylon_bindings::BabylonMsg;
 use babylon_proto::babylon::btclightclient::v1::BtcHeaderInfo;
 use bitcoin::block::Header as BlockHeader;
@@ -309,8 +308,9 @@ pub fn handle_btc_headers_from_babylon(
 pub(crate) mod tests {
     use super::*;
     use crate::bitcoin::HeaderError;
-    use crate::state::btc_light_client::{get_base_header, get_header_height};
-    use crate::state::{get_header, BitcoinNetwork, Config, CONFIG};
+    use crate::state::{
+        get_base_header, get_header, get_header_height, BitcoinNetwork, Config, CONFIG,
+    };
     use crate::ExecuteMsg;
     use babylon_test_utils::{get_btc_lc_fork_headers, get_btc_lc_fork_msg, get_btc_lc_headers};
     use cosmwasm_std::{from_json, testing::mock_dependencies};

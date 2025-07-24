@@ -39,8 +39,7 @@ pub fn btc_headers(
 mod tests {
     use super::*;
     use crate::contract::tests::{init_contract, setup};
-    use crate::state::config::{Config, CONFIG};
-    use crate::state::BitcoinNetwork;
+    use crate::state::{BitcoinNetwork, Config, CONFIG};
     use babylon_test_utils::get_btc_lc_headers;
     use cosmwasm_std::testing::mock_dependencies;
 

@@ -1,11 +1,14 @@
+use crate::error::ContractError;
 use babylon_proto::babylon::btclightclient::v1::BtcHeaderInfo;
+use bitcoin::params::Params;
+use cosmwasm_schema::cw_serde;
 use cosmwasm_std::Order::{Ascending, Descending};
 use cosmwasm_std::{StdError, StdResult, Storage};
 use cw_storage_plus::{Bound, Item, Map};
 use hex::ToHex;
 use prost::Message;
-
-use crate::error::ContractError;
+use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
 
 pub const BTC_TIP_KEY: &str = "btc_lc_tip";
 
@@ -13,6 +16,8 @@ pub const BTC_BASE_HEADER_HEIGHT: Item<u32> = Item::new("btc_lc_base_header_heig
 pub const BTC_HEADERS: Map<u32, Vec<u8>> = Map::new("btc_lc_headers");
 pub const BTC_HEIGHTS: Map<&[u8], u32> = Map::new("btc_lc_heights");
 pub const BTC_TIP: Item<Vec<u8>> = Item::new(BTC_TIP_KEY);
+
+pub const CONFIG: Item<Config> = Item::new("config");
 
 /// Error type for the state store.
 #[derive(thiserror::Error, Debug, PartialEq)]
@@ -25,6 +30,44 @@ pub enum StoreError {
     HeightNotFound { height: u32 },
     #[error("The BTC header with hash {hash} is not found in the storage")]
     HeaderNotFound { hash: String },
+}
+
+#[cw_serde]
+pub struct Config {
+    pub network: crate::state::BitcoinNetwork,
+    pub btc_confirmation_depth: u32,
+    pub checkpoint_finalization_timeout: u32,
+}
+
+// we re-implement the enum here since `rust-bitcoin`'s enum implementation
+// does not implement the trait `JsonSchema`.
+#[derive(Serialize, Deserialize, Copy, Clone, Debug, PartialEq, Eq, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum BitcoinNetwork {
+    Mainnet,
+    Testnet,
+    Signet,
+    Regtest,
+}
+
+impl BitcoinNetwork {
+    pub fn bitcoin_network(&self) -> bitcoin::Network {
+        match self {
+            Self::Mainnet => bitcoin::Network::Bitcoin,
+            Self::Testnet => bitcoin::Network::Testnet,
+            Self::Signet => bitcoin::Network::Signet,
+            Self::Regtest => bitcoin::Network::Regtest,
+        }
+    }
+
+    pub fn chain_params(&self) -> Params {
+        match self {
+            Self::Mainnet => Params::new(bitcoin::Network::Bitcoin),
+            Self::Testnet => Params::new(bitcoin::Network::Testnet),
+            Self::Signet => Params::new(bitcoin::Network::Signet),
+            Self::Regtest => Params::new(bitcoin::Network::Regtest),
+        }
+    }
 }
 
 // getters for storages
