@@ -1,6 +1,6 @@
 mod suite;
 
-use bindings_test::{
+use babylon_bindings_test::{
     BABYLON_CONTRACT_ADDR, BTC_FINALITY_CONTRACT_ADDR, BTC_LIGHT_CLIENT_CONTRACT_ADDR,
     BTC_STAKING_CONTRACT_ADDR,
 };
