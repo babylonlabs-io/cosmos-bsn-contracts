@@ -86,6 +86,12 @@ the integration tests.
 cargo run-script integration
 ```
 
+### E2E tests
+
+```bash
+cargo run-script e2e
+```
+
 ### Generate the schema
 
 ```bash
