@@ -83,19 +83,14 @@ pub fn execute(
         } => {
             let api = deps.api;
             let headers_len = headers.len();
-            let resp = match handle_btc_headers(deps, headers, first_work, first_height) {
-                Ok(resp) => {
-                    api.debug(&format!("Successfully handled {headers_len} BTC headers"));
-                    resp
-                }
-                Err(e) => {
-                    let err = format!("Failed to handle {headers_len} BTC headers: {e}");
-                    api.debug(&err);
-                    return Err(e);
-                }
-            };
 
-            Ok(resp)
+            handle_btc_headers(deps, headers, first_work, first_height)
+                .inspect(|_| {
+                    api.debug(&format!("Successfully handled {headers_len} BTC headers"));
+                })
+                .inspect_err(|e| {
+                    api.debug(&format!("Failed to handle {headers_len} BTC headers: {e}"));
+                })
         }
     }
 }
