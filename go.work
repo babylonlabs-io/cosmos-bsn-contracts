@@ -3,3 +3,5 @@ go 1.23.8
 toolchain go1.24.5
 
 use ./datagen
+
+use ./e2e
