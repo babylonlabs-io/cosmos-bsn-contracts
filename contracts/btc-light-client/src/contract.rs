@@ -42,6 +42,8 @@ pub fn instantiate(
         checkpoint_finalization_timeout,
     };
 
+    let mut res = Response::new();
+
     // Initialises the BTC header chain storage if initial_header is provided.
     if let Some(header) = initial_header {
         let base_header = header.to_btc_header_info()?;
@@ -51,17 +53,13 @@ pub fn instantiate(
         // Store base header (immutable) and tip.
         set_base_header(deps.storage, &base_header)?;
         set_tip(deps.storage, &base_header)?;
-        CONFIG.save(deps.storage, &cfg)?;
-        // Set contract version
-        set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
-        Ok(Response::new()
-            .set_data(Binary::from(base_header.encode_to_vec()))
-            .add_attribute("action", "instantiate"))
-    } else {
-        CONFIG.save(deps.storage, &cfg)?;
-        set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
-        Ok(Response::new().add_attribute("action", "instantiate"))
+        res = res.set_data(Binary::from(base_header.encode_to_vec()));
     }
+
+    CONFIG.save(deps.storage, &cfg)?;
+    set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
+
+    Ok(res.add_attribute("action", "instantiate"))
 }
 
 pub fn migrate(
