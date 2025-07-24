@@ -2,6 +2,7 @@ use crate::bitcoin::{total_work, verify_headers};
 use crate::error::{ContractError, InitHeadersError};
 use crate::msg::btc_header::BtcHeader;
 use crate::msg::contract::{ExecuteMsg, InstantiateMsg, QueryMsg};
+use crate::queries::*;
 use crate::state::{
     expect_header_by_hash, get_tip, insert_headers, is_initialized, remove_headers,
     set_base_header, set_tip, Config, CONFIG,
@@ -104,8 +105,6 @@ pub fn execute(
 }
 
 pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> Result<Binary, ContractError> {
-    use crate::queries::*;
-
     match msg {
         QueryMsg::Config {} => Ok(to_json_binary(&CONFIG.load(deps.storage)?)?),
         QueryMsg::BtcBaseHeader {} => Ok(to_json_binary(&btc_base_header(&deps)?)?),
@@ -174,11 +173,6 @@ fn init_btc_headers(
     let base_header = headers.first().ok_or(InitHeadersError::MissingTipHeader)?;
     let base_header = base_header.to_btc_header_info(first_height, *first_work)?;
 
-    // let base_btc_header: BlockHeader =
-    // bitcoin::consensus::deserialize(base_header.header.as_ref())?;
-
-    // babylon_bitcoin::pow::verify_header_pow(&chain_params, &base_btc_header)?;
-
     // Convert headers to BtcHeaderInfo with work/height based on first block
     let mut cur_height = base_header.height;
     let mut cur_work = total_work(base_header.work.as_ref())?;
@@ -208,7 +202,7 @@ fn init_btc_headers(
     Ok(())
 }
 
-/// extend_btc_headers verifies and inserts a number of finalised BTC headers to the
+/// Verifies and inserts a number of finalised BTC headers to the
 /// header chain storage, and updates the chain's tip.
 fn extend_btc_headers(
     storage: &mut dyn Storage,
