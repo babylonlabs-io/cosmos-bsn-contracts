@@ -30,10 +30,11 @@ func NewBtcHeader(header *wire.BlockHeader) *BtcHeader {
 
 func NewBTCLightClientInitMsg(network string, k int, w int, initialHeader *btclctypes.BTCHeaderInfo) []byte {
 	btcHeader := initialHeader.Header.ToBlockHeader()
-	workBytes, err := initialHeader.Work.MarshalJSON()
-	if err != nil {
-		panic(err)
-	}
+	// Convert Uint to 32-byte big-endian representation for Uint256
+	workBigInt := initialHeader.Work.BigInt()
+	workBytes := make([]byte, 32)
+	workBigInt.FillBytes(workBytes)
+
 	data := map[string]interface{}{
 		"network":                         network,
 		"btc_confirmation_depth":          k,
