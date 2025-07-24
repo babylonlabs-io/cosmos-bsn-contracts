@@ -5,13 +5,13 @@ import (
 	"testing"
 
 	wasmibctesting "github.com/CosmWasm/wasmd/tests/wasmibctesting"
+	"github.com/babylonlabs-io/babylon-sdk/demo/app"
+	appparams "github.com/babylonlabs-io/babylon-sdk/demo/app/params"
+	btclctypes "github.com/babylonlabs-io/babylon/v3/x/btclightclient/types"
+	"github.com/babylonlabs-io/cosmos-bsn-contracts/e2e/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	ibctesting "github.com/cosmos/ibc-go/v10/testing"
 	"github.com/stretchr/testify/suite"
-
-	"github.com/babylonlabs-io/babylon-sdk/demo/app"
-	appparams "github.com/babylonlabs-io/babylon-sdk/demo/app/params"
-	"github.com/babylonlabs-io/cosmos-bsn-contracts/e2e/types"
 )
 
 var testMsg types.ExecuteMessage
@@ -39,6 +39,9 @@ type BabylonSDKTestSuite struct {
 	ProviderCli      *types.TestProviderClient
 	ConsumerCli      *types.TestConsumerClient
 	ConsumerContract *types.ConsumerContract
+
+	// temporary variables
+	initialHeader *btclctypes.BTCHeaderInfo
 }
 
 // SetupSuite runs once before the suite's tests are run
@@ -60,13 +63,15 @@ func (s *BabylonSDKTestSuite) SetupSuite() {
 	s.ProviderDenom = sdk.DefaultBondDenom
 	s.ConsumerDenom = sdk.DefaultBondDenom
 	s.MyProvChainActor = provChain.SenderAccount.GetAddress().String()
+
+	s.initialHeader = types.GenInitialBTCHeaderInfo()
 }
 
 func (s *BabylonSDKTestSuite) Test1ContractDeployment() {
 	// consumer client
 	consumerCli := types.NewConsumerClient(s.T(), s.ConsumerChain)
 	// setup contracts on consumer (now just fetches addresses)
-	consumerContracts, err := consumerCli.BootstrapContracts()
+	consumerContracts, err := consumerCli.BootstrapContracts(s.initialHeader)
 	s.NoError(err)
 	// provider client
 	providerCli := types.NewProviderClient(s.T(), s.ProviderChain)
@@ -100,7 +105,7 @@ func (s *BabylonSDKTestSuite) Test1ContractDeployment() {
 
 func (s *BabylonSDKTestSuite) Test2InsertBTCHeaders() {
 	// generate headers
-	headers, headersMsg := types.GenBTCHeadersMsg(nil)
+	headers, headersMsg := types.GenBTCHeadersMsg(s.initialHeader)
 	headersMsgBytes, err := json.Marshal(headersMsg)
 	s.NoError(err)
 	// send headers to the BTCLightClient contract. This is to ensure that the contract is
