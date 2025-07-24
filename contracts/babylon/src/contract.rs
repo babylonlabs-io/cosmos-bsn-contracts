@@ -334,7 +334,7 @@ pub fn execute(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use babylon_test_utils::initial_header;
+    use babylon_test_utils::get_btc_initial_header;
     use bitcoin::block::Header as BlockHeader;
     use btc_light_client::msg::InstantiateMsg as BtcLightClientInstantiateMsg;
     use cosmwasm_std::testing::message_info;
@@ -370,7 +370,7 @@ mod tests {
             network: btc_light_client::BitcoinNetwork::Regtest,
             btc_confirmation_depth: msg.btc_confirmation_depth,
             checkpoint_finalization_timeout: msg.checkpoint_finalization_timeout,
-            initial_header: initial_header(),
+            initial_header: get_btc_initial_header(),
         };
 
         msg.btc_light_client_msg

@@ -8,6 +8,9 @@ repository.workspace = true
 authors.workspace = true
 publish           = true
 
+[features]
+full-validation = ["btc-light-client/full-validation"]
+
 [dependencies]
 babylon-apis     = { path = "../apis", version = "0.15.0" }
 babylon-proto    = { path = "../proto", version = "0.15.0" }

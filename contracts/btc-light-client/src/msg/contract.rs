@@ -46,7 +46,9 @@ pub struct InstantiateMsg {
     pub btc_confirmation_depth: u32,
     pub checkpoint_finalization_timeout: u32,
     /// Initial BTC header.
-    pub initial_header: InitialHeader,
+    /// If not provided, the light client will rely on and trust Babylon's provided initial header
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub initial_header: Option<InitialHeader>,
 }
 
 impl InstantiateMsg {
@@ -59,15 +61,24 @@ impl InstantiateMsg {
             return Err(ContractError::ZeroCheckpointFinalizationTimeout);
         }
 
-        if !crate::bitcoin::is_difficulty_change_boundary(
-            self.initial_header.height,
-            &self.network.chain_params(),
-        ) {
-            return Err(ContractError::NotOnDifficultyBoundary(
-                self.initial_header.height,
-            ));
+        #[cfg(feature = "full-validation")]
+        {
+            // In full validation mode, initial_header must be provided
+            if self.initial_header.is_none() {
+                return Err(ContractError::InitialHeaderRequired);
+            }
         }
 
+        if let Some(ref initial_header) = self.initial_header {
+            if !crate::bitcoin::is_difficulty_change_boundary(
+                initial_header.height,
+                &self.network.chain_params(),
+            ) {
+                return Err(ContractError::NotOnDifficultyBoundary(
+                    initial_header.height,
+                ));
+            }
+        }
         // TODO: the height should be larger than a recent block?
 
         Ok(())
@@ -77,7 +88,20 @@ impl InstantiateMsg {
 #[cw_serde]
 pub enum ExecuteMsg {
     /// Submit new BTC headers to the light client.
-    BtcHeaders { headers: Vec<BtcHeader> },
+    /// If not initialized, this will initialize the light client with
+    /// the provided headers.
+    /// Otherwise, it will update the existing chain with the new headers
+    BtcHeaders {
+        headers: Vec<BtcHeader>,
+        /// The work of the epoch boundary header for the batch.
+        /// Used during / for auto-initialization of the light client
+        #[serde(skip_serializing_if = "Option::is_none")]
+        first_work: Option<String>,
+        /// The epoch boundary height for the batch.
+        /// Used during / for auto-initialization of the light client
+        #[serde(skip_serializing_if = "Option::is_none")]
+        first_height: Option<u32>,
+    },
 }
 
 #[cw_serde]

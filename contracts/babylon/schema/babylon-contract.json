@@ -9,7 +9,6 @@
     "required": [
       "babylon_tag",
       "btc_confirmation_depth",
-      "btc_light_client_initial_header",
       "checkpoint_finalization_timeout",
       "network",
       "notify_cosmos_zone"
@@ -59,10 +58,6 @@
         ],
         "format": "uint64",
         "minimum": 0.0
-      },
-      "btc_light_client_initial_header": {
-        "description": "JSON encoded `InitialHeader` in hex.",
-        "type": "string"
       },
       "btc_light_client_msg": {
         "description": "If set, this will define the instantiation message for the BTC light client contract. This message is opaque to the Babylon contract, and depends on the specific light client being instantiated",
