@@ -21,7 +21,7 @@ flowchart TD
         BtcHeaders .-> B;
 
     B -. <b>IBC</b>
-        ConsumerSlashing .-> A;
+        BsnSlashing .-> A;
 
     subgraph Cosmos BSN
         B(Babylon);
