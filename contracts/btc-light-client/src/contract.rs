@@ -643,7 +643,7 @@ pub(crate) mod tests {
             ))
         );
 
-        // ensure base and tip are eunchanged
+        // ensure base and tip are unchanged
         ensure_base_and_tip(&storage, &test_headers);
         // ensure all headers are correctly inserted
         ensure_headers(&storage, &test_headers);
