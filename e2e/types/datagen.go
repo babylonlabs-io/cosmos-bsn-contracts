@@ -17,6 +17,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func GenInitialBTCHeaderInfo() *btclctypes.BTCHeaderInfo {
+	r := rand.New(rand.NewSource(time.Now().Unix()))
+	initialHeader := datagen.NewBTCHeaderChainWithLength(r, 0, 0, 1).GetChainInfo()[0]
+	return initialHeader
+}
+
 func GenBTCHeadersMsg(parent *btclctypes.BTCHeaderInfo) ([]*btclctypes.BTCHeaderInfo, BabylonExecuteMsg) {
 	r := rand.New(rand.NewSource(time.Now().Unix()))
 
@@ -27,16 +33,9 @@ func GenBTCHeadersMsg(parent *btclctypes.BTCHeaderInfo) ([]*btclctypes.BTCHeader
 		chain = datagen.NewBTCHeaderChainFromParentInfo(r, parent, 10)
 	}
 
-	headers := []BtcHeader{}
+	headers := []*BtcHeader{}
 	for _, header := range chain.Headers {
-		headers = append(headers, BtcHeader{
-			Version:       header.Version,
-			PrevBlockhash: header.PrevBlock.String(),
-			MerkleRoot:    header.MerkleRoot.String(),
-			Time:          uint32(header.Timestamp.Unix()),
-			Bits:          header.Bits,
-			Nonce:         header.Nonce,
-		})
+		headers = append(headers, NewBtcHeader(header))
 	}
 
 	msg := BabylonExecuteMsg{
@@ -294,18 +293,9 @@ type BabylonExecuteMsg struct {
 }
 
 type BTCHeadersMsg struct {
-	Headers     []BtcHeader `json:"headers"`
-	FirstWork   *string     `json:"first_work,omitempty"`
-	FirstHeight *uint32     `json:"first_height,omitempty"`
-}
-
-type BtcHeader struct {
-	Version       int32  `json:"version"`
-	PrevBlockhash string `json:"prev_blockhash"`
-	MerkleRoot    string `json:"merkle_root"`
-	Time          uint32 `json:"time"`
-	Bits          uint32 `json:"bits"`
-	Nonce         uint32 `json:"nonce"`
+	Headers     []*BtcHeader `json:"headers"`
+	FirstWork   *string      `json:"first_work,omitempty"`
+	FirstHeight *uint32      `json:"first_height,omitempty"`
 }
 
 type ExecuteMessage struct {

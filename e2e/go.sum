@@ -725,8 +725,12 @@ github.com/babylonlabs-io/babylon-sdk/demo v0.0.0-20250407051200-a5d652116d6d h1
 github.com/babylonlabs-io/babylon-sdk/demo v0.0.0-20250407051200-a5d652116d6d/go.mod h1:LFP3RyYhoNS9sLHsxZlpEKkhuzAB5T9Z3Wd70rOTBZE=
 github.com/babylonlabs-io/babylon-sdk/demo v0.0.0-20250722135405-14bc9df21042 h1:6SUJ7bKgJqT5e1LAm6xZED80+gAsIhC68e++jTeCJug=
 github.com/babylonlabs-io/babylon-sdk/demo v0.0.0-20250722135405-14bc9df21042/go.mod h1:geoi2XSmafoktELui0G9X+Z0jzJlNO3I0anBv2Yz7h8=
+github.com/babylonlabs-io/babylon-sdk/demo v0.0.0-20250723095925-43a61e06a978 h1:rvg6fE5xLy1n5tkGsyZ57+Dk5rltwiTSPVt0Fdu5scA=
+github.com/babylonlabs-io/babylon-sdk/demo v0.0.0-20250723095925-43a61e06a978/go.mod h1:geoi2XSmafoktELui0G9X+Z0jzJlNO3I0anBv2Yz7h8=
 github.com/babylonlabs-io/babylon-sdk/x v0.0.0-20250407051200-a5d652116d6d h1:9zDJCLFvtKP3hPueFDERuedikSL6Aw1pG7CMF8Q7h5Y=
 github.com/babylonlabs-io/babylon-sdk/x v0.0.0-20250407051200-a5d652116d6d/go.mod h1:ks4/p72aNJTIN8+CnCFxNX0HqfgHdClEwU4LxAxryJQ=
+github.com/babylonlabs-io/babylon-sdk/x v0.0.0-20250723095925-43a61e06a978 h1:W6WvVjxG0ODRmnL4aTGRDOX1Y9TDGiVvIDWkfy/UXp8=
+github.com/babylonlabs-io/babylon-sdk/x v0.0.0-20250723095925-43a61e06a978/go.mod h1:seS4E882FYvlzi07MpIgtCtcC7AISJp1oo30AWMbGfE=
 github.com/babylonlabs-io/babylon/v3 v3.0.0-20250707142850-fd530110d705 h1:1mP3efoFoHCSNr1JB/SqYMt/r7xIEYq9SC9+YaF7imA=
 github.com/babylonlabs-io/babylon/v3 v3.0.0-20250707142850-fd530110d705/go.mod h1:aUC9FPKarPMW0uepNpDmv71RnqWTUQRVkC5Bb/on6uY=
 github.com/benbjohnson/clock v1.1.0/go.mod h1:J11/hYXuz8f4ySSvYwY0FKfm+ezbsZBKZxNJlLklBHA=

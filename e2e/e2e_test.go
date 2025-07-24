@@ -5,12 +5,13 @@ import (
 	"testing"
 
 	wasmibctesting "github.com/CosmWasm/wasmd/tests/wasmibctesting"
-	"github.com/babylonlabs-io/babylon-sdk/demo/app"
-	appparams "github.com/babylonlabs-io/babylon-sdk/demo/app/params"
-	"github.com/babylonlabs-io/cosmos-bsn-contracts/e2e/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	ibctesting "github.com/cosmos/ibc-go/v10/testing"
 	"github.com/stretchr/testify/suite"
+
+	"github.com/babylonlabs-io/babylon-sdk/demo/app"
+	appparams "github.com/babylonlabs-io/babylon-sdk/demo/app/params"
+	"github.com/babylonlabs-io/cosmos-bsn-contracts/e2e/types"
 )
 
 var testMsg types.ExecuteMessage
@@ -64,7 +65,7 @@ func (s *BabylonSDKTestSuite) SetupSuite() {
 func (s *BabylonSDKTestSuite) Test1ContractDeployment() {
 	// consumer client
 	consumerCli := types.NewConsumerClient(s.T(), s.ConsumerChain)
-	// setup contracts on consumer
+	// setup contracts on consumer (now just fetches addresses)
 	consumerContracts, err := consumerCli.BootstrapContracts()
 	s.NoError(err)
 	// provider client
@@ -81,12 +82,12 @@ func (s *BabylonSDKTestSuite) Test1ContractDeployment() {
 	s.ConsumerCli = consumerCli
 	s.ConsumerContract = consumerContracts
 
-	// assert the contract addresses are updated
-	params := s.ConsumerApp.BabylonKeeper.GetParams(s.ConsumerChain.GetContext())
-	s.Equal(s.ConsumerContract.Babylon.String(), params.BabylonContractAddress)
-	s.Equal(s.ConsumerContract.BTCLightClient.String(), params.BtcLightClientContractAddress)
-	s.Equal(s.ConsumerContract.BTCStaking.String(), params.BtcStakingContractAddress)
-	s.Equal(s.ConsumerContract.BTCFinality.String(), params.BtcFinalityContractAddress)
+	// assert the contract addresses are updated in params
+	ctx := s.ConsumerChain.GetContext()
+	s.Equal(s.ConsumerContract.Babylon.String(), s.ConsumerApp.BabylonKeeper.GetBSNContracts(ctx).BabylonContract)
+	s.Equal(s.ConsumerContract.BTCLightClient.String(), s.ConsumerApp.BabylonKeeper.GetBSNContracts(ctx).BtcLightClientContract)
+	s.Equal(s.ConsumerContract.BTCStaking.String(), s.ConsumerApp.BabylonKeeper.GetBSNContracts(ctx).BtcStakingContract)
+	s.Equal(s.ConsumerContract.BTCFinality.String(), s.ConsumerApp.BabylonKeeper.GetBSNContracts(ctx).BtcFinalityContract)
 
 	// query admins
 	adminRespStaking, err := s.ConsumerCli.Query(s.ConsumerContract.BTCStaking, types.Query{"admin": {}})
@@ -173,24 +174,41 @@ func (s *BabylonSDKTestSuite) Test4EndBlock() {
 func (s *BabylonSDKTestSuite) Test5NextBlock() {
 	// get current height
 	height := s.ConsumerChain.GetContext().BlockHeight()
-	// ensure the current block is not indexed yet
-	_, err := s.ConsumerCli.Query(s.ConsumerContract.BTCFinality, types.Query{
-		"block": {
-			"height": uint64(height),
-		},
-	})
-	s.Error(err)
 
-	// this triggers BeginBlock and EndBlock
-	s.ConsumerChain.NextBlock()
-
-	// ensure the current block is indexed
-	_, err = s.ConsumerCli.Query(s.ConsumerContract.BTCFinality, types.Query{
+	// check the current block indexing status
+	resp, err := s.ConsumerCli.Query(s.ConsumerContract.BTCFinality, types.Query{
 		"block": {
 			"height": uint64(height),
 		},
 	})
 	s.NoError(err)
+
+	// Check that the block exists but may not be fully indexed (app_hash is empty)
+	s.NotNil(resp)
+	s.Equal(float64(height), resp["height"])
+	appHash, ok := resp["app_hash"].([]interface{})
+	s.True(ok, "app_hash should be present")
+	s.Empty(appHash, "app_hash should be empty before NextBlock")
+
+	// this triggers BeginBlock and EndBlock
+	s.ConsumerChain.NextBlock()
+
+	// ensure the current block is fully indexed (app_hash should be populated)
+	resp, err = s.ConsumerCli.Query(s.ConsumerContract.BTCFinality, types.Query{
+		"block": {
+			"height": uint64(height),
+		},
+	})
+	s.NoError(err)
+
+	// Verify the block is fully indexed with app_hash populated
+	s.NotNil(resp)
+	s.Equal(float64(height), resp["height"])
+
+	// Check that app_hash is populated (indicating full indexing)
+	appHash, ok = resp["app_hash"].([]interface{})
+	s.True(ok, "app_hash should be present")
+	s.NotEmpty(appHash, "app_hash should be populated after NextBlock")
 }
 
 // TearDownSuite runs once after all the suite's tests have been run

@@ -4,8 +4,9 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/babylonlabs-io/babylon-sdk/demo/app"
 	ibctesting "github.com/cosmos/ibc-go/v10/testing"
+
+	"github.com/babylonlabs-io/babylon-sdk/demo/app"
 )
 
 // NewCoordinator initializes Coordinator with N TestChain's
