@@ -21,7 +21,7 @@ use cosmwasm_std::{
     to_json_binary, Addr, Coin, Decimal, DepsMut, Env, Event, MessageInfo, QuerierWrapper,
     Response, StdResult, Storage, Uint128, WasmMsg,
 };
-use k256::schnorr::{Signature, VerifyingKey};
+use k256::schnorr::{signature::Verifier, Signature, VerifyingKey};
 use k256::sha2::{Digest, Sha256};
 use std::cmp::max;
 use std::collections::HashSet;
@@ -114,14 +114,14 @@ fn verify_commitment_signature(
 ) -> Result<(), ContractError> {
     // get BTC public key for verification
     let btc_pk_raw = hex::decode(fp_btc_pk_hex)?;
-    let _btc_pk = VerifyingKey::from_bytes(&btc_pk_raw)
+    let btc_pk = VerifyingKey::from_bytes(&btc_pk_raw)
         .map_err(|e| ContractError::SecP256K1Error(e.to_string()))?;
 
     // get signature
     if signature.is_empty() {
         return Err(ContractError::EmptySignature);
     }
-    let _schnorr_sig =
+    let schnorr_sig =
         Signature::try_from(signature).map_err(|e| ContractError::SecP256K1Error(e.to_string()))?;
 
     // get signed message
@@ -131,13 +131,22 @@ fn verify_commitment_signature(
     msg.extend_from_slice(&num_pub_rand.to_be_bytes());
     msg.extend_from_slice(commitment);
 
-    // TODO: Update testdata and fix tests https://github.com/babylonlabs-io/cosmos-bsn-contracts/issues/212
     // Verify the signature
-    // btc_pk
-    // .verify(&msg, &schnorr_sig)
-    // .map_err(|e| ContractError::SecP256K1Error(e.to_string()))
+    btc_pk
+        .verify(&msg, &schnorr_sig)
+        .map_err(|e| ContractError::SecP256K1Error(e.to_string()))?;
 
     Ok(())
+}
+
+/// Returns the message for an EOTS signature
+/// The EOTS signature on a block will be (context || blockHeight || blockHash)
+fn msg_to_sign_for_vote(context: &str, block_height: u64, block_hash: &[u8]) -> Vec<u8> {
+    let mut msg = Vec::new();
+    msg.extend_from_slice(context.as_bytes());
+    msg.extend_from_slice(&block_height.to_be_bytes());
+    msg.extend_from_slice(block_hash);
+    msg
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -239,7 +248,7 @@ pub fn handle_finality_signature(
         &pr_commit,
         block_app_hash,
         signature,
-        signing_context,
+        signing_context.clone(),
     )?;
 
     // The public randomness value is good, save it.
@@ -265,6 +274,7 @@ pub fn handle_finality_signature(
             canonical_finality_sig: vec![],
             fork_app_hash: block_app_hash.to_vec(),
             fork_finality_sig: signature.to_vec(),
+            signing_context,
         };
 
         // If this finality provider has also signed the canonical block, slash it
@@ -381,12 +391,27 @@ fn slash_finality_provider(
     evidence: &Evidence,
 ) -> Result<(WasmMsg, Event), ContractError> {
     let pk = eots::PublicKey::from_hex(fp_btc_pk_hex)?;
+
+    let canonical_msg_to_sign = msg_to_sign_for_vote(
+        &evidence.signing_context,
+        evidence.block_height,
+        &evidence.canonical_app_hash,
+    );
+    let canonical_msg_to_sign_hash = Sha256::digest(&canonical_msg_to_sign);
+
+    let fork_msg_to_sign = msg_to_sign_for_vote(
+        &evidence.signing_context,
+        evidence.block_height,
+        &evidence.fork_app_hash,
+    );
+    let fork_msg_to_sign_hash = Sha256::digest(&fork_msg_to_sign);
+
     let btc_sk = pk
         .extract_secret_key(
             &evidence.pub_rand,
-            &evidence.canonical_app_hash,
+            &canonical_msg_to_sign_hash,
             &evidence.canonical_finality_sig,
-            &evidence.fork_app_hash,
+            &fork_msg_to_sign_hash,
             &evidence.fork_finality_sig,
         )
         .map_err(|err| ContractError::SecretKeyExtractionError(err.to_string()))?;
@@ -438,7 +463,7 @@ fn verify_finality_signature(
     proof: &Proof,
     pr_commit: &PubRandCommit,
     app_hash: &[u8],
-    _signature: &[u8],
+    signature: &[u8],
     signing_context: String,
 ) -> Result<(), ContractError> {
     let proof_height = pr_commit.start_height + proof.index;
@@ -460,19 +485,16 @@ fn verify_finality_signature(
     proof.verify(&pr_commit.commitment, pub_rand)?;
 
     // Public randomness is good, verify finality signature
-    let _pubkey = eots::PublicKey::from_hex(fp_btc_pk_hex)?;
+    let pubkey = eots::PublicKey::from_hex(fp_btc_pk_hex)?;
 
     // The EOTS signature on a block will be (signing_context || block_height || block_app_hash)
-    let mut msg: Vec<u8> = signing_context.as_bytes().to_vec();
-    msg.extend(block_height.to_be_bytes());
-    msg.extend_from_slice(app_hash);
+    let msg = msg_to_sign_for_vote(&signing_context, block_height, app_hash);
 
-    let _msg_hash = Sha256::digest(msg);
+    let msg_hash = Sha256::digest(msg);
 
-    // TODO: Update testdata and fix tests https://github.com/babylonlabs-io/cosmos-bsn-contracts/issues/212
-    // if !pubkey.verify(pub_rand, &msg_hash, signature)? {
-    // return Err(ContractError::FailedSignatureVerification("EOTS".into()));
-    // }
+    if !pubkey.verify(pub_rand, &msg_hash, signature)? {
+        return Err(ContractError::FailedSignatureVerification("EOTS".into()));
+    }
 
     Ok(())
 }
