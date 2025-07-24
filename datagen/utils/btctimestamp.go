@@ -45,7 +45,7 @@ func GenBTCTimestamp(dir string) {
 
 	// empty BTC timestamp
 	btcTs := &zctypes.BTCTimestamp{}
-	btcTs.Proof = &zctypes.ProofFinalizedChainInfo{}
+	btcTs.Proof = &zctypes.ProofFinalizedHeader{}
 
 	// chain is at height 1 thus epoch 1
 
@@ -66,7 +66,7 @@ func GenBTCTimestamp(dir string) {
 	zck.HandleHeaderWithValidCommit(h.Ctx, datagen.GenRandomByteArray(r, 32), datagen.NewZCHeaderInfo(ibctmHeader, consumerID), false)
 
 	// ensure the header is successfully inserted
-	indexedHeader, err := zck.GetHeader(h.Ctx, consumerID, height)
+	indexedHeader, err := zck.GetFinalizedHeader(h.Ctx, consumerID, height)
 	h.NoError(err)
 
 	// enter block 21, 1st block of epoch 3
@@ -78,15 +78,15 @@ func GenBTCTimestamp(dir string) {
 	h.Ctx, err = h.ApplyEmptyBlockWithVoteExtension(r)
 	h.NoError(err)
 
-	epochWithHeader, err := ek.GetHistoricalEpoch(h.Ctx, indexedHeader.BabylonEpoch)
+	epochWithHeader, err := ek.GetHistoricalEpoch(h.Ctx, indexedHeader.Header.BabylonEpoch)
 	h.NoError(err)
 
 	// generate inclusion proof
-	proof, err := zck.ProveConsumerHeaderInEpoch(h.Ctx, indexedHeader, epochWithHeader)
+	proof, err := zck.ProveConsumerHeaderInEpoch(h.Ctx, indexedHeader.Header, epochWithHeader)
 	h.NoError(err)
 
 	btcTs.EpochInfo = epochWithHeader
-	btcTs.Header = indexedHeader
+	btcTs.Header = indexedHeader.Header
 	btcTs.Proof.ProofConsumerHeaderInEpoch = proof
 
 	/*
