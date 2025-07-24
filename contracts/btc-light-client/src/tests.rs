@@ -7,7 +7,6 @@ use crate::ContractError;
 use crate::{BitcoinNetwork, ExecuteMsg};
 use babylon_proto::babylon::btclightclient::v1::BtcHeaderInfo;
 use bitcoin::block::Header as BlockHeader;
-use bitcoin::consensus::deserialize;
 use cosmwasm_std::testing::{message_info, mock_dependencies, mock_env};
 use prost::Message;
 
@@ -88,7 +87,7 @@ fn instantiate_should_work() {
 
     // Submit new headers should work only if we have an initial header
     if get_btc_base_header().is_some() {
-        let new_header: BlockHeader = deserialize(&headers[1].header).unwrap();
+        let new_header = headers[1].block_header().unwrap();
         let msg = ExecuteMsg::BtcHeaders {
             headers: vec![new_header.into()],
             first_work: None,

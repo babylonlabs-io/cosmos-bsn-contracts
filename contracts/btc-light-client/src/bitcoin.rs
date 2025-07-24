@@ -90,8 +90,8 @@ pub fn verify_headers(
     let mut pending_headers = BTreeMap::new();
 
     for (i, new_header) in new_headers.iter().enumerate() {
-        let prev_block_header: BlockHeader = deserialize(last_header.header.as_ref())?;
-        let block_header: BlockHeader = deserialize(new_header.header.as_ref())?;
+        let prev_block_header = last_header.block_header()?;
+        let block_header = new_header.block_header()?;
 
         // Check whether the headers form a chain.
         if block_header.prev_blockhash != prev_block_header.block_hash() {
@@ -293,8 +293,7 @@ fn get_next_work_required(
         let last_retarget_height = height - difficulty_adjustment_interval;
 
         let retarget_header_info = get_header(storage, last_retarget_height)?;
-        let retarget_header: BlockHeader =
-            bitcoin::consensus::deserialize(&retarget_header_info.header)?;
+        let retarget_header = retarget_header_info.block_header()?;
 
         let first_block_time = retarget_header.time;
 
@@ -484,15 +483,14 @@ mod tests {
         ];
         init_contract(&mut storage, &initial_headers).unwrap();
 
-        let prev_header: BlockHeader =
-            deserialize(test_headers[3].clone().header.as_ref()).unwrap();
+        let prev_header = test_headers[3].block_header().unwrap();
 
         // Use as many previous headers as available if there are fewer than 11.
         let mtp = calculate_median_time_past(&storage, &prev_header, &Default::default()).unwrap();
 
         let times = initial_headers
             .iter()
-            .map(|h| deserialize::<BlockHeader>(h.header.as_ref()).unwrap().time)
+            .map(|h| h.block_header().unwrap().time)
             .collect::<Vec<_>>();
 
         assert_eq!(mtp, expected_median(times));

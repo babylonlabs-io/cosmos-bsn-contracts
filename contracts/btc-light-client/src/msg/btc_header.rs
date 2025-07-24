@@ -82,7 +82,7 @@ impl BtcHeader {
 impl TryFrom<&BtcHeaderInfo> for BtcHeader {
     type Error = ContractError;
     fn try_from(btc_header_info: &BtcHeaderInfo) -> Result<Self, Self::Error> {
-        let block_header: BlockHeader = bitcoin::consensus::deserialize(&btc_header_info.header)?;
+        let block_header = btc_header_info.block_header()?;
         Ok(Self {
             version: block_header.version.to_consensus(),
             prev_blockhash: block_header.prev_blockhash.to_string(),

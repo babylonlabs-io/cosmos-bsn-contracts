@@ -9,7 +9,6 @@ use crate::state::{
 };
 use babylon_bindings::BabylonMsg;
 use babylon_proto::babylon::btclightclient::v1::BtcHeaderInfo;
-use bitcoin::block::Header as BlockHeader;
 use bitcoin::BlockHash;
 use cosmwasm_std::{
     to_json_binary, Binary, Deps, DepsMut, Empty, Env, MessageInfo, Response, Storage,
@@ -46,14 +45,13 @@ pub fn instantiate(
 
     // Initialises the BTC header chain storage if base header is provided.
     if let Some(header) = maybe_base_header {
-        let base_header = header.to_btc_header_info()?;
-        let base_btc_header: BlockHeader =
-            bitcoin::consensus::deserialize(base_header.header.as_ref())?;
+        let base_header_info = header.to_btc_header_info()?;
+        let base_btc_header = base_header_info.block_header()?;
         crate::bitcoin::check_proof_of_work(&cfg.network.chain_params(), &base_btc_header)?;
         // Store base header (immutable) and tip.
-        set_base_header(deps.storage, &base_header)?;
-        set_tip(deps.storage, &base_header)?;
-        res = res.set_data(Binary::from(base_header.encode_to_vec()));
+        set_base_header(deps.storage, &base_header_info)?;
+        set_tip(deps.storage, &base_header_info)?;
+        res = res.set_data(Binary::from(base_header_info.encode_to_vec()));
     }
 
     CONFIG.save(deps.storage, &cfg)?;
@@ -258,8 +256,7 @@ pub fn handle_btc_headers_from_babylon(
     // decode the first header in these new headers
     let first_new_header = new_headers.first().ok_or(ContractError::EmptyHeaders {})?;
 
-    let first_new_btc_header: BlockHeader =
-        bitcoin::consensus::deserialize(first_new_header.header.as_ref())?;
+    let first_new_btc_header = first_new_header.block_header()?;
 
     let new_tip = if first_new_btc_header.prev_blockhash.as_ref() == cur_tip_hash.to_vec() {
         // Most common case: extending the current tip
@@ -305,6 +302,7 @@ pub(crate) mod tests {
     };
     use crate::ExecuteMsg;
     use babylon_test_utils::{get_btc_lc_fork_headers, get_btc_lc_fork_msg, get_btc_lc_headers};
+    use bitcoin::block::Header as BlockHeader;
     use cosmwasm_std::{from_json, testing::mock_dependencies};
 
     /// Initialze the contract state with given headers.
@@ -682,8 +680,7 @@ pub(crate) mod tests {
         // ensure the tip btc header is set and is correct
         let tip_btc_expected: BlockHeader =
             test_fork_msg_headers.last().unwrap().try_into().unwrap();
-        let tip_btc_actual: BlockHeader =
-            bitcoin::consensus::deserialize(get_tip(&storage).unwrap().header.as_ref()).unwrap();
+        let tip_btc_actual = get_tip(&storage).unwrap().block_header().unwrap();
         assert_eq!(tip_btc_expected, tip_btc_actual);
 
         // ensure all initial headers are still inserted
