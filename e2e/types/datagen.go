@@ -58,8 +58,8 @@ func GenBTCHeadersMsg(parent *btclctypes.BTCHeaderInfo) ([]*btclctypes.BTCHeader
 	return chain.GetChainInfo(), msg
 }
 
-func GenExecMessage() ExecuteMessage {
-	_, newDel := genBTCDelegation()
+func GenExecMessage(t *testing.T) ExecuteMessage {
+	_, newDel := genBTCDelegation(t)
 
 	addr := datagen.GenRandomAccount().Address
 
@@ -94,10 +94,9 @@ func GenExecMessage() ExecuteMessage {
 	return executeMessage
 }
 
-func genBTCDelegation() (*bstypes.Params, ActiveBtcDelegation) {
+func genBTCDelegation(t *testing.T) (*bstypes.Params, ActiveBtcDelegation) {
 	net := &chaincfg.RegressionNetParams
 	r := rand.New(rand.NewSource(time.Now().Unix()))
-	t := &testing.T{}
 
 	delSK, _, err := datagen.GenRandomBTCKeyPair(r)
 	require.NoError(t, err)

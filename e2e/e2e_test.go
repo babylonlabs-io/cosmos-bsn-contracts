@@ -14,8 +14,6 @@ import (
 	"github.com/stretchr/testify/suite"
 )
 
-var testMsg types.ExecuteMessage
-
 // In the Test function, we create and run the suite
 func TestBabylonSDKTestSuite(t *testing.T) {
 	suite.Run(t, new(BabylonSDKTestSuite))
@@ -140,7 +138,7 @@ func (s *BabylonSDKTestSuite) Test2InsertBTCHeaders() {
 }
 
 func (s *BabylonSDKTestSuite) Test3MockConsumerFpDelegation() {
-	testMsg = types.GenExecMessage()
+	testMsg := types.GenExecMessage(s.T())
 	msgBytes, err := json.Marshal(testMsg)
 	s.NoError(err)
 
