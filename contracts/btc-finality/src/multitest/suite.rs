@@ -24,7 +24,7 @@ use crate::msg::{
     ActiveFinalityProvidersResponse, EvidenceResponse, FinalitySignatureResponse, InstantiateMsg,
     JailedFinalityProvider, JailedFinalityProvidersResponse,
 };
-use crate::multitest::{
+use babylon_bindings_test::{
     BTC_FINALITY_CONTRACT_ADDR, BTC_LIGHT_CLIENT_CONTRACT_ADDR, BTC_STAKING_CONTRACT_ADDR,
     USER_ADDR,
 };

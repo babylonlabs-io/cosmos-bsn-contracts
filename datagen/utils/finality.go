@@ -27,9 +27,9 @@ const (
 	commitPubRandHeight = 100
 	commitPubRandAmount = 1000
 	pubRandIndex        = 1
-	// must be same as packages/bindings-test/src/multitest.rs
-	babylonChainID = "babylon-testnet-phase-3"
-	// must be same as contracts/btc-finality/src/multitest.rs
+
+	// below values must be same as in packages/bindings-test/src/multitest.rs
+	babylonChainID          = "babylon-testnet-phase-3"
 	btcFinalityContractAddr = "cosmwasm17p9rzwnnfxcjp32un9ug7yhhzgtkhvl9jfksztgw5uh69wac2pgsnuzwl9"
 )
 
