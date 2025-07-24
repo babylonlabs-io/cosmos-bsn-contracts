@@ -19,6 +19,8 @@ use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
 use thiserror::Error;
 
+const BABYLON_CHAIN_ID: &str = "babylon-testnet-phase-3";
+
 pub struct BabylonModule {}
 
 /// How many seconds per block
@@ -174,7 +176,7 @@ impl BabylonApp {
         let block_info = BlockInfo {
             height,
             time: Timestamp::from_seconds(1714119228),
-            chain_id: "babylon-testnet-phase-3".to_owned(),
+            chain_id: BABYLON_CHAIN_ID.to_owned(),
         };
 
         Self(

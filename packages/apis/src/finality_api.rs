@@ -122,6 +122,9 @@ pub struct Evidence {
     /// where finality signature is an EOTS signature.
     /// Deserializes to `SchnorrEOTSSig`
     pub fork_finality_sig: Bytes,
+    /// Context in which the finality signatures were used.
+    /// It must be hex encoded 32 bytes, of the sha256 hash of the context string
+    pub signing_context: String,
 }
 
 #[cw_serde]
