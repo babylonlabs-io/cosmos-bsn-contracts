@@ -47,7 +47,7 @@ func NewBTCLightClientInitMsg(network string, k int, w int, initialHeader *btclc
 				"bits":           btcHeader.Bits,
 				"nonce":          btcHeader.Nonce,
 			},
-			"total_work": base64.StdEncoding.EncodeToString(workBytes),
+			"total_work": workBytes,
 			"height":     initialHeader.Height,
 		},
 	}

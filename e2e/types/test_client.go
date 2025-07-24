@@ -240,18 +240,13 @@ func (p *TestConsumerClient) deployContracts() (*ConsumerContract, error) {
 		ics20ChannelID,
 	)
 
-	babylonInitMsgBz, err := json.Marshal(babylonInitMsg)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal babylon init msg: %w", err)
-	}
-
 	// Instantiate the Babylon contract
 	babylonInstResp, err := wasmMsgServer.InstantiateContract(ctx, &wasmtypes.MsgInstantiateContract{
 		Sender: admin,
 		Admin:  admin,
 		CodeID: babylonCodeID,
 		Label:  "babylon",
-		Msg:    babylonInitMsgBz,
+		Msg:    babylonInitMsg,
 		Funds:  nil,
 	})
 	if err != nil {

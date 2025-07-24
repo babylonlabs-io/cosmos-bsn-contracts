@@ -19,7 +19,7 @@ import (
 
 func GenInitialBTCHeaderInfo() *btclctypes.BTCHeaderInfo {
 	r := rand.New(rand.NewSource(time.Now().Unix()))
-	initialHeader := datagen.NewBTCHeaderChainWithLength(r, 0, 0, 1).GetChainInfo()[0]
+	initialHeader := datagen.NewBTCHeaderChainWithLength(r, 2016, 0, 1).GetChainInfo()[0]
 	return initialHeader
 }
 
