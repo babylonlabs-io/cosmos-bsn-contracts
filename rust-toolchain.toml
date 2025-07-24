@@ -2,3 +2,6 @@
 channel = "1.86"
 components = ["clippy"]
 targets = ["wasm32-unknown-unknown"]
+
+[rust-analyzer]
+cargo = { features = ["full-validation"] }
