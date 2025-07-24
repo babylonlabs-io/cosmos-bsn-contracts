@@ -275,7 +275,7 @@ pub fn handle_finality_signature(
             canonical_finality_sig: vec![],
             fork_app_hash: block_app_hash.to_vec(),
             fork_finality_sig: signature.to_vec(),
-            signing_context: signing_context,
+            signing_context,
         };
 
         // If this finality provider has also signed the canonical block, slash it
