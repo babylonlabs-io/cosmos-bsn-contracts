@@ -225,12 +225,14 @@ pub fn init_btc_headers(
         processed_headers.push(new_header_info);
     }
 
+    // We need to initialize the base header (immutable) ahead of the subsequent headers
+    // processing as `verify_headers` assumes the base header must already exist.
+    set_base_header(storage, &base_header)?;
+
     // verify subsequent headers
     let new_headers = &processed_headers[1..];
     verify_headers(storage, &chain_params, &base_header, new_headers)?;
 
-    // Store base header (immutable), full chain and tip.
-    set_base_header(storage, &base_header)?;
     insert_headers(storage, &processed_headers)?;
     let tip = processed_headers
         .last()
