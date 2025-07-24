@@ -1,6 +1,7 @@
 package types
 
 import (
+	"encoding/base64"
 	"encoding/json"
 
 	btclctypes "github.com/babylonlabs-io/babylon/v3/x/btclightclient/types"
@@ -29,6 +30,10 @@ func NewBtcHeader(header *wire.BlockHeader) *BtcHeader {
 
 func NewBTCLightClientInitMsg(network string, k int, w int, initialHeader *btclctypes.BTCHeaderInfo) []byte {
 	btcHeader := initialHeader.Header.ToBlockHeader()
+	workBytes, err := initialHeader.Work.MarshalJSON()
+	if err != nil {
+		panic(err)
+	}
 	data := map[string]interface{}{
 		"network":                         network,
 		"btc_confirmation_depth":          k,
@@ -37,12 +42,12 @@ func NewBTCLightClientInitMsg(network string, k int, w int, initialHeader *btclc
 			"header": map[string]interface{}{
 				"version":        btcHeader.Version,
 				"prev_blockhash": btcHeader.PrevBlock.String(),
-				"merkle_root":    btcHeader.MerkleRoot,
+				"merkle_root":    btcHeader.MerkleRoot.String(),
 				"time":           btcHeader.Timestamp.Unix(),
 				"bits":           btcHeader.Bits,
 				"nonce":          btcHeader.Nonce,
 			},
-			"total_work": initialHeader.Work,
+			"total_work": base64.StdEncoding.EncodeToString(workBytes),
 			"height":     initialHeader.Height,
 		},
 	}
@@ -105,11 +110,11 @@ func NewBabylonInitMsg(
 		"checkpoint_finalization_timeout": w,
 		"notify_cosmos_zone":              notifyCosmosZone,
 		"btc_light_client_code_id":        btcLightClientCodeID,
-		"btc_light_client_msg":            btcLightClientInitMsg,
+		"btc_light_client_msg":            base64.StdEncoding.EncodeToString(btcLightClientInitMsg),
 		"btc_staking_code_id":             btcStakingCodeID,
-		"btc_staking_msg":                 btcStakingInitMsg,
+		"btc_staking_msg":                 base64.StdEncoding.EncodeToString(btcStakingInitMsg),
 		"btc_finality_code_id":            btcFinalityCodeID,
-		"btc_finality_msg":                btcFinalityInitMsg,
+		"btc_finality_msg":                base64.StdEncoding.EncodeToString(btcFinalityInitMsg),
 		"admin":                           admin,
 		"consumer_name":                   consumerName,
 		"consumer_description":            consumerDescription,
