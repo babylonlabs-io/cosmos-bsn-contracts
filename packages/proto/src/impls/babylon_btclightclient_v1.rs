@@ -1,3 +1,4 @@
+use crate::babylon::btclightclient::v1::BtcHeaderInfo;
 use bitcoin::block::Header as BlockHeader;
 
 impl BtcHeaderInfo {
