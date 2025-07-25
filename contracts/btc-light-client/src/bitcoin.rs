@@ -359,15 +359,11 @@ pub fn total_work(work: &[u8]) -> StdResult<Work> {
 
 /// Checks if a Bitcoin header is on a difficulty change boundary.
 ///
-/// In Bitcoin, difficulty is adjusted every 2016 blocks (approximately every 2 weeks).
-/// A header is on a difficulty change boundary if its height is divisible by 2016.
-pub fn is_difficulty_change_boundary(height: u32, chain_params: &Params) -> bool {
+/// https://github.com/babylonlabs-io/babylon/blob/09820f4768aa7baf0f07ad041f545998de3512f2/x/btclightclient/types/utils.go#L15
+pub fn is_retarget_block(height: u32, chain_params: &Params) -> bool {
     let difficulty_adjustment_interval = chain_params.difficulty_adjustment_interval() as u32;
 
-    // A header is on a difficulty change boundary if:
-    // 1. The height is >= difficulty_adjustment_interval (2016 for mainnet)
-    // 2. The height is divisible by difficulty_adjustment_interval
-    height >= difficulty_adjustment_interval && height % difficulty_adjustment_interval == 0
+    height % difficulty_adjustment_interval == 0
 }
 
 #[cfg(test)]
@@ -379,7 +375,7 @@ mod tests {
     use bitcoin::block::Header as BlockHeader;
     use bitcoin::block::Version;
     use bitcoin::hashes::Hash;
-    use bitcoin::{BlockHash, CompactTarget};
+    use bitcoin::{BlockHash, CompactTarget, Network};
     use cosmwasm_std::testing::{mock_dependencies, MockStorage};
     use std::collections::BTreeMap;
 
@@ -494,5 +490,20 @@ mod tests {
             .collect::<Vec<_>>();
 
         assert_eq!(mtp, expected_median(times));
+    }
+
+    #[test]
+    fn test_is_retarget_block() {
+        for network in [
+            Network::Regtest,
+            Network::Testnet,
+            Network::Signet,
+            Network::Bitcoin,
+        ] {
+            // Genesis block is considered as a retarget block.
+            assert!(is_retarget_block(0, network.as_ref()));
+            assert!(!is_retarget_block(2015, network.as_ref()));
+            assert!(is_retarget_block(2016, network.as_ref()));
+        }
     }
 }

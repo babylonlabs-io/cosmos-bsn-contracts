@@ -70,7 +70,7 @@ impl InstantiateMsg {
         }
 
         if let Some(ref base_header) = self.base_header {
-            if !crate::bitcoin::is_difficulty_change_boundary(
+            if !crate::bitcoin::is_retarget_block(
                 base_header.height,
                 &self.network.chain_params(),
             ) {
