@@ -1,13 +1,11 @@
-use bitcoin::consensus::deserialize;
-use bitcoin::Transaction;
-
-use cosmwasm_std::StdError;
-
 use crate::btc_staking_api::{
     ActiveBtcDelegation, FinalityProviderDescription, NewFinalityProvider, ProofOfPossessionBtc,
     SlashedBtcDelegation, UnbondedBtcDelegation, HASH_SIZE,
 };
 use crate::error::StakingApiError;
+use bitcoin::consensus::deserialize;
+use bitcoin::Transaction;
+use cosmwasm_std::StdError;
 
 /// Trait for validating the API structs / input.
 pub trait Validate {
@@ -30,11 +28,6 @@ impl Validate for NewFinalityProvider {
         // TODO: Validate BTC public key (requires valid BTC PK test data) (#7 extra)
         // PublicKey::from_slice(&btc_pk)
         //     .map_err(|_| StakingApiError::InvalidBtcPk(self.btc_pk_hex.clone()))?;
-
-        match self.pop {
-            Some(ref pop) => pop.validate()?,
-            None => return Err(StakingApiError::MissingPop),
-        }
 
         // Validate consumer_id
         if self.consumer_id.is_empty() {
@@ -95,8 +88,8 @@ impl Validate for FinalityProviderDescription {
 }
 
 impl Validate for ProofOfPossessionBtc {
-    // TODO: Validate proof of possession (#7.0)
     fn validate(&self) -> Result<(), StakingApiError> {
+        // BSN side does not need to validate proof of possession
         Ok(())
     }
 }

@@ -3,25 +3,17 @@ use crate::{error::ContractError, state::staking::BtcDelegation};
 use babylon_apis::btc_staking_api::{ActiveBtcDelegation, NewFinalityProvider};
 use bitcoin::Transaction;
 use cosmwasm_std::Binary;
-
 use {
-    babylon_apis::btc_staking_api::{BTCSigType, ProofOfPossessionBtc},
-    babylon_apis::to_canonical_addr,
     babylon_btcstaking::staking::enc_verify_transaction_sig_with_output,
-    babylon_schnorr_adaptor_signature::{verify_digest, AdaptorSignature},
+    babylon_schnorr_adaptor_signature::AdaptorSignature,
     bitcoin::consensus::deserialize,
-    cosmwasm_std::CanonicalAddr,
     k256::schnorr::{Signature, VerifyingKey},
-    k256::sha2::{Digest, Sha256},
 };
 
 #[derive(thiserror::Error, Debug, PartialEq)]
 pub enum FullValidationError {
     #[error("Covenant public key not found in params")]
     MissingCovenantPublicKeyInParams,
-
-    #[error("Proof of possession is missing")]
-    MissingProofOfPossession,
 
     #[error("Failed to parse slashing rate: {0}")]
     InvalidSlashingRate(#[from] std::num::ParseFloatError),
@@ -37,48 +29,9 @@ pub enum FullValidationError {
 }
 
 /// Verifies the new finality provider data.
+/// TODO: Implement validation logic for the new finality provider.
 pub fn verify_new_fp(new_fp: &NewFinalityProvider) -> Result<(), ContractError> {
-    let fp_pk = verifying_key_from_hex(&new_fp.btc_pk_hex)?;
-
-    // FIXME: parameterise `bbn` prefix
-    let fp_address = to_canonical_addr(&new_fp.addr, "bbn")?;
-
-    let fp_pop = new_fp
-        .pop
-        .as_ref()
-        .ok_or(FullValidationError::MissingProofOfPossession)?;
-
-    verify_pop(&fp_pk, fp_address, fp_pop)?;
-
-    Ok(())
-}
-
-/// Verifies the proof of possession of the given address.
-fn verify_pop(
-    btc_pk: &VerifyingKey,
-    address: CanonicalAddr,
-    pop: &ProofOfPossessionBtc,
-) -> Result<(), ContractError> {
-    // get signed msg, i.e., the hash of the canonicalised address
-    let msg_hash: [u8; 32] = Sha256::digest(address.as_slice()).into();
-
-    let btc_sig_type =
-        BTCSigType::try_from(pop.btc_sig_type).map_err(FullValidationError::InvalidBtcSigType)?;
-
-    match btc_sig_type {
-        BTCSigType::BIP340 => {
-            let pop_sig = Signature::try_from(pop.btc_sig.as_slice())?;
-            verify_digest(btc_pk, &msg_hash, &pop_sig)?;
-        }
-        BTCSigType::BIP322 => {
-            // TODO?: implement BIP322 verification (#7.0)
-            return Ok(());
-        }
-        BTCSigType::ECDSA => {
-            // TODO?: implement ECDSA verification (#7.0)
-            return Ok(());
-        }
-    }
+    verifying_key_from_hex(&new_fp.btc_pk_hex)?;
 
     Ok(())
 }
@@ -153,8 +106,6 @@ pub fn verify_active_delegation(
         &staker_pk,
         active_delegation.unbonding_time as u16,
     )?;
-
-    // TODO: Verify proof of possession (#7.1)
 
     /*
         verify staker signature against slashing path of the staking tx script
