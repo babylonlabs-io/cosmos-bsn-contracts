@@ -39,7 +39,7 @@ func NewBTCLightClientInitMsg(network string, k int, w int, initialHeader *btclc
 		"network":                         network,
 		"btc_confirmation_depth":          k,
 		"checkpoint_finalization_timeout": w,
-		"initial_header": map[string]interface{}{
+		"base_header": map[string]interface{}{
 			"header": map[string]interface{}{
 				"version":        btcHeader.Version,
 				"prev_blockhash": btcHeader.PrevBlock.String(),
