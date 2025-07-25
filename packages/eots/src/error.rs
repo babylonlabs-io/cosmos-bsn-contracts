@@ -4,8 +4,8 @@ use thiserror::Error;
 pub enum Error {
     #[error("Invalid input length: expected 32 bytes, got {0}")]
     InvalidInputLength(usize),
-    #[error("Failed to parse secret randomness")]
-    SecretRandomnessParseFailed {},
+    #[error("Failed to parse private randomness")]
+    PrivateRandomnessParseFailed {},
     #[error("Failed to parse public randomness")]
     PublicRandomnessParseFailed {},
     #[error("Failed to parse signature")]

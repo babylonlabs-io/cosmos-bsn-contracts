@@ -16,6 +16,13 @@ use std::ops::{Deref, Mul};
 
 pub const CHALLENGE_TAG: &[u8] = b"BIP0340/challenge";
 
+fn point_to_bytes(p: &ProjectivePoint) -> [u8; 32] {
+    let encoded_p = p.to_encoded_point(false);
+    // Extract the x-coordinate as bytes
+    let x_bytes = encoded_p.x().unwrap();
+    x_bytes.as_slice().try_into().unwrap() // cannot fail
+}
+
 // Adapted from https://github.com/RustCrypto/elliptic-curves/blob/520f67d26be1773bd600d05796cc26d797dd7182/k256/src/schnorr.rs#L181-L187
 pub fn tagged_hash(tag: &[u8]) -> Sha256 {
     let tag_hash = Sha256::digest(tag);
@@ -34,23 +41,23 @@ pub fn hash(message: &[u8]) -> [u8; 32] {
     hasher.finalize().into()
 }
 
-/// `PrivateRand` is the type for a secret randomness.
+/// `PrivateRand` is the type for a private randomness.
 /// It is formed as a scalar on the secp256k1 curve
 pub struct PrivateRand {
     inner: Scalar,
 }
 
 impl PrivateRand {
-    /// Parses the given bytes into a new secret randomness.
+    /// Parses the given bytes into a new private randomness.
     /// The given byte slice has to be a 32-byte scalar.
-    /// NOTE: we enforce the secret randomness to correspond to a point
+    /// NOTE: we enforce the private randomness to correspond to a point
     /// with even y-coordinate
     pub fn new(r: &[u8]) -> Result<PrivateRand> {
         let array: [u8; 32] = r
             .try_into()
             .map_err(|_| Error::InvalidInputLength(r.len()))?;
-        let scalar =
-            Scalar::from_repr_vartime(array.into()).ok_or(Error::SecretRandomnessParseFailed {})?;
+        let scalar = Scalar::from_repr_vartime(array.into())
+            .ok_or(Error::PrivateRandomnessParseFailed {})?;
         if ProjectivePoint::mul_by_generator(&scalar)
             .to_affine()
             .y_is_odd()
@@ -474,13 +481,6 @@ impl PublicKey {
         let point = self.inner.to_projective().to_affine();
         point.y_is_odd().into()
     }
-}
-
-fn point_to_bytes(p: &ProjectivePoint) -> [u8; 32] {
-    let encoded_p = p.to_encoded_point(false);
-    // Extract the x-coordinate as bytes
-    let x_bytes = encoded_p.x().unwrap();
-    x_bytes.as_slice().try_into().unwrap() // cannot fail
 }
 
 #[cfg(test)]
