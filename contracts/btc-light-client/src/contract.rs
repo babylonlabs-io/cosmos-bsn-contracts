@@ -35,24 +35,24 @@ pub fn instantiate(
         base_header: maybe_base_header,
     } = msg;
 
-    let cfg = Config {
-        network,
-        btc_confirmation_depth,
-        checkpoint_finalization_timeout,
-    };
-
     let mut res = Response::new();
 
     // Initialises the BTC header chain storage if base header is provided.
     if let Some(header) = maybe_base_header {
         let base_header_info = header.to_btc_header_info()?;
         let base_btc_header = base_header_info.block_header()?;
-        crate::bitcoin::check_proof_of_work(&cfg.network.chain_params(), &base_btc_header)?;
+        crate::bitcoin::check_proof_of_work(&network.chain_params(), &base_btc_header)?;
         // Store base header (immutable) and tip.
         set_base_header(deps.storage, &base_header_info)?;
         set_tip(deps.storage, &base_header_info)?;
         res = res.set_data(Binary::from(base_header_info.encode_to_vec()));
     }
+
+    let cfg = Config {
+        network,
+        btc_confirmation_depth,
+        checkpoint_finalization_timeout,
+    };
 
     CONFIG.save(deps.storage, &cfg)?;
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
