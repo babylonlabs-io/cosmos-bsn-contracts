@@ -511,6 +511,7 @@ pub(crate) mod tests {
     // then insertion of a number of headers.
     // It checks the correctness of the fork choice rule for an invalid fork (non-consecutive headers).
     #[test]
+    #[cfg(feature = "full-validation")]
     fn btc_lc_fork_invalid() {
         let deps = mock_dependencies();
         let mut storage = deps.storage;
@@ -551,6 +552,7 @@ pub(crate) mod tests {
     // It checks the correctness of the fork choice rule for an invalid fork due to a wrong header
     // height.
     #[test]
+    #[cfg(feature = "full-validation")]
     fn btc_lc_fork_invalid_height() {
         let deps = mock_dependencies();
         let mut storage = deps.storage;
@@ -595,6 +597,7 @@ pub(crate) mod tests {
     // It checks the correctness of the fork choice rule for an invalid fork due to a wrong header
     // work.
     #[test]
+    #[cfg(feature = "full-validation")]
     fn btc_lc_fork_invalid_work() {
         let deps = mock_dependencies();
         let mut storage = deps.storage;
