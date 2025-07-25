@@ -30,7 +30,9 @@ pub enum FullValidationError {
 
 /// Verifies the new finality provider data.
 /// TODO: Implement validation logic for the new finality provider.
-pub fn verify_new_fp(_new_fp: &NewFinalityProvider) -> Result<(), ContractError> {
+pub fn verify_new_fp(new_fp: &NewFinalityProvider) -> Result<(), ContractError> {
+    verifying_key_from_hex(&new_fp.btc_pk_hex)?;
+
     Ok(())
 }
 
