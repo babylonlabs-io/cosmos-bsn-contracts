@@ -1,9 +1,7 @@
 use crate::contract::{execute, instantiate};
 use crate::msg::contract::InitialHeader;
 use crate::msg::InstantiateMsg;
-use crate::state::btc_light_client::{BTC_HEADERS, BTC_HEIGHTS};
-use crate::state::config::CONFIG;
-use crate::state::get_tip;
+use crate::state::{get_tip, BTC_HEADERS, BTC_HEIGHTS, CONFIG};
 #[cfg(feature = "full-validation")]
 use crate::ContractError;
 use crate::{BitcoinNetwork, ExecuteMsg};
@@ -156,7 +154,7 @@ fn auto_init_on_first_header_works() {
     use crate::contract::{execute, instantiate};
     use crate::msg::btc_header::BtcHeader;
     use crate::msg::{ExecuteMsg, InstantiateMsg};
-    use crate::state::btc_light_client::BTC_HEIGHTS;
+    use crate::state::BTC_HEIGHTS;
     use babylon_proto::babylon::btclightclient::v1::BtcHeaderInfoResponse;
     use babylon_test_utils::get_btc_lc_mainchain_resp;
     use bitcoin::block::Header as BlockHeader;

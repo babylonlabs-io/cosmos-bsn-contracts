@@ -11,8 +11,6 @@ types:
     - babylon.epoching.v1.Epoch
     - babylon.zoneconcierge.v1.IndexedHeader
     - babylon.zoneconcierge.v1.ProofEpochSealed
-    - babylon.zoneconcierge.v1.ProofFinalizedChainInfo
-    - babylon.zoneconcierge.v1.FinalizedChainInfo
     - babylon.zoneconcierge.v1.OutboundPacket
     - babylon.zoneconcierge.v1.InboundPacket
     - babylon.zoneconcierge.v1.BTCTimestamp
@@ -31,4 +29,3 @@ plugins:
       - extern_path=.google.protobuf=::pbjson_types
       - extern_path=.cosmos=cosmos_sdk_proto::cosmos
       - extern_path=.tendermint=tendermint_proto
-      - extern_path=.ibc=cosmos_sdk_proto::ibc
