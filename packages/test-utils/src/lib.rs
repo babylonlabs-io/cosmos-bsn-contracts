@@ -375,12 +375,5 @@ pub fn btc_initial_header() -> btc_light_client::msg::contract::InitialHeader {
 /// When the full-validation feature is enabled, returns Some(btc_initial_header).
 /// When the full-validation feature is disabled, returns None.
 pub fn get_btc_initial_header() -> Option<btc_light_client::msg::contract::InitialHeader> {
-    #[cfg(feature = "full-validation")]
-    {
-        Some(btc_initial_header())
-    }
-    #[cfg(not(feature = "full-validation"))]
-    {
-        None
-    }
+    Some(btc_initial_header())
 }

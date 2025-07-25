@@ -29,7 +29,7 @@ pub fn tagged_hash(tag: &[u8]) -> Sha256 {
 
 /// hash function is used for hashing the message input for all functions of the library.
 /// Wrapper around sha256 in order to change only one function if the input hashing function is changed.
-fn hash(message: &[u8]) -> [u8; 32] {
+pub fn hash(message: &[u8]) -> [u8; 32] {
     let mut hasher = Sha256::new();
     hasher.update(message);
     hasher.finalize().into()
@@ -334,9 +334,9 @@ impl PublicKey {
 
     /// Verify verifies that the signature is valid for this message, public key and random value.
     /// Precondition: r must be normalized
-    pub fn verify(&self, r: &[u8], message: &[u8], sig: &[u8]) -> Result<bool> {
+    pub fn verify(&self, r_bytes: &[u8], message: &[u8], sig: &[u8]) -> Result<bool> {
         let h = hash(message);
-        self.verify_hash(r, h, sig)
+        self.verify_hash(r_bytes, h, sig)
     }
 
     /// Verify verifies that the signature is valid for this hashed message, public key and random value.
@@ -386,23 +386,7 @@ impl PublicKey {
         Ok(recovered_r.eq(&*r))
     }
 
-    /// Extract extracts the private key from a public key and signatures for two distinct hashes messages.
-    /// Precondition: r must be normalized
     pub fn extract_secret_key(
-        &self,
-        r: &[u8],
-        message1: &[u8],
-        sig1: &[u8],
-        message2: &[u8],
-        sig2: &[u8],
-    ) -> Result<SecretKey> {
-        let h1 = hash(message1);
-        let h2 = hash(message2);
-        self.extract_from_hashes(r, h1, sig1, h2, sig2)
-    }
-
-    /// extractFromHashes extracts the private key from hashes, instead of the non-hashed message directly as Extract does.
-    pub fn extract_from_hashes(
         &self,
         r_bytes: &[u8],
         hash1: [u8; 32],
@@ -479,12 +463,10 @@ fn point_to_bytes(p: &ProjectivePoint) -> [u8; 32] {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use babylon_test_utils::get_eots_testdata;
+    use k256::{ProjectivePoint, Scalar};
     use rand::{thread_rng, RngCore};
     use sha2::{Digest, Sha256};
-
-    use k256::{ProjectivePoint, Scalar};
-
-    use babylon_test_utils::get_eots_testdata;
 
     pub fn rand_gen() -> (SecRand, PubRand) {
         let x = SecRand::new(&Scalar::generate_vartime(&mut thread_rng()).to_bytes()).unwrap();
@@ -543,9 +525,9 @@ mod tests {
         let extracted_sk = pk
             .extract_secret_key(
                 &pub_rand.to_bytes(),
-                message1,
+                hash(message1),
                 &sig1.to_bytes(),
-                message2,
+                hash(message2),
                 &sig2.to_bytes(),
             )
             .unwrap();
@@ -596,7 +578,7 @@ mod tests {
 
         // extract SK using hash-based method since testdata contains pre-hashed messages
         let extracted_sk = pk
-            .extract_from_hashes(
+            .extract_secret_key(
                 &pr.to_bytes(),
                 msg1_hash,
                 &sig1.to_bytes(),
