@@ -357,8 +357,8 @@ pub fn total_work(work: &[u8]) -> StdResult<Work> {
     })?))
 }
 
-/// Checks if a Bitcoin header is on a difficulty change boundary.
-///
+/// Checks if a Bitcoin block height is at a difficulty adjustment interval.
+/// This determines whether a difficulty retargeting should occur.
 /// https://github.com/babylonlabs-io/babylon/blob/09820f4768aa7baf0f07ad041f545998de3512f2/x/btclightclient/types/utils.go#L15
 pub fn is_retarget_block(height: u32, chain_params: &Params) -> bool {
     let difficulty_adjustment_interval = chain_params.difficulty_adjustment_interval() as u32;
