@@ -44,7 +44,7 @@ the Bitcoin headers, their hashes, heights, and the associated proof of work.
 It's also forwarded to the `btc-light-client` contract, which maintains the
 light client state of the Bitcoin network on the BSN.
 
-`ConsumerSlashing` Message:
+`BsnSlashing` Message:
 
 This message is part of cascaded slashing, in which the slashing of a finality
 provider on a BSN chain results in the undelegation of the involved BTC on
@@ -60,7 +60,7 @@ This message handles the forwarding of slashing information and evidence
 upstream, from the BSN to Babylon Genesis.
 The `Slashing` execution handler handles the slashing information and evidence
 originated on the BSN side (in the  `btc-finality` contract), and forwards it to
-the Babylon Genesis `x/zonconcierge` module, through the `ConsumerSlashing`
+the Babylon Genesis `x/zoneconcierge` module, through the `BsnSlashing`
 IBC message.
 
 ### Message Flow

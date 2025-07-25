@@ -67,7 +67,7 @@ pub enum ContractError {
     Header(#[from] crate::bitcoin::HeaderError),
 
     #[error(transparent)]
-    Store(#[from] crate::state::btc_light_client::StoreError),
+    Store(#[from] crate::state::StoreError),
 }
 
 impl From<bitcoin::consensus::encode::Error> for ContractError {

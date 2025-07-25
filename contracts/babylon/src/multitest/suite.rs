@@ -203,7 +203,7 @@ impl Suite {
     }
 
     #[track_caller]
-    pub fn get_btc_light_client_config(&self) -> btc_light_client::state::config::Config {
+    pub fn get_btc_light_client_config(&self) -> btc_light_client::state::Config {
         self.app
             .wrap()
             .query_wasm_smart(
