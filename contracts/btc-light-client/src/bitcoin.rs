@@ -71,9 +71,20 @@ impl From<bitcoin::consensus::encode::Error> for HeaderError {
     }
 }
 
+#[cfg(not(feature = "full-validation"))]
+pub fn verify_headers(
+    _storage: &dyn Storage,
+    _chain_params: &Params,
+    _first_header: &BtcHeaderInfo,
+    _new_headers: &[BtcHeaderInfo],
+) -> Result<(), HeaderError> {
+    Ok(())
+}
+
 /// Verifies a consecutive sequence of Bitcoin headers starting from a known header.
 ///
 /// Ref https://github.com/babylonlabs-io/babylon/blob/d3d81178dc38c172edaf5651c72b296bb9371a48/x/btclightclient/types/btc_light_client.go#L298
+#[cfg(feature = "full-validation")]
 pub fn verify_headers(
     storage: &dyn Storage,
     chain_params: &Params,
