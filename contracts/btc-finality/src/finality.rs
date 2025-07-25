@@ -407,7 +407,7 @@ fn slash_finality_provider(
     let fork_msg_to_sign_hash = Sha256::digest(&fork_msg_to_sign);
 
     let btc_sk = pk
-        .extract_secret_key(
+        .extract_from_hashes(
             &evidence.pub_rand,
             canonical_msg_to_sign_hash.into(),
             &evidence.canonical_finality_sig,

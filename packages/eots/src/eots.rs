@@ -204,7 +204,7 @@ impl SecretKey {
         PublicKey { inner: pk }
     }
 
-    /// Sign returns an extractable Schnorr signature for a message, signed with a private key and private randomness value.
+    /// Returns an extractable Schnorr signature for a message, signed with a private key and private randomness value.
     /// Note that the Signature is only the second (S) part of the typical bitcoin signature, the first (R) can be deduced from
     /// the public randomness value and the message.
     pub fn sign(&self, private_rand: &[u8], message: &[u8]) -> Result<Signature> {
@@ -212,11 +212,10 @@ impl SecretKey {
         self.sign_hash(private_rand, h)
     }
 
-    /// signHash returns an extractable Schnorr signature for a hashed message.
+    /// Returns an extractable Schnorr signature for a hashed message.
     /// The caller MUST ensure that hash is the output of a cryptographically secure hash function.
-    /// Based on unexported schnorrSign of btcd.
+    /// Based on the unexported schnorr signing function from btcd.
     pub fn sign_hash(&self, private_rand: &[u8], hash: [u8; 32]) -> Result<Signature> {
-        // Check if private key is zero
         if self.inner.to_nonzero_scalar().is_zero().into() {
             return Err(Error::PrivateKeyIsZero);
         }
@@ -235,8 +234,6 @@ impl SecretKey {
         let k = *SecRand::new(private_rand)?;
 
         // R = kG (with blinding in order to prevent timing side channel attacks)
-        // Note: we use standard scalar base multiplication here instead of blinding
-        // as k256 crate doesn't expose the blinding functionality
         let r_point = ProjectivePoint::mul_by_generator(&k);
 
         // Always negate nonce k to avoid timing attack and pick the
@@ -262,12 +259,12 @@ impl SecretKey {
 
         // s = k + e*d mod n
         // choose negated values for
-        // priv_key_scalar and k to avoid timing attack
+        // privKeyScalar and k to avoid timing attack
         let sig = match (is_py_odd, is_ry_odd) {
             (true, true) => k_negated + e * priv_key_scalar_negated,
             (true, false) => k + e * priv_key_scalar_negated,
             (false, true) => k_negated + e * priv_key_scalar,
-            (false, false) => k + e * priv_key_scalar,
+            (false, false) => k + e * priv_key_scalar, // !isPyOdd && !isRyOdd
         };
 
         // If Verify(bytes(P), m, sig) fails, abort.
@@ -332,21 +329,34 @@ impl PublicKey {
         point_to_bytes(&self.inner.to_projective()).to_vec()
     }
 
-    /// Verify verifies that the signature is valid for this message, public key and random value.
+    /// Verifies that the signature is valid for this message, public key and random value.
     /// Precondition: r must be normalized
     pub fn verify(&self, r_bytes: &[u8], message: &[u8], sig: &[u8]) -> Result<bool> {
         let h = hash(message);
         self.verify_hash(r_bytes, h, sig)
     }
 
-    /// Verify verifies that the signature is valid for this hashed message, public key and random value.
-    /// Based on unexported schnorrVerify of btcd.
+    /// Verifies that the signature is valid for this hashed message, public key and random value.
+    /// Based on the unexported schnorr verification function from btcd.
     pub fn verify_hash(&self, r_bytes: &[u8], hash: [u8; 32], sig: &[u8]) -> Result<bool> {
+        // Step 2.
+        //
+        // P = lift_x(int(pk))
+        //
+        // Fail if P is not a point on the curve
+        // (This is handled by the k256 crate when creating the PublicKey)
+
+        // Fail if P is not a point on the curve
+        // (Already verified by construction)
+
         // Parse public randomness
         let r = PubRand::new(r_bytes)?;
 
         // Parse signature
         let s = Signature::new(sig)?;
+
+        // Fail if r >= p is already handled by the fact r is a field element.
+        // Fail if s >= n is already handled by the fact s is a mod n scalar.
 
         // e = int(tagged_hash("BIP0340/challenge", bytes(r) || bytes(P) || M)) mod n.
         let r_point_bytes = r.to_bytes();
@@ -360,7 +370,7 @@ impl PublicKey {
                 .finalize(),
         );
 
-        // Negate e here so we can use addition below to subtract the s*G
+        // Negate e here so we can use AddNonConst below to subtract the s*G
         // point from e*P.
         let e_neg = -e;
 
@@ -386,7 +396,23 @@ impl PublicKey {
         Ok(recovered_r.eq(&*r))
     }
 
-    pub fn extract_secret_key(
+    /// Extracts the private key from a public key and signatures for two distinct hash messages.
+    /// Precondition: r must be normalized
+    pub fn extract(
+        &self,
+        r_bytes: &[u8],
+        message1: &[u8],
+        sig1: &[u8],
+        message2: &[u8],
+        sig2: &[u8],
+    ) -> Result<SecretKey> {
+        let h1 = hash(message1);
+        let h2 = hash(message2);
+        self.extract_from_hashes(r_bytes, h1, sig1, h2, sig2)
+    }
+
+    /// Extracts the private key from hashes, instead of the non-hashed message directly as Extract does.
+    pub fn extract_from_hashes(
         &self,
         r_bytes: &[u8],
         hash1: [u8; 32],
@@ -425,25 +451,23 @@ impl PublicKey {
 
         // x = (s1 - s2) / (e1 - e2)
         let denom = e1 - e2;
-        let x = (*s1 - *s2) * denom.invert().unwrap();
+        let mut x = (*s1 - *s2) * denom.invert().unwrap();
 
-        // Adjust for y-coordinate parity as in Go implementation
-        let mut x_adjusted = x;
-        if self.is_y_odd() {
-            x_adjusted = -x_adjusted;
+        let pub_key_bytes = self.to_bytes();
+        if pub_key_bytes[0] == 0x03 {
+            x = -x;
         }
 
-        let sk = k256::SecretKey::new(x_adjusted.into());
+        let sk = k256::SecretKey::new(x.into());
         let extracted_sk = SecretKey { inner: sk };
 
-        // Verify that the extracted private key matches the public key
-        if extracted_sk.pubkey().to_bytes() != self.to_bytes() {
-            return Err(Error::EllipticCurveError(
+        if extracted_sk.pubkey().to_bytes() == self.to_bytes() {
+            Ok(extracted_sk)
+        } else {
+            Err(Error::EllipticCurveError(
                 "Extracted private key does not match public key".to_string(),
-            ));
+            ))
         }
-
-        Ok(extracted_sk)
     }
 
     /// Returns true if the y-coordinate of the public key is odd.
@@ -523,11 +547,11 @@ mod tests {
         let sig2 = sk.sign(&sec_rand.to_bytes(), message2).unwrap();
 
         let extracted_sk = pk
-            .extract_secret_key(
+            .extract(
                 &pub_rand.to_bytes(),
-                hash(message1),
+                message1,
                 &sig1.to_bytes(),
-                hash(message2),
+                message2,
                 &sig2.to_bytes(),
             )
             .unwrap();
@@ -578,7 +602,7 @@ mod tests {
 
         // extract SK using hash-based method since testdata contains pre-hashed messages
         let extracted_sk = pk
-            .extract_secret_key(
+            .extract_from_hashes(
                 &pr.to_bytes(),
                 msg1_hash,
                 &sig1.to_bytes(),
