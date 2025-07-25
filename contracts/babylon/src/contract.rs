@@ -334,9 +334,9 @@ pub fn execute(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use babylon_test_utils::get_btc_initial_header;
     use bitcoin::block::Header as BlockHeader;
     use btc_light_client::msg::InstantiateMsg as BtcLightClientInstantiateMsg;
+    use btc_light_client::state::test_utils::get_btc_initial_header;
     use cosmwasm_std::testing::message_info;
     use cosmwasm_std::testing::{mock_dependencies, mock_env};
 

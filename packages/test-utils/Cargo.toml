@@ -12,7 +12,6 @@ publish           = true
 babylon-apis     = { path = "../apis", version = "0.15.0" }
 babylon-proto    = { path = "../proto", version = "0.15.0" }
 bitcoin          = { workspace = true }
-btc-light-client = { path = "../../contracts/btc-light-client" }
 cosmwasm-std     = { workspace = true }
 hex              = { workspace = true }
 k256             = { workspace = true }
