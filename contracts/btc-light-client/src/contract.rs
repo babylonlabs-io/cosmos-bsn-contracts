@@ -9,7 +9,6 @@ use crate::state::{
 };
 use babylon_bindings::BabylonMsg;
 use babylon_proto::babylon::btclightclient::v1::BtcHeaderInfo;
-use bitcoin::block::Header as BlockHeader;
 use bitcoin::BlockHash;
 use cosmwasm_std::{
     to_json_binary, Binary, Deps, DepsMut, Empty, Env, MessageInfo, Response, Storage,
@@ -33,8 +32,21 @@ pub fn instantiate(
         network,
         btc_confirmation_depth,
         checkpoint_finalization_timeout,
-        initial_header,
+        base_header,
     } = msg;
+
+    let mut res = Response::new();
+
+    // Initialises the BTC header chain storage if base header is provided.
+    if let Some(header) = base_header {
+        let base_header_info = header.to_btc_header_info()?;
+        let base_btc_header = base_header_info.block_header()?;
+        crate::bitcoin::check_proof_of_work(&network.chain_params(), &base_btc_header)?;
+        // Store base header (immutable) and tip.
+        set_base_header(deps.storage, &base_header_info)?;
+        set_tip(deps.storage, &base_header_info)?;
+        res = res.set_data(Binary::from(base_header_info.encode_to_vec()));
+    }
 
     let cfg = Config {
         network,
@@ -42,33 +54,10 @@ pub fn instantiate(
         checkpoint_finalization_timeout,
     };
 
-    let mut res = Response::new();
-
-    // Initialises the BTC header chain storage if initial_header is provided.
-    if let Some(header) = initial_header {
-        let base_header = header.to_btc_header_info()?;
-        let base_btc_header: BlockHeader =
-            bitcoin::consensus::deserialize(base_header.header.as_ref())?;
-        crate::bitcoin::check_proof_of_work(&cfg.network.chain_params(), &base_btc_header)?;
-        // Store base header (immutable) and tip.
-        set_base_header(deps.storage, &base_header)?;
-        set_tip(deps.storage, &base_header)?;
-        res = res.set_data(Binary::from(base_header.encode_to_vec()));
-    }
-
     CONFIG.save(deps.storage, &cfg)?;
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
 
     Ok(res.add_attribute("action", "instantiate"))
-}
-
-pub fn migrate(
-    deps: DepsMut,
-    _env: Env,
-    _msg: Empty,
-) -> Result<Response<BabylonMsg>, ContractError> {
-    set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
-    Ok(Response::new().add_attribute("action", "migrate"))
 }
 
 pub fn execute(
@@ -85,19 +74,14 @@ pub fn execute(
         } => {
             let api = deps.api;
             let headers_len = headers.len();
-            let resp = match handle_btc_headers(deps, headers, first_work, first_height) {
-                Ok(resp) => {
-                    api.debug(&format!("Successfully handled {headers_len} BTC headers"));
-                    resp
-                }
-                Err(e) => {
-                    let err = format!("Failed to handle {headers_len} BTC headers: {e}");
-                    api.debug(&err);
-                    return Err(e);
-                }
-            };
 
-            Ok(resp)
+            handle_btc_headers(deps, headers, first_work, first_height)
+                .inspect(|_| {
+                    api.debug(&format!("Successfully handled {headers_len} BTC headers"));
+                })
+                .inspect_err(|e| {
+                    api.debug(&format!("Failed to handle {headers_len} BTC headers: {e}"));
+                })
         }
     }
 }
@@ -124,6 +108,15 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> Result<Binary, ContractErr
     }
 }
 
+pub fn migrate(
+    deps: DepsMut,
+    _env: Env,
+    _msg: Empty,
+) -> Result<Response<BabylonMsg>, ContractError> {
+    set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
+    Ok(Response::new().add_attribute("action", "migrate"))
+}
+
 fn handle_btc_headers(
     deps: DepsMut,
     headers: Vec<BtcHeader>,
@@ -138,7 +131,7 @@ fn handle_btc_headers(
         let first_work_bytes = hex::decode(first_work_hex)?;
         let first_work = total_work(&first_work_bytes)?;
 
-        init_btc_headers(deps.storage, &headers, &first_work, first_height)?;
+        init_btc_headers(deps.storage, &headers, first_work, first_height)?;
         Ok(Response::new().add_attribute("action", "init_btc_light_client"))
     } else {
         extend_btc_headers(deps.storage, &headers)?;
@@ -152,52 +145,64 @@ fn handle_btc_headers(
 fn init_btc_headers(
     storage: &mut dyn Storage,
     headers: &[BtcHeader],
-    first_work: &bitcoin::Work,
+    first_work: bitcoin::Work,
     first_height: u32,
 ) -> Result<(), ContractError> {
     let cfg = CONFIG.load(storage)?;
 
     // ensure there are >=w+1 headers, i.e. a base header and at least w subsequent
     // ones as a w-deep proof
-    if (headers.len() as u32) < cfg.checkpoint_finalization_timeout + 1 {
+    let min_required_headers = cfg.checkpoint_finalization_timeout + 1;
+    if (headers.len() as u32) < min_required_headers {
         return Err(
-            InitHeadersError::NotEnoughHeaders(cfg.checkpoint_finalization_timeout + 1).into(),
+            InitHeadersError::InsufficientHeaders(min_required_headers, headers.len()).into(),
         );
     }
 
-    let chain_params = cfg.network.chain_params();
-
     // base header is the first header in the list
-    let base_header = headers.first().ok_or(InitHeadersError::MissingTipHeader)?;
-    let base_header = base_header.to_btc_header_info(first_height, *first_work)?;
+    let (base_header, new_headers) = headers
+        .split_first()
+        .expect("Headers must not be empty as checked above");
 
-    // Convert headers to BtcHeaderInfo with work/height based on first block
-    let mut cur_height = base_header.height;
-    let mut cur_work = total_work(base_header.work.as_ref())?;
-    let mut processed_headers = Vec::with_capacity(headers.len());
-    processed_headers.push(base_header.clone());
-    for header in headers.iter().skip(1) {
-        let new_header_info = header.to_btc_header_info_from_prev(cur_height, cur_work)?;
-        cur_height += 1;
-        cur_work = total_work(new_header_info.work.as_ref())?;
-        processed_headers.push(new_header_info);
-    }
+    let base_header = base_header.to_btc_header_info(first_height, first_work)?;
 
     // We need to initialize the base header (immutable) ahead of the subsequent headers
     // processing as `verify_headers` assumes the base header must already exist.
     set_base_header(storage, &base_header)?;
 
-    // verify subsequent headers
-    let new_headers = &processed_headers[1..];
-    verify_headers(storage, &chain_params, &base_header, new_headers)?;
+    let new_headers =
+        convert_to_btc_header_info(new_headers, base_header.height, &base_header.work)?;
 
-    insert_headers(storage, &processed_headers)?;
-    let tip = processed_headers
-        .last()
-        .ok_or(InitHeadersError::MissingTipHeader)?;
+    // Verify subsequent headers
+    let chain_params = cfg.network.chain_params();
+    verify_headers(storage, &chain_params, &base_header, &new_headers)?;
+
+    insert_headers(storage, &new_headers)?;
+    let tip = new_headers.last().unwrap_or(&base_header);
     set_tip(storage, tip)?;
 
     Ok(())
+}
+
+/// Converts a slice of `BtcHeader` into a vector of `BtcHeaderInfo`s
+/// using the given starting height and work.
+fn convert_to_btc_header_info(
+    headers: &[BtcHeader],
+    start_height: u32,
+    start_work: &[u8],
+) -> Result<Vec<BtcHeaderInfo>, ContractError> {
+    let mut cur_height = start_height;
+    let mut cur_work = total_work(start_work)?;
+    let mut result = Vec::with_capacity(headers.len());
+
+    for header in headers {
+        let info = header.to_btc_header_info_from_prev(cur_height, cur_work)?;
+        cur_height += 1;
+        cur_work = total_work(info.work.as_ref())?;
+        result.push(info);
+    }
+
+    Ok(result)
 }
 
 /// Verifies and inserts a number of finalised BTC headers to the
@@ -216,19 +221,12 @@ fn extend_btc_headers(
     // Obtain previous header from storage
     let previous_header = expect_header_by_hash(storage, prev_blockhash.as_ref())?;
 
-    // Convert new_headers to `BtcHeaderInfo`s
-    let mut prev_height = previous_header.height;
-    let mut prev_work = total_work(previous_header.work.as_ref())?;
-    let mut new_headers_info = vec![];
-    for new_btc_header in new_btc_headers.iter() {
-        let new_header_info =
-            new_btc_header.to_btc_header_info_from_prev(prev_height, prev_work)?;
-        prev_height += 1;
-        prev_work = total_work(new_header_info.work.as_ref())?;
-        new_headers_info.push(new_header_info);
-    }
+    let new_headers_info = convert_to_btc_header_info(
+        new_btc_headers,
+        previous_header.height,
+        previous_header.work.as_ref(),
+    )?;
 
-    // Call `handle_btc_headers_from_babylon`
     handle_btc_headers_from_babylon(storage, &new_headers_info)
 }
 
@@ -245,7 +243,7 @@ fn extend_btc_headers(
 ///   as Babylon.
 ///
 /// Ref https://github.com/babylonlabs-io/babylon/blob/d3d81178dc38c172edaf5651c72b296bb9371a48/x/btclightclient/types/btc_light_client.go#L339
-pub fn handle_btc_headers_from_babylon(
+pub(crate) fn handle_btc_headers_from_babylon(
     storage: &mut dyn Storage,
     new_headers: &[BtcHeaderInfo],
 ) -> Result<(), ContractError> {
@@ -258,8 +256,7 @@ pub fn handle_btc_headers_from_babylon(
     // decode the first header in these new headers
     let first_new_header = new_headers.first().ok_or(ContractError::EmptyHeaders {})?;
 
-    let first_new_btc_header: BlockHeader =
-        bitcoin::consensus::deserialize(first_new_header.header.as_ref())?;
+    let first_new_btc_header = first_new_header.block_header()?;
 
     let new_tip = if first_new_btc_header.prev_blockhash.as_ref() == cur_tip_hash.to_vec() {
         // Most common case: extending the current tip
@@ -305,6 +302,7 @@ pub(crate) mod tests {
     };
     use crate::ExecuteMsg;
     use babylon_test_utils::{get_btc_lc_fork_headers, get_btc_lc_fork_msg, get_btc_lc_headers};
+    use bitcoin::block::Header as BlockHeader;
     use cosmwasm_std::{from_json, testing::mock_dependencies};
 
     /// Initialze the contract state with given headers.
@@ -682,8 +680,7 @@ pub(crate) mod tests {
         // ensure the tip btc header is set and is correct
         let tip_btc_expected: BlockHeader =
             test_fork_msg_headers.last().unwrap().try_into().unwrap();
-        let tip_btc_actual: BlockHeader =
-            bitcoin::consensus::deserialize(get_tip(&storage).unwrap().header.as_ref()).unwrap();
+        let tip_btc_actual = get_tip(&storage).unwrap().block_header().unwrap();
         assert_eq!(tip_btc_expected, tip_btc_actual);
 
         // ensure all initial headers are still inserted

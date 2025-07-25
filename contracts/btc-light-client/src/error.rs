@@ -12,10 +12,8 @@ pub enum InitHeadersError {
     MissingBaseWork,
     #[error("Missing base height during initialization")]
     MissingBaseHeight,
-    #[error("Missing tip header")]
-    MissingTipHeader,
-    #[error("Not enough headers (expected at least {0})")]
-    NotEnoughHeaders(u32),
+    #[error("Insufficient headers provided (required {0}, got: {1})")]
+    InsufficientHeaders(u32, usize),
 }
 
 #[derive(Error, Debug, PartialEq)]

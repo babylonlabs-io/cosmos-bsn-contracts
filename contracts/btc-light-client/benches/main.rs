@@ -3,7 +3,7 @@
 //! the workspace root.
 //! Then running `cargo bench` will validate we can properly call into that generated Wasm.
 
-use btc_light_client::state::test_utils::get_btc_initial_header;
+use btc_light_client::state::test_utils::get_btc_base_header;
 use criterion::{criterion_group, criterion_main, Criterion, PlottingBackend};
 
 use std::time::Duration;
@@ -50,7 +50,7 @@ pub fn setup_instance() -> Instance<MockApi, MockStorage, MockQuerier> {
         network: btc_light_client::BitcoinNetwork::Regtest,
         btc_confirmation_depth: 10,
         checkpoint_finalization_timeout: 2,
-        initial_header: get_btc_initial_header(),
+        base_header: get_btc_base_header(),
     };
     let info = mock_info(CREATOR, &[]);
     let res: Response = instantiate(&mut deps, mock_env(), info, msg).unwrap();

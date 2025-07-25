@@ -1,4 +1,4 @@
-use btc_light_client::state::test_utils::get_btc_initial_header;
+use btc_light_client::state::test_utils::get_btc_base_header;
 use cosmwasm_std::testing::{message_info, mock_ibc_channel_open_try};
 use cosmwasm_std::{to_json_binary, Addr, ContractResult, IbcOrder, Response};
 use cosmwasm_vm::testing::{
@@ -34,7 +34,7 @@ fn setup() -> Instance<MockApi, MockStorage, MockQuerier> {
             network: BitcoinNetwork::Testnet,
             btc_confirmation_depth: 1,
             checkpoint_finalization_timeout: 1,
-            initial_header: get_btc_initial_header(),
+            base_header: get_btc_base_header(),
         })
         .unwrap(),
     );
