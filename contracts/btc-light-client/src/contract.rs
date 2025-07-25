@@ -32,13 +32,13 @@ pub fn instantiate(
         network,
         btc_confirmation_depth,
         checkpoint_finalization_timeout,
-        base_header: maybe_base_header,
+        base_header,
     } = msg;
 
     let mut res = Response::new();
 
     // Initialises the BTC header chain storage if base header is provided.
-    if let Some(header) = maybe_base_header {
+    if let Some(header) = base_header {
         let base_header_info = header.to_btc_header_info()?;
         let base_btc_header = base_header_info.block_header()?;
         crate::bitcoin::check_proof_of_work(&network.chain_params(), &base_btc_header)?;
@@ -227,7 +227,6 @@ fn extend_btc_headers(
         previous_header.work.as_ref(),
     )?;
 
-    // Call `handle_btc_headers_from_babylon`
     handle_btc_headers_from_babylon(storage, &new_headers_info)
 }
 
@@ -244,7 +243,7 @@ fn extend_btc_headers(
 ///   as Babylon.
 ///
 /// Ref https://github.com/babylonlabs-io/babylon/blob/d3d81178dc38c172edaf5651c72b296bb9371a48/x/btclightclient/types/btc_light_client.go#L339
-pub fn handle_btc_headers_from_babylon(
+pub(crate) fn handle_btc_headers_from_babylon(
     storage: &mut dyn Storage,
     new_headers: &[BtcHeaderInfo],
 ) -> Result<(), ContractError> {
