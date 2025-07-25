@@ -219,15 +219,15 @@ pub fn get_headers(
 }
 
 pub mod test_utils {
-    use crate::msg::contract::InitialHeader;
+    use crate::msg::contract::BaseHeader;
     use babylon_proto::babylon::btclightclient::v1::BtcHeaderInfo;
     use bitcoin::block::Header as BlockHeader;
 
-    /// Helper function to get the appropriate initial header value based on the full-validation feature
+    /// Helper function to get the appropriate base header value based on the full-validation feature
     ///
-    /// When the full-validation feature is enabled, returns Some(btc_initial_header).
+    /// When the full-validation feature is enabled, returns Some(btc_base_header).
     /// When the full-validation feature is disabled, returns None.
-    pub fn get_btc_initial_header() -> Option<InitialHeader> {
+    pub fn get_btc_base_header() -> Option<BaseHeader> {
         #[cfg(feature = "full-validation")]
         {
             Some(test_headers()[0].clone().try_into().unwrap())
