@@ -152,9 +152,10 @@ fn init_btc_headers(
 
     // ensure there are >=w+1 headers, i.e. a base header and at least w subsequent
     // ones as a w-deep proof
-    if (headers.len() as u32) < cfg.checkpoint_finalization_timeout + 1 {
+    let min_required_headers = cfg.checkpoint_finalization_timeout + 1;
+    if (headers.len() as u32) < min_required_headers {
         return Err(
-            InitHeadersError::NotEnoughHeaders(cfg.checkpoint_finalization_timeout + 1).into(),
+            InitHeadersError::InsufficientHeaders(min_required_headers, headers.len()).into(),
         );
     }
 
