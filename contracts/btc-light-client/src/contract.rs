@@ -131,7 +131,7 @@ fn handle_btc_headers(
         let first_work_bytes = hex::decode(first_work_hex)?;
         let first_work = total_work(&first_work_bytes)?;
 
-        init_btc_headers(deps.storage, &headers, &first_work, first_height)?;
+        init_btc_headers(deps.storage, &headers, first_work, first_height)?;
         Ok(Response::new().add_attribute("action", "init_btc_light_client"))
     } else {
         extend_btc_headers(deps.storage, &headers)?;
@@ -145,7 +145,7 @@ fn handle_btc_headers(
 fn init_btc_headers(
     storage: &mut dyn Storage,
     headers: &[BtcHeader],
-    first_work: &bitcoin::Work,
+    first_work: bitcoin::Work,
     first_height: u32,
 ) -> Result<(), ContractError> {
     let cfg = CONFIG.load(storage)?;
@@ -163,7 +163,7 @@ fn init_btc_headers(
 
     // base header is the first header in the list
     let base_header = headers.first().ok_or(InitHeadersError::MissingTipHeader)?;
-    let base_header = base_header.to_btc_header_info(first_height, *first_work)?;
+    let base_header = base_header.to_btc_header_info(first_height, first_work)?;
 
     // We need to initialize the base header (immutable) ahead of the subsequent headers
     // processing as `verify_headers` assumes the base header must already exist.
