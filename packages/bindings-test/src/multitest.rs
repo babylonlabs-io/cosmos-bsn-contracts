@@ -19,7 +19,16 @@ use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
 use thiserror::Error;
 
-const BABYLON_CHAIN_ID: &str = "babylon-testnet-phase-3";
+pub const BABYLON_CHAIN_ID: &str = "babylon-testnet-phase-3";
+pub const BABYLON_CONTRACT_ADDR: &str =
+    "cosmwasm1nnzavhgqucflnjpkmstm9ld9d54ywcgep0ej2em8lxaqcm0tuugspxy2zj";
+pub const BTC_LIGHT_CLIENT_CONTRACT_ADDR: &str =
+    "cosmwasm14hj2tavq8fpesdwxxcu44rty3hh90vhujrvcmstl4zr3txmfvw9s8jef58";
+pub const BTC_STAKING_CONTRACT_ADDR: &str =
+    "cosmwasm1nc5tatafv6eyq7llkr2gv50ff9e22mnf70qgjlv737ktmt4eswrqt8utkp";
+pub const BTC_FINALITY_CONTRACT_ADDR: &str =
+    "cosmwasm17p9rzwnnfxcjp32un9ug7yhhzgtkhvl9jfksztgw5uh69wac2pgsnuzwl9";
+pub const USER_ADDR: &str = "cosmwasm1zwv6feuzhy6a9wekh96cd57lsarmqlwxdypdum6l3wrwqwax8qts0zj9qp";
 
 pub struct BabylonModule {}
 

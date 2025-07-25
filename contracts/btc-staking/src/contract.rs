@@ -344,16 +344,16 @@ pub mod tests {
         // Call instantiate
         instantiate(deps.as_mut(), mock_env(), info.clone(), instantiate_msg).unwrap();
 
-        const BABYLON_CONTRACT_ADDR: &str =
+        let babylon_contract_addr: &str =
             "cosmwasm19mfs8tl4s396u7vqw9rrnsmrrtca5r66p7v8jvwdxvjn3shcmllqupdgxu";
-        const BTC_LIGHT_CLIENT_CONTRACT_ADDR: &str =
+        let btc_light_client_contract_addr: &str =
             "cosmwasm14hj2tavq8fpesdwxxcu44rty3hh90vhujrvcmstl4zr3txmfvw9s8jef58";
 
         // Try to update addresses with non-admin/non-babylon
         let non_admin_info = message_info(&deps.api.addr_make("non_admin"), &[]);
         let update_msg = ExecuteMsg::UpdateContractAddresses {
-            btc_light_client: BABYLON_CONTRACT_ADDR.to_string(),
-            finality: BTC_LIGHT_CLIENT_CONTRACT_ADDR.to_string(),
+            btc_light_client: babylon_contract_addr.to_string(),
+            finality: btc_light_client_contract_addr.to_string(),
         };
         let err = execute(
             deps.as_mut(),
@@ -373,18 +373,18 @@ pub mod tests {
         let config = queries::config(deps.as_ref()).unwrap();
         assert_eq!(
             config.finality,
-            Addr::unchecked(BTC_LIGHT_CLIENT_CONTRACT_ADDR)
+            Addr::unchecked(btc_light_client_contract_addr)
         );
         assert_eq!(
             config.btc_light_client,
-            Addr::unchecked(BABYLON_CONTRACT_ADDR)
+            Addr::unchecked(babylon_contract_addr)
         );
 
         // Update with babylon
         let babylon_info = message_info(&deps.api.addr_make(CREATOR), &[]);
         let update_msg = ExecuteMsg::UpdateContractAddresses {
-            btc_light_client: BABYLON_CONTRACT_ADDR.to_string(),
-            finality: BTC_LIGHT_CLIENT_CONTRACT_ADDR.to_string(),
+            btc_light_client: babylon_contract_addr.to_string(),
+            finality: btc_light_client_contract_addr.to_string(),
         };
         let res = execute(deps.as_mut(), mock_env(), babylon_info, update_msg).unwrap();
         assert_eq!(4, res.attributes.len());
@@ -393,11 +393,11 @@ pub mod tests {
         let config = queries::config(deps.as_ref()).unwrap();
         assert_eq!(
             config.finality,
-            Addr::unchecked(BTC_LIGHT_CLIENT_CONTRACT_ADDR)
+            Addr::unchecked(btc_light_client_contract_addr)
         );
         assert_eq!(
             config.btc_light_client,
-            Addr::unchecked(BABYLON_CONTRACT_ADDR)
+            Addr::unchecked(babylon_contract_addr)
         );
     }
 }

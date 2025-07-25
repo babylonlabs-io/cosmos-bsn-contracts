@@ -1,22 +1,11 @@
 mod suite;
 
+use babylon_bindings_test::{
+    BABYLON_CONTRACT_ADDR, BTC_FINALITY_CONTRACT_ADDR, BTC_LIGHT_CLIENT_CONTRACT_ADDR,
+    BTC_STAKING_CONTRACT_ADDR,
+};
 use cosmwasm_std::Addr;
 use suite::SuiteBuilder;
-
-// Some multi-test default settings
-// TODO: Replace these with their address generators
-// Babylon contract
-const BABYLON_CONTRACT_ADDR: &str =
-    "cosmwasm1nnzavhgqucflnjpkmstm9ld9d54ywcgep0ej2em8lxaqcm0tuugspxy2zj";
-// BTC Light Client contract
-const BTC_LIGHT_CLIENT_CONTRACT_ADDR: &str =
-    "cosmwasm14hj2tavq8fpesdwxxcu44rty3hh90vhujrvcmstl4zr3txmfvw9s8jef58";
-// BTC Staking contract
-const BTC_STAKING_CONTRACT_ADDR: &str =
-    "cosmwasm1nc5tatafv6eyq7llkr2gv50ff9e22mnf70qgjlv737ktmt4eswrqt8utkp";
-// BTC Finality contract
-const BTC_FINALITY_CONTRACT_ADDR: &str =
-    "cosmwasm17p9rzwnnfxcjp32un9ug7yhhzgtkhvl9jfksztgw5uh69wac2pgsnuzwl9";
 
 #[test]
 fn initialization() {
