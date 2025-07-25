@@ -1,6 +1,5 @@
 use crate::error::Error;
 use crate::Result;
-
 use k256::elliptic_curve::sec1::ToEncodedPoint;
 use k256::{
     elliptic_curve::{
@@ -35,18 +34,18 @@ pub fn hash(message: &[u8]) -> [u8; 32] {
     hasher.finalize().into()
 }
 
-/// `SecRand` is the type for a secret randomness.
+/// `PrivateRand` is the type for a secret randomness.
 /// It is formed as a scalar on the secp256k1 curve
-pub struct SecRand {
+pub struct PrivateRand {
     inner: Scalar,
 }
 
-impl SecRand {
+impl PrivateRand {
     /// Parses the given bytes into a new secret randomness.
     /// The given byte slice has to be a 32-byte scalar.
     /// NOTE: we enforce the secret randomness to correspond to a point
     /// with even y-coordinate
-    pub fn new(r: &[u8]) -> Result<SecRand> {
+    pub fn new(r: &[u8]) -> Result<PrivateRand> {
         let array: [u8; 32] = r
             .try_into()
             .map_err(|_| Error::InvalidInputLength(r.len()))?;
@@ -64,7 +63,7 @@ impl SecRand {
     }
 }
 
-impl Deref for SecRand {
+impl Deref for PrivateRand {
     type Target = Scalar;
 
     fn deref(&self) -> &<Self as Deref>::Target {
@@ -231,7 +230,7 @@ impl SecretKey {
         let priv_key_scalar_negated = -priv_key_scalar;
         let is_py_odd = pub_key.is_y_odd();
 
-        let k = *SecRand::new(private_rand)?;
+        let k = *PrivateRand::new(private_rand)?;
 
         // R = kG (with blinding in order to prevent timing side channel attacks)
         let r_point = ProjectivePoint::mul_by_generator(&k);
@@ -492,8 +491,8 @@ mod tests {
     use rand::{thread_rng, RngCore};
     use sha2::{Digest, Sha256};
 
-    pub fn rand_gen() -> (SecRand, PubRand) {
-        let x = SecRand::new(&Scalar::generate_vartime(&mut thread_rng()).to_bytes()).unwrap();
+    pub fn rand_gen() -> (PrivateRand, PubRand) {
+        let x = PrivateRand::new(&Scalar::generate_vartime(&mut thread_rng()).to_bytes()).unwrap();
         let p = PubRand::from(ProjectivePoint::mul_by_generator(&*x));
         (x, p)
     }
@@ -526,7 +525,7 @@ mod tests {
         let sec_rand_bytes =
             hex::decode("abcdef1234567890abcdef1234567890abcdef1234567890abcdef123456789a")
                 .unwrap();
-        let sec_rand = SecRand::new(&sec_rand_bytes).unwrap();
+        let sec_rand = PrivateRand::new(&sec_rand_bytes).unwrap();
         let pub_rand = PubRand::from(ProjectivePoint::mul_by_generator(&*sec_rand));
 
         let message = b"test message";
@@ -569,7 +568,7 @@ mod tests {
 
         // convert secret/public randomness to Rust types
         let sr_slice = hex::decode(testdata.sr).unwrap();
-        let sr = SecRand::new(&sr_slice).unwrap();
+        let sr = PrivateRand::new(&sr_slice).unwrap();
         let pr_slice = hex::decode(testdata.pr).unwrap();
         let pr_bytes: [u8; 32] = pr_slice.try_into().unwrap();
         let pr = PubRand::new(&pr_bytes).unwrap();
