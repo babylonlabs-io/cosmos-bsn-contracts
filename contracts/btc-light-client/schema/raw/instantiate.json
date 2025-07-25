@@ -8,6 +8,17 @@
     "network"
   ],
   "properties": {
+    "base_header": {
+      "description": "Initial BTC header. If not provided, the light client will rely on and trust Babylon's provided initial header",
+      "anyOf": [
+        {
+          "$ref": "#/definitions/BaseHeader"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
     "btc_confirmation_depth": {
       "type": "integer",
       "format": "uint32",
@@ -18,23 +29,45 @@
       "format": "uint32",
       "minimum": 0.0
     },
-    "initial_header": {
-      "description": "Initial BTC header. If not provided, the light client will rely on and trust Babylon's provided initial header",
-      "anyOf": [
-        {
-          "$ref": "#/definitions/InitialHeader"
-        },
-        {
-          "type": "null"
-        }
-      ]
-    },
     "network": {
       "$ref": "#/definitions/BitcoinNetwork"
     }
   },
   "additionalProperties": false,
   "definitions": {
+    "BaseHeader": {
+      "type": "object",
+      "required": [
+        "header",
+        "height",
+        "total_work"
+      ],
+      "properties": {
+        "header": {
+          "description": "Initial BTC header to initialize the light client.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/BtcHeader"
+            }
+          ]
+        },
+        "height": {
+          "description": "Height of the initial header.",
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0.0
+        },
+        "total_work": {
+          "description": "Total accumulated work of the initial header, encoded as big-endian bytes.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Binary"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
     "Binary": {
       "description": "Binary is a wrapper around Vec<u8> to add base64 de/serialization with serde. It also adds some helper methods to help encode inline.\n\nThis is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>. See also <https://github.com/CosmWasm/cosmwasm/blob/main/docs/MESSAGE_TYPES.md>.",
       "type": "string"
@@ -89,39 +122,6 @@
           "description": "Originally protocol version, but repurposed for soft-fork signaling.\n\n### Relevant BIPs\n\n* [BIP9 - Version bits with timeout and delay](https://github.com/bitcoin/bips/blob/master/bip-0009.mediawiki) (current usage) * [BIP34 - Block v2, Height in Coinbase](https://github.com/bitcoin/bips/blob/master/bip-0034.mediawiki)",
           "type": "integer",
           "format": "int32"
-        }
-      },
-      "additionalProperties": false
-    },
-    "InitialHeader": {
-      "type": "object",
-      "required": [
-        "header",
-        "height",
-        "total_work"
-      ],
-      "properties": {
-        "header": {
-          "description": "Initial BTC header to initialize the light client.",
-          "allOf": [
-            {
-              "$ref": "#/definitions/BtcHeader"
-            }
-          ]
-        },
-        "height": {
-          "description": "Height of the initial header.",
-          "type": "integer",
-          "format": "uint32",
-          "minimum": 0.0
-        },
-        "total_work": {
-          "description": "Total accumulated work of the initial header, encoded as big-endian bytes.",
-          "allOf": [
-            {
-              "$ref": "#/definitions/Binary"
-            }
-          ]
         }
       },
       "additionalProperties": false
