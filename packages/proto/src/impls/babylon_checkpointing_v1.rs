@@ -103,13 +103,13 @@ impl RawCheckpoint {
             .map_err(|_| "wrong epoch number bytes length")?;
         let epoch_num = u64::from_be_bytes(epoch_num_bytes);
         idx += EPOCH_LEN;
-        let block_hash: Vec<u8> = raw_ckpt_bytes[idx..idx + BLOCK_HASH_LEN].to_vec().clone();
+        let block_hash: Vec<u8> = raw_ckpt_bytes[idx..idx + BLOCK_HASH_LEN].to_vec();
         idx += BLOCK_HASH_LEN;
-        let bitmap: Vec<u8> = raw_ckpt_bytes[idx..idx + BITMAP_LEN].to_vec().clone();
+        let bitmap: Vec<u8> = raw_ckpt_bytes[idx..idx + BITMAP_LEN].to_vec();
         idx += BITMAP_LEN;
-        let _: Vec<u8> = raw_ckpt_bytes[idx..idx + ADDRESS_LEN].to_vec().clone();
+        let _: Vec<u8> = raw_ckpt_bytes[idx..idx + ADDRESS_LEN].to_vec();
         idx += ADDRESS_LEN;
-        let bls_multi_sig: Vec<u8> = raw_ckpt_bytes[idx..idx + BLS_SIG_LEN].to_vec().clone();
+        let bls_multi_sig: Vec<u8> = raw_ckpt_bytes[idx..idx + BLS_SIG_LEN].to_vec();
 
         let raw_ckpt = RawCheckpoint {
             epoch_num,
