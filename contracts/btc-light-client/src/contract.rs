@@ -164,33 +164,42 @@ fn init_btc_headers(
     let base_header = headers.first().ok_or(InitHeadersError::MissingTipHeader)?;
     let base_header = base_header.to_btc_header_info(first_height, *first_work)?;
 
-    // Convert headers to BtcHeaderInfo with work/height based on first block
-    let mut cur_height = base_header.height;
-    let mut cur_work = total_work(base_header.work.as_ref())?;
-    let mut processed_headers = Vec::with_capacity(headers.len());
-    processed_headers.push(base_header.clone());
-    for header in headers.iter().skip(1) {
-        let new_header_info = header.to_btc_header_info_from_prev(cur_height, cur_work)?;
-        cur_height += 1;
-        cur_work = total_work(new_header_info.work.as_ref())?;
-        processed_headers.push(new_header_info);
-    }
-
     // We need to initialize the base header (immutable) ahead of the subsequent headers
     // processing as `verify_headers` assumes the base header must already exist.
     set_base_header(storage, &base_header)?;
 
-    // verify subsequent headers
-    let new_headers = &processed_headers[1..];
-    verify_headers(storage, &chain_params, &base_header, new_headers)?;
+    let subsequent_headers =
+        convert_to_btc_header_info(&headers[1..], base_header.height, &base_header.work)?;
 
-    insert_headers(storage, &processed_headers)?;
-    let tip = processed_headers
-        .last()
-        .ok_or(InitHeadersError::MissingTipHeader)?;
+    // Verify subsequent headers
+    verify_headers(storage, &chain_params, &base_header, &subsequent_headers)?;
+
+    insert_headers(storage, &subsequent_headers)?;
+    let tip = subsequent_headers.last().unwrap_or(&base_header);
     set_tip(storage, tip)?;
 
     Ok(())
+}
+
+/// Converts a slice of `BtcHeader` into a vector of `BtcHeaderInfo`s
+/// using the given starting height and work.
+fn convert_to_btc_header_info(
+    headers: &[BtcHeader],
+    start_height: u32,
+    start_work: &[u8],
+) -> Result<Vec<BtcHeaderInfo>, ContractError> {
+    let mut cur_height = start_height;
+    let mut cur_work = total_work(start_work)?;
+    let mut result = Vec::with_capacity(headers.len());
+
+    for header in headers {
+        let info = header.to_btc_header_info_from_prev(cur_height, cur_work)?;
+        cur_height += 1;
+        cur_work = total_work(info.work.as_ref())?;
+        result.push(info);
+    }
+
+    Ok(result)
 }
 
 /// Verifies and inserts a number of finalised BTC headers to the
@@ -209,17 +218,11 @@ fn extend_btc_headers(
     // Obtain previous header from storage
     let previous_header = expect_header_by_hash(storage, prev_blockhash.as_ref())?;
 
-    // Convert new_headers to `BtcHeaderInfo`s
-    let mut prev_height = previous_header.height;
-    let mut prev_work = total_work(previous_header.work.as_ref())?;
-    let mut new_headers_info = vec![];
-    for new_btc_header in new_btc_headers.iter() {
-        let new_header_info =
-            new_btc_header.to_btc_header_info_from_prev(prev_height, prev_work)?;
-        prev_height += 1;
-        prev_work = total_work(new_header_info.work.as_ref())?;
-        new_headers_info.push(new_header_info);
-    }
+    let new_headers_info = convert_to_btc_header_info(
+        new_btc_headers,
+        previous_header.height,
+        previous_header.work.as_ref(),
+    )?;
 
     // Call `handle_btc_headers_from_babylon`
     handle_btc_headers_from_babylon(storage, &new_headers_info)
