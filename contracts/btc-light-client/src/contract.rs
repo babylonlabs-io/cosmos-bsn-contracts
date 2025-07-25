@@ -160,7 +160,10 @@ fn init_btc_headers(
     }
 
     // base header is the first header in the list
-    let base_header = headers.first().ok_or(InitHeadersError::MissingTipHeader)?;
+    let (base_header, new_headers) = headers
+        .split_first()
+        .expect("Headers must not be empty as checked above");
+
     let base_header = base_header.to_btc_header_info(first_height, first_work)?;
 
     // We need to initialize the base header (immutable) ahead of the subsequent headers
@@ -168,7 +171,7 @@ fn init_btc_headers(
     set_base_header(storage, &base_header)?;
 
     let new_headers =
-        convert_to_btc_header_info(&headers[1..], base_header.height, &base_header.work)?;
+        convert_to_btc_header_info(new_headers, base_header.height, &base_header.work)?;
 
     // Verify subsequent headers
     let chain_params = cfg.network.chain_params();
