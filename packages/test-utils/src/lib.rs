@@ -349,38 +349,3 @@ pub fn get_public_randomness_commitment() -> (String, PubRandCommit, Vec<u8>) {
         pub_rand_commitment_msg.sig.to_vec(),
     )
 }
-
-/// Returns the initial BTC header for the babylon contract instantiation.
-pub fn btc_base_header() -> btc_light_client::msg::contract::BaseHeader {
-    // Initial base header on Babylon Genesis mainnet, https://www.blockchain.com/explorer/blocks/btc/854784.
-    // TODO: This hardcodes a mainnet header in `btc_base_header`, which may be incorrect in a
-    // different network context, and we do often use different networks (e.g., testnet or regtest) in the test environment.
-    // It's fine for now, but we should make this function network-aware to avoid subtle bugs down the line.
-    let header = "0000c020f382af1f6d228721b49f3da2f5b831587803b16597b301000000000000000000e4f76aae64d8316d195a92424871b74168b58d1c3c6988548e0e9890b15fc2fc3c00aa66be1a0317082e4bc7";
-    let height = 854784;
-    let header: BlockHeader =
-        bitcoin::consensus::encode::deserialize_hex(header).expect("Static value must be correct");
-    let btc_header_info = BtcHeaderInfo {
-        header: bitcoin::consensus::serialize(&header).into(),
-        hash: bitcoin::consensus::serialize(&header.block_hash()).into(),
-        height,
-        work: header.work().to_be_bytes().to_vec().into(),
-    };
-
-    btc_header_info.try_into().unwrap()
-}
-
-/// Helper function to get the appropriate initial header value based on the full-validation feature
-///
-/// When the full-validation feature is enabled, returns Some(btc_base_header).
-/// When the full-validation feature is disabled, returns None.
-pub fn get_btc_base_header() -> Option<btc_light_client::msg::contract::BaseHeader> {
-    #[cfg(feature = "full-validation")]
-    {
-        Some(btc_base_header())
-    }
-    #[cfg(not(feature = "full-validation"))]
-    {
-        None
-    }
-}

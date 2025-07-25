@@ -1,9 +1,9 @@
 use crate::error::Error;
 use crate::Result;
-
 use k256::elliptic_curve::sec1::ToEncodedPoint;
 use k256::{
     elliptic_curve::{
+        group::Group,
         ops::{MulByGenerator, Reduce},
         point::{AffineCoordinates, DecompressPoint},
         subtle::Choice,
@@ -16,6 +16,13 @@ use std::ops::{Deref, Mul};
 
 pub const CHALLENGE_TAG: &[u8] = b"BIP0340/challenge";
 
+fn point_to_bytes(p: &ProjectivePoint) -> [u8; 32] {
+    let encoded_p = p.to_encoded_point(false);
+    // Extract the x-coordinate as bytes
+    let x_bytes = encoded_p.x().unwrap();
+    x_bytes.as_slice().try_into().unwrap() // cannot fail
+}
+
 // Adapted from https://github.com/RustCrypto/elliptic-curves/blob/520f67d26be1773bd600d05796cc26d797dd7182/k256/src/schnorr.rs#L181-L187
 pub fn tagged_hash(tag: &[u8]) -> Sha256 {
     let tag_hash = Sha256::digest(tag);
@@ -26,23 +33,31 @@ pub fn tagged_hash(tag: &[u8]) -> Sha256 {
     digest
 }
 
-/// `SecRand` is the type for a secret randomness.
+/// hash function is used for hashing the message input for all functions of the library.
+/// Wrapper around sha256 in order to change only one function if the input hashing function is changed.
+pub fn hash(message: &[u8]) -> [u8; 32] {
+    let mut hasher = Sha256::new();
+    hasher.update(message);
+    hasher.finalize().into()
+}
+
+/// `PrivateRand` is the type for a private randomness.
 /// It is formed as a scalar on the secp256k1 curve
-pub struct SecRand {
+pub struct PrivateRand {
     inner: Scalar,
 }
 
-impl SecRand {
-    /// Parses the given bytes into a new secret randomness.
+impl PrivateRand {
+    /// Parses the given bytes into a new private randomness.
     /// The given byte slice has to be a 32-byte scalar.
-    /// NOTE: we enforce the secret randomness to correspond to a point
+    /// NOTE: we enforce the private randomness to correspond to a point
     /// with even y-coordinate
-    pub fn new(r: &[u8]) -> Result<SecRand> {
+    pub fn new(r: &[u8]) -> Result<PrivateRand> {
         let array: [u8; 32] = r
             .try_into()
             .map_err(|_| Error::InvalidInputLength(r.len()))?;
-        let scalar =
-            Scalar::from_repr_vartime(array.into()).ok_or(Error::SecretRandomnessParseFailed {})?;
+        let scalar = Scalar::from_repr_vartime(array.into())
+            .ok_or(Error::PrivateRandomnessParseFailed {})?;
         if ProjectivePoint::mul_by_generator(&scalar)
             .to_affine()
             .y_is_odd()
@@ -55,7 +70,7 @@ impl SecRand {
     }
 }
 
-impl Deref for SecRand {
+impl Deref for PrivateRand {
     type Target = Scalar;
 
     fn deref(&self) -> &<Self as Deref>::Target {
@@ -195,26 +210,74 @@ impl SecretKey {
         PublicKey { inner: pk }
     }
 
-    /// Creates a signature with the given secret randomness and message hash.
-    pub fn sign(&self, sec_rand: &[u8], msg_hash: &[u8]) -> Result<Signature> {
-        let msg_hash: [u8; 32] = msg_hash
-            .try_into()
-            .map_err(|_| Error::InvalidInputLength(msg_hash.len()))?;
-        let x = self.inner.to_nonzero_scalar();
-        let p = ProjectivePoint::mul_by_generator(&x);
-        let p_bytes = point_to_bytes(&p);
-        let r = SecRand::new(sec_rand)?;
-        let r_point = ProjectivePoint::mul_by_generator(&r);
+    /// Returns an extractable Schnorr signature for a message, signed with a private key and private randomness value.
+    /// Note that the Signature is only the second (S) part of the typical bitcoin signature, the first (R) can be deduced from
+    /// the public randomness value and the message.
+    pub fn sign(&self, private_rand: &[u8], message: &[u8]) -> Result<Signature> {
+        let h = hash(message);
+        self.sign_hash(private_rand, h)
+    }
+
+    /// Returns an extractable Schnorr signature for a hashed message.
+    /// The caller MUST ensure that hash is the output of a cryptographically secure hash function.
+    /// Based on the unexported schnorr signing function from btcd.
+    pub fn sign_hash(&self, private_rand: &[u8], hash: [u8; 32]) -> Result<Signature> {
+        if self.inner.to_nonzero_scalar().is_zero().into() {
+            return Err(Error::PrivateKeyIsZero);
+        }
+
+        // d' = int(d)
+        let priv_key_scalar = *self.inner.to_nonzero_scalar();
+
+        let pub_key = self.pubkey();
+
+        // Always negate d to avoid timing attack and pick the
+        // negated value later if P.y odd
+        let pub_key_bytes = pub_key.to_bytes();
+        let priv_key_scalar_negated = -priv_key_scalar;
+        let is_py_odd = pub_key.is_y_odd();
+
+        let k = *PrivateRand::new(private_rand)?;
+
+        // R = kG (with blinding in order to prevent timing side channel attacks)
+        let r_point = ProjectivePoint::mul_by_generator(&k);
+
+        // Always negate nonce k to avoid timing attack and pick the
+        // negated value later if R.y is odd
+        // (R.y is the y coordinate of the point R)
+        //
+        // Note that R must be in affine coordinates for this check.
+        let r_affine = r_point.to_affine();
+        let k_negated = -k;
+        let is_ry_odd = r_affine.y_is_odd().into();
+
+        // e = tagged_hash("BIP0340/challenge", bytes(R) || bytes(P) || m) mod n
         let r_bytes = point_to_bytes(&r_point);
-        let c = <Scalar as Reduce<U256>>::reduce_bytes(
+        let p_bytes = pub_key_bytes;
+
+        let e = <Scalar as Reduce<U256>>::reduce_bytes(
             &tagged_hash(CHALLENGE_TAG)
                 .chain_update(r_bytes)
                 .chain_update(p_bytes)
-                .chain_update(msg_hash)
+                .chain_update(hash)
                 .finalize(),
         );
 
-        Ok(Signature::from(*r + c * *x))
+        // s = k + e*d mod n
+        // choose negated values for
+        // privKeyScalar and k to avoid timing attack
+        let sig = match (is_py_odd, is_ry_odd) {
+            (true, true) => k_negated + e * priv_key_scalar_negated,
+            (true, false) => k + e * priv_key_scalar_negated,
+            (false, true) => k_negated + e * priv_key_scalar,
+            (false, false) => k + e * priv_key_scalar, // !isPyOdd && !isRyOdd
+        };
+
+        // If Verify(bytes(P), m, sig) fails, abort.
+        // optional
+
+        // Return s
+        Ok(Signature::from(sig))
     }
 
     /// Converts the secret key into bytes.
@@ -272,98 +335,164 @@ impl PublicKey {
         point_to_bytes(&self.inner.to_projective()).to_vec()
     }
 
-    /// Verifies whether the given signature w.r.t. the public key, public randomness and message hash.
-    pub fn verify(&self, pub_rand: &[u8], msg_hash: &[u8], sig: &[u8]) -> Result<bool> {
-        let msg_hash: [u8; 32] = msg_hash
-            .try_into()
-            .map_err(|_| Error::InvalidInputLength(msg_hash.len()))?;
+    /// Verifies that the signature is valid for this message, public key and random value.
+    /// Precondition: r must be normalized
+    pub fn verify(&self, r_bytes: &[u8], message: &[u8], sig: &[u8]) -> Result<bool> {
+        let h = hash(message);
+        self.verify_hash(r_bytes, h, sig)
+    }
+
+    /// Verifies that the signature is valid for this hashed message, public key and random value.
+    /// Based on the unexported schnorr verification function from btcd.
+    pub fn verify_hash(&self, r_bytes: &[u8], hash: [u8; 32], sig: &[u8]) -> Result<bool> {
+        // Step 2.
+        //
+        // P = lift_x(int(pk))
+        //
+        // Fail if P is not a point on the curve
+        // (This is handled by the k256 crate when creating the PublicKey)
+
+        // Fail if P is not a point on the curve
+        // (Already verified by construction)
+
+        // Parse public randomness
+        let r = PubRand::new(r_bytes)?;
+
+        // Parse signature
+        let s = Signature::new(sig)?;
+
+        // Fail if r >= p is already handled by the fact r is a field element.
+        // Fail if s >= n is already handled by the fact s is a mod n scalar.
+
+        // e = int(tagged_hash("BIP0340/challenge", bytes(r) || bytes(P) || M)) mod n.
+        let r_point_bytes = r.to_bytes();
         let p_bytes = self.to_bytes();
-        let r = PubRand::new(pub_rand)?;
-        let r_bytes = r.to_bytes();
-        let c = <Scalar as Reduce<U256>>::reduce_bytes(
+
+        let e = <Scalar as Reduce<U256>>::reduce_bytes(
             &tagged_hash(CHALLENGE_TAG)
-                .chain_update(r_bytes)
+                .chain_update(r_point_bytes)
                 .chain_update(p_bytes)
-                .chain_update(msg_hash)
+                .chain_update(hash)
                 .finalize(),
         );
 
-        let s = Signature::new(sig)?;
-        let recovered_r =
-            ProjectivePoint::mul_by_generator(&*s) - self.inner.to_projective().mul(c);
+        // Negate e here so we can use AddNonConst below to subtract the s*G
+        // point from e*P.
+        let e_neg = -e;
 
+        // R = s*G - e*P
+        let s_g = ProjectivePoint::mul_by_generator(&*s);
+        let e_p = self.inner.to_projective().mul(e_neg);
+        let recovered_r = s_g + e_p;
+
+        // Fail if R is the point at infinity
+        if recovered_r.is_identity().into() {
+            return Ok(false);
+        }
+
+        // Fail if R.y is odd
+        //
+        // Note that R must be in affine coordinates for this check.
+        let r_affine = recovered_r.to_affine();
+        if r_affine.y_is_odd().into() {
+            return Ok(false);
+        }
+
+        // verify signed with the right k random value
         Ok(recovered_r.eq(&*r))
     }
 
-    /// Extracts the secret key from the public key, public randomness,
-    /// and two pairs of message hashes and signatures.
-    pub fn extract_secret_key(
+    /// Extracts the private key from a public key and signatures for two distinct hash messages.
+    /// Precondition: r must be normalized
+    pub fn extract(
         &self,
-        pub_rand: &[u8],
-        msg1_hash: &[u8],
+        r_bytes: &[u8],
+        message1: &[u8],
         sig1: &[u8],
-        msg2_hash: &[u8],
+        message2: &[u8],
         sig2: &[u8],
     ) -> Result<SecretKey> {
-        if msg1_hash.len() != 32 {
-            return Err(Error::InvalidInputLength(msg1_hash.len()));
-        }
-        if msg2_hash.len() != 32 {
-            return Err(Error::InvalidInputLength(msg2_hash.len()));
-        }
+        let h1 = hash(message1);
+        let h2 = hash(message2);
+        self.extract_from_hashes(r_bytes, h1, sig1, h2, sig2)
+    }
+
+    /// Extracts the private key from hashes, instead of the non-hashed message directly as Extract does.
+    pub fn extract_from_hashes(
+        &self,
+        r_bytes: &[u8],
+        hash1: [u8; 32],
+        sig1: &[u8],
+        hash2: [u8; 32],
+        sig2: &[u8],
+    ) -> Result<SecretKey> {
+        let r = PubRand::new(r_bytes)?;
+        let r_point_bytes = r.to_bytes();
         let p_bytes = self.to_bytes();
-        let r = PubRand::new(pub_rand)?;
-        let r_bytes = r.to_bytes();
 
-        // calculate e1 - e2
-        let e1 = <Scalar as Reduce<U256>>::reduce_bytes(
-            &tagged_hash(CHALLENGE_TAG)
-                .chain_update(r_bytes.clone())
-                .chain_update(p_bytes.clone())
-                .chain_update(msg1_hash)
-                .finalize(),
-        );
-        let e2 = <Scalar as Reduce<U256>>::reduce_bytes(
-            &tagged_hash(CHALLENGE_TAG)
-                .chain_update(r_bytes)
-                .chain_update(p_bytes)
-                .chain_update(msg2_hash)
-                .finalize(),
-        );
-        let e_delta = e1 - e2;
-
-        // calculate s1 - s2
         let s1 = Signature::new(sig1)?;
         let s2 = Signature::new(sig2)?;
-        let s_delta = *s1 - *s2;
 
-        // calculate (s1-s2) / (e1 - e2)
-        let inverted_e_delta = e_delta.invert().unwrap();
-        let sk = s_delta * inverted_e_delta;
-        let sk = k256::SecretKey::new(sk.into());
-        Ok(SecretKey { inner: sk })
+        if s1.to_bytes() == s2.to_bytes() {
+            return Err(Error::EllipticCurveError(
+                "The two signatures need to be different in order to extract".to_string(),
+            ));
+        }
+
+        let e1 = <Scalar as Reduce<U256>>::reduce_bytes(
+            &tagged_hash(CHALLENGE_TAG)
+                .chain_update(r_point_bytes.clone())
+                .chain_update(p_bytes.clone())
+                .chain_update(hash1)
+                .finalize(),
+        );
+
+        let e2 = <Scalar as Reduce<U256>>::reduce_bytes(
+            &tagged_hash(CHALLENGE_TAG)
+                .chain_update(r_point_bytes)
+                .chain_update(p_bytes)
+                .chain_update(hash2)
+                .finalize(),
+        );
+
+        // x = (s1 - s2) / (e1 - e2)
+        let denom = e1 - e2;
+        let mut x = (*s1 - *s2) * denom.invert().unwrap();
+
+        let pub_key_bytes = self.to_bytes();
+        if pub_key_bytes[0] == 0x03 {
+            x = -x;
+        }
+
+        let sk = k256::SecretKey::new(x.into());
+        let extracted_sk = SecretKey { inner: sk };
+
+        if extracted_sk.pubkey().to_bytes() == self.to_bytes() {
+            Ok(extracted_sk)
+        } else {
+            Err(Error::EllipticCurveError(
+                "Extracted private key does not match public key".to_string(),
+            ))
+        }
     }
-}
 
-fn point_to_bytes(p: &ProjectivePoint) -> [u8; 32] {
-    let encoded_p = p.to_encoded_point(false);
-    // Extract the x-coordinate as bytes
-    let x_bytes = encoded_p.x().unwrap();
-    x_bytes.as_slice().try_into().unwrap() // cannot fail
+    /// Returns true if the y-coordinate of the public key is odd.
+    pub fn is_y_odd(&self) -> bool {
+        let point = self.inner.to_projective().to_affine();
+        point.y_is_odd().into()
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use babylon_test_utils::get_eots_testdata;
+    use k256::{ProjectivePoint, Scalar};
     use rand::{thread_rng, RngCore};
     use sha2::{Digest, Sha256};
 
-    use k256::{ProjectivePoint, Scalar};
-
-    use babylon_test_utils::get_eots_testdata;
-
-    pub fn rand_gen() -> (SecRand, PubRand) {
-        let x = SecRand::new(&Scalar::generate_vartime(&mut thread_rng()).to_bytes()).unwrap();
+    pub fn rand_gen() -> (PrivateRand, PubRand) {
+        let x = PrivateRand::new(&Scalar::generate_vartime(&mut thread_rng()).to_bytes()).unwrap();
         let p = PubRand::from(ProjectivePoint::mul_by_generator(&*x));
         (x, p)
     }
@@ -386,13 +515,23 @@ mod tests {
 
     #[test]
     fn test_sign_verify() {
-        let sk = SecretKey::new(&mut thread_rng());
+        // Use deterministic values to avoid any randomness issues
+        let sk =
+            SecretKey::from_hex("1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef")
+                .unwrap();
         let pk = sk.pubkey();
-        let (sec_rand, pub_rand) = rand_gen();
-        let msg_hash = [1u8; 32];
-        let sig = sk.sign(&sec_rand.to_bytes(), &msg_hash).unwrap();
+
+        // Use fixed randomness (32 bytes = 64 hex characters)
+        let sec_rand_bytes =
+            hex::decode("abcdef1234567890abcdef1234567890abcdef1234567890abcdef123456789a")
+                .unwrap();
+        let sec_rand = PrivateRand::new(&sec_rand_bytes).unwrap();
+        let pub_rand = PubRand::from(ProjectivePoint::mul_by_generator(&*sec_rand));
+
+        let message = b"test message";
+        let sig = sk.sign(&sec_rand.to_bytes(), message).unwrap();
         assert!(pk
-            .verify(&pub_rand.to_bytes(), &msg_hash, &sig.to_bytes())
+            .verify(&pub_rand.to_bytes(), message, &sig.to_bytes())
             .unwrap());
     }
 
@@ -401,17 +540,17 @@ mod tests {
         let sk = SecretKey::new(&mut thread_rng());
         let pk = sk.pubkey();
         let (sec_rand, pub_rand) = rand_gen();
-        let msg_hash1 = [1u8; 32];
-        let msg_hash2 = [2u8; 32];
-        let sig1 = sk.sign(&sec_rand.to_bytes(), &msg_hash1).unwrap();
-        let sig2 = sk.sign(&sec_rand.to_bytes(), &msg_hash2).unwrap();
+        let message1 = b"message1";
+        let message2 = b"message2";
+        let sig1 = sk.sign(&sec_rand.to_bytes(), message1).unwrap();
+        let sig2 = sk.sign(&sec_rand.to_bytes(), message2).unwrap();
 
         let extracted_sk = pk
-            .extract_secret_key(
+            .extract(
                 &pub_rand.to_bytes(),
-                &msg_hash1,
+                message1,
                 &sig1.to_bytes(),
-                &msg_hash2,
+                message2,
                 &sig2.to_bytes(),
             )
             .unwrap();
@@ -429,7 +568,7 @@ mod tests {
 
         // convert secret/public randomness to Rust types
         let sr_slice = hex::decode(testdata.sr).unwrap();
-        let sr = SecRand::new(&sr_slice).unwrap();
+        let sr = PrivateRand::new(&sr_slice).unwrap();
         let pr_slice = hex::decode(testdata.pr).unwrap();
         let pr_bytes: [u8; 32] = pr_slice.try_into().unwrap();
         let pr = PubRand::new(&pr_bytes).unwrap();
@@ -452,21 +591,21 @@ mod tests {
         let sig2_slice = hex::decode(testdata.sig2).unwrap();
         let sig2 = Signature::new(&sig2_slice).unwrap();
 
-        // verify signatures
+        // verify signatures using hash-based methods since testdata contains pre-hashed messages
         assert!(pk
-            .verify(&pr.to_bytes(), &msg1_hash, &sig1.to_bytes())
+            .verify_hash(&pr.to_bytes(), msg1_hash, &sig1.to_bytes())
             .unwrap());
         assert!(pk
-            .verify(&pr.to_bytes(), &msg2_hash, &sig2.to_bytes())
+            .verify_hash(&pr.to_bytes(), msg2_hash, &sig2.to_bytes())
             .unwrap());
 
-        // extract SK
+        // extract SK using hash-based method since testdata contains pre-hashed messages
         let extracted_sk = pk
-            .extract_secret_key(
+            .extract_from_hashes(
                 &pr.to_bytes(),
-                &msg1_hash,
+                msg1_hash,
                 &sig1.to_bytes(),
-                &msg2_hash,
+                msg2_hash,
                 &sig2.to_bytes(),
             )
             .unwrap();
