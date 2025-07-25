@@ -1,3 +1,6 @@
+use crate::babylon::checkpointing::v1::{
+    RawCheckpoint, ValidatorWithBlsKey, ValidatorWithBlsKeySet,
+};
 use bitvec::prelude::*;
 use sha2::{Digest, Sha256};
 
@@ -44,9 +47,14 @@ impl ValidatorWithBlsKeySet {
         }
 
         for i in 0..self.val_set.len() {
-            let bit = *bitmap.get(i).ok_or(format!("bitmap does not contain bit at index {}", i))?;
+            let bit = *bitmap
+                .get(i)
+                .ok_or(format!("bitmap does not contain bit at index {}", i))?;
             if bit {
-                let voted_val = self.val_set.get(i).ok_or(format!("validator set does not contain validator at index {}", i))?;
+                let voted_val = self.val_set.get(i).ok_or(format!(
+                    "validator set does not contain validator at index {}",
+                    i
+                ))?;
                 val_subset.push(voted_val.clone());
                 sum += voted_val.voting_power;
             }
@@ -91,19 +99,17 @@ impl RawCheckpoint {
         // start decoding
         let mut idx: usize = 0;
         let epoch_num_bytes: [u8; 8] = raw_ckpt_bytes[idx..idx + EPOCH_LEN]
-                                            .try_into()
-                                            .map_err(|_| "wrong epoch number bytes length")?;
+            .try_into()
+            .map_err(|_| "wrong epoch number bytes length")?;
         let epoch_num = u64::from_be_bytes(epoch_num_bytes);
         idx += EPOCH_LEN;
-        let block_hash: Vec<u8> = raw_ckpt_bytes[idx..idx + BLOCK_HASH_LEN]
-            .to_vec()
-            .clone();
+        let block_hash: Vec<u8> = raw_ckpt_bytes[idx..idx + BLOCK_HASH_LEN].to_vec();
         idx += BLOCK_HASH_LEN;
-        let bitmap: Vec<u8> = raw_ckpt_bytes[idx..idx + BITMAP_LEN].to_vec().clone();
+        let bitmap: Vec<u8> = raw_ckpt_bytes[idx..idx + BITMAP_LEN].to_vec();
         idx += BITMAP_LEN;
-        let _: Vec<u8> = raw_ckpt_bytes[idx..idx + ADDRESS_LEN].to_vec().clone();
+        let _: Vec<u8> = raw_ckpt_bytes[idx..idx + ADDRESS_LEN].to_vec();
         idx += ADDRESS_LEN;
-        let bls_multi_sig: Vec<u8> = raw_ckpt_bytes[idx..idx + BLS_SIG_LEN].to_vec().clone();
+        let bls_multi_sig: Vec<u8> = raw_ckpt_bytes[idx..idx + BLS_SIG_LEN].to_vec();
 
         let raw_ckpt = RawCheckpoint {
             epoch_num,

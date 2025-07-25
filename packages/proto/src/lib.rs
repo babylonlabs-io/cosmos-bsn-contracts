@@ -1,3 +1,5 @@
+mod impls;
+
 pub mod babylon {
     // Skip for the auto-generated code.
     #![allow(clippy::doc_lazy_continuation)]
@@ -27,7 +29,7 @@ pub mod babylon {
             #![allow(clippy::large_enum_variant)]
             include!("gen/babylon.checkpointing.v1.rs");
             // @@protoc_insertion_point(babylon.checkpointing.v1)
-            include!("impl/babylon.checkpointing.v1.impl.rs");
+            pub use crate::impls::babylon_checkpointing_v1::*;
         }
     }
     pub mod epoching {

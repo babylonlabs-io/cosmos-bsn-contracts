@@ -1,5 +1,5 @@
 use crate::contract::{execute, instantiate};
-use crate::msg::contract::InitialHeader;
+use crate::msg::contract::BaseHeader;
 use crate::msg::InstantiateMsg;
 use crate::state::{get_tip, BTC_HEADERS, BTC_HEIGHTS, CONFIG};
 #[cfg(feature = "full-validation")]
@@ -7,12 +7,11 @@ use crate::ContractError;
 use crate::{BitcoinNetwork, ExecuteMsg};
 use babylon_proto::babylon::btclightclient::v1::BtcHeaderInfo;
 use bitcoin::block::Header as BlockHeader;
-use bitcoin::consensus::deserialize;
 use cosmwasm_std::testing::{message_info, mock_dependencies, mock_env};
 use prost::Message;
 
 /// Helper function to get the appropriate initial header value based on the full-validation feature
-fn get_btc_initial_header() -> Option<InitialHeader> {
+fn get_btc_base_header() -> Option<BaseHeader> {
     #[cfg(feature = "full-validation")]
     {
         let headers = test_headers();
@@ -59,7 +58,7 @@ fn instantiate_should_work() {
         network: BitcoinNetwork::Mainnet,
         btc_confirmation_depth: 6,
         checkpoint_finalization_timeout: 100,
-        initial_header: get_btc_initial_header(),
+        base_header: get_btc_base_header(),
     };
 
     let res = instantiate(deps.as_mut(), mock_env(), info.clone(), msg).unwrap();
@@ -74,21 +73,21 @@ fn instantiate_should_work() {
     assert_eq!(cfg.checkpoint_finalization_timeout, 100);
     assert_eq!(cfg.network, BitcoinNetwork::Mainnet);
 
-    // Test header storage only if initial_header was provided
-    if let Some(initial_header) = get_btc_initial_header() {
-        let initial_header_info = initial_header.to_btc_header_info().unwrap();
+    // Test header storage only if base header was provided
+    if let Some(base_header) = get_btc_base_header() {
+        let base_header_info = base_header.to_btc_header_info().unwrap();
         let base_header_height = BTC_HEIGHTS
-            .load(&deps.storage, initial_header_info.hash.as_ref())
+            .load(&deps.storage, base_header_info.hash.as_ref())
             .unwrap();
         assert_eq!(base_header_height, 854784);
 
         let base_header_in_storage = BTC_HEADERS.load(&deps.storage, base_header_height).unwrap();
-        assert_eq!(base_header_in_storage, initial_header_info.encode_to_vec());
+        assert_eq!(base_header_in_storage, base_header_info.encode_to_vec());
     }
 
     // Submit new headers should work only if we have an initial header
-    if get_btc_initial_header().is_some() {
-        let new_header: BlockHeader = deserialize(&headers[1].header).unwrap();
+    if get_btc_base_header().is_some() {
+        let new_header = headers[1].block_header().unwrap();
         let msg = ExecuteMsg::BtcHeaders {
             headers: vec![new_header.into()],
             first_work: None,
@@ -112,7 +111,7 @@ fn instantiate_without_initial_header_should_work() {
         network: BitcoinNetwork::Mainnet,
         btc_confirmation_depth: 6,
         checkpoint_finalization_timeout: 100,
-        initial_header: None,
+        base_header: None,
     };
 
     let res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
@@ -138,7 +137,7 @@ fn instantiate_without_initial_header_should_fail_in_full_validation_mode() {
         network: BitcoinNetwork::Mainnet,
         btc_confirmation_depth: 6,
         checkpoint_finalization_timeout: 100,
-        initial_header: None,
+        base_header: None,
     };
 
     let res = instantiate(deps.as_mut(), mock_env(), info, msg);
@@ -168,7 +167,7 @@ fn auto_init_on_first_header_works() {
         network: crate::state::BitcoinNetwork::Regtest,
         btc_confirmation_depth: 6,
         checkpoint_finalization_timeout: 99,
-        initial_header: None,
+        base_header: None,
     };
     let info = message_info(&Addr::unchecked("creator"), &[]);
     instantiate(deps.as_mut(), mock_env(), info.clone(), msg).unwrap();

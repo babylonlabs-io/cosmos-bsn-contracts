@@ -11,7 +11,7 @@ use {
 };
 
 #[cw_serde]
-pub struct InitialHeader {
+pub struct BaseHeader {
     /// Initial BTC header to initialize the light client.
     pub header: BtcHeader,
     /// Total accumulated work of the initial header, encoded as big-endian bytes.
@@ -20,14 +20,14 @@ pub struct InitialHeader {
     pub height: u32,
 }
 
-impl InitialHeader {
+impl BaseHeader {
     pub fn to_btc_header_info(&self) -> Result<BtcHeaderInfo, ContractError> {
         let total_work = total_work(&self.total_work)?;
         self.header.to_btc_header_info(self.height, total_work)
     }
 }
 
-impl TryFrom<BtcHeaderInfo> for InitialHeader {
+impl TryFrom<BtcHeaderInfo> for BaseHeader {
     type Error = ContractError;
     fn try_from(header_info: BtcHeaderInfo) -> Result<Self, Self::Error> {
         let total_work: Binary = header_info.work.to_vec().into();
@@ -48,7 +48,7 @@ pub struct InstantiateMsg {
     /// Initial BTC header.
     /// If not provided, the light client will rely on and trust Babylon's provided initial header
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub initial_header: Option<InitialHeader>,
+    pub base_header: Option<BaseHeader>,
 }
 
 impl InstantiateMsg {
@@ -63,20 +63,18 @@ impl InstantiateMsg {
 
         #[cfg(feature = "full-validation")]
         {
-            // In full validation mode, initial_header must be provided
-            if self.initial_header.is_none() {
+            // In full validation mode, base header must be provided
+            if self.base_header.is_none() {
                 return Err(ContractError::InitialHeaderRequired);
             }
         }
 
-        if let Some(ref initial_header) = self.initial_header {
+        if let Some(ref base_header) = self.base_header {
             if !crate::bitcoin::is_difficulty_change_boundary(
-                initial_header.height,
+                base_header.height,
                 &self.network.chain_params(),
             ) {
-                return Err(ContractError::NotOnDifficultyBoundary(
-                    initial_header.height,
-                ));
+                return Err(ContractError::NotOnDifficultyBoundary(base_header.height));
             }
         }
         // TODO: the height should be larger than a recent block?
