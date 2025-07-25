@@ -159,8 +159,6 @@ fn init_btc_headers(
         );
     }
 
-    let chain_params = cfg.network.chain_params();
-
     // base header is the first header in the list
     let base_header = headers.first().ok_or(InitHeadersError::MissingTipHeader)?;
     let base_header = base_header.to_btc_header_info(first_height, first_work)?;
@@ -169,14 +167,15 @@ fn init_btc_headers(
     // processing as `verify_headers` assumes the base header must already exist.
     set_base_header(storage, &base_header)?;
 
-    let subsequent_headers =
+    let new_headers =
         convert_to_btc_header_info(&headers[1..], base_header.height, &base_header.work)?;
 
     // Verify subsequent headers
-    verify_headers(storage, &chain_params, &base_header, &subsequent_headers)?;
+    let chain_params = cfg.network.chain_params();
+    verify_headers(storage, &chain_params, &base_header, &new_headers)?;
 
-    insert_headers(storage, &subsequent_headers)?;
-    let tip = subsequent_headers.last().unwrap_or(&base_header);
+    insert_headers(storage, &new_headers)?;
+    let tip = new_headers.last().unwrap_or(&base_header);
     set_tip(storage, tip)?;
 
     Ok(())
