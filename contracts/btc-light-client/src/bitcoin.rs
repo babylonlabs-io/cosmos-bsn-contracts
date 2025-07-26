@@ -350,11 +350,25 @@ fn calculate_next_work_required(
 }
 
 /// Returns the total work of the given header.
+///
 /// The total work is the cumulative work of the given header and all of its ancestors.
+///
+/// This implementation expects work data to be 32 bytes or smaller and will:
+/// 1. Left-pad the input with zeros to 32 bytes (big-endian compatible)
+/// 2. Convert the result to a [`Work`] type
+///
+/// # Arguments
+///
+/// * `work`: Byte slice containing the work value (<= 32bytes).
 pub fn total_work(work: &[u8]) -> StdResult<Work> {
-    Ok(Work::from_be_bytes(work.try_into().map_err(|e| {
-        StdError::generic_err(format!("Invalid work: {e:?}"))
-    })?))
+    if work.len() > 32 {
+        return Err(StdError::generic_err("Work exceeds 32 bytes"));
+    }
+    let mut output = [0u8; 32];
+    let len = work.len();
+    let start = 32 - len; // Calculate left-pad offset
+    output[start..].copy_from_slice(&work[..len]); // Copy to end
+    Ok(Work::from_be_bytes(output))
 }
 
 /// Checks if a Bitcoin block height is at a difficulty adjustment interval.
@@ -505,5 +519,22 @@ mod tests {
             assert!(!is_retarget_block(2015, network.as_ref()));
             assert!(is_retarget_block(2016, network.as_ref()));
         }
+    }
+
+    #[test]
+    fn test_total_work() {
+        assert_eq!(
+            total_work(&[]).unwrap(),
+            Work::from_be_bytes(cosmwasm_std::Uint256::from_u128(0).to_be_bytes())
+        );
+        // Work data smaller than 32 bytes should work.
+        assert_eq!(
+            total_work(&[50]).unwrap(),
+            Work::from_be_bytes(cosmwasm_std::Uint256::from_u128(50).to_be_bytes())
+        );
+        assert_eq!(
+            total_work(&[1u8; 33]).unwrap_err(),
+            StdError::generic_err("Work exceeds 32 bytes")
+        );
     }
 }
