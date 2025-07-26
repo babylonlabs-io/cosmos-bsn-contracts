@@ -4,7 +4,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 
-	btclctypes "github.com/babylonlabs-io/babylon/v3/x/btclightclient/types"
 	"github.com/btcsuite/btcd/wire"
 )
 
@@ -28,29 +27,11 @@ func NewBtcHeader(header *wire.BlockHeader) *BtcHeader {
 	}
 }
 
-func NewBTCLightClientInitMsg(network string, k int, w int, initialHeader *btclctypes.BTCHeaderInfo) []byte {
-	btcHeader := initialHeader.Header.ToBlockHeader()
-	// Convert Uint to 32-byte big-endian representation for Uint256
-	workBigInt := initialHeader.Work.BigInt()
-	workBytes := make([]byte, 32)
-	workBigInt.FillBytes(workBytes)
-
+func NewBTCLightClientInitMsg(network string, k int, w int) []byte {
 	data := map[string]interface{}{
 		"network":                         network,
 		"btc_confirmation_depth":          k,
 		"checkpoint_finalization_timeout": w,
-		"base_header": map[string]interface{}{
-			"header": map[string]interface{}{
-				"version":        btcHeader.Version,
-				"prev_blockhash": btcHeader.PrevBlock.String(),
-				"merkle_root":    btcHeader.MerkleRoot.String(),
-				"time":           btcHeader.Timestamp.Unix(),
-				"bits":           btcHeader.Bits,
-				"nonce":          btcHeader.Nonce,
-			},
-			"total_work": workBytes,
-			"height":     initialHeader.Height,
-		},
 	}
 
 	jsonBytes, err := json.Marshal(data)

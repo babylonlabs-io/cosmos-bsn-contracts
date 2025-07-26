@@ -38,9 +38,16 @@ func GenBTCHeadersMsg(parent *btclctypes.BTCHeaderInfo) ([]*btclctypes.BTCHeader
 		headers = append(headers, NewBtcHeader(header))
 	}
 
+	firstHeight := uint32(1)
+	stringPtr := func(s string) *string { return &s }
+
 	msg := BabylonExecuteMsg{
 		BtcHeaders: BTCHeadersMsg{
-			Headers: headers,
+			Headers:     headers,
+			FirstHeight: &firstHeight,
+			// This is just "8" in hex - 1 byte instead of 32,
+			// to reproduce circumstances in local deployment
+			FirstWork: stringPtr("38"),
 		},
 	}
 
