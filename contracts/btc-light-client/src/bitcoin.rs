@@ -367,7 +367,7 @@ pub fn total_work(work: &[u8]) -> StdResult<Work> {
     let mut output = [0u8; 32];
     let len = work.len();
     let start = 32 - len; // Calculate left-pad offset
-    output[start..].copy_from_slice(&work[..len]); // Copy to end
+    output[start..].copy_from_slice(work); // Copy to end
     Ok(Work::from_be_bytes(output))
 }
 
