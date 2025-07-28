@@ -473,8 +473,6 @@ mod slashing {
     }
 }
 
-
-
 mod jailing {
     use crate::msg::JailedFinalityProvider;
     use cosmwasm_std::{coin, Addr};

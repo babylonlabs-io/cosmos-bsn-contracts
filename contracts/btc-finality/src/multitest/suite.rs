@@ -16,9 +16,7 @@ use babylon_bindings_test::BabylonApp;
 use btc_light_client::msg::InstantiateMsg as BtcLightClientInstantiateMsg;
 use btc_light_client::BitcoinNetwork;
 
-use btc_staking::msg::{
-    ActivatedHeightResponse, AllPendingRewardsResponse, FinalityProviderInfo, PendingRewards,
-};
+use btc_staking::msg::{ActivatedHeightResponse, FinalityProviderInfo};
 
 use crate::msg::QueryMsg::JailedFinalityProviders;
 use crate::msg::{
@@ -287,14 +285,6 @@ impl Suite {
     }
 
     #[track_caller]
-    pub fn get_btc_finality_params(&self) -> crate::state::config::Params {
-        self.app
-            .wrap()
-            .query_wasm_smart(self.finality.clone(), &crate::msg::QueryMsg::Params {})
-            .unwrap()
-    }
-
-    #[track_caller]
     pub fn get_activated_height(&self) -> ActivatedHeightResponse {
         self.app
             .wrap()
@@ -500,40 +490,6 @@ impl Suite {
                 proof: proof.into(),
                 block_hash: block_app_hash.into(),
                 signature: finality_sig.into(),
-            },
-            &[],
-        )
-    }
-
-    #[track_caller]
-    pub fn get_pending_delegator_rewards(&self, staker: &str) -> Vec<PendingRewards> {
-        let rewards_response: AllPendingRewardsResponse = self
-            .app
-            .wrap()
-            .query_wasm_smart(
-                self.staking.clone(),
-                &btc_staking::msg::QueryMsg::AllPendingRewards {
-                    staker_addr: staker.into(),
-                    start_after: None,
-                    limit: None,
-                },
-            )
-            .unwrap();
-        rewards_response.rewards
-    }
-
-    #[track_caller]
-    pub fn withdraw_rewards(
-        &mut self,
-        fp_pubkey_hex: &str,
-        staker: &str,
-    ) -> anyhow::Result<AppResponse> {
-        self.app.execute_contract(
-            Addr::unchecked(USER_ADDR),
-            self.staking.clone(),
-            &btc_staking::msg::ExecuteMsg::WithdrawRewards {
-                fp_pubkey_hex: fp_pubkey_hex.to_owned(),
-                staker_addr: staker.to_owned(),
             },
             &[],
         )
