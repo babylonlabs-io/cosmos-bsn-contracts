@@ -544,7 +544,6 @@ pub fn tally_blocks(
     // After this for loop, the blocks since the earliest activated height are either finalised or
     // non-finalisable
     let mut events = vec![];
-    let mut finalized_blocks = 0;
     for h in start_height..=env.block.height {
         let mut indexed_block = BLOCKS.load(deps.storage, h)?;
         // Get the finality provider set of this block
@@ -560,7 +559,6 @@ pub fn tally_blocks(
                 if tally(&fp_set, &voter_btc_pks) {
                     // If this block gets >2/3 votes, finalise it
                     let ev = finalize_block(deps.storage, &mut indexed_block, &voter_btc_pks)?;
-                    finalized_blocks += 1;
                     events.push(ev);
                 } else {
                     // If not, then this block and all subsequent blocks should not be finalised.

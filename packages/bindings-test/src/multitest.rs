@@ -80,19 +80,17 @@ impl Module for BabylonModule {
     fn execute<ExecC, QueryC>(
         &self,
         _api: &dyn Api,
-        storage: &mut dyn Storage,
+        _storage: &mut dyn Storage,
         _router: &dyn CosmosRouter<ExecC = ExecC, QueryC = QueryC>,
         _block: &BlockInfo,
         _sender: Addr,
-        msg: Empty,
+        _msg: Empty,
     ) -> AnyResult<AppResponse>
     where
         ExecC: Debug + Clone + PartialEq + JsonSchema + DeserializeOwned + CustomMsg,
         QueryC: CustomQuery + DeserializeOwned + 'static,
     {
-        match msg {
-            Empty {} => Ok(AppResponse::default()),
-        }
+        Ok(AppResponse::default())
     }
 
     fn query(

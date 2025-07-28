@@ -208,11 +208,6 @@ impl Suite {
         bech32_prefix
     }
 
-    #[track_caller]
-    pub fn get_balance(&self, addr: &Addr, denom: &str) -> Coin {
-        self.app.wrap().query_balance(addr, denom).unwrap()
-    }
-
     #[allow(dead_code)]
     pub fn admin(&self) -> &str {
         self.owner.as_str()
@@ -282,14 +277,6 @@ impl Suite {
         self.app
             .wrap()
             .query_wasm_smart(self.finality.clone(), &crate::msg::QueryMsg::Config {})
-            .unwrap()
-    }
-
-    #[track_caller]
-    pub fn get_btc_finality_params(&self) -> crate::state::config::Params {
-        self.app
-            .wrap()
-            .query_wasm_smart(self.finality.clone(), &crate::msg::QueryMsg::Params {})
             .unwrap()
     }
 
