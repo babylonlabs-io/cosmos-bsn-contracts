@@ -459,8 +459,8 @@ impl PublicKey {
         let denom = e1 - e2;
         let mut x = (*s1 - *s2) * denom.invert().unwrap();
 
-        let pub_key_bytes = self.to_bytes();
-        if pub_key_bytes[0] == 0x03 {
+        // If the public key is odd, negate the result
+        if self.is_y_odd() {
             x = -x;
         }
 
