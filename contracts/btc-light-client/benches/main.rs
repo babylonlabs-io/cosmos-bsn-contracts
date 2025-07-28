@@ -3,22 +3,18 @@
 //! the workspace root.
 //! Then running `cargo bench` will validate we can properly call into that generated Wasm.
 
-use criterion::{criterion_group, criterion_main, Criterion, PlottingBackend};
-
-use std::time::Duration;
-use thousands::Separable;
-
-use cosmwasm_std::{Env, MessageInfo, Response};
+use babylon_test_utils::{btc_base_header, get_btc_lc_mainchain_resp};
+use btc_light_client::msg::btc_header::BtcHeader;
+use btc_light_client::msg::contract::{ExecuteMsg, InstantiateMsg};
+use cosmwasm_std::{Empty, Env, MessageInfo, Response};
 use cosmwasm_vm::testing::{
     execute, instantiate, mock_env, mock_info, mock_instance_with_gas_limit, MockApi, MockQuerier,
     MockStorage,
 };
 use cosmwasm_vm::Instance;
-
-use babylon_bindings::BabylonMsg;
-use babylon_test_utils::{btc_base_header, get_btc_lc_mainchain_resp};
-use btc_light_client::msg::btc_header::BtcHeader;
-use btc_light_client::msg::contract::{ExecuteMsg, InstantiateMsg};
+use criterion::{criterion_group, criterion_main, Criterion, PlottingBackend};
+use std::time::Duration;
+use thousands::Separable;
 
 #[cfg(clippy)]
 static WASM: &[u8] = &[];
@@ -77,7 +73,7 @@ fn setup_benchmark() -> (
     };
 
     // init call
-    execute::<_, _, _, _, BabylonMsg>(&mut deps, env.clone(), info.clone(), benchmark_msg.clone())
+    execute::<_, _, _, _, Empty>(&mut deps, env.clone(), info.clone(), benchmark_msg.clone())
         .unwrap();
     (deps, info, env, test_headers)
 }
@@ -96,7 +92,7 @@ fn bench_btc_light_client(c: &mut Criterion) {
                 first_work: None,
                 first_height: None,
             };
-            execute::<_, _, _, _, BabylonMsg>(&mut deps, env.clone(), info.clone(), benchmark_msg)
+            execute::<_, _, _, _, Empty>(&mut deps, env.clone(), info.clone(), benchmark_msg)
                 .unwrap();
             i = (i + 1) % (headers_len - 1);
         });
@@ -116,13 +112,8 @@ fn bench_btc_light_client(c: &mut Criterion) {
                     first_height: None,
                 };
                 let gas_before = deps.get_gas_left();
-                execute::<_, _, _, _, BabylonMsg>(
-                    &mut deps,
-                    env.clone(),
-                    info.clone(),
-                    benchmark_msg,
-                )
-                .unwrap();
+                execute::<_, _, _, _, Empty>(&mut deps, env.clone(), info.clone(), benchmark_msg)
+                    .unwrap();
                 gas_used += gas_before - deps.get_gas_left();
                 i = (i + 1) % (headers_len - 1);
             }
@@ -148,13 +139,8 @@ fn bench_btc_light_client(c: &mut Criterion) {
                     first_height: None,
                 };
                 let gas_before = deps.get_gas_left();
-                execute::<_, _, _, _, BabylonMsg>(
-                    &mut deps,
-                    env.clone(),
-                    info.clone(),
-                    benchmark_msg,
-                )
-                .unwrap();
+                execute::<_, _, _, _, Empty>(&mut deps, env.clone(), info.clone(), benchmark_msg)
+                    .unwrap();
                 gas_used += (gas_before - deps.get_gas_left()) / GAS_MULTIPLIER;
                 i = (i + 1) % (headers_len - 1);
             }

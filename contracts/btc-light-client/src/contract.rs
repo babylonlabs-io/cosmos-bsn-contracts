@@ -7,7 +7,6 @@ use crate::state::{
     expect_header_by_hash, get_tip, insert_headers, is_initialized, remove_headers,
     set_base_header, set_tip, Config, CONFIG,
 };
-use babylon_bindings::BabylonMsg;
 use babylon_proto::babylon::btclightclient::v1::BtcHeaderInfo;
 use bitcoin::BlockHash;
 use cosmwasm_std::{
@@ -25,7 +24,7 @@ pub fn instantiate(
     _env: Env,
     _info: MessageInfo,
     msg: InstantiateMsg,
-) -> Result<Response<BabylonMsg>, ContractError> {
+) -> Result<Response, ContractError> {
     msg.validate()?;
 
     let InstantiateMsg {
@@ -65,7 +64,7 @@ pub fn execute(
     _env: Env,
     _info: MessageInfo,
     msg: ExecuteMsg,
-) -> Result<Response<BabylonMsg>, ContractError> {
+) -> Result<Response, ContractError> {
     match msg {
         ExecuteMsg::BtcHeaders {
             headers,
@@ -108,11 +107,7 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> Result<Binary, ContractErr
     }
 }
 
-pub fn migrate(
-    deps: DepsMut,
-    _env: Env,
-    _msg: Empty,
-) -> Result<Response<BabylonMsg>, ContractError> {
+pub fn migrate(deps: DepsMut, _env: Env, _msg: Empty) -> Result<Response, ContractError> {
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
     Ok(Response::new().add_attribute("action", "migrate"))
 }
@@ -122,7 +117,7 @@ fn handle_btc_headers(
     headers: Vec<BtcHeader>,
     first_work: Option<String>,
     first_height: Option<u32>,
-) -> Result<Response<BabylonMsg>, ContractError> {
+) -> Result<Response, ContractError> {
     // Check if the BTC light client has been initialized
     if !is_initialized(deps.storage) {
         let first_work_hex = first_work.ok_or(InitHeadersError::MissingBaseWork)?;

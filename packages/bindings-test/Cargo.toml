@@ -10,7 +10,6 @@ license = "Apache-2.0"
 
 [dependencies]
 anyhow           = { workspace = true }
-babylon-bindings = { version = "0.4.0", path = "../bindings" }
 cosmwasm-std     = { workspace = true }
 cw-multi-test    = { workspace = true }
 cw-storage-plus  = { workspace = true }

@@ -41,7 +41,6 @@ full-validation = []
 
 [dependencies]
 babylon-apis     = { path = "../../packages/apis" }
-babylon-bindings = { path = "../../packages/bindings" }
 babylon-proto    = { path = "../../packages/proto" }
 bitcoin          = { workspace = true }
 cosmwasm-schema  = { workspace = true }

@@ -1,7 +1,7 @@
 use crate::error::ContractError;
 use bitcoin::Txid;
 use cosmwasm_schema::cw_serde;
-use cosmwasm_std::{CanonicalAddr, Order, StdResult, Storage, Uint128};
+use cosmwasm_std::{CanonicalAddr, Order, StdResult, Storage};
 use cw_storage_plus::{Index, IndexList, IndexedMap, KeyDeserialize, MultiIndex};
 
 const DELEGATIONS_KEY: &str = "delegations";
@@ -21,8 +21,6 @@ pub struct DelegationDistribution {
     pub staker_addr: CanonicalAddr,
     /// How many satoshis the user stakes in this delegation
     pub stake: u64,
-    /// Rewards already withdrawn by this user
-    pub withdrawn_funds: Uint128,
 }
 
 #[allow(clippy::type_complexity)]
@@ -103,7 +101,6 @@ impl Delegations<'_> {
                         let delegation = DelegationDistribution {
                             staker_addr: staker_canonical_addr.clone(),
                             stake: delegation_stake,
-                            withdrawn_funds: Uint128::zero(),
                         };
                         Ok::<_, ContractError>(delegation)
                     }
