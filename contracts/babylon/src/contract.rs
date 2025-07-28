@@ -122,9 +122,7 @@ pub fn instantiate(
     CONFIG.save(deps.storage, &cfg)?;
 
     // Save the IBC transfer info
-    if let Some(transfer_info) = msg.ics20_channel_id {
-        IBC_TRANSFER.save(deps.storage, &transfer_info)?;
-    }
+    IBC_TRANSFER.save(deps.storage, &msg.ics20_channel_id)?;
 
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
     Ok(res)
