@@ -511,46 +511,59 @@ mod tests {
 
     #[test]
     fn test_sign_verify() {
-        // Use deterministic values to avoid any randomness issues
-        let sk =
-            SecretKey::from_hex("1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef")
-                .unwrap();
-        let pk = sk.pubkey();
+        for i in 0..100 {
+            // Generate random secret key and public key
+            let sk = SecretKey::new(&mut thread_rng());
+            let pk = sk.pubkey();
 
-        // Use fixed randomness (32 bytes = 64 hex characters)
-        let sec_rand_bytes =
-            hex::decode("abcdef1234567890abcdef1234567890abcdef1234567890abcdef123456789a")
-                .unwrap();
-        let sec_rand = PrivateRand::new(&sec_rand_bytes).unwrap();
-        let pub_rand = PubRand::from(ProjectivePoint::mul_by_generator(&*sec_rand));
+            // Generate random private randomness and public randomness
+            let (sec_rand, pub_rand) = rand_gen();
 
-        let message = b"test message";
-        let sig = sk.sign(&sec_rand.to_bytes(), message).unwrap();
-        assert!(pk
-            .verify(&pub_rand.to_x_bytes(), message, &sig.to_bytes())
-            .unwrap());
+            // Generate random message
+            let mut message = [0u8; 32];
+            thread_rng().fill_bytes(&mut message);
+
+            // Sign the message
+            let sig = sk.sign(&sec_rand.to_bytes(), &message).unwrap();
+
+            // Verify the signature
+            assert!(
+                pk.verify(&pub_rand.to_x_bytes(), &message, &sig.to_bytes())
+                    .unwrap(),
+                "Failed to verify signature at iteration {} for message: {:?}",
+                i,
+                message
+            );
+        }
     }
 
     #[test]
     fn test_extract() {
-        let sk = SecretKey::new(&mut thread_rng());
-        let pk = sk.pubkey();
-        let (sec_rand, pub_rand) = rand_gen();
-        let message1 = b"message1";
-        let message2 = b"message2";
-        let sig1 = sk.sign(&sec_rand.to_bytes(), message1).unwrap();
-        let sig2 = sk.sign(&sec_rand.to_bytes(), message2).unwrap();
+        for _ in 0..100 {
+            let sk = SecretKey::new(&mut thread_rng());
+            let pk = sk.pubkey();
+            let (sec_rand, pub_rand) = rand_gen();
 
-        let extracted_sk = pk
-            .extract(
-                &pub_rand.to_x_bytes(),
-                message1,
-                &sig1.to_bytes(),
-                message2,
-                &sig2.to_bytes(),
-            )
-            .unwrap();
-        assert_eq!(sk.pubkey().to_x_bytes(), extracted_sk.pubkey().to_x_bytes());
+            // Generate random messages
+            let mut message1 = [0u8; 32];
+            let mut message2 = [0u8; 32];
+            thread_rng().fill_bytes(&mut message1);
+            thread_rng().fill_bytes(&mut message2);
+
+            let sig1 = sk.sign(&sec_rand.to_bytes(), &message1).unwrap();
+            let sig2 = sk.sign(&sec_rand.to_bytes(), &message2).unwrap();
+
+            let extracted_sk = pk
+                .extract(
+                    &pub_rand.to_x_bytes(),
+                    &message1,
+                    &sig1.to_bytes(),
+                    &message2,
+                    &sig2.to_bytes(),
+                )
+                .unwrap();
+            assert_eq!(sk.pubkey().to_x_bytes(), extracted_sk.pubkey().to_x_bytes());
+        }
     }
 
     #[test]
