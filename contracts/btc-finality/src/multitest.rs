@@ -479,7 +479,7 @@ mod distribution {
         create_new_finality_provider, get_add_finality_sig, get_derived_btc_delegation,
         get_pub_rand_value, get_public_randomness_commitment,
     };
-    use cosmwasm_std::{coin, Addr};
+    use cosmwasm_std::coin;
 
     use crate::multitest::suite::SuiteBuilder;
 

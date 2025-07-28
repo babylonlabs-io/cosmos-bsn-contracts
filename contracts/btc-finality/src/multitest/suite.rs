@@ -214,11 +214,6 @@ impl Suite {
         bech32_prefix
     }
 
-    #[track_caller]
-    pub fn get_balance(&self, addr: &Addr, denom: &str) -> Coin {
-        self.app.wrap().query_balance(addr, denom).unwrap()
-    }
-
     #[allow(dead_code)]
     pub fn admin(&self) -> &str {
         self.owner.as_str()
