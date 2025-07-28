@@ -256,6 +256,7 @@ fn handle_end_block(
     let params = PARAMS.load(deps.storage)?;
     if env.block.height > 0 && env.block.height % params.epoch_length == 0 {
         // TODO: On an epoch boundary, send rewards for distribution
+        // https://github.com/babylonlabs-io/cosmos-bsn-contracts/issues/227
     }
     Ok(res)
 }
