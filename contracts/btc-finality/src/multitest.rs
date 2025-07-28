@@ -610,27 +610,18 @@ mod distribution {
         assert_eq!(rewards_1, 66590);
 
         // Withdrawing rewards
-        // Trying to withdraw the rewards with a Consumer address should fail
-        // Build staker 1 address on the Consumer network
-        let staker1_addr_consumer = suite
-            .to_consumer_addr(&Addr::unchecked(staker1_addr.clone()))
-            .unwrap();
-        let res = suite.withdraw_rewards(&new_fp1.btc_pk_hex, staker1_addr_consumer.as_ref());
+        // With ICS transfer channel required, rewards are always sent via IBC to Babylon
+        // In the test environment, this should fail because there's no IBC infrastructure
+        let res = suite.withdraw_rewards(&new_fp1.btc_pk_hex, &staker1_addr);
         assert!(res.is_err());
 
-        // Trying to withdraw the rewards with a Babylon address should work
-        suite
-            .withdraw_rewards(&new_fp1.btc_pk_hex, &staker1_addr)
-            .unwrap();
-
-        // Rewards have been transferred out of the staking contract
+        // Rewards should still be in the staking contract since the IBC transfer failed
         let pending_rewards_1 = suite.get_pending_delegator_rewards(staker1_addr.as_str());
         assert_eq!(pending_rewards_1.len(), 1);
-        assert_eq!(pending_rewards_1[0].rewards.amount.u128(), 0);
+        assert_eq!(pending_rewards_1[0].rewards.amount.u128(), rewards_1);
 
-        // And are now in the staker (Consumer's) balance
-        let consumer_balance = suite.get_balance(&staker1_addr_consumer, &rewards_denom);
-        assert_eq!(consumer_balance.amount.u128(), rewards_1);
+        // Note: In a real environment with proper IBC infrastructure,
+        // the rewards would be sent via IBC to Babylon successfully
     }
 }
 
