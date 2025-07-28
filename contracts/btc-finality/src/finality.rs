@@ -404,11 +404,11 @@ fn slash_finality_provider(
     let fork_msg_to_sign_hash = Sha256::digest(&fork_msg_to_sign);
 
     let btc_sk = pk
-        .extract_secret_key(
+        .extract_from_hashes(
             &evidence.pub_rand,
-            &canonical_msg_to_sign_hash,
+            canonical_msg_to_sign_hash.into(),
             &evidence.canonical_finality_sig,
-            &fork_msg_to_sign_hash,
+            fork_msg_to_sign_hash.into(),
             &evidence.fork_finality_sig,
         )
         .map_err(|err| ContractError::SecretKeyExtractionError(err.to_string()))?;
@@ -489,7 +489,7 @@ fn verify_finality_signature(
 
     let msg_hash = Sha256::digest(msg);
 
-    if !pubkey.verify(pub_rand, &msg_hash, signature)? {
+    if !pubkey.verify_hash(pub_rand, msg_hash.into(), signature)? {
         return Err(ContractError::FailedSignatureVerification("EOTS".into()));
     }
 

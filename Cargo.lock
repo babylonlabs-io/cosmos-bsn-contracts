@@ -354,7 +354,6 @@ dependencies = [
  "babylon-apis",
  "babylon-proto",
  "bitcoin",
- "btc-light-client",
  "cosmwasm-std",
  "hex",
  "k256",

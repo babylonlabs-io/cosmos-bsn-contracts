@@ -27,7 +27,7 @@ default = []
 # Use cranelift backend instead of singlepass. This is required for development on 32 bit or ARM machines.
 cranelift = ["cosmwasm-vm/cranelift"]
 # for quicker tests, cargo test --lib
-library = ["babylon-test-utils"]
+library = []
 # feature for enabling the full validation
 full-validation = [ "btc-staking/full-validation" ]
 
@@ -35,7 +35,7 @@ full-validation = [ "btc-staking/full-validation" ]
 babylon-apis     = { path = "../../packages/apis" }
 babylon-btcstaking = { path = "../../packages/btcstaking" }
 babylon-proto    = { path = "../../packages/proto" }
-babylon-test-utils   = { path = "../../packages/test-utils", optional = true }
+babylon-test-utils   = { path = "../../packages/test-utils" }
 bitcoin          = { workspace = true }
 blst             = { workspace = true }
 cosmwasm-schema  = { workspace = true }
