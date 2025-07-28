@@ -161,10 +161,6 @@ impl Signature {
             inner: Scalar::from_repr_vartime(array.into()).ok_or(Error::SignatureParseFailed {})?,
         })
     }
-
-    pub(crate) fn to_bytes(&self) -> Vec<u8> {
-        self.inner.to_bytes().to_vec()
-    }
 }
 
 impl Deref for Signature {
@@ -222,9 +218,8 @@ impl SecretKey {
     /// The caller MUST ensure that hash is the output of a cryptographically secure hash function.
     /// Based on the unexported schnorr signing function from btcd.
     pub fn sign_hash(&self, private_rand: &[u8], hash: [u8; 32]) -> Result<Signature> {
-        if self.inner.to_nonzero_scalar().is_zero().into() {
-            return Err(Error::PrivateKeyIsZero);
-        }
+        // Fail if the private key is zero
+        // (Already verified by construction of self.inner)
 
         // d' = int(d)
         let priv_key_scalar = *self.inner.to_nonzero_scalar();
@@ -443,7 +438,7 @@ impl PublicKey {
         let s1 = Signature::new(sig1)?;
         let s2 = Signature::new(sig2)?;
 
-        if s1.to_bytes() == s2.to_bytes() {
+        if *s1 == *s2 {
             return Err(Error::EllipticCurveError(
                 "The two signatures need to be different in order to extract".to_string(),
             ));
@@ -467,7 +462,13 @@ impl PublicKey {
 
         // x = (s1 - s2) / (e1 - e2)
         let denom = e1 - e2;
-        let mut x = (*s1 - *s2) * denom.invert().unwrap();
+        let denom_inverted = denom
+            .invert()
+            .into_option()
+            .ok_or(Error::EllipticCurveError(
+                "Denominator is zero; cannot invert".to_string(),
+            ))?;
+        let mut x = (*s1 - *s2) * denom_inverted;
 
         // If the public key is odd, negate the result
         if self.is_y_odd() {
