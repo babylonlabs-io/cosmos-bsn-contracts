@@ -16,7 +16,7 @@ use std::ops::{Deref, Mul};
 
 pub const CHALLENGE_TAG: &[u8] = b"BIP0340/challenge";
 
-fn point_to_bytes(p: &ProjectivePoint) -> [u8; 32] {
+fn point_to_x_bytes(p: &ProjectivePoint) -> [u8; 32] {
     let encoded_p = p.to_encoded_point(false);
     // Extract the x-coordinate as bytes
     let x_bytes = encoded_p.x().unwrap();
@@ -126,8 +126,8 @@ impl PubRand {
         }
     }
 
-    pub fn to_bytes(&self) -> Vec<u8> {
-        point_to_bytes(&self.inner).to_vec()
+    pub(crate) fn to_x_bytes(&self) -> Vec<u8> {
+        point_to_x_bytes(&self.inner).to_vec()
     }
 }
 
@@ -162,7 +162,7 @@ impl Signature {
         })
     }
 
-    pub fn to_bytes(&self) -> Vec<u8> {
+    pub(crate) fn to_bytes(&self) -> Vec<u8> {
         self.inner.to_bytes().to_vec()
     }
 }
@@ -233,7 +233,7 @@ impl SecretKey {
 
         // Always negate d to avoid timing attack and pick the
         // negated value later if P.y odd
-        let pub_key_bytes = pub_key.to_bytes();
+        let pub_key_bytes = pub_key.to_x_bytes();
         let priv_key_scalar_negated = -priv_key_scalar;
         let is_py_odd = pub_key.is_y_odd();
 
@@ -252,7 +252,7 @@ impl SecretKey {
         let is_ry_odd = r_affine.y_is_odd().into();
 
         // e = tagged_hash("BIP0340/challenge", bytes(R) || bytes(P) || m) mod n
-        let r_bytes = point_to_bytes(&r_point);
+        let r_bytes = point_to_x_bytes(&r_point);
         let p_bytes = pub_key_bytes;
 
         let e = <Scalar as Reduce<U256>>::reduce_bytes(
@@ -331,8 +331,8 @@ impl PublicKey {
     }
 
     /// Converts the public key into bytes.
-    pub fn to_bytes(&self) -> Vec<u8> {
-        point_to_bytes(&self.inner.to_projective()).to_vec()
+    pub(crate) fn to_x_bytes(&self) -> Vec<u8> {
+        point_to_x_bytes(&self.inner.to_projective()).to_vec()
     }
 
     /// Verifies that the signature is valid for this message, public key and random value.
@@ -355,9 +355,6 @@ impl PublicKey {
         // Fail if P is not a point on the curve
         // (Already verified by construction)
 
-        // Parse public randomness
-        let r = PubRand::new(r_bytes)?;
-
         // Parse signature
         let s = Signature::new(sig)?;
 
@@ -365,12 +362,10 @@ impl PublicKey {
         // Fail if s >= n is already handled by the fact s is a mod n scalar.
 
         // e = int(tagged_hash("BIP0340/challenge", bytes(r) || bytes(P) || M)) mod n.
-        let r_point_bytes = r.to_bytes();
-        let p_bytes = self.to_bytes();
-
+        let p_bytes = self.to_x_bytes();
         let e = <Scalar as Reduce<U256>>::reduce_bytes(
             &tagged_hash(CHALLENGE_TAG)
-                .chain_update(r_point_bytes)
+                .chain_update(r_bytes)
                 .chain_update(p_bytes)
                 .chain_update(hash)
                 .finalize(),
@@ -399,7 +394,8 @@ impl PublicKey {
         }
 
         // verify signed with the right k random value
-        Ok(recovered_r.eq(&*r))
+        let recovered_r_bytes = point_to_x_bytes(&recovered_r);
+        Ok(recovered_r_bytes == r_bytes)
     }
 
     /// Extracts the private key from a public key and signatures for two distinct hash messages.
@@ -427,8 +423,8 @@ impl PublicKey {
         sig2: &[u8],
     ) -> Result<SecretKey> {
         let r = PubRand::new(r_bytes)?;
-        let r_point_bytes = r.to_bytes();
-        let p_bytes = self.to_bytes();
+        let r_point_bytes = r.to_x_bytes();
+        let p_bytes = self.to_x_bytes();
 
         let s1 = Signature::new(sig1)?;
         let s2 = Signature::new(sig2)?;
@@ -467,7 +463,7 @@ impl PublicKey {
         let sk = k256::SecretKey::new(x.into());
         let extracted_sk = SecretKey { inner: sk };
 
-        if extracted_sk.pubkey().to_bytes() == self.to_bytes() {
+        if extracted_sk.pubkey().to_x_bytes() == self.to_x_bytes() {
             Ok(extracted_sk)
         } else {
             Err(Error::EllipticCurveError(
@@ -531,7 +527,7 @@ mod tests {
         let message = b"test message";
         let sig = sk.sign(&sec_rand.to_bytes(), message).unwrap();
         assert!(pk
-            .verify(&pub_rand.to_bytes(), message, &sig.to_bytes())
+            .verify(&pub_rand.to_x_bytes(), message, &sig.to_bytes())
             .unwrap());
     }
 
@@ -547,14 +543,14 @@ mod tests {
 
         let extracted_sk = pk
             .extract(
-                &pub_rand.to_bytes(),
+                &pub_rand.to_x_bytes(),
                 message1,
                 &sig1.to_bytes(),
                 message2,
                 &sig2.to_bytes(),
             )
             .unwrap();
-        assert_eq!(sk.pubkey().to_bytes(), extracted_sk.pubkey().to_bytes());
+        assert_eq!(sk.pubkey().to_x_bytes(), extracted_sk.pubkey().to_x_bytes());
     }
 
     #[test]
@@ -564,7 +560,7 @@ mod tests {
         // convert SK and PK from bytes to Rust types
         let sk = SecretKey::from_hex(&testdata.sk).unwrap();
         let pk = PublicKey::from_hex(&testdata.pk).unwrap();
-        assert_eq!(sk.pubkey().to_bytes(), pk.to_bytes());
+        assert_eq!(sk.pubkey().to_x_bytes(), pk.to_x_bytes());
 
         // convert secret/public randomness to Rust types
         let sr_slice = hex::decode(testdata.sr).unwrap();
@@ -593,22 +589,22 @@ mod tests {
 
         // verify signatures using hash-based methods since testdata contains pre-hashed messages
         assert!(pk
-            .verify_hash(&pr.to_bytes(), msg1_hash, &sig1.to_bytes())
+            .verify_hash(&pr.to_x_bytes(), msg1_hash, &sig1.to_bytes())
             .unwrap());
         assert!(pk
-            .verify_hash(&pr.to_bytes(), msg2_hash, &sig2.to_bytes())
+            .verify_hash(&pr.to_x_bytes(), msg2_hash, &sig2.to_bytes())
             .unwrap());
 
         // extract SK using hash-based method since testdata contains pre-hashed messages
         let extracted_sk = pk
             .extract_from_hashes(
-                &pr.to_bytes(),
+                &pr.to_x_bytes(),
                 msg1_hash,
                 &sig1.to_bytes(),
                 msg2_hash,
                 &sig2.to_bytes(),
             )
             .unwrap();
-        assert_eq!(sk.pubkey().to_bytes(), extracted_sk.pubkey().to_bytes());
+        assert_eq!(sk.pubkey().to_x_bytes(), extracted_sk.pubkey().to_x_bytes());
     }
 }
