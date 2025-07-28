@@ -126,7 +126,7 @@ impl PubRand {
         }
     }
 
-    pub(crate) fn to_x_bytes(&self) -> Vec<u8> {
+    fn to_x_bytes(&self) -> Vec<u8> {
         point_to_x_bytes(&self.inner).to_vec()
     }
 }
@@ -330,9 +330,19 @@ impl PublicKey {
         PublicKey::from_bytes(&p)
     }
 
-    /// Converts the public key into bytes.
-    pub(crate) fn to_x_bytes(&self) -> Vec<u8> {
+    /// Converts the public key into X-bytes.
+    fn to_x_bytes(&self) -> Vec<u8> {
         point_to_x_bytes(&self.inner.to_projective()).to_vec()
+    }
+
+    /// Converts the public key into a point with even y-coordinate.
+    fn to_point_with_even_y(&self) -> ProjectivePoint {
+        let point = self.inner.to_projective();
+        if point.to_affine().y_is_odd().into() {
+            -point
+        } else {
+            point
+        }
     }
 
     /// Verifies that the signature is valid for this message, public key and random value.
@@ -376,8 +386,12 @@ impl PublicKey {
         let e_neg = -e;
 
         // R = s*G - e*P
+        // compute s*G
         let s_g = ProjectivePoint::mul_by_generator(&*s);
-        let e_p = self.inner.to_projective().mul(e_neg);
+        // compute e*P
+        // NOTE: P is normalized to have even y-coordinate. This is done
+        // implicitly in Go impl https://github.com/babylonlabs-io/babylon/blob/62ec2306e9a4347f6001f72badd17c8b345bb86d/crypto/eots/eots.go#L153-L161
+        let e_p = self.to_point_with_even_y().mul(e_neg);
         let recovered_r = s_g + e_p;
 
         // Fail if R is the point at infinity
@@ -488,7 +502,10 @@ mod tests {
     use sha2::{Digest, Sha256};
 
     pub fn rand_gen() -> (PrivateRand, PubRand) {
-        let x = PrivateRand::new(&Scalar::generate_vartime(&mut thread_rng()).to_bytes()).unwrap();
+        let random_bytes: [u8; 32] = Scalar::generate_vartime(&mut thread_rng())
+            .to_bytes()
+            .into();
+        let x = PrivateRand::new(&random_bytes).unwrap();
         let p = PubRand::from(ProjectivePoint::mul_by_generator(&*x));
         (x, p)
     }
