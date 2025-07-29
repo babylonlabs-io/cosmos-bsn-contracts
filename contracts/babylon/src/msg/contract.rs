@@ -56,8 +56,8 @@ pub struct InstantiateMsg {
     /// Description of the consumer
     pub consumer_description: Option<String>,
     /// IBC information for ICS-020 rewards transfer.
-    /// If not set, distributed rewards will be native to the Consumer
-    pub ics20_channel_id: Option<String>,
+    /// Required for rewards distribution on Babylon Genesis
+    pub ics20_channel_id: String,
 }
 
 impl InstantiateMsg {
@@ -78,7 +78,7 @@ impl InstantiateMsg {
             admin: None,
             consumer_name: None,
             consumer_description: None,
-            ics20_channel_id: None,
+            ics20_channel_id: "channel-0".to_string(),
         }
     }
 }
@@ -112,10 +112,9 @@ impl ContractMsg for InstantiateMsg {
             }
         }
 
-        if let Some(channel_id) = &self.ics20_channel_id {
-            if channel_id.trim().is_empty() {
-                return Err(StdError::generic_err("ICS-020 channel_id cannot be empty"));
-            }
+        // Validate that ICS-020 channel ID is not empty
+        if self.ics20_channel_id.trim().is_empty() {
+            return Err(StdError::generic_err("ICS-020 channel_id cannot be empty"));
         }
 
         Ok(())

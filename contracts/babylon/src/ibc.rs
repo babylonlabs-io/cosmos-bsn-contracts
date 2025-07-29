@@ -362,7 +362,7 @@ mod tests {
     fn setup() -> OwnedDeps<MockStorage, MockApi, MockQuerier> {
         let mut deps = mock_dependencies();
         let mut msg = InstantiateMsg::new_test();
-        msg.ics20_channel_id.replace("channel-1".to_string());
+        msg.ics20_channel_id = "channel-1".to_string();
         let info = message_info(&deps.api.addr_make(CREATOR), &[]);
         let res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
         assert_eq!(0, res.messages.len());

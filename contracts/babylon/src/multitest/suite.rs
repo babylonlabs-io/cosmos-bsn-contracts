@@ -55,7 +55,8 @@ pub struct SuiteBuilder {
     light_client_msg: Option<String>,
     staking_msg: Option<String>,
     finality_msg: Option<String>,
-    ics20_channel_id: Option<String>,
+    #[derivative(Default(value = "\"channel-0\".to_string()"))]
+    ics20_channel_id: String,
     checkpoint_finalization_timeout: Option<u32>,
 }
 
@@ -87,7 +88,7 @@ impl SuiteBuilder {
 
     /// Sets the IBC transfer info
     pub fn with_ics20_channel(mut self, channel_id: &str) -> Self {
-        self.ics20_channel_id = Some(channel_id.to_owned());
+        self.ics20_channel_id = channel_id.to_owned();
         self
     }
 
