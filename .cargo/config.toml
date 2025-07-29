@@ -1,5 +1,5 @@
 [alias]
-unit-test = "test --lib --features full-validation"
+unit-test = "test --lib"
 integration = "run-script integration"
 gen-data = "run-script gen-data"
 gen-proto = "run-script gen-proto"

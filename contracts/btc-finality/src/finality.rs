@@ -52,7 +52,7 @@ pub fn handle_public_randomness_commit(
         )
         .map_err(|_| ContractError::FinalityProviderNotFound(fp_pubkey_hex.to_string()))?;
 
-    let signing_context = babylon_btcstaking::signing_context::fp_rand_commit_context_v0(
+    let signing_context = babylon_apis::signing_context::fp_rand_commit_context_v0(
         &env.block.chain_id,
         env.contract.address.as_str(),
     );
@@ -231,7 +231,7 @@ pub fn handle_finality_signature(
     let pr_commit =
         get_timestamped_pub_rand_commit_for_height(&deps.as_ref(), fp_btc_pk_hex, height)?;
 
-    let signing_context = babylon_btcstaking::signing_context::fp_fin_vote_context_v0(
+    let signing_context = babylon_apis::signing_context::fp_fin_vote_context_v0(
         &env.block.chain_id,
         env.contract.address.as_str(),
     );

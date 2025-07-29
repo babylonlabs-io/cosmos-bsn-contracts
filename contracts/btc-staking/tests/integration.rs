@@ -14,10 +14,6 @@ static WASM: &[u8] = include_bytes!("../../../artifacts/btc_staking.wasm");
 /// Wasm size limit: https://github.com/CosmWasm/wasmd/blob/main/x/wasm/types/validation.go#L24-L25
 const MAX_WASM_SIZE: usize = 1024 * 1024; // 1 MB
 
-// wasm binary with full validation
-#[cfg(not(clippy))]
-static WASM_FULL: &[u8] = include_bytes!("../../../artifacts/btc_staking-full-validation.wasm");
-
 const CREATOR: &str = "creator";
 
 #[test]
@@ -26,12 +22,6 @@ fn wasm_size_limit_check() {
         WASM.len() < MAX_WASM_SIZE,
         "BTC staking contract (lite version) wasm binary is too large: {} (target: {})",
         WASM.len(),
-        MAX_WASM_SIZE
-    );
-    assert!(
-        WASM_FULL.len() < MAX_WASM_SIZE,
-        "BTC staking contract (with full validation) wasm binary is too large: {} (target: {})",
-        WASM_FULL.len(),
         MAX_WASM_SIZE
     );
 }

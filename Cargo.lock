@@ -253,24 +253,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "babylon-btcstaking"
-version = "0.15.1"
-dependencies = [
- "babylon-proto",
- "babylon-schnorr-adaptor-signature",
- "babylon-test-utils",
- "bitcoin",
- "digest",
- "eots",
- "hex",
- "k256",
- "prost",
- "rust_decimal",
- "sha2",
- "thiserror 1.0.69",
-]
-
-[[package]]
 name = "babylon-contract"
 version = "0.15.1"
 dependencies = [
@@ -278,7 +260,6 @@ dependencies = [
  "assert_matches",
  "babylon-apis",
  "babylon-bindings-test",
- "babylon-btcstaking",
  "babylon-proto",
  "babylon-test-utils",
  "bitcoin",
@@ -335,16 +316,6 @@ dependencies = [
  "prost",
  "sha2",
  "tendermint-proto",
-]
-
-[[package]]
-name = "babylon-schnorr-adaptor-signature"
-version = "0.15.1"
-dependencies = [
- "digest",
- "k256",
- "sha2",
- "thiserror 1.0.69",
 ]
 
 [[package]]
@@ -539,29 +510,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3e31ea183f6ee62ac8b8a8cf7feddd766317adfb13ff469de57ce033efd6a790"
 
 [[package]]
-name = "borsh"
-version = "1.5.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ad8646f98db542e39fc66e68a20b2144f6a732636df7c2354e74645faaa433ce"
-dependencies = [
- "borsh-derive",
- "cfg_aliases",
-]
-
-[[package]]
-name = "borsh-derive"
-version = "1.5.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fdd1d3c0c2f5833f22386f252fe8ed005c7f59fdcddeef025c01b4c3b9fd9ac3"
-dependencies = [
- "once_cell",
- "proc-macro-crate",
- "proc-macro2",
- "quote",
- "syn 2.0.101",
-]
-
-[[package]]
 name = "btc-finality"
 version = "0.15.1"
 dependencies = [
@@ -570,7 +518,6 @@ dependencies = [
  "assert_matches",
  "babylon-apis",
  "babylon-bindings-test",
- "babylon-btcstaking",
  "babylon-contract",
  "babylon-merkle",
  "babylon-proto",
@@ -629,11 +576,9 @@ name = "btc-staking"
 version = "0.15.1"
 dependencies = [
  "babylon-apis",
- "babylon-btcstaking",
  "babylon-contract",
  "babylon-merkle",
  "babylon-proto",
- "babylon-schnorr-adaptor-signature",
  "babylon-test-utils",
  "bitcoin",
  "btc-light-client",
@@ -715,12 +660,6 @@ name = "cfg-if"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
-
-[[package]]
-name = "cfg_aliases"
-version = "0.2.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "613afe47fcd5fac7ccf1db93babcb082c5994d996f20b8b159f2ad1658eb5724"
 
 [[package]]
 name = "chrono"
@@ -2190,15 +2129,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "proc-macro-crate"
-version = "3.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "edce586971a4dfaa28950c6f18ed55e0406c1ab88bbce2c6f6293a7aaba73d35"
-dependencies = [
- "toml_edit",
-]
-
-[[package]]
 name = "proc-macro-error"
 version = "1.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2502,22 +2432,6 @@ dependencies = [
  "byteorder",
  "rmp",
  "serde",
-]
-
-[[package]]
-name = "rust_decimal"
-version = "1.37.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "faa7de2ba56ac291bd90c6b9bece784a52ae1411f9506544b3eae36dd2356d50"
-dependencies = [
- "arrayvec",
- "borsh",
- "bytes",
- "num-traits",
- "rand",
- "rkyv",
- "serde",
- "serde_json",
 ]
 
 [[package]]
@@ -3001,23 +2915,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 
 [[package]]
-name = "toml_datetime"
-version = "0.6.9"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3da5db5a963e24bc68be8b17b6fa82814bb22ee8660f192bb182771d498f09a3"
-
-[[package]]
-name = "toml_edit"
-version = "0.22.26"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "310068873db2c5b3e7659d2cc35d21855dbafa50d1ce336397c666e3cb08137e"
-dependencies = [
- "indexmap 2.9.0",
- "toml_datetime",
- "winnow",
-]
-
-[[package]]
 name = "tracing"
 version = "0.1.41"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3462,15 +3359,6 @@ name = "windows_x86_64_msvc"
 version = "0.52.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "589f6da84c646204747d1270a2a5661ea66ed1cced2631d546fdfb155959f9ec"
-
-[[package]]
-name = "winnow"
-version = "0.7.10"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c06928c8748d81b05c9be96aad92e1b6ff01833332f281e8cfca3be4b35fc9ec"
-dependencies = [
- "memchr",
-]
 
 [[package]]
 name = "wit-bindgen-rt"

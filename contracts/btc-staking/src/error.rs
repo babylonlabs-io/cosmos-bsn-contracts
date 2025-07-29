@@ -103,14 +103,7 @@ pub enum ContractError {
     #[error("Bitcoin encode error: {0}")]
     BitcoinEncode(String),
     #[error(transparent)]
-    BTCStaking(#[from] babylon_btcstaking::error::Error),
-    #[error(transparent)]
     HexError(#[from] FromHexError),
-    #[error(transparent)]
-    SchnorrAdaptorSignature(#[from] babylon_schnorr_adaptor_signature::Error),
-    #[cfg(feature = "full-validation")]
-    #[error(transparent)]
-    FullValidation(#[from] crate::validation::FullValidationError),
 }
 
 impl From<bitcoin::consensus::encode::Error> for ContractError {

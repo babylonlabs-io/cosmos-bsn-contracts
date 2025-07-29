@@ -1,17 +1,14 @@
 //! `consumer_header_chain` is the storage for the chain of **finalised** Consumer headers.
 //! It maintains a chain of finalised Consumer headers.
 //! NOTE: The Consumer header chain is always finalised, i.e., w-deep on BTC.
-use prost::Message;
-use tendermint_proto::crypto::ProofOps;
 
-use cosmwasm_std::{Deps, DepsMut, StdResult};
-use cw_storage_plus::{Item, Map};
-
+use crate::error;
 use babylon_proto::babylon::epoching::v1::Epoch;
 use babylon_proto::babylon::zoneconcierge::v1::IndexedHeader;
-
-use crate::state::config::CONFIG;
-use crate::{error, utils};
+use cosmwasm_std::{Deps, DepsMut, StdResult};
+use cw_storage_plus::{Item, Map};
+use prost::Message;
+use tendermint_proto::crypto::ProofOps;
 
 pub const CONSUMER_HEADERS: Map<u64, Vec<u8>> = Map::new("consumer_headers");
 pub const CONSUMER_HEADER_LAST: Item<Vec<u8>> = Item::new("consumer_header_last");
@@ -61,28 +58,14 @@ pub fn get_consumer_header(
     Ok(indexed_header)
 }
 
-/// Verifies whether a Consumer header is committed to a Babylon epoch, including
-/// - The Babylon tx carrying this header is included in a Babylon block
-/// - The Babylon block's AppHash is committed to the AppHashRoot of the epoch
 fn verify_consumer_header(
-    deps: Deps,
-    consumer_header: &IndexedHeader,
-    epoch: &Epoch,
-    proof_consumer_header_in_epoch: &ProofOps,
+    _deps: Deps,
+    _consumer_header: &IndexedHeader,
+    _epoch: &Epoch,
+    _proof_consumer_header_in_epoch: &ProofOps,
 ) -> Result<(), error::ConsumerHeaderChainError> {
-    let _cfg = CONFIG.load(deps.storage)?;
-
-    // check if the corresponding Consumer header is in the Babylon epoch
-    utils::consumer_header_chain::verify_consumer_header_in_epoch(
-        consumer_header,
-        epoch,
-        proof_consumer_header_in_epoch,
-    )?;
-
-    // TODO: check if IndexedHeader is conflicted or not. Still not sure if this check should happen
-    // in a relayer/monitor or the smart contract, given that smart contract has no access to the
-    // Tendermint ledger
-
+    // NOTE: we don't verify timestamped BSN header here,
+    // as we assume it is already verified by Babylon
     Ok(())
 }
 
@@ -108,6 +91,7 @@ pub fn handle_consumer_header(
         epoch,
         proof_consumer_header_in_epoch,
     )?;
+
     insert_consumer_header(deps, consumer_header)?;
 
     Ok(())

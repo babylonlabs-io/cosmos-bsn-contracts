@@ -81,7 +81,7 @@ fn handle_new_fp(
     // basic validations on the finality provider data
     new_fp.validate()?;
 
-    // verify the finality provider registration request (full or lite)
+    // verify the finality provider registration request
     verify_new_fp(new_fp)?;
 
     // get DB object
@@ -140,7 +140,7 @@ fn handle_active_delegation(
         ));
     }
 
-    // verify the active delegation (full or lite)
+    // verify the active delegation
     verify_active_delegation(&params, active_delegation, &staking_tx)?;
 
     // All good, construct BTCDelegation and insert BTC delegation
@@ -250,7 +250,7 @@ fn handle_undelegation(
         ));
     }
 
-    // verify the early unbonded delegation (full or lite)
+    // verify the early unbonded delegation
     let params = PARAMS.load(storage)?;
     verify_undelegation(&params, &btc_del, &undelegation.unbonding_tx_sig)?;
 
@@ -286,7 +286,7 @@ fn handle_slashed_delegation(
         ));
     }
 
-    // verify the slashed delegation (full or lite)
+    // verify the slashed delegation
     let recovered_fp_sk_hex = delegation.recovered_fp_btc_sk.clone();
     verify_slashed_delegation(&btc_del, &recovered_fp_sk_hex)?;
 

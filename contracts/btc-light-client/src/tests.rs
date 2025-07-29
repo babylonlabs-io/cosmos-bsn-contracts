@@ -2,8 +2,6 @@ use crate::contract::{execute, instantiate};
 use crate::msg::InstantiateMsg;
 use crate::state::test_utils::{get_btc_base_header, test_headers};
 use crate::state::{get_tip, BTC_HEADERS, BTC_HEIGHTS, CONFIG};
-#[cfg(feature = "full-validation")]
-use crate::ContractError;
 use crate::{BitcoinNetwork, ExecuteMsg};
 use cosmwasm_std::testing::{message_info, mock_dependencies, mock_env};
 use prost::Message;
@@ -63,7 +61,6 @@ fn instantiate_should_work() {
     }
 }
 
-#[cfg(not(feature = "full-validation"))]
 #[test]
 fn instantiate_without_initial_header_should_work() {
     let mut deps = mock_dependencies();
@@ -89,25 +86,6 @@ fn instantiate_without_initial_header_should_work() {
     assert_eq!(cfg.network, BitcoinNetwork::Mainnet);
 }
 
-#[cfg(feature = "full-validation")]
-#[test]
-fn instantiate_without_initial_header_should_fail_in_full_validation_mode() {
-    let mut deps = mock_dependencies();
-    let info = message_info(&deps.api.addr_make("creator"), &[]);
-
-    let msg = InstantiateMsg {
-        network: BitcoinNetwork::Mainnet,
-        btc_confirmation_depth: 6,
-        checkpoint_finalization_timeout: 100,
-        base_header: None,
-    };
-
-    let res = instantiate(deps.as_mut(), mock_env(), info, msg);
-    assert!(res.is_err());
-    assert_eq!(res.unwrap_err(), ContractError::InitialHeaderRequired);
-}
-
-#[cfg(not(feature = "full-validation"))]
 #[test]
 fn auto_init_on_first_header_works() {
     use std::str::FromStr;
