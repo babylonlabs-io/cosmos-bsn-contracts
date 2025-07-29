@@ -10,6 +10,7 @@
       "babylon_tag",
       "btc_confirmation_depth",
       "checkpoint_finalization_timeout",
+      "ics20_channel_id",
       "network",
       "notify_cosmos_zone"
     ],
@@ -110,11 +111,8 @@
         ]
       },
       "ics20_channel_id": {
-        "description": "IBC information for ICS-020 rewards transfer. If not set, distributed rewards will be native to the Consumer",
-        "type": [
-          "string",
-          "null"
-        ]
+        "description": "IBC information for ICS-020 rewards transfer. Required for rewards distribution on Babylon Genesis",
+        "type": "string"
       },
       "network": {
         "$ref": "#/definitions/BitcoinNetwork"

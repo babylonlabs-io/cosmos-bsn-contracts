@@ -16,7 +16,6 @@ import (
 
 	"github.com/babylonlabs-io/babylon-sdk/demo/app"
 	babylontypes "github.com/babylonlabs-io/babylon-sdk/x/babylon/types"
-	btclctypes "github.com/babylonlabs-io/babylon/v3/x/btclightclient/types"
 )
 
 const (
@@ -111,12 +110,12 @@ func (p *TestConsumerClient) GetSender() sdk.AccAddress {
 	return p.Chain.SenderAccount.GetAddress()
 }
 
-func (p *TestConsumerClient) BootstrapContracts(initialHeader *btclctypes.BTCHeaderInfo) (*ConsumerContract, error) {
+func (p *TestConsumerClient) BootstrapContracts() (*ConsumerContract, error) {
 	// Query the Babylon module for contract addresses
 	contracts := p.App.BabylonKeeper.GetBSNContracts(p.Chain.GetContext())
 	if contracts == nil || !contracts.IsSet() {
 		// If contracts are not set, deploy them
-		return p.deployContracts(initialHeader)
+		return p.deployContracts()
 	}
 
 	babylonAddr, err := sdk.AccAddressFromBech32(contracts.BabylonContract)
@@ -146,7 +145,7 @@ func (p *TestConsumerClient) BootstrapContracts(initialHeader *btclctypes.BTCHea
 	return &r, nil
 }
 
-func (p *TestConsumerClient) deployContracts(initialHeader *btclctypes.BTCHeaderInfo) (*ConsumerContract, error) {
+func (p *TestConsumerClient) deployContracts() (*ConsumerContract, error) {
 	ctx := p.Chain.GetContext()
 	wasmKeeper := p.App.WasmKeeper
 	wasmMsgServer := wasmkeeper.NewMsgServerImpl(&wasmKeeper)
@@ -217,7 +216,7 @@ func (p *TestConsumerClient) deployContracts(initialHeader *btclctypes.BTCHeader
 	ics20ChannelID := "channel-1"
 
 	// Create init messages for other contracts
-	btcLightClientInitMsg := NewBTCLightClientInitMsg(admin, network, kValue, wValue, initialHeader)
+	btcLightClientInitMsg := NewBTCLightClientInitMsg(admin, network, kValue, wValue)
 	btcStakingInitMsg := NewBTCStakingInitMsg(admin)
 	btcFinalityInitMsg := NewBTCFinalityInitMsg(admin)
 
