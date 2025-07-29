@@ -34,6 +34,7 @@ fn instantiate_works() {
         btc_confirmation_depth: 10,
         checkpoint_finalization_timeout: 100,
         base_header: get_btc_base_header(),
+        admin: None,
     };
     let info = message_info(&Addr::unchecked(CREATOR), &[]);
     let res: ContractResult<Response> = instantiate(&mut deps, mock_env(), info, msg);

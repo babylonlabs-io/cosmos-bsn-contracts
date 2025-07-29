@@ -47,6 +47,7 @@ thiserror        = { workspace = true }
 prost            = { workspace = true }
 schemars         = { workspace = true }
 serde            = { workspace = true, features = ["derive"] }
+cw-controllers   = { workspace = true }
 
 [dev-dependencies]
 babylon-bindings-test  = { path = "../../packages/bindings-test" }

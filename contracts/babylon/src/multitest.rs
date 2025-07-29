@@ -85,6 +85,7 @@ mod instantiation {
             btc_confirmation_depth: 1,
             checkpoint_finalization_timeout: 1,
             base_header: get_btc_base_header(),
+            admin: None,
         };
         let suite = SuiteBuilder::new()
             .with_light_client_msg(&to_json_string(&params).unwrap())

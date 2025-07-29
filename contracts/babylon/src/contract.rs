@@ -360,6 +360,7 @@ mod tests {
             btc_confirmation_depth: msg.btc_confirmation_depth,
             checkpoint_finalization_timeout: msg.checkpoint_finalization_timeout,
             base_header: get_btc_base_header(),
+            admin: None,
         };
 
         msg.btc_light_client_msg

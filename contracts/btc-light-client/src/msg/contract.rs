@@ -1,9 +1,9 @@
+use crate::bitcoin::total_work;
+use crate::{error::ContractError, msg::btc_header::BtcHeader};
 use babylon_proto::babylon::btclightclient::v1::BtcHeaderInfo;
 use cosmwasm_schema::{cw_serde, QueryResponses};
 use cosmwasm_std::Binary;
-
-use crate::bitcoin::total_work;
-use crate::{error::ContractError, msg::btc_header::BtcHeader};
+use cw_controllers::AdminResponse;
 #[cfg(not(target_arch = "wasm32"))]
 use {
     crate::msg::btc_header::{BtcHeaderResponse, BtcHeadersResponse},
@@ -45,6 +45,7 @@ pub struct InstantiateMsg {
     pub network: crate::state::BitcoinNetwork,
     pub btc_confirmation_depth: u32,
     pub checkpoint_finalization_timeout: u32,
+    pub admin: Option<String>,
     /// Initial BTC header.
     /// If not provided, the light client will rely on and trust Babylon's provided initial header
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -89,6 +90,9 @@ pub enum ExecuteMsg {
 #[cw_serde]
 #[derive(QueryResponses)]
 pub enum QueryMsg {
+    /// Returns the current admin of the contract.
+    #[returns(AdminResponse)]
+    Admin {},
     #[returns(BtcHeaderResponse)]
     BtcBaseHeader {},
     #[returns(BtcHeaderResponse)]

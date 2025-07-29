@@ -5,7 +5,7 @@ use crate::msg::contract::{ExecuteMsg, InstantiateMsg, QueryMsg};
 use crate::queries::*;
 use crate::state::{
     expect_header_by_hash, get_tip, insert_headers, is_initialized, remove_headers,
-    set_base_header, set_tip, Config, CONFIG,
+    set_base_header, set_tip, Config, ADMIN, CONFIG,
 };
 use babylon_proto::babylon::btclightclient::v1::BtcHeaderInfo;
 use bitcoin::BlockHash;
@@ -13,6 +13,7 @@ use cosmwasm_std::{
     to_json_binary, Binary, Deps, DepsMut, Empty, Env, MessageInfo, Response, Storage,
 };
 use cw2::set_contract_version;
+use cw_utils::maybe_addr;
 use prost::Message;
 use std::str::FromStr;
 
@@ -20,9 +21,9 @@ pub const CONTRACT_NAME: &str = env!("CARGO_PKG_NAME");
 pub const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 pub fn instantiate(
-    deps: DepsMut,
+    mut deps: DepsMut,
     _env: Env,
-    _info: MessageInfo,
+    info: MessageInfo,
     msg: InstantiateMsg,
 ) -> Result<Response, ContractError> {
     msg.validate()?;
@@ -31,6 +32,7 @@ pub fn instantiate(
         network,
         btc_confirmation_depth,
         checkpoint_finalization_timeout,
+        admin,
         base_header,
     } = msg;
 
@@ -49,7 +51,11 @@ pub fn instantiate(
         network,
         btc_confirmation_depth,
         checkpoint_finalization_timeout,
+        babylon_contract_address: info.sender,
     };
+
+    let api = deps.api;
+    ADMIN.set(deps.branch(), maybe_addr(api, admin.clone())?)?;
 
     CONFIG.save(deps.storage, &cfg)?;
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
@@ -60,7 +66,7 @@ pub fn instantiate(
 pub fn execute(
     deps: DepsMut,
     _env: Env,
-    _info: MessageInfo,
+    info: MessageInfo,
     msg: ExecuteMsg,
 ) -> Result<Response, ContractError> {
     match msg {
@@ -72,7 +78,7 @@ pub fn execute(
             let api = deps.api;
             let headers_len = headers.len();
 
-            handle_btc_headers(deps, headers, first_work, first_height)
+            handle_btc_headers(deps, info, headers, first_work, first_height)
                 .inspect(|_| {
                     api.debug(&format!("Successfully handled {headers_len} BTC headers"));
                 })
@@ -85,6 +91,7 @@ pub fn execute(
 
 pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> Result<Binary, ContractError> {
     match msg {
+        QueryMsg::Admin {} => to_json_binary(&ADMIN.query_admin(deps)?).map_err(Into::into),
         QueryMsg::Config {} => Ok(to_json_binary(&CONFIG.load(deps.storage)?)?),
         QueryMsg::BtcBaseHeader {} => Ok(to_json_binary(&btc_base_header(&deps)?)?),
         QueryMsg::BtcTipHeader {} => Ok(to_json_binary(&btc_tip_header(&deps)?)?),
@@ -112,11 +119,18 @@ pub fn migrate(deps: DepsMut, _env: Env, _msg: Empty) -> Result<Response, Contra
 
 fn handle_btc_headers(
     deps: DepsMut,
+    info: MessageInfo,
     headers: Vec<BtcHeader>,
     first_work: Option<String>,
     first_height: Option<u32>,
 ) -> Result<Response, ContractError> {
-    // TODO: enforce only Babylon contract can call this function
+    // Check if the sender is the Babylon contract or the admin
+    let cfg = CONFIG.load(deps.storage)?;
+    if info.sender != cfg.babylon_contract_address
+        && !ADMIN.is_admin(deps.as_ref(), &info.sender)?
+    {
+        return Err(ContractError::Unauthorized(info.sender.to_string()));
+    }
 
     // Check if the BTC light client has been initialized
     if !is_initialized(deps.storage) {
@@ -289,6 +303,7 @@ pub(crate) mod tests {
     use crate::ExecuteMsg;
     use babylon_test_utils::{get_btc_lc_fork_headers, get_btc_lc_fork_msg, get_btc_lc_headers};
     use bitcoin::block::Header as BlockHeader;
+    use cosmwasm_std::Addr;
     use cosmwasm_std::{from_json, testing::mock_dependencies};
 
     /// Initialze the contract state with given headers.
@@ -331,6 +346,7 @@ pub(crate) mod tests {
             network: BitcoinNetwork::Regtest,
             btc_confirmation_depth: 1,
             checkpoint_finalization_timeout: w,
+            babylon_contract_address: Addr::unchecked("UNSET"),
         };
         CONFIG.save(storage, &cfg).unwrap();
         w

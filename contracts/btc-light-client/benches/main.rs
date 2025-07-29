@@ -47,6 +47,7 @@ pub fn setup_instance() -> Instance<MockApi, MockStorage, MockQuerier> {
         btc_confirmation_depth: 10,
         checkpoint_finalization_timeout: 2,
         base_header: get_btc_base_header(),
+        admin: None,
     };
     let info = mock_info(CREATOR, &[]);
     let res: Response = instantiate(&mut deps, mock_env(), info, msg).unwrap();

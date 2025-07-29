@@ -28,7 +28,7 @@ func NewBtcHeader(header *wire.BlockHeader) *BtcHeader {
 	}
 }
 
-func NewBTCLightClientInitMsg(network string, k int, w int, initialHeader *btclctypes.BTCHeaderInfo) []byte {
+func NewBTCLightClientInitMsg(admin string, network string, k int, w int, initialHeader *btclctypes.BTCHeaderInfo) []byte {
 	btcHeader := initialHeader.Header.ToBlockHeader()
 	// Convert Uint to 32-byte big-endian representation for Uint256
 	workBigInt := initialHeader.Work.BigInt()
@@ -39,6 +39,7 @@ func NewBTCLightClientInitMsg(network string, k int, w int, initialHeader *btclc
 		"network":                         network,
 		"btc_confirmation_depth":          k,
 		"checkpoint_finalization_timeout": w,
+		"admin":                           admin,
 		"base_header": map[string]interface{}{
 			"header": map[string]interface{}{
 				"version":        btcHeader.Version,

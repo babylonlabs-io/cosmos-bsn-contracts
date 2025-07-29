@@ -35,6 +35,7 @@ fn setup() -> Instance<MockApi, MockStorage, MockQuerier> {
             btc_confirmation_depth: 1,
             checkpoint_finalization_timeout: 1,
             base_header: get_btc_base_header(),
+            admin: None,
         })
         .unwrap(),
     );

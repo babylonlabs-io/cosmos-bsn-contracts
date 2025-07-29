@@ -25,8 +25,8 @@ type BabylonSDKTestSuite struct {
 
 	// provider/consumer and their metadata
 	Coordinator      *ibctesting.Coordinator
-	ConsumerChain    *wasmibctesting.WasmTestChain
 	ProviderChain    *wasmibctesting.WasmTestChain
+	ConsumerChain    *wasmibctesting.WasmTestChain
 	ConsumerApp      *app.ConsumerApp
 	IbcPath          *ibctesting.Path
 	ProviderDenom    string
@@ -93,12 +93,22 @@ func (s *BabylonSDKTestSuite) Test1ContractDeployment() {
 	s.Equal(s.ConsumerContract.BTCFinality.String(), s.ConsumerApp.BabylonKeeper.GetBSNContracts(ctx).BtcFinalityContract)
 
 	// query admins
+	admin := s.ConsumerCli.GetSender().String()
 	adminRespStaking, err := s.ConsumerCli.Query(s.ConsumerContract.BTCStaking, types.Query{"admin": {}})
 	s.NoError(err)
-	s.Equal(adminRespStaking["admin"], s.ConsumerCli.GetSender().String())
+	s.Equal(adminRespStaking["admin"], admin)
 	adminRespFinality, err := s.ConsumerCli.Query(s.ConsumerContract.BTCFinality, types.Query{"admin": {}})
 	s.NoError(err)
-	s.Equal(adminRespFinality["admin"], s.ConsumerCli.GetSender().String())
+	s.Equal(adminRespFinality["admin"], admin)
+	adminRespLightClient, err := s.ConsumerCli.Query(s.ConsumerContract.BTCLightClient, types.Query{"admin": {}})
+	s.NoError(err)
+	s.Equal(adminRespLightClient["admin"], admin)
+
+	// query the config of BTC light client contract
+	configResp, err := s.ConsumerCli.Query(s.ConsumerContract.BTCLightClient, types.Query{"config": {}})
+	s.NoError(err)
+	s.NotEmpty(configResp)
+	s.Equal(configResp["babylon_contract_address"], s.ConsumerContract.Babylon.String())
 }
 
 func (s *BabylonSDKTestSuite) Test2InsertBTCHeaders() {
