@@ -14,7 +14,6 @@ use cosmwasm_std::{
 };
 use cw2::set_contract_version;
 use cw_utils::maybe_addr;
-use prost::Message;
 use std::str::FromStr;
 
 pub const CONTRACT_NAME: &str = env!("CARGO_PKG_NAME");
@@ -33,19 +32,7 @@ pub fn instantiate(
         btc_confirmation_depth,
         checkpoint_finalization_timeout,
         admin,
-        base_header,
     } = msg;
-
-    let mut res = Response::new();
-
-    // Initialises the BTC header chain storage if base header is provided.
-    if let Some(header) = base_header {
-        let base_header_info = header.to_btc_header_info()?;
-        // Store base header (immutable) and tip.
-        set_base_header(deps.storage, &base_header_info)?;
-        set_tip(deps.storage, &base_header_info)?;
-        res = res.set_data(Binary::from(base_header_info.encode_to_vec()));
-    }
 
     let cfg = Config {
         network,
@@ -60,7 +47,7 @@ pub fn instantiate(
     CONFIG.save(deps.storage, &cfg)?;
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
 
-    Ok(res.add_attribute("action", "instantiate"))
+    Ok(Response::new().add_attribute("action", "instantiate"))
 }
 
 pub fn execute(

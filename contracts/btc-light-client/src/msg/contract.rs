@@ -46,10 +46,6 @@ pub struct InstantiateMsg {
     pub btc_confirmation_depth: u32,
     pub checkpoint_finalization_timeout: u32,
     pub admin: Option<String>,
-    /// Initial BTC header.
-    /// If not provided, the light client will rely on and trust Babylon's provided initial header
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub base_header: Option<BaseHeader>,
 }
 
 impl InstantiateMsg {

@@ -51,7 +51,7 @@ fn initialization() {
 mod instantiation {
     use super::*;
     use crate::state::config::Config;
-    use btc_light_client::state::test_utils::get_btc_base_header;
+    
     use cosmwasm_std::to_json_string;
 
     fn contract_should_be_instantiated(config: Config) {
@@ -84,7 +84,6 @@ mod instantiation {
             network: btc_light_client::BitcoinNetwork::Regtest,
             btc_confirmation_depth: 1,
             checkpoint_finalization_timeout: 1,
-            base_header: get_btc_base_header(),
             admin: None,
         };
         let suite = SuiteBuilder::new()

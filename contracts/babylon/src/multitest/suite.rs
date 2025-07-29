@@ -2,7 +2,6 @@ use crate::msg::ibc::TransferInfoResponse;
 use anyhow::Result as AnyResult;
 use babylon_bindings_test::BabylonApp;
 use btc_light_client::msg::InstantiateMsg as BtcLightClientInstantiateMsg;
-use btc_light_client::state::test_utils::get_btc_base_header;
 use btc_light_client::BitcoinNetwork;
 use cosmwasm_std::{to_json_binary, Addr, Binary, Empty};
 use cw_multi_test::{AppResponse, Contract, ContractWrapper, Executor};
@@ -131,7 +130,6 @@ impl SuiteBuilder {
                     network: BitcoinNetwork::Testnet,
                     btc_confirmation_depth: 1,
                     checkpoint_finalization_timeout,
-                    base_header: get_btc_base_header(),
                     admin: None,
                 };
 
