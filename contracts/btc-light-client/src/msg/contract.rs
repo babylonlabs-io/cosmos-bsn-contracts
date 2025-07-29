@@ -61,12 +61,6 @@ impl InstantiateMsg {
             return Err(ContractError::ZeroCheckpointFinalizationTimeout);
         }
 
-        if let Some(ref base_header) = self.base_header {
-            if !crate::bitcoin::is_retarget_block(base_header.height, &self.network.chain_params())
-            {
-                return Err(ContractError::NotOnDifficultyBoundary(base_header.height));
-            }
-        }
         // TODO: the height should be larger than a recent block?
 
         Ok(())

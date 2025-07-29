@@ -11,7 +11,6 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 pub const CONFIG: Item<Config> = Item::new("config");
-
 pub const BTC_BASE_HEADER_HEIGHT: Item<u32> = Item::new("btc_lc_base_header_height");
 pub const BTC_HEADERS: Map<u32, Vec<u8>> = Map::new("btc_lc_headers");
 pub const BTC_HEIGHTS: Map<&[u8], u32> = Map::new("btc_lc_heights");
