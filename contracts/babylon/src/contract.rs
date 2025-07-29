@@ -1,19 +1,16 @@
-use cosmwasm_std::{
-    to_json_binary, Addr, Binary, Deps, DepsMut, Empty, Env, MessageInfo, QueryResponse, Reply,
-    Response, SubMsg, SubMsgResponse, WasmMsg,
-};
-use cw2::set_contract_version;
-use cw_utils::ParseReplyError;
-
-use babylon_apis::{btc_staking_api, finality_api};
-use babylon_bindings::BabylonMsg;
-
 use crate::error::ContractError;
 use crate::ibc::{ibc_packet, IBC_CHANNEL, IBC_TRANSFER};
 use crate::msg::contract::{ContractMsg, ExecuteMsg, InstantiateMsg, QueryMsg};
 use crate::queries;
 use crate::state::config::{Config, CONFIG};
 use crate::state::consumer_header_chain::CONSUMER_HEIGHT_LAST;
+use babylon_apis::{btc_staking_api, finality_api};
+use cosmwasm_std::{
+    to_json_binary, Addr, Binary, Deps, DepsMut, Empty, Env, MessageInfo, QueryResponse, Reply,
+    Response, SubMsg, SubMsgResponse, WasmMsg,
+};
+use cw2::set_contract_version;
+use cw_utils::ParseReplyError;
 
 pub const CONTRACT_NAME: &str = env!("CARGO_PKG_NAME");
 pub const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -30,7 +27,7 @@ pub fn instantiate(
     _env: Env,
     _info: MessageInfo,
     msg: InstantiateMsg,
-) -> Result<Response<BabylonMsg>, ContractError> {
+) -> Result<Response, ContractError> {
     msg.validate()?;
 
     // Initialize config with None values for consumer fields
@@ -130,11 +127,7 @@ pub fn instantiate(
     Ok(res)
 }
 
-pub fn reply(
-    deps: DepsMut,
-    _env: Env,
-    reply: Reply,
-) -> Result<Response<BabylonMsg>, ContractError> {
+pub fn reply(deps: DepsMut, _env: Env, reply: Reply) -> Result<Response, ContractError> {
     let response = || {
         reply
             .result
@@ -170,7 +163,7 @@ fn reply_init_get_contract_address(reply: &SubMsgResponse) -> Result<Addr, Contr
 fn reply_init_callback_light_client(
     deps: DepsMut,
     reply: SubMsgResponse,
-) -> Result<Response<BabylonMsg>, ContractError> {
+) -> Result<Response, ContractError> {
     // Try to get contract address from events in reply
     let addr = reply_init_get_contract_address(&reply)?;
 
@@ -194,7 +187,7 @@ fn reply_init_callback_light_client(
 fn reply_init_callback_staking(
     deps: DepsMut,
     reply: SubMsgResponse,
-) -> Result<Response<BabylonMsg>, ContractError> {
+) -> Result<Response, ContractError> {
     // Try to get contract address from events in reply
     let addr = reply_init_get_contract_address(&reply)?;
     CONFIG.update(deps.storage, |mut cfg| {
@@ -208,7 +201,7 @@ fn reply_init_callback_staking(
 fn reply_init_callback_finality(
     deps: DepsMut,
     reply: SubMsgResponse,
-) -> Result<Response<BabylonMsg>, ContractError> {
+) -> Result<Response, ContractError> {
     // Try to get contract address from events in reply
     let finality_addr = reply_init_get_contract_address(&reply)?;
     CONFIG.update(deps.storage, |mut cfg| {
@@ -271,11 +264,7 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> Result<QueryResponse, Cont
 }
 
 /// this is a no-op just to test how this integrates with wasmd
-pub fn migrate(
-    _deps: DepsMut,
-    _env: Env,
-    _msg: Empty,
-) -> Result<Response<BabylonMsg>, ContractError> {
+pub fn migrate(_deps: DepsMut, _env: Env, _msg: Empty) -> Result<Response, ContractError> {
     Ok(Response::default())
 }
 
@@ -284,7 +273,7 @@ pub fn execute(
     env: Env,
     info: MessageInfo,
     msg: ExecuteMsg,
-) -> Result<Response<BabylonMsg>, ContractError> {
+) -> Result<Response, ContractError> {
     match msg {
         ExecuteMsg::Slashing { evidence } => {
             // This is an internal routing message from the `btc_finality` contract
@@ -334,9 +323,9 @@ pub fn execute(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use babylon_test_utils::get_btc_base_header;
     use bitcoin::block::Header as BlockHeader;
     use btc_light_client::msg::InstantiateMsg as BtcLightClientInstantiateMsg;
+    use btc_light_client::state::test_utils::get_btc_base_header;
     use cosmwasm_std::testing::message_info;
     use cosmwasm_std::testing::{mock_dependencies, mock_env};
 

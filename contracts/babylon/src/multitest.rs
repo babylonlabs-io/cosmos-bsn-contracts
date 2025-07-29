@@ -49,9 +49,9 @@ fn initialization() {
 }
 
 mod instantiation {
-    use crate::state::config::Config;
-
     use super::*;
+    use crate::state::config::Config;
+    use btc_light_client::state::test_utils::get_btc_base_header;
     use cosmwasm_std::to_json_string;
 
     fn contract_should_be_instantiated(config: Config) {
@@ -84,7 +84,7 @@ mod instantiation {
             network: btc_light_client::BitcoinNetwork::Regtest,
             btc_confirmation_depth: 1,
             checkpoint_finalization_timeout: 1,
-            base_header: babylon_test_utils::get_btc_base_header(),
+            base_header: get_btc_base_header(),
         };
         let suite = SuiteBuilder::new()
             .with_light_client_msg(&to_json_string(&params).unwrap())
@@ -135,7 +135,6 @@ mod instantiation {
             epoch_length: 10,
             max_active_finality_providers: 5,
             min_pub_rand: 2,
-            finality_inflation_rate: "0.035".parse().unwrap(),
             missed_blocks_window: 100,
             jail_duration: 3600,
         };

@@ -240,20 +240,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "babylon-bindings"
-version = "0.4.0"
-dependencies = [
- "babylon-apis",
- "cosmwasm-schema",
- "cosmwasm-std",
-]
-
-[[package]]
 name = "babylon-bindings-test"
 version = "0.4.0"
 dependencies = [
  "anyhow",
- "babylon-bindings",
  "cosmwasm-std",
  "cw-multi-test",
  "cw-storage-plus",
@@ -287,7 +277,6 @@ dependencies = [
  "anyhow",
  "assert_matches",
  "babylon-apis",
- "babylon-bindings",
  "babylon-bindings-test",
  "babylon-btcstaking",
  "babylon-proto",
@@ -365,7 +354,6 @@ dependencies = [
  "babylon-apis",
  "babylon-proto",
  "bitcoin",
- "btc-light-client",
  "cosmwasm-std",
  "hex",
  "k256",
@@ -581,7 +569,6 @@ dependencies = [
  "anyhow",
  "assert_matches",
  "babylon-apis",
- "babylon-bindings",
  "babylon-bindings-test",
  "babylon-btcstaking",
  "babylon-contract",
@@ -616,7 +603,6 @@ dependencies = [
  "anyhow",
  "assert_matches",
  "babylon-apis",
- "babylon-bindings",
  "babylon-bindings-test",
  "babylon-proto",
  "babylon-test-utils",
@@ -643,7 +629,6 @@ name = "btc-staking"
 version = "0.15.1"
 dependencies = [
  "babylon-apis",
- "babylon-bindings",
  "babylon-btcstaking",
  "babylon-contract",
  "babylon-merkle",

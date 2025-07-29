@@ -1,5 +1,4 @@
 use anyhow::{bail, Result as AnyResult};
-use babylon_bindings::{BabylonMsg, BabylonQuery};
 use cosmwasm_std::testing::{MockApi, MockQuerier, MockStorage};
 use cosmwasm_std::Order::Ascending;
 use cosmwasm_std::{
@@ -8,7 +7,7 @@ use cosmwasm_std::{
 };
 use cosmwasm_std::{CustomMsg, OwnedDeps};
 use cw_multi_test::{
-    App, AppResponse, BankKeeper, BankSudo, BasicAppBuilder, CosmosRouter, Module, WasmKeeper,
+    App, AppResponse, BankKeeper, BasicAppBuilder, CosmosRouter, Module, WasmKeeper,
 };
 use cw_storage_plus::{Item, Map};
 use schemars::JsonSchema;
@@ -40,7 +39,7 @@ const PINNED: Item<Vec<u64>> = Item::new("pinned");
 // const PLANNED_UPGRADE: Item<UpgradePlan> = Item::new("planned_upgrade");
 const PARAMS: Map<String, String> = Map::new("params");
 
-pub type BabylonDeps = OwnedDeps<MockStorage, MockApi, MockQuerier, BabylonQuery>;
+pub type BabylonDeps = OwnedDeps<MockStorage, MockApi, MockQuerier, Empty>;
 
 pub fn mock_deps_babylon() -> BabylonDeps {
     OwnedDeps {
@@ -74,33 +73,24 @@ impl BabylonModule {
 }
 
 impl Module for BabylonModule {
-    type ExecT = BabylonMsg;
+    type ExecT = Empty;
     type QueryT = Empty;
     type SudoT = Empty;
 
     fn execute<ExecC, QueryC>(
         &self,
-        api: &dyn Api,
-        storage: &mut dyn Storage,
-        router: &dyn CosmosRouter<ExecC = ExecC, QueryC = QueryC>,
-        block: &BlockInfo,
+        _api: &dyn Api,
+        _storage: &mut dyn Storage,
+        _router: &dyn CosmosRouter<ExecC = ExecC, QueryC = QueryC>,
+        _block: &BlockInfo,
         _sender: Addr,
-        msg: BabylonMsg,
+        _msg: Empty,
     ) -> AnyResult<AppResponse>
     where
         ExecC: Debug + Clone + PartialEq + JsonSchema + DeserializeOwned + CustomMsg,
         QueryC: CustomQuery + DeserializeOwned + 'static,
     {
-        match msg {
-            BabylonMsg::MintRewards { amount, recipient } => {
-                let mint_msg = BankSudo::Mint {
-                    to_address: recipient,
-                    amount: vec![amount],
-                };
-                router.sudo(api, storage, block, mint_msg.into())?;
-                Ok(AppResponse::default())
-            }
-        }
+        Ok(AppResponse::default())
     }
 
     fn query(
@@ -109,7 +99,7 @@ impl Module for BabylonModule {
         _storage: &dyn Storage,
         _querier: &dyn Querier,
         _block: &BlockInfo,
-        _request: BabylonQuery,
+        _request: Empty,
     ) -> anyhow::Result<Binary> {
         bail!("query not implemented for BabylonModule")
     }
@@ -140,7 +130,7 @@ pub enum BabylonError {
 }
 
 pub type BabylonAppWrapped =
-    App<BankKeeper, MockApi, MockStorage, BabylonModule, WasmKeeper<BabylonMsg, BabylonQuery>>;
+    App<BankKeeper, MockApi, MockStorage, BabylonModule, WasmKeeper<Empty, Empty>>;
 
 pub struct BabylonApp(BabylonAppWrapped);
 
@@ -168,7 +158,7 @@ impl BabylonApp {
     pub fn new(owner: &str) -> Self {
         let owner = Addr::unchecked(owner);
         Self(
-            BasicAppBuilder::<BabylonMsg, BabylonQuery>::new_custom()
+            BasicAppBuilder::<Empty, Empty>::new_custom()
                 .with_custom(BabylonModule {})
                 .build(|router, _, storage| {
                     router.custom.set_owner(storage, &owner).unwrap();
@@ -189,7 +179,7 @@ impl BabylonApp {
         };
 
         Self(
-            BasicAppBuilder::<BabylonMsg, BabylonQuery>::new_custom()
+            BasicAppBuilder::<Empty, Empty>::new_custom()
                 .with_custom(BabylonModule {})
                 .with_block(block_info)
                 .build(|router, _, storage| {

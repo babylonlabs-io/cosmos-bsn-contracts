@@ -1,35 +1,31 @@
 use anyhow::Result as AnyResult;
+use btc_light_client::state::test_utils::get_btc_base_header;
 use derivative::Derivative;
 use hex::ToHex;
 
 use cosmwasm_std::testing::mock_dependencies;
-use cosmwasm_std::{to_json_binary, Addr, BlockInfo, Coin, Timestamp};
+use cosmwasm_std::{to_json_binary, Addr, BlockInfo, Coin, Empty, Timestamp};
 use cw_multi_test::{next_block, AppResponse, Contract, ContractWrapper, Executor};
-
-use babylon_apis::btc_staking_api::{ActiveBtcDelegation, FinalityProvider, NewFinalityProvider};
-use babylon_apis::error::StakingApiError;
-use babylon_apis::finality_api::{IndexedBlock, PubRandCommit};
-use babylon_apis::{btc_staking_api, finality_api, to_bech32_addr, to_canonical_addr};
-use babylon_bindings::BabylonMsg;
-use babylon_bindings_test::BabylonApp;
-use btc_light_client::msg::InstantiateMsg as BtcLightClientInstantiateMsg;
-use btc_light_client::BitcoinNetwork;
-
-use btc_staking::msg::{
-    ActivatedHeightResponse, AllPendingRewardsResponse, FinalityProviderInfo, PendingRewards,
-};
 
 use crate::msg::QueryMsg::JailedFinalityProviders;
 use crate::msg::{
     ActiveFinalityProvidersResponse, EvidenceResponse, FinalitySignatureResponse, InstantiateMsg,
     JailedFinalityProvider, JailedFinalityProvidersResponse,
 };
+use babylon_apis::btc_staking_api::{ActiveBtcDelegation, FinalityProvider, NewFinalityProvider};
+use babylon_apis::error::StakingApiError;
+use babylon_apis::finality_api::{IndexedBlock, PubRandCommit};
+use babylon_apis::{btc_staking_api, finality_api, to_bech32_addr, to_canonical_addr};
+use babylon_bindings_test::BabylonApp;
 use babylon_bindings_test::{
     BTC_FINALITY_CONTRACT_ADDR, BTC_LIGHT_CLIENT_CONTRACT_ADDR, BTC_STAKING_CONTRACT_ADDR,
     USER_ADDR,
 };
+use btc_light_client::msg::InstantiateMsg as BtcLightClientInstantiateMsg;
+use btc_light_client::BitcoinNetwork;
+use btc_staking::msg::{ActivatedHeightResponse, FinalityProviderInfo};
 
-fn contract_btc_light_client() -> Box<dyn Contract<BabylonMsg>> {
+fn contract_btc_light_client() -> Box<dyn Contract<Empty>> {
     let contract = ContractWrapper::new(
         btc_light_client::contract::execute,
         btc_light_client::contract::instantiate,
@@ -38,7 +34,7 @@ fn contract_btc_light_client() -> Box<dyn Contract<BabylonMsg>> {
     Box::new(contract)
 }
 
-fn contract_btc_staking() -> Box<dyn Contract<BabylonMsg>> {
+fn contract_btc_staking() -> Box<dyn Contract<Empty>> {
     let contract = ContractWrapper::new(
         btc_staking::contract::execute,
         btc_staking::contract::instantiate,
@@ -47,7 +43,7 @@ fn contract_btc_staking() -> Box<dyn Contract<BabylonMsg>> {
     Box::new(contract)
 }
 
-fn contract_btc_finality() -> Box<dyn Contract<BabylonMsg>> {
+fn contract_btc_finality() -> Box<dyn Contract<Empty>> {
     let contract = ContractWrapper::new(
         crate::contract::execute,
         crate::contract::instantiate,
@@ -57,7 +53,7 @@ fn contract_btc_finality() -> Box<dyn Contract<BabylonMsg>> {
     Box::new(contract)
 }
 
-fn contract_babylon() -> Box<dyn Contract<BabylonMsg>> {
+fn contract_babylon() -> Box<dyn Contract<Empty>> {
     let contract = ContractWrapper::new(
         babylon_contract::execute,
         babylon_contract::instantiate,
@@ -124,7 +120,7 @@ impl SuiteBuilder {
                 network: BitcoinNetwork::Testnet,
                 btc_confirmation_depth: 1,
                 checkpoint_finalization_timeout: 1,
-                base_header: babylon_test_utils::get_btc_base_header(),
+                base_header: get_btc_base_header(),
             };
 
             to_json_binary(&btc_lc_init_msg).unwrap()
@@ -213,11 +209,6 @@ impl Suite {
         bech32_prefix
     }
 
-    #[track_caller]
-    pub fn get_balance(&self, addr: &Addr, denom: &str) -> Coin {
-        self.app.wrap().query_balance(addr, denom).unwrap()
-    }
-
     #[allow(dead_code)]
     pub fn admin(&self) -> &str {
         self.owner.as_str()
@@ -287,14 +278,6 @@ impl Suite {
         self.app
             .wrap()
             .query_wasm_smart(self.finality.clone(), &crate::msg::QueryMsg::Config {})
-            .unwrap()
-    }
-
-    #[track_caller]
-    pub fn get_btc_finality_params(&self) -> crate::state::config::Params {
-        self.app
-            .wrap()
-            .query_wasm_smart(self.finality.clone(), &crate::msg::QueryMsg::Params {})
             .unwrap()
     }
 
@@ -504,40 +487,6 @@ impl Suite {
                 proof: proof.into(),
                 block_hash: block_app_hash.into(),
                 signature: finality_sig.into(),
-            },
-            &[],
-        )
-    }
-
-    #[track_caller]
-    pub fn get_pending_delegator_rewards(&self, staker: &str) -> Vec<PendingRewards> {
-        let rewards_response: AllPendingRewardsResponse = self
-            .app
-            .wrap()
-            .query_wasm_smart(
-                self.staking.clone(),
-                &btc_staking::msg::QueryMsg::AllPendingRewards {
-                    staker_addr: staker.into(),
-                    start_after: None,
-                    limit: None,
-                },
-            )
-            .unwrap();
-        rewards_response.rewards
-    }
-
-    #[track_caller]
-    pub fn withdraw_rewards(
-        &mut self,
-        fp_pubkey_hex: &str,
-        staker: &str,
-    ) -> anyhow::Result<AppResponse> {
-        self.app.execute_contract(
-            Addr::unchecked(USER_ADDR),
-            self.staking.clone(),
-            &btc_staking::msg::ExecuteMsg::WithdrawRewards {
-                fp_pubkey_hex: fp_pubkey_hex.to_owned(),
-                staker_addr: staker.to_owned(),
             },
             &[],
         )

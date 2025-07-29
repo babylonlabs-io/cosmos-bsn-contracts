@@ -1,3 +1,6 @@
+use crate::error::ContractError;
+pub use crate::msg::contract::ExecuteMsg;
+use crate::msg::contract::InstantiateMsg;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
@@ -5,12 +8,6 @@ use cosmwasm_std::{
     IbcChannelOpenMsg, IbcChannelOpenResponse, IbcPacketAckMsg, IbcPacketReceiveMsg,
     IbcPacketTimeoutMsg, IbcReceiveResponse, MessageInfo, Never, Reply, Response, StdResult,
 };
-
-use babylon_bindings::BabylonMsg;
-
-use crate::error::ContractError;
-pub use crate::msg::contract::ExecuteMsg;
-use crate::msg::contract::InstantiateMsg;
 
 pub mod contract;
 pub mod error;
@@ -28,12 +25,12 @@ pub fn instantiate(
     env: Env,
     info: MessageInfo,
     msg: InstantiateMsg,
-) -> Result<Response<BabylonMsg>, ContractError> {
+) -> Result<Response, ContractError> {
     contract::instantiate(deps, env, info, msg)
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn reply(deps: DepsMut, env: Env, reply: Reply) -> Result<Response<BabylonMsg>, ContractError> {
+pub fn reply(deps: DepsMut, env: Env, reply: Reply) -> Result<Response, ContractError> {
     contract::reply(deps, env, reply)
 }
 
@@ -43,7 +40,7 @@ pub fn query(deps: Deps, env: Env, msg: msg::contract::QueryMsg) -> Result<Binar
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn migrate(deps: DepsMut, env: Env, msg: Empty) -> Result<Response<BabylonMsg>, ContractError> {
+pub fn migrate(deps: DepsMut, env: Env, msg: Empty) -> Result<Response, ContractError> {
     contract::migrate(deps, env, msg)
 }
 
@@ -53,7 +50,7 @@ pub fn execute(
     env: Env,
     info: MessageInfo,
     msg: ExecuteMsg,
-) -> Result<Response<BabylonMsg>, ContractError> {
+) -> Result<Response, ContractError> {
     contract::execute(deps, env, info, msg)
 }
 
@@ -89,7 +86,7 @@ pub fn ibc_packet_receive(
     mut deps: DepsMut,
     env: Env,
     msg: IbcPacketReceiveMsg,
-) -> Result<IbcReceiveResponse<BabylonMsg>, Never> {
+) -> Result<IbcReceiveResponse, Never> {
     ibc::ibc_packet_receive(&mut deps, env, msg)
 }
 
