@@ -5,7 +5,7 @@ use thiserror::Error;
 use bitcoin::hashes::FromSliceError;
 use bitcoin::hex::HexToArrayError;
 
-use cosmwasm_std::{ConversionOverflowError, StdError, Uint128};
+use cosmwasm_std::{ConversionOverflowError, StdError};
 use cw_controllers::AdminError;
 use cw_utils::PaymentError;
 
@@ -96,12 +96,6 @@ pub enum ContractError {
     SecretKeyExtractionError(String),
     #[error("Hash length error: {0}")]
     WrongHashLength(String),
-    #[error("Sent funds ({0}) don't match rewards to distribute {1}")]
-    InvalidRewardsAmount(Uint128, Uint128),
-    #[error("No rewards to withdraw")]
-    NoRewards,
-    #[error("No recipient address for rewards withdrawal provided")]
-    RecipientRequired,
     #[error("Delegation {0} to FP {1} not found")]
     DelegationToFpNotFound(String, String),
     #[error("Ecdsa error: {0}")]

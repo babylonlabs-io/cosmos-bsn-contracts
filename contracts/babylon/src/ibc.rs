@@ -1,6 +1,5 @@
 use crate::error::ContractError;
 use crate::state::config::CONFIG;
-use babylon_bindings::BabylonMsg;
 use babylon_proto::babylon::btclightclient::v1::BtcHeaderInfo;
 use babylon_proto::babylon::zoneconcierge::v1::{
     outbound_packet::Packet as OutboundPacketType, BsnBaseBtcHeaderIbcPacket, BtcHeaders,
@@ -143,7 +142,7 @@ pub fn ibc_packet_receive(
     deps: &mut DepsMut,
     _env: Env,
     msg: IbcPacketReceiveMsg,
-) -> Result<IbcReceiveResponse<BabylonMsg>, Never> {
+) -> Result<IbcReceiveResponse, Never> {
     (|| {
         let packet = msg.packet;
         let caller = packet.dest.channel_id;
@@ -191,14 +190,13 @@ pub(crate) mod ibc_packet {
         deps: &mut DepsMut,
         _caller: String,
         btc_ts: &BtcTimestamp,
-    ) -> StdResult<IbcReceiveResponse<BabylonMsg>> {
+    ) -> StdResult<IbcReceiveResponse> {
         // handle the BTC timestamp, i.e., verify the BTC timestamp and update the contract state
         let wasm_msg = crate::state::handle_btc_timestamp(deps, btc_ts)?;
 
         // construct response
-        let mut resp: IbcReceiveResponse<BabylonMsg> =
-            IbcReceiveResponse::new(StdAck::success(vec![])); // TODO: design response format (#134.2)
-                                                              // add attribute to response
+        let mut resp: IbcReceiveResponse = IbcReceiveResponse::new(StdAck::success(vec![])); // TODO: design response format (#134.2)
+                                                                                             // add attribute to response
         resp = resp.add_attribute("action", "receive_btc_timestamp");
 
         // add wasm message to response if it exists
@@ -213,7 +211,7 @@ pub(crate) mod ibc_packet {
         deps: &mut DepsMut,
         _caller: String,
         btc_staking: &BtcStakingIbcPacket,
-    ) -> StdResult<IbcReceiveResponse<BabylonMsg>> {
+    ) -> StdResult<IbcReceiveResponse> {
         let cfg = CONFIG.load(deps.storage)?;
 
         // Route the packet to the btc-staking contract
@@ -258,9 +256,8 @@ pub(crate) mod ibc_packet {
         };
 
         // construct response
-        let mut resp: IbcReceiveResponse<BabylonMsg> =
-            IbcReceiveResponse::new(StdAck::success(vec![])); // TODO: design response format (#134.2)
-                                                              // add wasm message to response
+        let mut resp: IbcReceiveResponse = IbcReceiveResponse::new(StdAck::success(vec![])); // TODO: design response format (#134.2)
+                                                                                             // add wasm message to response
         resp = resp.add_message(wasm_msg);
         // add attribute to response
         resp = resp.add_attribute("action", "receive_btc_staking");
@@ -272,7 +269,7 @@ pub(crate) mod ibc_packet {
         deps: &mut DepsMut,
         _caller: String,
         btc_headers: &BtcHeaders,
-    ) -> StdResult<IbcReceiveResponse<BabylonMsg>> {
+    ) -> StdResult<IbcReceiveResponse> {
         // Submit headers to BTC light client
         let msg = crate::utils::btc_light_client_executor::new_btc_headers_msg(
             deps,
@@ -284,8 +281,7 @@ pub(crate) mod ibc_packet {
             StdError::generic_err(err)
         })?;
 
-        let mut resp: IbcReceiveResponse<BabylonMsg> =
-            IbcReceiveResponse::new(StdAck::success(vec![])); // TODO: design response format (#134.2)
+        let mut resp: IbcReceiveResponse = IbcReceiveResponse::new(StdAck::success(vec![])); // TODO: design response format (#134.2)
         resp = resp.add_message(msg);
         resp = resp.add_attribute("action", "receive_btc_headers");
 

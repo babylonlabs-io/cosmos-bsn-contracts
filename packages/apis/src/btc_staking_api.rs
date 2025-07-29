@@ -4,7 +4,7 @@ use std::str::FromStr;
 /// The definitions here follow the same structure as the equivalent IBC protobuf message types,
 /// defined in `packages/proto/src/gen/babylon.btcstaking.v1.rs`
 use cosmwasm_schema::cw_serde;
-use cosmwasm_std::{Binary, Decimal, Uint128};
+use cosmwasm_std::{Binary, Decimal};
 
 /// Hash size in bytes
 pub const HASH_SIZE: usize = 32;
@@ -32,25 +32,6 @@ pub enum ExecuteMsg {
     /// The Babylon contract will call this message to set the finality provider's staking power to
     /// zero when the finality provider is found to be malicious by the finality contract.
     Slash { fp_btc_pk_hex: String },
-    /// Message sent by the finality contract, to distribute rewards to delegators.
-    DistributeRewards {
-        /// List of finality providers and their rewards.
-        fp_distribution: Vec<RewardInfo>,
-    },
-    /// Message sent by anyone on behalf of the staker, to withdraw rewards from BTC staking via the given FP.
-    WithdrawRewards {
-        /// Both the address to claim and receive the rewards.
-        /// It's a Babylon address. If rewards are to be sent to a Consumer address, the
-        /// staker's equivalent address in that chain will be computed and used.
-        staker_addr: String,
-        fp_pubkey_hex: String,
-    },
-}
-
-#[cw_serde]
-pub struct RewardInfo {
-    pub fp_pubkey_hex: String,
-    pub reward: Uint128,
 }
 
 #[cw_serde]

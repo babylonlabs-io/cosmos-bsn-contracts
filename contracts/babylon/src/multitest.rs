@@ -135,7 +135,6 @@ mod instantiation {
             epoch_length: 10,
             max_active_finality_providers: 5,
             min_pub_rand: 2,
-            finality_inflation_rate: "0.035".parse().unwrap(),
             missed_blocks_window: 100,
             jail_duration: 3600,
         };
