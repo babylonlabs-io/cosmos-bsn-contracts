@@ -1,29 +1,110 @@
-/// Based on comebft@0.38.6/crypto/merkle/proof.go
-use sha2::{Digest, Sha256};
+//! Translation of https://github.com/cometbft/cometbft/blob/v0.38.17/crypto/merkle/proof.go
 
 use crate::error::MerkleError;
-use cosmwasm_schema::cw_serde;
-use cosmwasm_std::Binary;
-
 use crate::hash::{inner_hash, leaf_hash};
 use crate::tree::get_split_point;
+use cosmwasm_schema::cw_serde;
+use cosmwasm_std::Binary;
+use sha2::{Digest, Sha256};
 
-/// A `Proof` is a proof of a leaf's existence in a Merkle tree.
+// MaxAunts is the maximum number of aunts that can be included in a Proof.
+// This corresponds to a tree of size 2^100, which should be sufficient for all conceivable purposes.
+// This maximum helps prevent Denial-of-Service attacks by limitting the size of the proofs.
+const MAX_AUNTS: usize = 100;
+
+/// > Proof represents a Merkle proof.
+/// > NOTE: The convention for proofs is to include leaf hashes but to
+/// > exclude the root hash.
+/// > This convention is implemented across IAVL range proofs as well.
+/// > Keep this consistent unless there's a very good reason to change
+/// > everything.  This also affects the generalized proof system as
+/// > well.
 ///
-/// The convention for proofs is to include leaf hashes, but to
-/// exclude the root hash.
-/// This convention is implemented across IAVL range proofs as well.
-/// Keep this consistent unless there's a very good reason to change
-/// everything.
-/// This affects the generalized proof system as well.
-///
-/// Equivalent to / adapted from cometbft/crypto/merkle/proof.go.
+/// https://pkg.go.dev/github.com/cometbft/cometbft/crypto/merkle#Proof
 #[cw_serde]
 pub struct Proof {
+    /// Total number of items.
     pub total: u64,
+    /// Index of item to prove.
     pub index: u64,
+    /// Hash of item value.
     pub leaf_hash: Binary,
+    /// Hashes from leaf's sibling to a root's child.
     pub aunts: Vec<Binary>,
+}
+
+impl Proof {
+    /// Verifies that the Proof proves the root hash.
+    ///
+    /// https://pkg.go.dev/github.com/cometbft/cometbft/crypto/merkle#Proof.Verify
+    pub fn verify(&self, root_hash: &[u8], leaf: &[u8]) -> Result<(), MerkleError> {
+        if root_hash.is_empty() {
+            return Err(MerkleError::generic_err(
+                "Invalid root hash: cannot be empty",
+            ));
+        }
+        self.validate_basic()?;
+        let leaf_hash = leaf_hash(leaf);
+        if self.leaf_hash != leaf_hash {
+            return Err(MerkleError::generic_err(format!(
+                "Invalid leaf hash: wanted {:X?} got {:X?}",
+                self.leaf_hash, leaf_hash
+            )));
+        }
+        let computed_hash = self.compute_root_hash()?;
+        if computed_hash != root_hash {
+            return Err(MerkleError::generic_err(format!(
+                "Invalid root hash: wanted {root_hash:X?} got {computed_hash:X?}"
+            )));
+        }
+        Ok(())
+    }
+
+    /// Compute the root hash given a leaf hash. Panics in case of errors.
+    fn compute_root_hash(&self) -> Result<Vec<u8>, MerkleError> {
+        compute_hash_from_aunts(
+            self.index,
+            self.total,
+            &self.leaf_hash,
+            &self
+                .aunts
+                .iter()
+                .map(|aunt| aunt.to_vec())
+                .collect::<Vec<_>>(),
+        )
+    }
+
+    /// Performs basic validation.
+    ///
+    /// NOTE: it expects the `leaf_hash` and the elements of `aunts` to be of size `HASH_SIZE`,
+    /// and it expects at most `MAX_AUNTS` elements in `aunts`.
+    ///
+    /// https://github.com/cometbft/cometbft/blob/d03254d3599b973f979314e6383b89fa1802e679/crypto/merkle/proof.go#L113
+    pub fn validate_basic(&self) -> Result<(), MerkleError> {
+        if self.leaf_hash.len() != Sha256::output_size() {
+            return Err(MerkleError::generic_err(format!(
+                "Expected leaf_hash size to be {}, got {}",
+                Sha256::output_size(),
+                self.leaf_hash.len()
+            )));
+        }
+        if self.aunts.len() > MAX_AUNTS {
+            return Err(MerkleError::generic_err(format!(
+                "Expected no more than {MAX_AUNTS} aunts, got {}",
+                self.aunts.len()
+            )));
+        }
+        for (i, aunt_hash) in self.aunts.iter().enumerate() {
+            if aunt_hash.len() != Sha256::output_size() {
+                return Err(MerkleError::generic_err(format!(
+                    "Expected aunt #{i} size to be {}, got {}",
+                    Sha256::output_size(),
+                    aunt_hash.len()
+                )));
+            }
+        }
+        Ok(())
+    }
 }
 
 impl From<&tendermint_proto::crypto::Proof> for Proof {
@@ -51,90 +132,11 @@ impl From<tendermint_proto::crypto::Proof> for Proof {
     }
 }
 
-impl Proof {
-    pub const MAX_AUNTS: usize = 100;
-
-    /// Performs basic validation.
-    ///
-    /// NOTE: it expects the `leaf_hash` and the elements of `aunts` to be of size `HASH_SIZE`,
-    /// and it expects at most `MAX_AUNTS` elements in `aunts`.
-    ///
-    /// Adapted from cometbft/crypto/bft/proof.go
-    /// (https://github.com/cometbft/cometbft/blob/68e5e1b4e3bd342a653a73091a1af7cc5e88b86b/crypto/merkle/proof.go#L145)
-    pub fn validate_basic(&self) -> Result<(), MerkleError> {
-        if self.leaf_hash.len() != Sha256::output_size() {
-            return Err(MerkleError::generic_err(format!(
-                "Expected leaf_hash size to be {}, got {}",
-                Sha256::output_size(),
-                self.leaf_hash.len()
-            )));
-        }
-        if self.aunts.len() > Proof::MAX_AUNTS {
-            return Err(MerkleError::generic_err(format!(
-                "Expected no more than {} aunts, got {}",
-                Proof::MAX_AUNTS,
-                self.aunts.len()
-            )));
-        }
-        for (i, aunt_hash) in self.aunts.iter().enumerate() {
-            if aunt_hash.len() != Sha256::output_size() {
-                return Err(MerkleError::generic_err(format!(
-                    "Expected aunt #{} size to be {}, got {}",
-                    i,
-                    Sha256::output_size(),
-                    aunt_hash.len()
-                )));
-            }
-        }
-        Ok(())
-    }
-
-    /// Verifies that the Proof proves the root hash.
-    ///
-    /// Adapted from `cometbft/crypto/bft/proof.go`
-    pub fn verify(&self, root_hash: &[u8], leaf: &[u8]) -> Result<bool, MerkleError> {
-        if root_hash.is_empty() {
-            return Err(MerkleError::generic_err(
-                "Invalid root hash: cannot be empty",
-            ));
-        }
-        self.validate_basic()?;
-        let leaf_hash = leaf_hash(leaf);
-
-        if self.leaf_hash != leaf_hash {
-            return Err(MerkleError::generic_err(format!(
-                "Invalid leaf hash: wanted {:X?} got {:X?}",
-                self.leaf_hash, leaf_hash
-            )));
-        }
-        let computed_hash = self.compute_root_hash()?;
-        if computed_hash != root_hash {
-            return Err(MerkleError::generic_err(format!(
-                "Invalid root hash: wanted {root_hash:X?} got {computed_hash:X?}"
-            )));
-        }
-        Ok(true)
-    }
-
-    fn compute_root_hash(&self) -> Result<Vec<u8>, MerkleError> {
-        compute_hash_from_aunts(
-            self.index,
-            self.total,
-            &self.leaf_hash,
-            &self
-                .aunts
-                .iter()
-                .map(|aunt| aunt.to_vec())
-                .collect::<Vec<_>>(),
-        )
-    }
-}
-
 // Use the leaf hash and inner hashes to get the root Merkle hash.
 // If the length of the inner_hashes slice isn't exactly correct,
 // the result is nil.
 // Recursive impl.
-pub fn compute_hash_from_aunts(
+fn compute_hash_from_aunts(
     index: u64,
     total: u64,
     leaf_hash: &[u8],
@@ -146,6 +148,7 @@ pub fn compute_hash_from_aunts(
         )));
     }
     match total {
+        // TODO: unreachable in fact.
         0 => Err(MerkleError::generic_err(
             "Cannot call compute_hash_from_aunts() with 0 total",
         )),
@@ -223,7 +226,7 @@ mod tests {
             total: 0,
             index: 0,
             leaf_hash: vec![0; 32].into(),
-            aunts: vec![vec![0; 32].into(); Proof::MAX_AUNTS + 1],
+            aunts: vec![vec![0; 32].into(); MAX_AUNTS + 1],
         };
         assert_eq!(
             proof.validate_basic(),
@@ -359,3 +362,4 @@ mod tests {
             .starts_with("Merkle error: Invalid root hash"));
     }
 }
+
