@@ -1,3 +1,9 @@
+use crate::error::ContractError;
+use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
+use crate::queries;
+use crate::staking::{handle_btc_staking, handle_slash_fp, process_expired_btc_delegations};
+use crate::state::config::{Config, ADMIN, CONFIG, PARAMS};
+use babylon_apis::btc_staking_api::SudoMsg;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
@@ -6,18 +12,6 @@ use cosmwasm_std::{
 };
 use cw2::set_contract_version;
 use cw_utils::{maybe_addr, nonpayable};
-
-use babylon_bindings::BabylonMsg;
-
-use crate::error::ContractError;
-use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
-use crate::queries;
-use crate::staking::{
-    handle_btc_staking, handle_distribute_rewards, handle_slash_fp, handle_withdraw_rewards,
-    process_expired_btc_delegations,
-};
-use crate::state::config::{Config, ADMIN, CONFIG, PARAMS};
-use babylon_apis::btc_staking_api::SudoMsg;
 
 pub const CONTRACT_NAME: &str = env!("CARGO_PKG_NAME");
 pub const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -28,7 +22,7 @@ pub fn instantiate(
     _env: Env,
     info: MessageInfo,
     msg: InstantiateMsg,
-) -> Result<Response<BabylonMsg>, ContractError> {
+) -> Result<Response, ContractError> {
     nonpayable(&info)?;
     let denom = deps.querier.query_bonded_denom()?;
     let config = Config {
@@ -92,24 +86,6 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> Result<QueryResponse, Cont
         QueryMsg::FinalityProvidersByPower { start_after, limit } => Ok(to_json_binary(
             &queries::finality_providers_by_power(deps, start_after, limit)?,
         )?),
-        QueryMsg::PendingRewards {
-            staker_addr,
-            fp_pubkey_hex,
-        } => Ok(to_json_binary(&queries::pending_rewards(
-            deps,
-            staker_addr,
-            fp_pubkey_hex,
-        )?)?),
-        QueryMsg::AllPendingRewards {
-            staker_addr,
-            start_after,
-            limit,
-        } => Ok(to_json_binary(&queries::all_pending_rewards(
-            deps,
-            staker_addr,
-            start_after,
-            limit,
-        )?)?),
         QueryMsg::ActivatedHeight {} => Ok(to_json_binary(&queries::activated_height(deps)?)?),
     }
 }
@@ -126,7 +102,7 @@ pub fn execute(
     env: Env,
     info: MessageInfo,
     msg: ExecuteMsg,
-) -> Result<Response<BabylonMsg>, ContractError> {
+) -> Result<Response, ContractError> {
     let api = deps.api;
     match msg {
         ExecuteMsg::UpdateAdmin { admin } => ADMIN
@@ -151,29 +127,18 @@ pub fn execute(
             &unbonded_del,
         ),
         ExecuteMsg::Slash { fp_btc_pk_hex } => handle_slash_fp(deps, env, &info, &fp_btc_pk_hex),
-        ExecuteMsg::DistributeRewards { fp_distribution } => {
-            let evts = handle_distribute_rewards(deps, &env, &info, &fp_distribution)?;
-            Ok(Response::new().add_events(evts))
-        }
-        ExecuteMsg::WithdrawRewards {
-            fp_pubkey_hex,
-            staker_addr,
-        } => {
-            let res = handle_withdraw_rewards(deps, &env, &info, &fp_pubkey_hex, staker_addr)?;
-            Ok(res)
-        }
     }
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn sudo(deps: DepsMut, env: Env, msg: SudoMsg) -> Result<Response<BabylonMsg>, ContractError> {
+pub fn sudo(deps: DepsMut, env: Env, msg: SudoMsg) -> Result<Response, ContractError> {
     match msg {
         SudoMsg::BeginBlock { .. } => handle_begin_block(deps, env),
     }
 }
 
 // Handles the BeginBlock sudo message from the Consumer chain's x/babylon module.
-fn handle_begin_block(deps: DepsMut, env: Env) -> Result<Response<BabylonMsg>, ContractError> {
+fn handle_begin_block(deps: DepsMut, env: Env) -> Result<Response, ContractError> {
     // This function processes expired BTC delegations in the begin blocker of the staking contract.
     // While this could also be done in the finality contract's begin blocker, it would require an
     // inter-contract call to the staking contract. Due to how CosmWasm handles state changes
@@ -191,7 +156,7 @@ fn handle_update_contract_addresses(
     info: MessageInfo,
     btc_light_client_addr: String,
     finality_addr: String,
-) -> Result<Response<BabylonMsg>, ContractError> {
+) -> Result<Response, ContractError> {
     let mut cfg = CONFIG.load(deps.storage)?;
     if info.sender != cfg.babylon && !ADMIN.is_admin(deps.as_ref(), &info.sender)? {
         return Err(ContractError::Unauthorized {});

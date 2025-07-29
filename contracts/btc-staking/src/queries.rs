@@ -4,25 +4,21 @@ use bitcoin::hashes::Hash;
 use bitcoin::Txid;
 
 use cosmwasm_std::Order::Descending;
-use cosmwasm_std::{coin, Deps, Order, StdResult, Uint128};
-use cw_storage_plus::{Bound, Bounder};
+use cosmwasm_std::{Deps, Order, StdResult};
+use cw_storage_plus::Bound;
 
 use crate::error::ContractError;
 use crate::msg::{
-    ActivatedHeightResponse, AllPendingRewardsResponse, BtcDelegationsResponse,
-    DelegationsByFPResponse, FinalityProviderInfo, FinalityProvidersByPowerResponse,
-    FinalityProvidersResponse, PendingRewards, PendingRewardsResponse,
+    ActivatedHeightResponse, BtcDelegationsResponse, DelegationsByFPResponse, FinalityProviderInfo,
+    FinalityProvidersByPowerResponse, FinalityProvidersResponse,
 };
-use crate::staking::calculate_reward;
 use crate::state::config::{Config, Params};
 use crate::state::config::{CONFIG, PARAMS};
-use crate::state::delegations;
 use crate::state::staking::{
     fps, BtcDelegation, FinalityProviderState, ACTIVATED_HEIGHT, BTC_DELEGATIONS, FPS,
     FP_DELEGATIONS,
 };
 use babylon_apis::btc_staking_api::FinalityProvider;
-use babylon_apis::to_canonical_addr;
 
 pub fn config(deps: Deps) -> StdResult<Config> {
     CONFIG.load(deps.storage)
@@ -187,80 +183,6 @@ pub fn activated_height(deps: Deps) -> Result<ActivatedHeightResponse, ContractE
     Ok(ActivatedHeightResponse {
         height: activated_height,
     })
-}
-
-/// Rewards to be withdrawn by a particular staker, from its delegations to a particular finality
-/// provider
-pub fn pending_rewards(
-    deps: Deps,
-    staker_addr: String,
-    fp_pubkey_hex: String,
-) -> Result<PendingRewardsResponse, ContractError> {
-    let user_canonical_addr = to_canonical_addr(&staker_addr, "bbn")?;
-    let fp_state = fps().load(deps.storage, &fp_pubkey_hex)?;
-    let user_delegations = delegations::delegations()
-        .delegation
-        .idx
-        .staker
-        .prefix((user_canonical_addr.to_vec(), fp_pubkey_hex))
-        .range(deps.storage, None, None, Order::Ascending)
-        .collect::<StdResult<Vec<_>>>()?;
-    let mut amount = Uint128::zero();
-    for (_, delegation) in &user_delegations {
-        amount += calculate_reward(delegation, &fp_state)?;
-    }
-
-    let cfg = CONFIG.load(deps.storage)?;
-    Ok(PendingRewardsResponse {
-        rewards: coin(amount.u128(), cfg.denom),
-    })
-}
-
-/// Rewards to be withdrawn by a particular staker, over all of its delegations to finality
-/// providers.
-pub fn all_pending_rewards(
-    deps: Deps,
-    staker_addr: String,
-    start_after: Option<PendingRewards>,
-    limit: Option<u32>,
-) -> Result<AllPendingRewardsResponse, ContractError> {
-    let limit = limit.unwrap_or(DEFAULT_LIMIT).min(MAX_LIMIT) as usize;
-    let user_canonical_addr = to_canonical_addr(&staker_addr, "bbn")?;
-
-    // `start_after` includes the staking tx hash along with the finality provider's pubkey
-    let bound = start_after.and_then(|pending_rewards| {
-        Bounder::exclusive_bound((
-            pending_rewards.fp_pubkey_hex.clone(),
-            (
-                pending_rewards.staking_tx_hash,
-                pending_rewards.fp_pubkey_hex,
-            ),
-        ))
-    });
-
-    let cfg = CONFIG.load(deps.storage)?;
-
-    let rewards: Vec<_> = delegations::delegations()
-        .delegation
-        .idx
-        .staker
-        .sub_prefix(user_canonical_addr.to_vec())
-        .range(deps.storage, bound, None, Order::Ascending)
-        .take(limit)
-        .map(|item| {
-            let ((staking_tx_hash, fp), delegation) = item?;
-            let fp_state = fps().may_load(deps.storage, &fp)?.unwrap_or_default();
-            let amount = calculate_reward(&delegation, &fp_state)?;
-            Ok::<_, ContractError>(PendingRewards::new(
-                &staking_tx_hash,
-                fp,
-                amount.u128(),
-                &cfg.denom,
-            ))
-        })
-        .collect::<Result<_, _>>()?;
-
-    Ok(AllPendingRewardsResponse { rewards })
 }
 
 #[cfg(test)]

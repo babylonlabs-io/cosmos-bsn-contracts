@@ -1,9 +1,8 @@
 use crate::contract::encode_smart_query;
 use crate::error::ContractError;
-use crate::state::config::{Config, ADMIN, CONFIG, PARAMS};
+use crate::state::config::{ADMIN, CONFIG, PARAMS};
 use crate::state::finality::{
-    BLOCKS, EVIDENCES, FP_BLOCK_SIGNER, FP_SET, FP_START_HEIGHT, JAIL, NEXT_HEIGHT, REWARDS,
-    SIGNATURES, TOTAL_REWARDS,
+    BLOCKS, EVIDENCES, FP_BLOCK_SIGNER, FP_SET, FP_START_HEIGHT, JAIL, NEXT_HEIGHT, SIGNATURES,
 };
 use crate::state::public_randomness::{
     get_last_finalized_height, get_last_pub_rand_commit,
@@ -13,19 +12,17 @@ use crate::state::public_randomness::{
 use babylon_apis::btc_staking_api::FinalityProvider;
 use babylon_apis::finality_api::{Evidence, IndexedBlock, PubRandCommit};
 use babylon_apis::to_canonical_addr;
-use babylon_bindings::BabylonMsg;
 use babylon_merkle::Proof;
 use btc_staking::msg::{FinalityProviderInfo, FinalityProvidersByPowerResponse};
 use cosmwasm_std::Order::Ascending;
 use cosmwasm_std::{
-    to_json_binary, Addr, Coin, Decimal, DepsMut, Env, Event, MessageInfo, QuerierWrapper,
-    Response, StdResult, Storage, Uint128, WasmMsg,
+    to_json_binary, Addr, DepsMut, Env, Event, MessageInfo, QuerierWrapper, Response, StdResult,
+    Storage, WasmMsg,
 };
 use k256::schnorr::{signature::Verifier, Signature, VerifyingKey};
 use k256::sha2::{Digest, Sha256};
 use std::cmp::max;
 use std::collections::HashSet;
-use std::ops::Mul;
 
 pub fn handle_public_randomness_commit(
     deps: DepsMut,
@@ -35,7 +32,7 @@ pub fn handle_public_randomness_commit(
     num_pub_rand: u64,
     commitment: &[u8],
     signature: &[u8],
-) -> Result<Response<BabylonMsg>, ContractError> {
+) -> Result<Response, ContractError> {
     // Ensure the request contains enough amounts of public randomness
     let min_pub_rand = PARAMS.load(deps.storage)?.min_pub_rand;
     if num_pub_rand < min_pub_rand {
@@ -159,7 +156,7 @@ pub fn handle_finality_signature(
     proof: &Proof,
     block_app_hash: &[u8],
     signature: &[u8],
-) -> Result<Response<BabylonMsg>, ContractError> {
+) -> Result<Response, ContractError> {
     // Ensure the finality provider exists
     let staking_addr = CONFIG.load(deps.storage)?.staking;
     let fp: FinalityProvider = deps.querier.query_wasm_smart(
@@ -331,7 +328,7 @@ pub fn handle_unjail(
     env: &Env,
     info: &MessageInfo,
     fp_btc_pk_hex: &str,
-) -> Result<Response<BabylonMsg>, ContractError> {
+) -> Result<Response, ContractError> {
     // Admin can unjail almost anyone
     let is_admin = ADMIN.is_admin(deps.as_ref(), &info.sender)?;
 
@@ -532,7 +529,7 @@ pub fn tally_blocks(
     deps: &mut DepsMut,
     env: &Env,
     activated_height: u64,
-) -> Result<(Option<BabylonMsg>, Vec<Event>), ContractError> {
+) -> Result<Vec<Event>, ContractError> {
     // Start finalising blocks since max(activated_height, next_height)
     let next_height = NEXT_HEIGHT.may_load(deps.storage)?.unwrap_or(0);
     let start_height = max(activated_height, next_height);
@@ -547,7 +544,6 @@ pub fn tally_blocks(
     // After this for loop, the blocks since the earliest activated height are either finalised or
     // non-finalisable
     let mut events = vec![];
-    let mut finalized_blocks = 0;
     for h in start_height..=env.block.height {
         let mut indexed_block = BLOCKS.load(deps.storage, h)?;
         // Get the finality provider set of this block
@@ -563,7 +559,6 @@ pub fn tally_blocks(
                 if tally(&fp_set, &voter_btc_pks) {
                     // If this block gets >2/3 votes, finalise it
                     let ev = finalize_block(deps.storage, &mut indexed_block, &voter_btc_pks)?;
-                    finalized_blocks += 1;
                     events.push(ev);
                 } else {
                     // If not, then this block and all subsequent blocks should not be finalised.
@@ -593,20 +588,7 @@ pub fn tally_blocks(
         }
     }
 
-    // Compute block rewards for finalized blocks
-    let msg = if finalized_blocks > 0 {
-        let cfg = CONFIG.load(deps.storage)?;
-        let rewards = compute_block_rewards(deps, &cfg, finalized_blocks)?;
-        // Assemble mint message
-        let mint_msg = BabylonMsg::MintRewards {
-            amount: rewards,
-            recipient: env.contract.address.to_string(),
-        };
-        Some(mint_msg)
-    } else {
-        None
-    };
-    Ok((msg, events))
+    Ok(events)
 }
 
 /// Checks whether a block with the given finality provider set and votes reaches a quorum or not.
@@ -623,7 +605,7 @@ fn tally(fp_set: &[FinalityProviderInfo], voters: &[String]) -> bool {
     voted_power * 3 > total_power * 2
 }
 
-/// Sets a block to be finalised, and distributes rewards to finality providers and delegators.
+/// Sets a block to be finalised.
 fn finalize_block(
     store: &mut dyn Storage,
     block: &mut IndexedBlock,
@@ -641,31 +623,6 @@ fn finalize_block(
         .add_attribute("module", "finality")
         .add_attribute("finalized_height", block.height.to_string());
     Ok(ev)
-}
-
-/// Computes the block rewards for the finality providers.
-fn compute_block_rewards(
-    deps: &mut DepsMut,
-    cfg: &Config,
-    finalized_blocks: u64,
-) -> Result<Coin, ContractError> {
-    // Get the total supply (standard bank query)
-    let total_supply = deps.querier.query_supply(cfg.denom.clone())?;
-
-    // Get the finality inflation rate (params)
-    let finality_inflation_rate = PARAMS.load(deps.storage)?.finality_inflation_rate;
-
-    // Compute the block rewards for the finalized blocks
-    let inv_blocks_per_year = Decimal::from_ratio(1u128, cfg.blocks_per_year);
-    let block_rewards = finality_inflation_rate
-        .mul(Decimal::from_ratio(total_supply.amount, 1u128))
-        .mul(inv_blocks_per_year)
-        .mul(Decimal::from_ratio(finalized_blocks, 1u128));
-
-    Ok(Coin {
-        denom: cfg.denom.clone(),
-        amount: block_rewards.to_uint_floor(),
-    })
 }
 
 const QUERY_LIMIT: Option<u32> = Some(30);
@@ -780,47 +737,4 @@ pub fn list_fps_by_power(
     )?;
     let res: FinalityProvidersByPowerResponse = querier.query(&query)?;
     Ok(res.fps)
-}
-
-/// Distributes rewards to finality providers who are in the active set at `height`.
-pub fn distribute_rewards_fps(deps: &mut DepsMut, env: &Env) -> Result<(), ContractError> {
-    // Try to use the finality provider set at the previous height
-    let active_fps = FP_SET.may_load(deps.storage, env.block.height - 1)?;
-    // Short-circuit if there are no active finality providers
-    let active_fps = match active_fps {
-        Some(active_fps) => active_fps,
-        None => return Ok(()),
-    };
-    // Get the voting power of the active FPS
-    let total_voting_power = active_fps.iter().map(|fp| fp.power as u128).sum::<u128>();
-    // Get the rewards to distribute (bank balance of the finality contract minus already distributed rewards)
-    let distributed_rewards = TOTAL_REWARDS.load(deps.storage)?;
-    let cfg = CONFIG.load(deps.storage)?;
-    let rewards_amount = deps
-        .querier
-        .query_balance(env.contract.address.clone(), cfg.denom)?
-        .amount
-        .saturating_sub(distributed_rewards);
-    // Short-circuit if there are no rewards to distribute
-    if rewards_amount.is_zero() {
-        return Ok(());
-    }
-    // Compute the rewards for each active FP
-    let mut accumulated_rewards = Uint128::zero();
-    for fp in active_fps {
-        let reward = (Decimal::from_ratio(fp.power as u128, total_voting_power)
-            * Decimal::from_ratio(rewards_amount, 1u128))
-        .to_uint_floor();
-        // Update the rewards for this FP
-        REWARDS.update(deps.storage, &fp.btc_pk_hex, |r| {
-            Ok::<Uint128, ContractError>(r.unwrap_or_default() + reward)
-        })?;
-        // Compute the total rewards
-        accumulated_rewards += reward;
-    }
-    // Update the total rewards
-    TOTAL_REWARDS.update(deps.storage, |r| {
-        Ok::<Uint128, ContractError>(r + accumulated_rewards)
-    })?;
-    Ok(())
 }

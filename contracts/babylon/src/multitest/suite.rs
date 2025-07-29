@@ -1,14 +1,12 @@
 use crate::msg::ibc::TransferInfoResponse;
 use anyhow::Result as AnyResult;
-use btc_light_client::state::test_utils::get_btc_base_header;
-use derivative::Derivative;
-
-use babylon_bindings::BabylonMsg;
 use babylon_bindings_test::BabylonApp;
 use btc_light_client::msg::InstantiateMsg as BtcLightClientInstantiateMsg;
+use btc_light_client::state::test_utils::get_btc_base_header;
 use btc_light_client::BitcoinNetwork;
 use cosmwasm_std::{to_json_binary, Addr, Binary, Empty};
 use cw_multi_test::{AppResponse, Contract, ContractWrapper, Executor};
+use derivative::Derivative;
 
 use crate::msg::contract::{InstantiateMsg, QueryMsg};
 use crate::multitest::{
@@ -16,7 +14,7 @@ use crate::multitest::{
 };
 use crate::state::config::Config;
 
-fn contract_btc_light_client() -> Box<dyn Contract<BabylonMsg>> {
+fn contract_btc_light_client() -> Box<dyn Contract<Empty>> {
     let contract = ContractWrapper::new(
         btc_light_client::contract::execute,
         btc_light_client::contract::instantiate,
@@ -25,7 +23,7 @@ fn contract_btc_light_client() -> Box<dyn Contract<BabylonMsg>> {
     Box::new(contract)
 }
 
-fn contract_btc_staking() -> Box<dyn Contract<BabylonMsg>> {
+fn contract_btc_staking() -> Box<dyn Contract<Empty>> {
     let contract = ContractWrapper::new(
         btc_staking::contract::execute,
         btc_staking::contract::instantiate,
@@ -34,7 +32,7 @@ fn contract_btc_staking() -> Box<dyn Contract<BabylonMsg>> {
     Box::new(contract)
 }
 
-fn contract_btc_finality() -> Box<dyn Contract<BabylonMsg>> {
+fn contract_btc_finality() -> Box<dyn Contract<Empty>> {
     let contract = ContractWrapper::new(
         btc_finality::contract::execute,
         btc_finality::contract::instantiate,
@@ -43,7 +41,7 @@ fn contract_btc_finality() -> Box<dyn Contract<BabylonMsg>> {
     Box::new(contract)
 }
 
-fn contract_babylon() -> Box<dyn Contract<BabylonMsg>> {
+fn contract_babylon() -> Box<dyn Contract<Empty>> {
     let contract = ContractWrapper::new(crate::execute, crate::instantiate, crate::query)
         .with_reply(crate::reply)
         .with_migrate(crate::migrate);

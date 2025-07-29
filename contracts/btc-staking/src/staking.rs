@@ -2,15 +2,12 @@ use bitcoin::absolute::LockTime;
 use bitcoin::consensus::deserialize;
 use bitcoin::hashes::Hash;
 use bitcoin::{Transaction, Txid};
-use cosmwasm_std::{
-    coin, BankMsg, CanonicalAddr, CosmosMsg, DepsMut, Env, Event, IbcMsg, MessageInfo, Order,
-    Response, StdResult, Storage, Uint128, Uint256,
-};
+use cosmwasm_std::{DepsMut, Env, Event, MessageInfo, Order, Response, StdResult, Storage};
 use cw_storage_plus::Bound;
 
 use crate::error::ContractError;
-use crate::state::config::{Config, ADMIN, CONFIG, PARAMS};
-use crate::state::delegations::{delegations, DelegationDistribution};
+use crate::state::config::{ADMIN, CONFIG, PARAMS};
+use crate::state::delegations::delegations;
 use crate::state::staking::{
     fps, BtcDelegation, DelegatorUnbondingInfo, FinalityProviderState, ACTIVATED_HEIGHT,
     BTC_DELEGATIONS, BTC_DELEGATION_EXPIRY_INDEX, DELEGATION_FPS, FPS, FP_DELEGATIONS,
@@ -19,18 +16,12 @@ use crate::validation::{
     verify_active_delegation, verify_new_fp, verify_slashed_delegation, verify_undelegation,
 };
 use babylon_apis::btc_staking_api::{
-    ActiveBtcDelegation, FinalityProvider, NewFinalityProvider, RewardInfo, SlashedBtcDelegation,
+    ActiveBtcDelegation, FinalityProvider, NewFinalityProvider, SlashedBtcDelegation,
     UnbondedBtcDelegation, HASH_SIZE,
 };
 use babylon_apis::{to_canonical_addr, Validate};
-use babylon_bindings::BabylonMsg;
-use babylon_contract::ibc::packet_timeout;
-use babylon_contract::msg::ibc::TransferInfoResponse;
 use btc_light_client::msg::btc_header::BtcHeaderResponse;
-use cw_utils::{must_pay, nonpayable};
 use std::str::FromStr;
-
-pub const DISTRIBUTION_POINTS_SCALE: Uint256 = Uint256::from_u128(1_000_000_000);
 
 /// Handles the BTC staking operations.
 pub fn handle_btc_staking(
@@ -41,7 +32,7 @@ pub fn handle_btc_staking(
     active_delegations: &[ActiveBtcDelegation],
     slashed_delegations: &[SlashedBtcDelegation],
     unbonded_delegations: &[UnbondedBtcDelegation],
-) -> Result<Response<BabylonMsg>, ContractError> {
+) -> Result<Response, ContractError> {
     let config = CONFIG.load(deps.storage)?;
     if info.sender != config.babylon && !ADMIN.is_admin(deps.as_ref(), &info.sender)? {
         return Err(ContractError::Unauthorized);
@@ -336,7 +327,7 @@ pub fn handle_slash_fp(
     env: Env,
     info: &MessageInfo,
     fp_btc_pk_hex: &str,
-) -> Result<Response<BabylonMsg>, ContractError> {
+) -> Result<Response, ContractError> {
     let config = CONFIG.load(deps.storage)?;
     if info.sender != config.babylon && !ADMIN.is_admin(deps.as_ref(), &info.sender)? {
         return Err(ContractError::Unauthorized);
@@ -344,10 +335,7 @@ pub fn handle_slash_fp(
     slash_finality_provider(deps, env, fp_btc_pk_hex)
 }
 
-pub fn process_expired_btc_delegations(
-    deps: DepsMut,
-    env: Env,
-) -> Result<Response<BabylonMsg>, ContractError> {
+pub fn process_expired_btc_delegations(deps: DepsMut, env: Env) -> Result<Response, ContractError> {
     // Get the current BTC tip height
     let tip_height = match get_btc_tip_height(&deps) {
         Ok(height) => height,
@@ -453,202 +441,6 @@ fn discount_delegation_power(
     Ok(())
 }
 
-pub fn handle_distribute_rewards(
-    mut deps: DepsMut,
-    env: &Env,
-    info: &MessageInfo,
-    rewards: &[RewardInfo],
-) -> Result<Vec<Event>, ContractError> {
-    let config = CONFIG.load(deps.storage)?;
-
-    // Check that the sender is the finality contract (AML)
-    if info.sender != config.finality {
-        return Err(ContractError::Unauthorized);
-    }
-
-    // Error if no proper funds to distribute
-    let amount = must_pay(info, &config.denom)?;
-
-    // Check that the total rewards match sent funds
-    let total_amount: Uint128 = rewards.iter().map(|r| r.reward).sum();
-    if total_amount != amount {
-        return Err(ContractError::InvalidRewardsAmount(amount, total_amount));
-    }
-
-    rewards
-        .iter()
-        .map(|reward_info| {
-            distribute_rewards(
-                &mut deps,
-                &reward_info.fp_pubkey_hex,
-                reward_info.reward,
-                env.block.height,
-            )
-        })
-        .collect()
-}
-
-fn distribute_rewards(
-    deps: &mut DepsMut,
-    fp: &str,
-    amount: Uint128,
-    height: u64,
-) -> Result<Event, ContractError> {
-    // Load fp distribution info
-    let mut fp_distribution = fps().load(deps.storage, fp)?;
-
-    let total_stake = Uint256::from(fp_distribution.power);
-    let points_distributed =
-        Uint256::from(amount) * DISTRIBUTION_POINTS_SCALE + fp_distribution.points_leftover;
-    let points_per_stake = points_distributed / total_stake;
-
-    fp_distribution.points_leftover = points_distributed - points_per_stake * total_stake;
-    fp_distribution.points_per_stake += points_per_stake;
-
-    fps().save(deps.storage, fp, &fp_distribution, height)?;
-
-    let event = Event::new("distribute_rewards")
-        .add_attribute("fp", fp)
-        .add_attribute("amount", amount.to_string());
-    Ok(event)
-}
-
-/// Withdraw rewards from BTC staking via given FP.
-///
-/// `staker_addr` is the Babylon address to receive the rewards.
-/// `fp_pubkey_hex` is the public key of the FP to withdraw rewards from.
-pub fn handle_withdraw_rewards(
-    mut deps: DepsMut,
-    env: &Env,
-    info: &MessageInfo,
-    fp_pubkey_hex: &str,
-    staker_addr: String,
-) -> Result<Response<BabylonMsg>, ContractError> {
-    nonpayable(info)?;
-    let staker_canonical_addr = to_canonical_addr(&staker_addr, "bbn")?;
-
-    let cfg = CONFIG.load(deps.storage)?;
-
-    // Iterate over map of delegations per (canonical) sender
-    let stakes = delegations()
-        .delegation
-        .idx
-        .staker
-        .prefix((staker_canonical_addr.to_vec(), fp_pubkey_hex.into()))
-        .range(deps.storage, None, None, Order::Ascending)
-        .collect::<StdResult<Vec<_>>>()?;
-
-    let mut amount = Uint128::zero();
-    for ((staking_tx_hash, _), mut delegation) in stakes {
-        let delegation_reward =
-            withdraw_delegation_reward(deps.branch(), &mut delegation, fp_pubkey_hex)?;
-        if !delegation_reward.is_zero() {
-            delegations().delegation.save(
-                deps.storage,
-                (&staking_tx_hash, fp_pubkey_hex),
-                &delegation,
-            )?;
-            amount += delegation_reward;
-        }
-    }
-
-    if amount.is_zero() {
-        return Err(ContractError::NoRewards);
-    }
-
-    let (recipient, wasm_msg) = send_rewards_msg(
-        &deps,
-        env,
-        &staker_addr,
-        &staker_canonical_addr,
-        cfg,
-        amount,
-    )?;
-    let resp = Response::new()
-        .add_message(wasm_msg)
-        .add_attribute("action", "withdraw_rewards")
-        .add_attribute("staker", staker_addr)
-        .add_attribute("fp", fp_pubkey_hex)
-        .add_attribute("recipient", recipient)
-        .add_attribute("amount", amount.to_string());
-    Ok(resp)
-}
-
-/// Sends the rewards to either the staker address on the Consumer or on Babylon,
-/// depending on the ICS-20 transfer info queried from the Babylon contract.
-fn send_rewards_msg(
-    deps: &DepsMut,
-    env: &Env,
-    staker_addr: &str,
-    staker_canonical_addr: &CanonicalAddr,
-    cfg: Config,
-    amount: Uint128,
-) -> Result<(String, CosmosMsg<BabylonMsg>), ContractError> {
-    // Query the babylon contract for transfer info
-    // TODO: Turn into a parameter set during instantiation to avoid query (related to #41)
-    let transfer_info: TransferInfoResponse = deps.querier.query_wasm_smart(
-        cfg.babylon.to_string(),
-        &babylon_contract::msg::contract::QueryMsg::TransferInfo {},
-    )?;
-
-    // Create the corresponding bank or transfer packet
-    let (recipient, cosmos_msg) = match transfer_info {
-        None => {
-            // Consumer withdrawal.
-            // Send rewards to the staker address on the Consumer
-            let recipient = deps.api.addr_humanize(staker_canonical_addr)?.to_string();
-            let bank_msg = BankMsg::Send {
-                to_address: recipient.clone(),
-                amount: vec![coin(amount.u128(), cfg.denom)],
-            };
-            (recipient, CosmosMsg::Bank(bank_msg))
-        }
-        Some(ics20_channel_id) => {
-            // Babylon withdrawal.
-            // Send rewards to the staker address on Babylon (ICS-020 transfer)
-            let ibc_msg = IbcMsg::Transfer {
-                channel_id: ics20_channel_id,
-                to_address: staker_addr.to_string(),
-                amount: coin(amount.u128(), cfg.denom),
-                timeout: packet_timeout(env),
-                memo: None,
-            };
-
-            (staker_addr.to_string(), CosmosMsg::Ibc(ibc_msg))
-        }
-    };
-    Ok((recipient, cosmos_msg))
-}
-
-pub fn withdraw_delegation_reward(
-    deps: DepsMut,
-    delegation: &mut DelegationDistribution,
-    fp_pubkey_hex: &str,
-) -> Result<Uint128, ContractError> {
-    // Load FP state
-    let fp_state = fps()
-        .load(deps.storage, fp_pubkey_hex)
-        .map_err(|_| ContractError::FinalityProviderNotFound(fp_pubkey_hex.to_string()))?;
-
-    let amount = calculate_reward(delegation, &fp_state)?;
-
-    // Update withdrawn_funds to hold this transfer
-    delegation.withdrawn_funds += amount;
-    Ok(amount)
-}
-
-/// Calculates reward for the delegation and the corresponding FP distribution.
-pub(crate) fn calculate_reward(
-    delegation: &DelegationDistribution,
-    fp_state: &FinalityProviderState,
-) -> Result<Uint128, ContractError> {
-    let points = fp_state.points_per_stake * Uint256::from(delegation.stake);
-
-    let total = Uint128::try_from(points / DISTRIBUTION_POINTS_SCALE)?;
-
-    Ok(total - delegation.withdrawn_funds)
-}
-
 /// Adds the signature of the unbonding tx signed by the staker to the given BTC delegation.
 fn btc_undelegate(
     storage: &mut dyn Storage,
@@ -672,7 +464,7 @@ pub(crate) fn slash_finality_provider(
     deps: DepsMut,
     env: Env,
     fp_btc_pk_hex: &str,
-) -> Result<Response<BabylonMsg>, ContractError> {
+) -> Result<Response, ContractError> {
     // Ensure finality provider exists
     let mut fp = FPS.load(deps.storage, fp_btc_pk_hex)?;
 
