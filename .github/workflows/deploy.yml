@@ -40,10 +40,8 @@ jobs:
         path: |-
           artifacts/babylon_contract.wasm
           artifacts/btc_staking.wasm
-          artifacts/btc_staking-full-validation.wasm
           artifacts/btc_finality.wasm
           artifacts/btc_light_client.wasm
-          artifacts/btc_light_client-full-validation.wasm
           artifacts/checksums.txt
 
     - name: Show built artifacts
@@ -55,10 +53,8 @@ jobs:
       run: |-
         zip ./babylon_contract.wasm.zip artifacts/babylon_contract.wasm
         zip ./btc_staking.wasm.zip artifacts/btc_staking.wasm
-        zip ./btc_staking-full-validation.wasm.zip artifacts/btc_staking-full-validation.wasm
         zip ./btc_finality.wasm.zip artifacts/btc_finality.wasm
         zip ./btc_light_client.wasm.zip artifacts/btc_light_client.wasm
-        zip ./btc_light_client-full-validation.wasm.zip artifacts/btc_light_client-full-validation.wasm
 
     - name: Create a Release
       id: create-release
@@ -95,16 +91,6 @@ jobs:
         asset_name: btc_staking.wasm.zip
         asset_content_type: application/zip
 
-    - name: Upload btc_staking (full-validation)
-      id: upload-btc_staking-full-validation
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ github.token }}
-      with:
-        upload_url: ${{ steps.create-release.outputs.upload_url }}
-        asset_path: ./btc_staking-full-validation.wasm.zip
-        asset_name: btc_staking-full-validation.wasm.zip
-        asset_content_type: application/zip
 
     - name: Upload btc_finality
       id: upload-btc_finality
@@ -126,17 +112,6 @@ jobs:
         upload_url: ${{ steps.create-release.outputs.upload_url }}
         asset_path: ./btc_light_client.wasm.zip
         asset_name: btc_light_client.wasm.zip
-        asset_content_type: application/zip
-
-    - name: Upload btc_light_client (full-validation)
-      id: upload-btc_light_client-full-validation
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ github.token }}
-      with:
-        upload_url: ${{ steps.create-release.outputs.upload_url }}
-        asset_path: ./btc_light_client-full-validation.wasm.zip
-        asset_name: btc_light_client-full-validation.wasm.zip
         asset_content_type: application/zip
 
     - name: Upload checksums

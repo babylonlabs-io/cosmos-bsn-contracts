@@ -223,19 +223,9 @@ pub mod test_utils {
     use babylon_proto::babylon::btclightclient::v1::BtcHeaderInfo;
     use bitcoin::block::Header as BlockHeader;
 
-    /// Helper function to get the appropriate base header value based on the full-validation feature
-    ///
-    /// When the full-validation feature is enabled, returns Some(btc_base_header).
-    /// When the full-validation feature is disabled, returns None.
+    /// Helper function to get the appropriate base header
     pub fn get_btc_base_header() -> Option<BaseHeader> {
-        #[cfg(feature = "full-validation")]
-        {
-            Some(test_headers()[0].clone().try_into().unwrap())
-        }
-        #[cfg(not(feature = "full-validation"))]
-        {
-            None
-        }
+        None
     }
 
     pub fn test_headers() -> Vec<BtcHeaderInfo> {

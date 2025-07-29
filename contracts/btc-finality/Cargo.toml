@@ -25,8 +25,6 @@ default = []
 cranelift = ["cosmwasm-vm/cranelift"]
 # for quicker tests, cargo test --lib
 library = []
-# feature for enabling the full validation
-full-validation = [ "btc-staking/full-validation" ]
 
 [dependencies]
 babylon-apis          = { path = "../../packages/apis" }

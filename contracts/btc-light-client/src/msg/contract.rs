@@ -61,14 +61,6 @@ impl InstantiateMsg {
             return Err(ContractError::ZeroCheckpointFinalizationTimeout);
         }
 
-        #[cfg(feature = "full-validation")]
-        {
-            // In full validation mode, base header must be provided
-            if self.base_header.is_none() {
-                return Err(ContractError::InitialHeaderRequired);
-            }
-        }
-
         if let Some(ref base_header) = self.base_header {
             if !crate::bitcoin::is_retarget_block(base_header.height, &self.network.chain_params())
             {

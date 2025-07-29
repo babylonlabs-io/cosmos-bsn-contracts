@@ -104,9 +104,6 @@ pub enum ContractError {
     BitcoinEncode(String),
     #[error(transparent)]
     HexError(#[from] FromHexError),
-    #[cfg(feature = "full-validation")]
-    #[error(transparent)]
-    FullValidation(#[from] crate::validation::FullValidationError),
 }
 
 impl From<bitcoin::consensus::encode::Error> for ContractError {
