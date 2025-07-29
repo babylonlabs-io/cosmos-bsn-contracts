@@ -10,7 +10,7 @@ use cw_controllers::AdminError;
 use cw_utils::PaymentError;
 
 use babylon_apis::error::StakingApiError;
-use babylon_merkle::error::MerkleError;
+use babylon_merkle::MerkleError;
 
 #[derive(Error, Debug, PartialEq)]
 pub enum ContractError {

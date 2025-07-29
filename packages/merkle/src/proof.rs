@@ -362,4 +362,3 @@ mod tests {
             .starts_with("Merkle error: Invalid root hash"));
     }
 }
-
