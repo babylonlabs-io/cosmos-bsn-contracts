@@ -107,18 +107,23 @@ impl Proof {
     }
 }
 
-impl From<&tendermint_proto::crypto::Proof> for Proof {
-    fn from(proof_proto: &tendermint_proto::crypto::Proof) -> Self {
-        // Outright reject negative values for robustness
-        assert!(
-            proof_proto.total >= 0,
-            "Invalid total: must not be negative"
-        );
-        assert!(
-            proof_proto.index >= 0,
-            "Invalid index: must not be negative"
-        );
-        Self {
+impl TryFrom<&tendermint_proto::crypto::Proof> for Proof {
+    type Error = String;
+    fn try_from(proof_proto: &tendermint_proto::crypto::Proof) -> Result<Self, Self::Error> {
+        if proof_proto.total < 0 {
+            return Err(format!(
+                "Invalid total `{}`: must not be negative",
+                proof_proto.total
+            ));
+        }
+
+        if proof_proto.index < 0 {
+            return Err(format!(
+                "Invalid index `{}`: must not be negative",
+                proof_proto.index
+            ));
+        }
+        Ok(Self {
             total: proof_proto.total as u64,
             index: proof_proto.index as u64,
             leaf_hash: proof_proto.leaf_hash.clone().into(),
@@ -128,13 +133,14 @@ impl From<&tendermint_proto::crypto::Proof> for Proof {
                 .cloned()
                 .map(|aunt| aunt.into())
                 .collect(),
-        }
+        })
     }
 }
 
-impl From<tendermint_proto::crypto::Proof> for Proof {
-    fn from(proof_proto: tendermint_proto::crypto::Proof) -> Self {
-        Self::from(&proof_proto)
+impl TryFrom<tendermint_proto::crypto::Proof> for Proof {
+    type Error = String;
+    fn try_from(proof_proto: tendermint_proto::crypto::Proof) -> Result<Self, Self::Error> {
+        Self::try_from(&proof_proto)
     }
 }
 

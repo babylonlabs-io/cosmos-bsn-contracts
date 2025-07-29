@@ -484,7 +484,7 @@ impl Suite {
                 fp_pubkey_hex: pk_hex.to_string(),
                 height,
                 pub_rand: pub_rand.into(),
-                proof: proof.into(),
+                proof: proof.try_into().expect("Invalid Merkle proof"),
                 block_hash: block_app_hash.into(),
                 signature: finality_sig.into(),
             },
