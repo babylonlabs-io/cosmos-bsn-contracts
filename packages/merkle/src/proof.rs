@@ -321,7 +321,7 @@ mod tests {
             leaf_hash: leaf_hash.clone().into(),
             aunts: vec![],
         };
-        assert_eq!(proof.verify(&root_hash, leaf), Ok(true));
+        assert!(proof.verify(&root_hash, leaf).is_ok());
 
         // Good case with aunts
         let proof = Proof {
@@ -333,7 +333,7 @@ mod tests {
         let root_hash =
             compute_hash_from_aunts(0, 2, &leaf_hash, &[inner_hash(&leaf_hash, &leaf_hash)])
                 .unwrap();
-        assert_eq!(proof.verify(&root_hash, leaf), Ok(true));
+        assert!(proof.verify(&root_hash, leaf).is_ok());
 
         let proof = Proof {
             total: 2,
@@ -344,7 +344,7 @@ mod tests {
         let root_hash =
             compute_hash_from_aunts(1, 2, &leaf_hash, &[inner_hash(&leaf_hash, &leaf_hash)])
                 .unwrap();
-        assert_eq!(proof.verify(&root_hash, leaf), Ok(true));
+        assert!(proof.verify(&root_hash, leaf).is_ok());
 
         // Invalid proof
         let proof = Proof {
@@ -362,3 +362,4 @@ mod tests {
             .starts_with("Merkle error: Invalid root hash"));
     }
 }
+
