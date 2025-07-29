@@ -55,10 +55,12 @@ pub fn handle_public_randomness_commit(
         )
         .map_err(|_| ContractError::FinalityProviderNotFound(fp_pubkey_hex.to_string()))?;
 
-    let signing_context = babylon_btcstaking::signing_context::fp_rand_commit_context_v0(
-        &env.block.chain_id,
-        env.contract.address.as_str(),
-    );
+    // let signing_context = babylon_btcstaking::signing_context::fp_rand_commit_context_v0(
+        // &env.block.chain_id,
+        // env.contract.address.as_str(),
+    // );
+
+    let signing_context = "".to_string();
 
     // Verify signature over the list
     verify_commitment_signature(

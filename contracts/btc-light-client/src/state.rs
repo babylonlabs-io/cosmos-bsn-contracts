@@ -1,9 +1,10 @@
 use crate::error::ContractError;
 use babylon_proto::babylon::btclightclient::v1::BtcHeaderInfo;
 use bitcoin::params::Params;
+use bitcoin::BlockHash;
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::Order::{Ascending, Descending};
-use cosmwasm_std::{StdError, StdResult, Storage};
+use cosmwasm_std::{Api, DepsMut, StdError, StdResult, Storage};
 use cw_storage_plus::{Bound, Item, Map};
 use hex::ToHex;
 use prost::Message;
@@ -104,16 +105,31 @@ pub fn set_tip(storage: &mut dyn Storage, tip: &BtcHeaderInfo) -> StdResult<()> 
 // storages, including
 // - insert all headers
 // - insert all hash-to-height indices
-pub fn insert_headers(storage: &mut dyn Storage, new_headers: &[BtcHeaderInfo]) -> StdResult<()> {
+pub fn insert_headers(
+    api: &dyn Api,
+    storage: &mut dyn Storage,
+    new_headers: &[BtcHeaderInfo],
+) -> StdResult<()> {
     // Add all the headers by height
     for new_header in new_headers.iter() {
         insert_header(storage, new_header)?;
+        api.debug(&format!(
+            "contracts::cosmos::lc: [insert_headers] Inserted new header: {}",
+            new_header.block_header().unwrap().block_hash()
+        ));
     }
     Ok(())
 }
 
 fn insert_header(storage: &mut dyn Storage, new_header: &BtcHeaderInfo) -> StdResult<()> {
     let hash_bytes: &[u8] = new_header.hash.as_ref();
+    let block_hash: BlockHash = new_header.block_header().unwrap().block_hash();
+    let block_hash = <BlockHash as AsRef<[u8]>>::as_ref(&block_hash).to_vec();
+    assert_eq!(
+        hash_bytes.to_vec(),
+        block_hash,
+        "The storage key of headers must be BlockHash.as_ref()"
+    );
     let header_bytes = new_header.encode_to_vec();
     BTC_HEADERS.save(storage, new_header.height, &header_bytes)?;
     BTC_HEIGHTS.save(storage, hash_bytes, &new_header.height)?;

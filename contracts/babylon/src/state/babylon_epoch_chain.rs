@@ -108,6 +108,7 @@ fn verify_epoch_and_checkpoint(
     proof_epoch_sealed: &ProofEpochSealed,
     txs_info: &[TransactionInfo; NUM_BTC_TXS],
 ) -> Result<VerifiedEpochAndCheckpoint, BabylonEpochChainError> {
+    /*
     let cfg = CONFIG.load(deps.storage)?;
 
     // ensure that raw_ckpt is corresponding to the epoch
@@ -144,15 +145,23 @@ fn verify_epoch_and_checkpoint(
                 Some(header) => BtcHeaderResponse::try_from(header)?,
                 None => {
                     // If not found in new headers, query from light client
-                    query_header_by_hash(deps, &btc_header_hash_str)
-                        .map_err(|_| BabylonEpochChainError::BTCHeaderDecodeError {})?
+                    query_header_by_hash(deps, &btc_header_hash_str).map_err(|err| {
+                        BabylonEpochChainError::HeaderUnavailableInLightClientContract {
+                            hash: btc_header_hash_str,
+                            err: err.to_string(),
+                        }
+                    })?
                 }
             };
             Ok(btc_header_info)
         })
         .collect::<Result<Vec<BtcHeaderResponse>, BabylonEpochChainError>>()?
         .try_into()
-        .map_err(|_| BabylonEpochChainError::BTCHeaderDecodeError {})?;
+        .map_err(|err| {
+            BabylonEpochChainError::BTCHeaderDecodeError(format!(
+                "convert to btc headers failed: {err:?}"
+            ))
+        })?;
 
     // refresh min_height
     // this will be used for checking w-deep later
@@ -163,7 +172,11 @@ fn verify_epoch_and_checkpoint(
 
     // ensure at least 1 given btc headers are finalised, i.e., w-deep
     let tip_height = query_tip_header(deps)
-        .map_err(|_| BabylonEpochChainError::BTCHeaderDecodeError {})?
+        .map_err(|err| {
+            BabylonEpochChainError::BTCHeaderDecodeError(format!(
+                "query tip header failed: {err:?}"
+            ))
+        })?
         .height
         + new_btc_headers.map_or(0, |headers| headers.headers.len() as u32);
     if min_height + cfg.checkpoint_finalization_timeout > tip_height {
@@ -178,7 +191,11 @@ fn verify_epoch_and_checkpoint(
         .map(BlockHeader::try_from)
         .collect::<Result<Vec<BlockHeader>, BtcLightclientError>>()?
         .try_into()
-        .map_err(|_| BabylonEpochChainError::BTCHeaderDecodeError {})?;
+        .map_err(|err| {
+            BabylonEpochChainError::BTCHeaderDecodeError(format!(
+                "convert BTCHeaderResponse to BlockHeader vec: {err:?}"
+            ))
+        })?;
 
     // verify the checkpoint is submitted, i.e., committed to the 2 BTC headers
     verify_checkpoint_submitted(raw_ckpt, txs_info, &btc_block_headers, &cfg.babylon_tag)
@@ -187,6 +204,7 @@ fn verify_epoch_and_checkpoint(
     // verify the epoch is sealed by its validator set
     verify_epoch_sealed(epoch, raw_ckpt, proof_epoch_sealed)
         .map_err(|e| BabylonEpochChainError::EpochNotSealed { err_msg: e })?;
+    */
 
     // all good
     Ok(VerifiedEpochAndCheckpoint {

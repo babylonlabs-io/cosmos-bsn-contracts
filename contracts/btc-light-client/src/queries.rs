@@ -26,13 +26,13 @@ pub fn btc_header_by_hash(deps: &Deps, hash: &str) -> Result<BtcHeaderResponse, 
 }
 
 pub fn btc_headers(
-    deps: &Deps,
+    storage: &dyn cosmwasm_std::Storage,
     start_after: Option<u32>,
     limit: Option<u32>,
     reverse: Option<bool>,
 ) -> Result<BtcHeadersResponse, ContractError> {
     let limit = limit.unwrap_or(DEFAULT_LIMIT).min(MAX_LIMIT);
-    get_headers(deps.storage, start_after, Some(limit), reverse)?.try_into()
+    get_headers(storage, start_after, Some(limit), reverse)?.try_into()
 }
 
 #[cfg(test)]
@@ -60,7 +60,7 @@ mod tests {
 
         // Initialize with test headers
         let test_headers = get_btc_lc_headers();
-        init_contract(&mut deps.storage, &test_headers).unwrap();
+        init_contract(&deps.api, &mut deps.storage, &test_headers).unwrap();
     }
 
     #[test]
@@ -83,16 +83,15 @@ mod tests {
 
     #[test]
     fn btc_headers_work() {
-        let mut deps = mock_dependencies();
-        setup(deps.as_mut().storage);
+        let deps = mock_dependencies();
+        let mut storage = deps.storage;
+        setup(&mut storage);
 
         let test_headers = get_btc_lc_headers();
 
-        init_contract(deps.as_mut().storage, &test_headers).unwrap();
+        init_contract(&deps.api, &mut storage, &test_headers).unwrap();
         // get headers
-        let headers = btc_headers(&deps.as_ref(), None, None, None)
-            .unwrap()
-            .headers;
+        let headers = btc_headers(&storage, None, None, None).unwrap().headers;
         assert_eq!(headers.len(), 10); // default limit
 
         for (i, header) in headers.iter().enumerate() {
@@ -101,7 +100,7 @@ mod tests {
 
         // get next 5 headers
         let headers = btc_headers(
-            &deps.as_ref(),
+            &storage,
             Some(headers.last().unwrap().height),
             Some(5),
             None,
@@ -116,7 +115,7 @@ mod tests {
 
         // get next 30 headers
         let headers = btc_headers(
-            &deps.as_ref(),
+            &storage,
             Some(headers.last().unwrap().height),
             Some(100),
             None,
@@ -130,7 +129,7 @@ mod tests {
         }
 
         // get the last headers
-        let headers = btc_headers(&deps.as_ref(), Some(90), Some(30), None)
+        let headers = btc_headers(&storage, Some(90), Some(30), None)
             .unwrap()
             .headers;
 
@@ -142,15 +141,16 @@ mod tests {
 
     #[test]
     fn btc_headers_reverse_order_work() {
-        let mut deps = mock_dependencies();
-        crate::contract::tests::setup(deps.as_mut().storage);
+        let deps = mock_dependencies();
+        let mut storage = deps.storage;
+        crate::contract::tests::setup(&mut storage);
 
         let test_headers = get_btc_lc_headers();
 
-        init_contract(deps.as_mut().storage, &test_headers).unwrap();
+        init_contract(&deps.api, &mut storage, &test_headers).unwrap();
 
         // get headers in reverse order
-        let headers = btc_headers(&deps.as_ref(), None, None, Some(true))
+        let headers = btc_headers(&storage, None, None, Some(true))
             .unwrap()
             .headers;
         assert_eq!(headers.len(), 10); // default limit
@@ -164,7 +164,7 @@ mod tests {
 
         // get previous 5 headers
         let headers = btc_headers(
-            &deps.as_ref(),
+            &storage,
             Some(headers.last().unwrap().height),
             Some(5),
             Some(true),
@@ -182,7 +182,7 @@ mod tests {
 
         // get previous 30 headers
         let headers = btc_headers(
-            &deps.as_ref(),
+            &storage,
             Some(headers.last().unwrap().height),
             Some(100),
             Some(true),
@@ -199,7 +199,7 @@ mod tests {
         }
 
         // get the first ten headers
-        let headers = btc_headers(&deps.as_ref(), Some(11), Some(30), Some(true))
+        let headers = btc_headers(&storage, Some(11), Some(30), Some(true))
             .unwrap()
             .headers;
 

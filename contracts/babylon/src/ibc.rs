@@ -144,7 +144,7 @@ pub fn ibc_packet_receive(
     _env: Env,
     msg: IbcPacketReceiveMsg,
 ) -> Result<IbcReceiveResponse<BabylonMsg>, Never> {
-    (|| {
+    let inner = || {
         let packet = msg.packet;
         let caller = packet.dest.channel_id;
         let packet_data = OutboundPacket::decode(packet.data.as_slice())
@@ -163,8 +163,9 @@ pub fn ibc_packet_receive(
                 ibc_packet::handle_btc_headers(deps, caller, &btc_headers)
             }
         }
-    })()
-    .or_else(|e| {
+    };
+
+    inner().or_else(|e| {
         Ok(
             IbcReceiveResponse::new(StdAck::error(format!("invalid packet: {e}")))
                 .add_event(Event::new("ibc").add_attribute("packet", "receive")),
@@ -192,21 +193,34 @@ pub(crate) mod ibc_packet {
         _caller: String,
         btc_ts: &BtcTimestamp,
     ) -> StdResult<IbcReceiveResponse<BabylonMsg>> {
-        // handle the BTC timestamp, i.e., verify the BTC timestamp and update the contract state
-        let wasm_msg = crate::state::handle_btc_timestamp(deps, btc_ts)?;
+        let mut inner = || {
+            // handle the BTC timestamp, i.e., verify the BTC timestamp and update the contract state
+            let wasm_msg = crate::state::handle_btc_timestamp(deps, btc_ts)?;
 
-        // construct response
-        let mut resp: IbcReceiveResponse<BabylonMsg> =
-            IbcReceiveResponse::new(StdAck::success(vec![])); // TODO: design response format (#134.2)
-                                                              // add attribute to response
-        resp = resp.add_attribute("action", "receive_btc_timestamp");
+            // construct response
+            let mut resp: IbcReceiveResponse<BabylonMsg> =
+                IbcReceiveResponse::new(StdAck::success(vec![])); // TODO: design response format (#134.2)
+                                                                  // add attribute to response
+            resp = resp.add_attribute("action", "receive_btc_timestamp");
 
-        // add wasm message to response if it exists
-        if let Some(wasm_msg) = wasm_msg {
-            resp = resp.add_message(wasm_msg);
-        }
+            // add wasm message to response if it exists
+            if let Some(wasm_msg) = wasm_msg {
+                resp = resp.add_message(wasm_msg);
+            }
 
-        Ok(resp)
+            Ok(resp)
+        };
+
+        inner()
+            .inspect(|_| {
+                crate::babylon!(deps, format!("Successfully processed btc timestamp"));
+            })
+            .inspect_err(|err| {
+                crate::babylon!(
+                    deps,
+                    format!("ERROR failed to process btc timestamp: {err:?}")
+                );
+            })
     }
 
     pub fn handle_btc_staking(
@@ -273,14 +287,24 @@ pub(crate) mod ibc_packet {
         _caller: String,
         btc_headers: &BtcHeaders,
     ) -> StdResult<IbcReceiveResponse<BabylonMsg>> {
+        crate::babylon!(
+            deps,
+            "[ibc::handle_btc_headers] processing {} BTC headers from IBC",
+            btc_headers.headers.len()
+        );
+
         // Submit headers to BTC light client
         let msg = crate::utils::btc_light_client_executor::new_btc_headers_msg(
             deps,
             &btc_headers.headers,
         )
         .map_err(|e| {
-            let err = format!("failed to submit BTC headers: {e}");
-            deps.api.debug(&err);
+            let err = format!("contracts::cosmos::babylon: failed to submit BTC headers: {e}");
+            crate::babylon!(
+                deps,
+                "[ibc::handle_btc_headers] failed to submit BTC headers from IBC",
+                e
+            );
             StdError::generic_err(err)
         })?;
 

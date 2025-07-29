@@ -28,7 +28,10 @@ fn test_headers() -> Vec<BtcHeaderInfo> {
     let headers = vec![
         // Initial base header on Babylon Genesis mainnet, https://www.blockchain.com/explorer/blocks/btc/854784.
         ("0000c020f382af1f6d228721b49f3da2f5b831587803b16597b301000000000000000000e4f76aae64d8316d195a92424871b74168b58d1c3c6988548e0e9890b15fc2fc3c00aa66be1a0317082e4bc7", 854784),
-        ("0000003acbfbbb0a8d32aa0e739dc4f910a58299a8015b1cd48902000000000000000000a32c4a6ca3d399cc5146c28af944b807f298c6de063c161c13a1b3ca6fd2632e6500aa66be1a031783eb001c", 854785)
+        ("0000003acbfbbb0a8d32aa0e739dc4f910a58299a8015b1cd48902000000000000000000a32c4a6ca3d399cc5146c28af944b807f298c6de063c161c13a1b3ca6fd2632e6500aa66be1a031783eb001c", 854785),
+        ("0000ff3f12bb9ddf58d472db3c7d581777dad9c0da5435e5c118010000000000000000006bb7ef21df7439a5d4d13f6512eb6e51b581eb2a87df8425fa5822ed6631d8160c01aa66be1a0317a5bfec4c", 854786),
+        ("00e0052026f431477d18714037778fdb02e3cd11a5c990db34f60100000000000000000058eb4d249aa132c62cb8fe60649ba7dfbd543c0498aed881df0f03eed340d7adbb0aaa66be1a03175cf66971", 854787),
+        ("00400220314eaeb216d401fea45075e7df1ba8481c00a47d4f2f01000000000000000000efb137c1df8d40882034a8e974259ee577754fe1677c4c3ce595e49030b5c0956f0baa66be1a03172534f76f", 854788)
     ];
 
     headers
@@ -44,6 +47,59 @@ fn test_headers() -> Vec<BtcHeaderInfo> {
             }
         })
         .collect()
+}
+
+#[test]
+fn test_xlc() {
+    let mut deps = mock_dependencies();
+
+    let info = message_info(&deps.api.addr_make("creator"), &[]);
+
+    let headers = test_headers();
+
+    let msg = InstantiateMsg {
+        network: BitcoinNetwork::Mainnet,
+        btc_confirmation_depth: 6,
+        checkpoint_finalization_timeout: 2,
+        base_header: None,
+    };
+
+    let res = instantiate(deps.as_mut(), mock_env(), info.clone(), msg).unwrap();
+
+    // Basic assertions
+    assert_eq!(res.attributes[0].key, "action");
+    assert_eq!(res.attributes[0].value, "instantiate");
+
+    // Config should be saved
+    let cfg = CONFIG.load(&deps.storage).unwrap();
+    assert_eq!(cfg.btc_confirmation_depth, 6);
+    assert_eq!(cfg.checkpoint_finalization_timeout, 2);
+    assert_eq!(cfg.network, BitcoinNetwork::Mainnet);
+
+    // Convert work from Uint256 to Bytes
+    let first_work_hex = hex::encode(&headers[0].work.to_vec());
+
+    let msg = ExecuteMsg::BtcHeaders {
+        headers: vec![
+            headers[0].clone().try_into().unwrap(),
+            headers[1].clone().try_into().unwrap(),
+            headers[2].clone().try_into().unwrap(),
+        ],
+        first_work: Some(first_work_hex),
+        first_height: Some(headers[0].height),
+    };
+    execute(deps.as_mut(), mock_env(), info.clone(), msg).expect("Submit new headers should work");
+
+    let msg = ExecuteMsg::BtcHeaders {
+        headers: vec![
+            headers[2].clone().try_into().unwrap(),
+            headers[3].clone().try_into().unwrap(),
+            headers[4].clone().try_into().unwrap(),
+        ],
+        first_work: None,
+        first_height: None,
+    };
+    execute(deps.as_mut(), mock_env(), info, msg).expect("Submit new headers should work");
 }
 
 #[test]

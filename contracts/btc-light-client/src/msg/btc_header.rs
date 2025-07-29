@@ -43,6 +43,14 @@ pub struct BtcHeader {
 }
 
 impl BtcHeader {
+    pub fn block_hash(&self) -> BlockHash {
+        let block_header: BlockHeader = self
+            .try_into()
+            .expect("Failed to convert to BtcHeader to BlockHeader");
+
+        block_header.block_hash()
+    }
+
     pub fn to_btc_header_info(
         &self,
         height: u32,

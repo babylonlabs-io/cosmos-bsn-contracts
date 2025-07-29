@@ -31,6 +31,10 @@ pub fn instantiate(
     _info: MessageInfo,
     msg: InstantiateMsg,
 ) -> Result<Response<BabylonMsg>, ContractError> {
+    crate::babylon!(
+        deps,
+        "[instantiate] Starting to instantiate babylon contract"
+    );
     msg.validate()?;
 
     // Initialize config with None values for consumer fields
@@ -126,6 +130,10 @@ pub fn instantiate(
         IBC_TRANSFER.save(deps.storage, &transfer_info)?;
     }
 
+    crate::babylon!(
+        deps,
+        "[instantiate] Successfully instantiated babylon contract"
+    );
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
     Ok(res)
 }

@@ -469,16 +469,17 @@ mod tests {
     fn median_time_check_should_work_when_there_are_less_than_11_headers_in_store() {
         let test_headers = get_btc_lc_headers();
 
-        let mut storage = mock_dependencies().storage;
+        let deps = mock_dependencies();
+        let mut storage = deps.storage;
         setup(&mut storage);
 
         // Test inserting new headers with only the base header.
         let initial_headers = vec![test_headers[0].clone()];
-        init_contract(&mut storage, &initial_headers).unwrap();
+        init_contract(&deps.api, &mut storage, &initial_headers).unwrap();
 
         // Submit one header.
         let new_headers = vec![test_headers[1].clone()];
-        handle_btc_headers_from_babylon(&mut storage, &new_headers)
+        handle_btc_headers_from_babylon(&deps.api, &mut storage, &new_headers)
             .expect("Insert one single header when only the base header exists");
 
         let mut storage = mock_dependencies().storage;
@@ -491,7 +492,7 @@ mod tests {
             test_headers[2].clone(),
             test_headers[3].clone(),
         ];
-        init_contract(&mut storage, &initial_headers).unwrap();
+        init_contract(&deps.api, &mut storage, &initial_headers).unwrap();
 
         let prev_header = test_headers[3].block_header().unwrap();
 

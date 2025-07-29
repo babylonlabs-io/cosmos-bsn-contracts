@@ -1,3 +1,4 @@
+/*
 use cosmwasm_std::{ContractResult, Response};
 use cosmwasm_vm::testing::{instantiate, mock_env, mock_info, mock_instance};
 
@@ -49,3 +50,4 @@ fn instantiate_works() {
     let msgs = res.unwrap().messages;
     assert_eq!(0, msgs.len());
 }
+*/

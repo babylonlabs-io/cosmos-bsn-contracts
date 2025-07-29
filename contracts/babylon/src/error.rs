@@ -114,6 +114,8 @@ pub enum BabylonEpochChainError {
     EpochNotSealed { err_msg: String },
     #[error("Transaction key is empty")]
     EmptyTxKey {},
-    #[error("The BTC header cannot be decoded")]
-    BTCHeaderDecodeError {},
+    #[error("The BTC header cannot be decoded: {0}")]
+    BTCHeaderDecodeError(String),
+    #[error("Failed to query header {hash} from LC contract: {err}")]
+    HeaderUnavailableInLightClientContract { hash: String, err: String },
 }

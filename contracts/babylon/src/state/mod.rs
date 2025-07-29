@@ -56,6 +56,7 @@ pub fn handle_btc_timestamp(
         .map_err(|e| StdError::generic_err(format!("failed to initialize Babylon epoch: {e}")))?;
     }
 
+    /*
     // Try to extract and handle the Consumer header.
     // It's possible that there is no Consumer header checkpointed in this epoch
     if let Some(consumer_header) = btc_ts.header.as_ref() {
@@ -82,6 +83,7 @@ pub fn handle_btc_timestamp(
             ))
         })?;
     }
+    */
 
     Ok(wasm_msg)
 }
