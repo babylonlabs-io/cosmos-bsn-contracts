@@ -1,3 +1,5 @@
+//! https://github.com/cometbft/cometbft/blob/v0.38.17/crypto/merkle/tree.go
+
 use crate::error::MerkleError;
 
 /// Returns the largest power of 2 less than length.

@@ -1,4 +1,4 @@
-//! Translation of https://github.com/cometbft/cometbft/blob/v0.38.17/crypto/merkle/proof.go
+//! https://github.com/cometbft/cometbft/blob/v0.38.17/crypto/merkle/proof.go
 
 use crate::error::MerkleError;
 use crate::hash::{inner_hash, leaf_hash};
@@ -12,15 +12,15 @@ use sha2::{Digest, Sha256};
 // This maximum helps prevent Denial-of-Service attacks by limitting the size of the proofs.
 const MAX_AUNTS: usize = 100;
 
-/// > Proof represents a Merkle proof.
-/// > NOTE: The convention for proofs is to include leaf hashes but to
-/// > exclude the root hash.
-/// > This convention is implemented across IAVL range proofs as well.
-/// > Keep this consistent unless there's a very good reason to change
-/// > everything.  This also affects the generalized proof system as
-/// > well.
+/// Proof represents a Merkle proof.
+/// NOTE: The convention for proofs is to include leaf hashes but to
+/// exclude the root hash.
+/// This convention is implemented across IAVL range proofs as well.
+/// Keep this consistent unless there's a very good reason to change
+/// everything.  This also affects the generalized proof system as
+/// well.
 ///
-/// https://pkg.go.dev/github.com/cometbft/cometbft/crypto/merkle#Proof
+/// https://github.com/cometbft/cometbft/blob/d03254d3599b973f979314e6383b89fa1802e679/crypto/merkle/proof.go#L26
 #[cw_serde]
 pub struct Proof {
     /// Total number of items.
@@ -36,7 +36,7 @@ pub struct Proof {
 impl Proof {
     /// Verifies that the Proof proves the root hash.
     ///
-    /// https://pkg.go.dev/github.com/cometbft/cometbft/crypto/merkle#Proof.Verify
+    /// https://github.com/cometbft/cometbft/blob/d03254d3599b973f979314e6383b89fa1802e679/crypto/merkle/proof.go#L52
     pub fn verify(&self, root_hash: &[u8], leaf: &[u8]) -> Result<(), MerkleError> {
         if root_hash.is_empty() {
             return Err(MerkleError::generic_err(
@@ -110,9 +110,15 @@ impl Proof {
 impl From<&tendermint_proto::crypto::Proof> for Proof {
     fn from(proof_proto: &tendermint_proto::crypto::Proof) -> Self {
         // Outright reject negative values for robustness
-        assert!(proof_proto.total >= 0);
-        assert!(proof_proto.index >= 0);
-        Proof {
+        assert!(
+            proof_proto.total >= 0,
+            "Invalid total: must not be negative"
+        );
+        assert!(
+            proof_proto.index >= 0,
+            "Invalid index: must not be negative"
+        );
+        Self {
             total: proof_proto.total as u64,
             index: proof_proto.index as u64,
             leaf_hash: proof_proto.leaf_hash.clone().into(),
@@ -128,7 +134,7 @@ impl From<&tendermint_proto::crypto::Proof> for Proof {
 
 impl From<tendermint_proto::crypto::Proof> for Proof {
     fn from(proof_proto: tendermint_proto::crypto::Proof) -> Self {
-        Proof::from(&proof_proto)
+        Self::from(&proof_proto)
     }
 }
 
@@ -148,10 +154,7 @@ fn compute_hash_from_aunts(
         )));
     }
     match total {
-        // TODO: unreachable in fact.
-        0 => Err(MerkleError::generic_err(
-            "Cannot call compute_hash_from_aunts() with 0 total",
-        )),
+        0 => unreachable!("Cannot call compute_hash_from_aunts() with 0 total"),
         1 => {
             if !inner_hashes.is_empty() {
                 return Err(MerkleError::generic_err("Unexpected inner hashes"));
@@ -362,4 +365,3 @@ mod tests {
             .starts_with("Merkle error: Invalid root hash"));
     }
 }
-

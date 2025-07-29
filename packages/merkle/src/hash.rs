@@ -1,4 +1,4 @@
-//! Translation of https://github.com/cometbft/cometbft/blob/v0.38.17/crypto/merkle/hash.go
+//! https://github.com/cometbft/cometbft/blob/v0.38.17/crypto/merkle/hash.go
 
 use sha2::{Digest, Sha256};
 
