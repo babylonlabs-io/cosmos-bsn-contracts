@@ -9,6 +9,7 @@ use error::StakingApiError;
 pub mod btc_staking_api;
 pub mod error;
 pub mod finality_api;
+pub mod signing_context;
 mod validate;
 
 pub type Bytes = Vec<u8>;

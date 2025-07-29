@@ -25,7 +25,6 @@ e2e             = "./scripts/e2e_test.sh"
 anybuf = { version = "0.5.0" }
 babylon-apis = { path = "./packages/apis" }
 babylon-proto = { path = "./packages/proto" }
-babylon-btcstaking = { path = "./packages/btcstaking" }
 babylon-contract = { path = "./contracts/babylon" }
 eots = { path = "./packages/eots" }
 anyhow = "1.0.82"

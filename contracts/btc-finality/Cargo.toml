@@ -31,7 +31,6 @@ full-validation = [ "btc-staking/full-validation" ]
 [dependencies]
 babylon-apis          = { path = "../../packages/apis" }
 babylon-merkle        = { path = "../../packages/merkle" }
-babylon-btcstaking    = { path = "../../packages/btcstaking" }
 eots                  = { path = "../../packages/eots" }
 
 babylon-contract      = { path = "../babylon", features = [ "library" ] }
