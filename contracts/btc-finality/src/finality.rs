@@ -214,17 +214,40 @@ fn msg_to_sign_for_vote(context: &str, block_height: u64, block_hash: &[u8]) -> 
     msg
 }
 
-#[allow(clippy::too_many_arguments)]
+// https://github.com/babylonlabs-io/babylon/blob/49972e2d3e35caf0a685c37e1f745c47b75bfc69/x/finality/types/tx.pb.go#L154
+pub struct AddFinalitySigMsg {
+    pub fp_btc_pk_hex: String,
+    pub height: u64,
+    pub pub_rand: Vec<u8>,
+    pub proof: Proof,
+    pub block_app_hash: Vec<u8>,
+    pub signature: Vec<u8>,
+}
+
+impl AddFinalitySigMsg {
+    // https://github.com/babylonlabs-io/babylon/blob/49972e2d3e35caf0a685c37e1f745c47b75bfc69/x/finality/types/msg.go#L40
+    fn validate_basic(&self) -> Result<(), ContractError> {
+        // TODO:
+        Ok(())
+    }
+}
+
 pub fn handle_finality_signature(
     mut deps: DepsMut,
     env: Env,
-    fp_btc_pk_hex: String,
-    height: u64,
-    pub_rand: Vec<u8>,
-    proof: Proof,
-    block_app_hash: Vec<u8>,
-    signature: Vec<u8>,
+    add_finality_sig: AddFinalitySigMsg,
 ) -> Result<Response, ContractError> {
+    add_finality_sig.validate_basic()?;
+
+    let AddFinalitySigMsg {
+        fp_btc_pk_hex,
+        height,
+        pub_rand,
+        proof,
+        block_app_hash,
+        signature,
+    } = add_finality_sig;
+
     // Ensure the finality provider exists
     let staking_addr = CONFIG.load(deps.storage)?.staking;
     let fp: FinalityProvider = deps.querier.query_wasm_smart(
