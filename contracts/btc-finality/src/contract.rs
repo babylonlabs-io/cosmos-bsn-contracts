@@ -184,11 +184,13 @@ pub fn execute(
         } => handle_public_randomness_commit(
             deps,
             &env,
-            &fp_pubkey_hex,
-            start_height,
-            num_pub_rand,
-            &commitment,
-            &signature,
+            crate::finality::PublicRandomnessCommitMsg {
+                fp_btc_pk_hex: fp_pubkey_hex,
+                start_height,
+                num_pub_rand,
+                commitment: commitment.into(),
+                sig: signature.into(),
+            },
         ),
         ExecuteMsg::Unjail { fp_pubkey_hex } => handle_unjail(deps, &env, &info, &fp_pubkey_hex),
     }

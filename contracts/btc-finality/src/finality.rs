@@ -24,19 +24,126 @@ use k256::sha2::{Digest, Sha256};
 use std::cmp::max;
 use std::collections::HashSet;
 
+// The maximum number of blocks into the future
+// that a public randomness commitment start height can target. This limit prevents abuse by capping
+// the size of the commitments index, protecting against potential memory exhaustion
+// or performance degradation caused by excessive future commitments.
+const MAX_PUB_RAND_COMMIT_OFFSET: u64 = 160_000;
+
+const COMMITMENT_LENGTH_BYTES: usize = 32;
+
+#[derive(thiserror::Error, Debug, PartialEq)]
+pub enum PubRandCommitError {
+    #[error("Empty FP BTC PubKey")]
+    EmptyFpBtcPubKey,
+    #[error("Commitment must be {COMMITMENT_LENGTH_BYTES} bytes, got {0}")]
+    BadCommitmentLength(usize),
+    #[error("public rand commit start block height: {0} is equal or higher than start_height + num_pub_rand ({1})")]
+    OverflowInBlockHeight(u64, u64),
+    #[error("Empty signature")]
+    EmptySignature,
+}
+
+// https://github.com/babylonlabs-io/babylon/blob/49972e2d3e35caf0a685c37e1f745c47b75bfc69/x/finality/types/tx.pb.go#L36
+pub struct PublicRandomnessCommitMsg {
+    pub fp_btc_pk_hex: String,
+    pub start_height: u64,
+    pub num_pub_rand: u64,
+    pub commitment: Vec<u8>,
+    pub sig: Vec<u8>,
+}
+
+impl PublicRandomnessCommitMsg {
+    // https://github.com/babylonlabs-io/babylon/blob/49972e2d3e35caf0a685c37e1f745c47b75bfc69/x/finality/types/msg.go#L161
+    fn validate_basic(&self) -> Result<(), PubRandCommitError> {
+        if self.fp_btc_pk_hex.is_empty() {
+            return Err(PubRandCommitError::EmptyFpBtcPubKey);
+        }
+
+        // Checks if the commitment is exactly 32 bytes
+        if self.commitment.len() != COMMITMENT_LENGTH_BYTES {
+            return Err(PubRandCommitError::BadCommitmentLength(
+                self.commitment.len(),
+            ));
+        }
+
+        // To avoid public randomness reset,
+        // check for overflow when doing (StartHeight + NumPubRand)
+        if self.start_height >= (self.start_height + self.num_pub_rand) {
+            return Err(PubRandCommitError::OverflowInBlockHeight(
+                self.start_height,
+                self.start_height + self.num_pub_rand,
+            ));
+        }
+
+        if self.sig.is_empty() {
+            return Err(PubRandCommitError::EmptySignature);
+        }
+
+        Ok(())
+    }
+
+    fn verify_sig(&self, signing_context: String) -> Result<(), ContractError> {
+        let Self {
+            fp_btc_pk_hex,
+            start_height,
+            num_pub_rand,
+            commitment,
+            sig: signature,
+        } = self;
+
+        // get BTC public key for verification
+        let btc_pk_raw = hex::decode(fp_btc_pk_hex)?;
+        let btc_pk = VerifyingKey::from_bytes(&btc_pk_raw)
+            .map_err(|e| ContractError::SecP256K1Error(e.to_string()))?;
+
+        // get signature
+        if signature.is_empty() {
+            return Err(ContractError::EmptySignature);
+        }
+
+        let schnorr_sig = Signature::try_from(signature.as_slice())
+            .map_err(|e| ContractError::SecP256K1Error(e.to_string()))?;
+
+        // get signed message
+        let mut msg: Vec<u8> = vec![];
+        msg.extend_from_slice(signing_context.as_bytes());
+        msg.extend_from_slice(&start_height.to_be_bytes());
+        msg.extend_from_slice(&num_pub_rand.to_be_bytes());
+        msg.extend_from_slice(commitment);
+
+        // Verify the signature
+        btc_pk
+            .verify(&msg, &schnorr_sig)
+            .map_err(|e| ContractError::SecP256K1Error(e.to_string()))?;
+
+        Ok(())
+    }
+}
+
 pub fn handle_public_randomness_commit(
     deps: DepsMut,
     env: &Env,
-    fp_pubkey_hex: &str,
-    start_height: u64,
-    num_pub_rand: u64,
-    commitment: &[u8],
-    signature: &[u8],
+    pub_rand_commit: PublicRandomnessCommitMsg,
 ) -> Result<Response, ContractError> {
+    pub_rand_commit.validate_basic()?;
+
+    // Check the commit start height is not too far into the future
+    if pub_rand_commit.start_height >= env.block.height + MAX_PUB_RAND_COMMIT_OFFSET {
+        return Err(ContractError::FuturePubRandStartHeight {
+            start_height: pub_rand_commit.start_height,
+            current_height: env.block.height,
+            max_offset: MAX_PUB_RAND_COMMIT_OFFSET,
+        });
+    }
+
     // Ensure the request contains enough amounts of public randomness
     let min_pub_rand = PARAMS.load(deps.storage)?.min_pub_rand;
-    if num_pub_rand < min_pub_rand {
-        return Err(ContractError::TooFewPubRand(min_pub_rand, num_pub_rand));
+    if pub_rand_commit.num_pub_rand < min_pub_rand {
+        return Err(ContractError::TooFewPubRand(
+            min_pub_rand,
+            pub_rand_commit.num_pub_rand,
+        ));
     }
     // TODO: ensure log_2(num_pub_rand) is an integer?
 
@@ -47,10 +154,12 @@ pub fn handle_public_randomness_commit(
         .query_wasm_smart(
             CONFIG.load(deps.storage)?.staking,
             &btc_staking::msg::QueryMsg::FinalityProvider {
-                btc_pk_hex: fp_pubkey_hex.to_string(),
+                btc_pk_hex: pub_rand_commit.fp_btc_pk_hex.clone(),
             },
         )
-        .map_err(|_| ContractError::FinalityProviderNotFound(fp_pubkey_hex.to_string()))?;
+        .map_err(|_| {
+            ContractError::FinalityProviderNotFound(pub_rand_commit.fp_btc_pk_hex.clone())
+        })?;
 
     let signing_context = babylon_apis::signing_context::fp_rand_commit_context_v0(
         &env.block.chain_id,
@@ -58,26 +167,19 @@ pub fn handle_public_randomness_commit(
     );
 
     // Verify signature over the list
-    verify_commitment_signature(
-        fp_pubkey_hex,
-        start_height,
-        num_pub_rand,
-        commitment,
-        signature,
-        signing_context,
-    )?;
+    pub_rand_commit.verify_sig(signing_context)?;
 
     // Get last public randomness commitment
     // TODO: allow committing public randomness earlier than existing ones?
-    let last_pr_commit = get_last_pub_rand_commit(deps.storage, fp_pubkey_hex)
+    let last_pr_commit = get_last_pub_rand_commit(deps.storage, &pub_rand_commit.fp_btc_pk_hex)
         .ok() // Turn error into None
         .flatten();
 
     // Check for overlapping heights if there is a last commit
     if let Some(last_pr_commit) = last_pr_commit {
-        if start_height <= last_pr_commit.end_height() {
+        if pub_rand_commit.start_height <= last_pr_commit.end_height() {
             return Err(ContractError::InvalidPubRandHeight(
-                start_height,
+                pub_rand_commit.start_height,
                 last_pr_commit.end_height(),
             ));
         }
@@ -85,55 +187,20 @@ pub fn handle_public_randomness_commit(
 
     // All good, store the given public randomness commitment
     let pr_commit = PubRandCommit {
-        start_height,
-        num_pub_rand,
+        start_height: pub_rand_commit.start_height,
+        num_pub_rand: pub_rand_commit.num_pub_rand,
         height: env.block.height,
-        commitment: commitment.to_vec(),
+        commitment: pub_rand_commit.commitment.clone(),
     };
 
     PUB_RAND_COMMITS.save(
         deps.storage,
-        (fp_pubkey_hex, pr_commit.start_height),
+        (&pub_rand_commit.fp_btc_pk_hex, pr_commit.start_height),
         &pr_commit,
     )?;
 
     // TODO: Add events (#124)
     Ok(Response::new())
-}
-
-fn verify_commitment_signature(
-    fp_btc_pk_hex: &str,
-    start_height: u64,
-    num_pub_rand: u64,
-    commitment: &[u8],
-    signature: &[u8],
-    signing_context: String,
-) -> Result<(), ContractError> {
-    // get BTC public key for verification
-    let btc_pk_raw = hex::decode(fp_btc_pk_hex)?;
-    let btc_pk = VerifyingKey::from_bytes(&btc_pk_raw)
-        .map_err(|e| ContractError::SecP256K1Error(e.to_string()))?;
-
-    // get signature
-    if signature.is_empty() {
-        return Err(ContractError::EmptySignature);
-    }
-    let schnorr_sig =
-        Signature::try_from(signature).map_err(|e| ContractError::SecP256K1Error(e.to_string()))?;
-
-    // get signed message
-    let mut msg: Vec<u8> = vec![];
-    msg.extend_from_slice(signing_context.as_bytes());
-    msg.extend_from_slice(&start_height.to_be_bytes());
-    msg.extend_from_slice(&num_pub_rand.to_be_bytes());
-    msg.extend_from_slice(commitment);
-
-    // Verify the signature
-    btc_pk
-        .verify(&msg, &schnorr_sig)
-        .map_err(|e| ContractError::SecP256K1Error(e.to_string()))?;
-
-    Ok(())
 }
 
 /// Returns the message for an EOTS signature

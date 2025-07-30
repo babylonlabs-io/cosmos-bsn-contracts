@@ -51,7 +51,7 @@ fn initialization() {
 mod instantiation {
     use super::*;
     use crate::state::config::Config;
-    
+
     use cosmwasm_std::to_json_string;
 
     fn contract_should_be_instantiated(config: Config) {
