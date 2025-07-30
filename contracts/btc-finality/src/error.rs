@@ -112,4 +112,6 @@ pub enum ContractError {
     JailedForever {},
     #[error(transparent)]
     PubRandCommit(#[from] crate::finality::PubRandCommitError),
+    #[error(transparent)]
+    FinalitySig(#[from] crate::finality::FinalitySigError),
 }

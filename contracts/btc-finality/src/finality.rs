@@ -33,6 +33,15 @@ const MAX_PUB_RAND_COMMIT_OFFSET: u64 = 160_000;
 
 const COMMITMENT_LENGTH_BYTES: usize = 32;
 
+// BIP340 public key length
+const BIP340_PUB_KEY_LEN: usize = 32;
+// Schnorr public randomness length
+const SCHNORR_PUB_RAND_LEN: usize = 32;
+// Schnorr EOTS signature length
+const SCHNORR_EOTS_SIG_LEN: usize = 32;
+// Tendermint hash size (SHA256)
+const TMHASH_SIZE: usize = 32;
+
 #[derive(thiserror::Error, Debug, PartialEq)]
 pub enum PubRandCommitError {
     #[error("Empty FP BTC PubKey")]
@@ -214,6 +223,37 @@ fn msg_to_sign_for_vote(context: &str, block_height: u64, block_hash: &[u8]) -> 
     msg
 }
 
+// Error types
+#[derive(thiserror::Error, Debug, PartialEq)]
+pub enum FinalitySigError {
+    #[error("empty Finality Provider BTC PubKey")]
+    EmptyFpBtcPk,
+
+    #[error("invalid finality provider BTC public key length: got {actual}, want {expected}")]
+    InvalidFpBtcPkLength { actual: usize, expected: usize },
+
+    #[error("empty Public Randomness")]
+    EmptyPubRand,
+
+    #[error("invalid public randomness length: got {actual}, want {expected}")]
+    InvalidPubRandLength { actual: usize, expected: usize },
+
+    #[error("empty inclusion proof")]
+    EmptyProof,
+
+    #[error("empty finality signature")]
+    EmptyFinalitySig,
+
+    #[error("invalid finality signature length: got {actual}, want {expected}")]
+    InvalidFinalitySigLength { actual: usize, expected: usize },
+
+    #[error("invalid block app hash length: got {actual}, want {expected}")]
+    InvalidBlockAppHashLength { actual: usize, expected: usize },
+
+    #[error(transparent)]
+    Hex(#[from] hex::FromHexError),
+}
+
 // https://github.com/babylonlabs-io/babylon/blob/49972e2d3e35caf0a685c37e1f745c47b75bfc69/x/finality/types/tx.pb.go#L154
 pub struct AddFinalitySigMsg {
     pub fp_btc_pk_hex: String,
@@ -226,8 +266,57 @@ pub struct AddFinalitySigMsg {
 
 impl AddFinalitySigMsg {
     // https://github.com/babylonlabs-io/babylon/blob/49972e2d3e35caf0a685c37e1f745c47b75bfc69/x/finality/types/msg.go#L40
-    fn validate_basic(&self) -> Result<(), ContractError> {
-        // TODO:
+    fn validate_basic(&self) -> Result<(), FinalitySigError> {
+        // Validate FP BTC PubKey
+        if self.fp_btc_pk_hex.is_empty() {
+            return Err(FinalitySigError::EmptyFpBtcPk);
+        }
+
+        // Validate FP BTC PubKey length
+        let fp_btc_pk = hex::decode(&self.fp_btc_pk_hex)?;
+        if fp_btc_pk.len() != BIP340_PUB_KEY_LEN {
+            return Err(FinalitySigError::InvalidFpBtcPkLength {
+                actual: fp_btc_pk.len(),
+                expected: BIP340_PUB_KEY_LEN,
+            });
+        }
+
+        // Validate Public Randomness
+        if self.pub_rand.is_empty() {
+            return Err(FinalitySigError::EmptyPubRand);
+        }
+
+        // Validate Public Randomness length
+        if self.pub_rand.len() != SCHNORR_PUB_RAND_LEN {
+            return Err(FinalitySigError::InvalidPubRandLength {
+                actual: self.pub_rand.len(),
+                expected: SCHNORR_PUB_RAND_LEN,
+            });
+        }
+
+        // `self.proof` is not an Option, thus it must not be empty.
+
+        // Validate finality signature
+        if self.signature.is_empty() {
+            return Err(FinalitySigError::EmptyFinalitySig);
+        }
+
+        // Validate finality signature length
+        if self.signature.len() != SCHNORR_EOTS_SIG_LEN {
+            return Err(FinalitySigError::InvalidFinalitySigLength {
+                actual: self.signature.len(),
+                expected: SCHNORR_EOTS_SIG_LEN,
+            });
+        }
+
+        // Validate block app hash length
+        if self.block_app_hash.len() != TMHASH_SIZE {
+            return Err(FinalitySigError::InvalidBlockAppHashLength {
+                actual: self.block_app_hash.len(),
+                expected: TMHASH_SIZE,
+            });
+        }
+
         Ok(())
     }
 }
