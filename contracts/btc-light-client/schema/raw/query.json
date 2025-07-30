@@ -3,6 +3,20 @@
   "title": "QueryMsg",
   "oneOf": [
     {
+      "description": "Returns the current admin of the contract.",
+      "type": "object",
+      "required": [
+        "admin"
+      ],
+      "properties": {
+        "admin": {
+          "type": "object",
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
       "type": "object",
       "required": [
         "btc_base_header"

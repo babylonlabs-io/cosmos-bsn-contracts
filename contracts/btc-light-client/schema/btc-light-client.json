@@ -12,15 +12,10 @@
       "network"
     ],
     "properties": {
-      "base_header": {
-        "description": "Initial BTC header. If not provided, the light client will rely on and trust Babylon's provided initial header",
-        "anyOf": [
-          {
-            "$ref": "#/definitions/BaseHeader"
-          },
-          {
-            "type": "null"
-          }
+      "admin": {
+        "type": [
+          "string",
+          "null"
         ]
       },
       "btc_confirmation_depth": {
@@ -39,43 +34,6 @@
     },
     "additionalProperties": false,
     "definitions": {
-      "BaseHeader": {
-        "type": "object",
-        "required": [
-          "header",
-          "height",
-          "total_work"
-        ],
-        "properties": {
-          "header": {
-            "description": "Initial BTC header to initialize the light client.",
-            "allOf": [
-              {
-                "$ref": "#/definitions/BtcHeader"
-              }
-            ]
-          },
-          "height": {
-            "description": "Height of the initial header.",
-            "type": "integer",
-            "format": "uint32",
-            "minimum": 0.0
-          },
-          "total_work": {
-            "description": "Total accumulated work of the initial header, encoded as big-endian bytes.",
-            "allOf": [
-              {
-                "$ref": "#/definitions/Binary"
-              }
-            ]
-          }
-        },
-        "additionalProperties": false
-      },
-      "Binary": {
-        "description": "Binary is a wrapper around Vec<u8> to add base64 de/serialization with serde. It also adds some helper methods to help encode inline.\n\nThis is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>. See also <https://github.com/CosmWasm/cosmwasm/blob/main/docs/MESSAGE_TYPES.md>.",
-        "type": "string"
-      },
       "BitcoinNetwork": {
         "type": "string",
         "enum": [
@@ -84,51 +42,6 @@
           "signet",
           "regtest"
         ]
-      },
-      "BtcHeader": {
-        "description": "Bitcoin header.\n\nContains all the block's information except the actual transactions, but including a root of a [merkle tree] committing to all transactions in the block.\n\nThis struct is for use in RPC requests and responses. It has convenience trait impls to convert to the internal representation (`BlockHeader`), and to the Babylon extended representation (`BtcHeaderInfo`). Adapted from `BlockHeader`.",
-        "type": "object",
-        "required": [
-          "bits",
-          "merkle_root",
-          "nonce",
-          "prev_blockhash",
-          "time",
-          "version"
-        ],
-        "properties": {
-          "bits": {
-            "description": "The target value below which the blockhash must lie, encoded as a a float (with well-defined rounding, of course).",
-            "type": "integer",
-            "format": "uint32",
-            "minimum": 0.0
-          },
-          "merkle_root": {
-            "description": "The root hash of the merkle tree of transactions in the block. Encoded as a (byte-reversed) hex string.",
-            "type": "string"
-          },
-          "nonce": {
-            "description": "The nonce, selected to obtain a low enough blockhash.",
-            "type": "integer",
-            "format": "uint32",
-            "minimum": 0.0
-          },
-          "prev_blockhash": {
-            "description": "Reference to the previous block in the chain. Encoded as a (byte-reversed) hex string.",
-            "type": "string"
-          },
-          "time": {
-            "type": "integer",
-            "format": "uint32",
-            "minimum": 0.0
-          },
-          "version": {
-            "description": "Originally protocol version, but repurposed for soft-fork signaling.\n\n### Relevant BIPs\n\n* [BIP9 - Version bits with timeout and delay](https://github.com/bitcoin/bips/blob/master/bip-0009.mediawiki) (current usage) * [BIP34 - Block v2, Height in Coinbase](https://github.com/bitcoin/bips/blob/master/bip-0034.mediawiki)",
-            "type": "integer",
-            "format": "int32"
-          }
-        },
-        "additionalProperties": false
       }
     }
   },
@@ -230,6 +143,20 @@
     "$schema": "http://json-schema.org/draft-07/schema#",
     "title": "QueryMsg",
     "oneOf": [
+      {
+        "description": "Returns the current admin of the contract.",
+        "type": "object",
+        "required": [
+          "admin"
+        ],
+        "properties": {
+          "admin": {
+            "type": "object",
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      },
       {
         "type": "object",
         "required": [
@@ -355,6 +282,21 @@
   "migrate": null,
   "sudo": null,
   "responses": {
+    "admin": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "AdminResponse",
+      "description": "Returned from Admin.query_admin()",
+      "type": "object",
+      "properties": {
+        "admin": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
     "btc_base_header": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "BtcHeaderResponse",
@@ -837,11 +779,15 @@
       "title": "Config",
       "type": "object",
       "required": [
+        "babylon_contract_address",
         "btc_confirmation_depth",
         "checkpoint_finalization_timeout",
         "network"
       ],
       "properties": {
+        "babylon_contract_address": {
+          "$ref": "#/definitions/Addr"
+        },
         "btc_confirmation_depth": {
           "type": "integer",
           "format": "uint32",
@@ -858,6 +804,10 @@
       },
       "additionalProperties": false,
       "definitions": {
+        "Addr": {
+          "description": "A human readable address.\n\nIn Cosmos, this is typically bech32 encoded. But for multi-chain smart contracts no assumptions should be made other than being UTF-8 encoded and of reasonable length.\n\nThis type represents a validated address. It can be created in the following ways 1. Use `Addr::unchecked(input)` 2. Use `let checked: Addr = deps.api.addr_validate(input)?` 3. Use `let checked: Addr = deps.api.addr_humanize(canonical_addr)?` 4. Deserialize from JSON. This must only be done from JSON that was validated before such as a contract's state. `Addr` must not be used in messages sent by the user because this would result in unvalidated instances.\n\nThis type is immutable. If you really need to mutate it (Really? Are you sure?), create a mutable copy using `let mut mutable = Addr::to_string()` and operate on that `String` instance.",
+          "type": "string"
+        },
         "BitcoinNetwork": {
           "type": "string",
           "enum": [

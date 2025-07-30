@@ -3,7 +3,8 @@ use babylon_proto::babylon::btclightclient::v1::BtcHeaderInfo;
 use bitcoin::params::Params;
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::Order::{Ascending, Descending};
-use cosmwasm_std::{StdError, StdResult, Storage};
+use cosmwasm_std::{Addr, StdError, StdResult, Storage};
+use cw_controllers::Admin;
 use cw_storage_plus::{Bound, Item, Map};
 use hex::ToHex;
 use prost::Message;
@@ -11,11 +12,12 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
 pub const CONFIG: Item<Config> = Item::new("config");
-
 pub const BTC_BASE_HEADER_HEIGHT: Item<u32> = Item::new("btc_lc_base_header_height");
 pub const BTC_HEADERS: Map<u32, Vec<u8>> = Map::new("btc_lc_headers");
 pub const BTC_HEIGHTS: Map<&[u8], u32> = Map::new("btc_lc_heights");
 pub const BTC_TIP: Item<Vec<u8>> = Item::new("btc_lc_tip");
+/// Storage for admin
+pub(crate) const ADMIN: Admin = Admin::new("admin");
 
 /// Error type for the state store.
 #[derive(thiserror::Error, Debug, PartialEq)]
@@ -35,6 +37,7 @@ pub struct Config {
     pub network: BitcoinNetwork,
     pub btc_confirmation_depth: u32,
     pub checkpoint_finalization_timeout: u32,
+    pub babylon_contract_address: Addr,
 }
 
 // we re-implement the enum here since `rust-bitcoin`'s enum implementation

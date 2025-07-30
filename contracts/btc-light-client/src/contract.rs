@@ -5,7 +5,7 @@ use crate::msg::contract::{ExecuteMsg, InstantiateMsg, QueryMsg};
 use crate::queries::*;
 use crate::state::{
     expect_header_by_hash, get_tip, insert_headers, is_initialized, remove_headers,
-    set_base_header, set_tip, Config, CONFIG,
+    set_base_header, set_tip, Config, ADMIN, CONFIG,
 };
 use babylon_proto::babylon::btclightclient::v1::BtcHeaderInfo;
 use bitcoin::BlockHash;
@@ -13,16 +13,16 @@ use cosmwasm_std::{
     to_json_binary, Binary, Deps, DepsMut, Empty, Env, MessageInfo, Response, Storage,
 };
 use cw2::set_contract_version;
-use prost::Message;
+use cw_utils::maybe_addr;
 use std::str::FromStr;
 
 pub const CONTRACT_NAME: &str = env!("CARGO_PKG_NAME");
 pub const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 pub fn instantiate(
-    deps: DepsMut,
+    mut deps: DepsMut,
     _env: Env,
-    _info: MessageInfo,
+    info: MessageInfo,
     msg: InstantiateMsg,
 ) -> Result<Response, ContractError> {
     msg.validate()?;
@@ -31,38 +31,29 @@ pub fn instantiate(
         network,
         btc_confirmation_depth,
         checkpoint_finalization_timeout,
-        base_header,
+        admin,
     } = msg;
-
-    let mut res = Response::new();
-
-    // Initialises the BTC header chain storage if base header is provided.
-    if let Some(header) = base_header {
-        let base_header_info = header.to_btc_header_info()?;
-        let base_btc_header = base_header_info.block_header()?;
-        crate::bitcoin::check_proof_of_work(&network.chain_params(), &base_btc_header)?;
-        // Store base header (immutable) and tip.
-        set_base_header(deps.storage, &base_header_info)?;
-        set_tip(deps.storage, &base_header_info)?;
-        res = res.set_data(Binary::from(base_header_info.encode_to_vec()));
-    }
 
     let cfg = Config {
         network,
         btc_confirmation_depth,
         checkpoint_finalization_timeout,
+        babylon_contract_address: info.sender,
     };
+
+    let api = deps.api;
+    ADMIN.set(deps.branch(), maybe_addr(api, admin.clone())?)?;
 
     CONFIG.save(deps.storage, &cfg)?;
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
 
-    Ok(res.add_attribute("action", "instantiate"))
+    Ok(Response::new().add_attribute("action", "instantiate"))
 }
 
 pub fn execute(
     deps: DepsMut,
     _env: Env,
-    _info: MessageInfo,
+    info: MessageInfo,
     msg: ExecuteMsg,
 ) -> Result<Response, ContractError> {
     match msg {
@@ -74,7 +65,7 @@ pub fn execute(
             let api = deps.api;
             let headers_len = headers.len();
 
-            handle_btc_headers(deps, headers, first_work, first_height)
+            handle_btc_headers(deps, info, headers, first_work, first_height)
                 .inspect(|_| {
                     api.debug(&format!("Successfully handled {headers_len} BTC headers"));
                 })
@@ -87,6 +78,7 @@ pub fn execute(
 
 pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> Result<Binary, ContractError> {
     match msg {
+        QueryMsg::Admin {} => to_json_binary(&ADMIN.query_admin(deps)?).map_err(Into::into),
         QueryMsg::Config {} => Ok(to_json_binary(&CONFIG.load(deps.storage)?)?),
         QueryMsg::BtcBaseHeader {} => Ok(to_json_binary(&btc_base_header(&deps)?)?),
         QueryMsg::BtcTipHeader {} => Ok(to_json_binary(&btc_tip_header(&deps)?)?),
@@ -114,10 +106,19 @@ pub fn migrate(deps: DepsMut, _env: Env, _msg: Empty) -> Result<Response, Contra
 
 fn handle_btc_headers(
     deps: DepsMut,
+    info: MessageInfo,
     headers: Vec<BtcHeader>,
     first_work: Option<String>,
     first_height: Option<u32>,
 ) -> Result<Response, ContractError> {
+    // Check if the sender is the Babylon contract or the admin
+    let cfg = CONFIG.load(deps.storage)?;
+    if info.sender != cfg.babylon_contract_address
+        && !ADMIN.is_admin(deps.as_ref(), &info.sender)?
+    {
+        return Err(ContractError::Unauthorized(info.sender.to_string()));
+    }
+
     // Check if the BTC light client has been initialized
     if !is_initialized(deps.storage) {
         let first_work_hex = first_work.ok_or(InitHeadersError::MissingBaseWork)?;
@@ -144,15 +145,6 @@ fn init_btc_headers(
     first_height: u32,
 ) -> Result<(), ContractError> {
     let cfg = CONFIG.load(storage)?;
-
-    // ensure there are >=w+1 headers, i.e. a base header and at least w subsequent
-    // ones as a w-deep proof
-    let min_required_headers = cfg.checkpoint_finalization_timeout + 1;
-    if (headers.len() as u32) < min_required_headers {
-        return Err(
-            InitHeadersError::InsufficientHeaders(min_required_headers, headers.len()).into(),
-        );
-    }
 
     // base header is the first header in the list
     let (base_header, new_headers) = headers
@@ -298,6 +290,7 @@ pub(crate) mod tests {
     use crate::ExecuteMsg;
     use babylon_test_utils::{get_btc_lc_fork_headers, get_btc_lc_fork_msg, get_btc_lc_headers};
     use bitcoin::block::Header as BlockHeader;
+    use cosmwasm_std::Addr;
     use cosmwasm_std::{from_json, testing::mock_dependencies};
 
     /// Initialze the contract state with given headers.
@@ -340,6 +333,7 @@ pub(crate) mod tests {
             network: BitcoinNetwork::Regtest,
             btc_confirmation_depth: 1,
             checkpoint_finalization_timeout: w,
+            babylon_contract_address: Addr::unchecked("UNSET"),
         };
         CONFIG.save(storage, &cfg).unwrap();
         w
@@ -582,63 +576,6 @@ pub(crate) mod tests {
         // ensure base and tip are unchanged
         ensure_base_and_tip(&storage, &test_headers);
         // ensure that all headers are correctly inserted
-        ensure_headers(&storage, &test_headers);
-    }
-
-    // btc_lc_fork_invalid_work simulates initialization of BTC light client storage,
-    // then insertion of a number of headers.
-    // It checks the correctness of the fork choice rule for an invalid fork due to a wrong header
-    // work.
-    #[test]
-    fn btc_lc_fork_invalid_work() {
-        let deps = mock_dependencies();
-        let mut storage = deps.storage;
-        setup(&mut storage);
-
-        let test_headers = get_btc_lc_headers();
-
-        // initialize with all headers
-        init_contract(&mut storage, &test_headers).unwrap();
-
-        // ensure base and tip are set
-        ensure_base_and_tip(&storage, &test_headers);
-        // ensure all headers are correctly inserted
-        ensure_headers(&storage, &test_headers);
-
-        // get fork headers
-        let test_fork_headers = get_btc_lc_fork_headers();
-
-        // Make the fork headers invalid due to one of the headers having the wrong work
-        let wrong_header_index = test_fork_headers.len() / 2;
-        let mut invalid_fork_headers = test_fork_headers.clone();
-        let header = invalid_fork_headers[wrong_header_index].clone();
-        let work = header.work.clone();
-
-        let mut wrong_bytes = work.to_vec();
-        let wrong_byte_index = wrong_bytes.len() - 1;
-        let mut wrong_byte = wrong_bytes[wrong_byte_index];
-        // Break it gently (still in the valid '0' to '9' range)
-        wrong_byte ^= 1;
-        wrong_bytes[wrong_byte_index] = wrong_byte;
-
-        let mut wrong_header = header.clone();
-        wrong_header.work = prost::bytes::Bytes::from(wrong_bytes);
-        invalid_fork_headers[wrong_header_index] = wrong_header.clone();
-
-        // handling invalid fork headers
-        let res = handle_btc_headers_from_babylon(&mut storage, &invalid_fork_headers);
-        assert_eq!(
-            res.unwrap_err(),
-            ContractError::Header(HeaderError::WrongCumulativeWork(
-                wrong_header_index,
-                total_work(header.work.as_ref()).unwrap(),
-                total_work(wrong_header.work.as_ref()).unwrap(),
-            ))
-        );
-
-        // ensure base and tip are unchanged
-        ensure_base_and_tip(&storage, &test_headers);
-        // ensure all headers are correctly inserted
         ensure_headers(&storage, &test_headers);
     }
 

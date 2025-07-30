@@ -27,8 +27,9 @@ func NewBtcHeader(header *wire.BlockHeader) *BtcHeader {
 	}
 }
 
-func NewBTCLightClientInitMsg(network string, k int, w int) []byte {
+func NewBTCLightClientInitMsg(admin string, network string, k int, w int) []byte {
 	data := map[string]interface{}{
+		"admin":                           admin,
 		"network":                         network,
 		"btc_confirmation_depth":          k,
 		"checkpoint_finalization_timeout": w,

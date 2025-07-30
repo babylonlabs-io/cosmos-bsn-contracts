@@ -18,7 +18,7 @@ fn instantiate_should_work() {
         network: BitcoinNetwork::Mainnet,
         btc_confirmation_depth: 6,
         checkpoint_finalization_timeout: 100,
-        base_header: get_btc_base_header(),
+        admin: None,
     };
 
     let res = instantiate(deps.as_mut(), mock_env(), info.clone(), msg).unwrap();
@@ -70,7 +70,7 @@ fn instantiate_without_initial_header_should_work() {
         network: BitcoinNetwork::Mainnet,
         btc_confirmation_depth: 6,
         checkpoint_finalization_timeout: 100,
-        base_header: None,
+        admin: None,
     };
 
     let res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
@@ -107,7 +107,7 @@ fn auto_init_on_first_header_works() {
         network: crate::state::BitcoinNetwork::Regtest,
         btc_confirmation_depth: 6,
         checkpoint_finalization_timeout: 99,
-        base_header: None,
+        admin: None,
     };
     let info = message_info(&Addr::unchecked("creator"), &[]);
     instantiate(deps.as_mut(), mock_env(), info.clone(), msg).unwrap();

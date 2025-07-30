@@ -66,6 +66,9 @@ pub enum ContractError {
 
     #[error(transparent)]
     Store(#[from] crate::state::StoreError),
+
+    #[error("Unauthorized: sender {0} is not authorized to call this function")]
+    Unauthorized(String),
 }
 
 impl From<bitcoin::consensus::encode::Error> for ContractError {

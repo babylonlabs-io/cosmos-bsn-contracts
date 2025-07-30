@@ -1,5 +1,4 @@
 use anyhow::Result as AnyResult;
-use btc_light_client::state::test_utils::get_btc_base_header;
 use derivative::Derivative;
 use hex::ToHex;
 
@@ -120,7 +119,7 @@ impl SuiteBuilder {
                 network: BitcoinNetwork::Testnet,
                 btc_confirmation_depth: 1,
                 checkpoint_finalization_timeout: 1,
-                base_header: get_btc_base_header(),
+                admin: None,
             };
 
             to_json_binary(&btc_lc_init_msg).unwrap()
@@ -484,7 +483,7 @@ impl Suite {
                 fp_pubkey_hex: pk_hex.to_string(),
                 height,
                 pub_rand: pub_rand.into(),
-                proof: proof.into(),
+                proof: proof.try_into().expect("Invalid Merkle proof"),
                 block_hash: block_app_hash.into(),
                 signature: finality_sig.into(),
             },
