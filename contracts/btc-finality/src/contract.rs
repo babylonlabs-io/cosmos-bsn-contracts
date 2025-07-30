@@ -1,18 +1,22 @@
 use crate::error::ContractError;
 use crate::finality::{
-    compute_active_finality_providers, handle_finality_signature, handle_public_randomness_commit,
-    handle_unjail,
+    compute_active_finality_providers, distribute_rewards_fps, handle_finality_signature,
+    handle_public_randomness_commit, handle_unjail,
 };
 use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
 use crate::state::config::{Config, ADMIN, CONFIG, PARAMS};
+use crate::state::finality::{REWARDS, TOTAL_REWARDS};
 use crate::{finality, queries, state};
+use babylon_apis::btc_staking_api::RewardInfo;
 use babylon_apis::finality_api::SudoMsg;
+use babylon_bindings::BabylonMsg;
 use btc_staking::msg::ActivatedHeightResponse;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    attr, to_json_binary, Addr, CustomQuery, Deps, DepsMut, Empty, Env, MessageInfo,
-    QuerierWrapper, QueryRequest, QueryResponse, Reply, Response, StdResult, WasmQuery,
+    attr, coins, to_json_binary, Addr, CustomQuery, Deps, DepsMut, Empty, Env, MessageInfo, Order,
+    QuerierWrapper, QueryRequest, QueryResponse, Reply, Response, StdResult, Uint128, WasmMsg,
+    WasmQuery,
 };
 use cw2::set_contract_version;
 use cw_utils::{maybe_addr, nonpayable};
@@ -26,7 +30,7 @@ pub fn instantiate(
     _env: Env,
     info: MessageInfo,
     msg: InstantiateMsg,
-) -> Result<Response, ContractError> {
+) -> Result<Response<BabylonMsg>, ContractError> {
     nonpayable(&info)?;
     let denom = deps.querier.query_bonded_denom()?;
 
@@ -45,6 +49,8 @@ pub fn instantiate(
 
     let params = msg.params.unwrap_or_default();
     PARAMS.save(deps.storage, &params)?;
+    // initialize storage, so no issue when reading for the first time
+    TOTAL_REWARDS.save(deps.storage, &Uint128::zero())?;
 
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
     Ok(Response::new().add_attribute("action", "instantiate"))
@@ -151,7 +157,7 @@ pub fn execute(
     env: Env,
     info: MessageInfo,
     msg: ExecuteMsg,
-) -> Result<Response, ContractError> {
+) -> Result<Response<BabylonMsg>, ContractError> {
     let api = deps.api;
     match msg {
         ExecuteMsg::UpdateAdmin { admin } => ADMIN
@@ -197,7 +203,11 @@ pub fn execute(
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn sudo(mut deps: DepsMut, env: Env, msg: SudoMsg) -> Result<Response, ContractError> {
+pub fn sudo(
+    mut deps: DepsMut,
+    env: Env,
+    msg: SudoMsg,
+) -> Result<Response<BabylonMsg>, ContractError> {
     match msg {
         SudoMsg::BeginBlock { .. } => handle_begin_block(&mut deps, env),
         SudoMsg::EndBlock {
@@ -211,7 +221,7 @@ fn handle_update_staking(
     deps: DepsMut,
     info: MessageInfo,
     staking_addr: String,
-) -> Result<Response, ContractError> {
+) -> Result<Response<BabylonMsg>, ContractError> {
     let mut cfg = CONFIG.load(deps.storage)?;
     if info.sender != cfg.babylon && !ADMIN.is_admin(deps.as_ref(), &info.sender)? {
         return Err(ContractError::Unauthorized {});
@@ -227,11 +237,15 @@ fn handle_update_staking(
     Ok(Response::new().add_attributes(attributes))
 }
 
-fn handle_begin_block(deps: &mut DepsMut, env: Env) -> Result<Response, ContractError> {
+fn handle_begin_block(deps: &mut DepsMut, env: Env) -> Result<Response<BabylonMsg>, ContractError> {
+    // Distribute rewards
+    distribute_rewards_fps(deps, &env)?;
+
     // Compute active finality provider set
     let max_active_fps = PARAMS.load(deps.storage)?.max_active_finality_providers as usize;
     compute_active_finality_providers(deps, &env, max_active_fps)?;
 
+    // TODO: Add events (#124)
     Ok(Response::new())
 }
 
@@ -240,7 +254,7 @@ fn handle_end_block(
     env: Env,
     _hash_hex: &str,
     app_hash_hex: &str,
-) -> Result<Response, ContractError> {
+) -> Result<Response<BabylonMsg>, ContractError> {
     // If the BTC staking protocol is activated i.e. there exists a height where at least one
     // finality provider has voting power, start indexing and tallying blocks
     let cfg = CONFIG.load(deps.storage)?;
@@ -251,16 +265,66 @@ fn handle_end_block(
         let ev = finality::index_block(deps, env.block.height, &hex::decode(app_hash_hex)?)?;
         res = res.add_event(ev);
         // Tally all non-finalised blocks
-        let events = finality::tally_blocks(deps, &env, activated_height)?;
+        let (msg, events) = finality::tally_blocks(deps, &env, activated_height)?;
+        if let Some(msg) = msg {
+            res = res.add_message(msg);
+        }
         res = res.add_events(events);
     }
 
+    // On an epoch boundary, send rewards for distribution.
+    // Rewards are sent to the staking contract for distribution over delegators
     let params = PARAMS.load(deps.storage)?;
     if env.block.height > 0 && env.block.height % params.epoch_length == 0 {
-        // TODO: On an epoch boundary, send rewards for distribution
-        // https://github.com/babylonlabs-io/cosmos-bsn-contracts/issues/227
+        let rewards = TOTAL_REWARDS.load(deps.storage)?;
+        if rewards.u128() > 0 {
+            let (fp_rewards, wasm_msg) = send_rewards_msg(deps, rewards.u128(), &cfg)?;
+            res = res.add_message(wasm_msg);
+            // Zero out individual rewards
+            for reward in fp_rewards {
+                REWARDS.remove(deps.storage, &reward.fp_pubkey_hex);
+            }
+            // Zero out total rewards
+            TOTAL_REWARDS.save(deps.storage, &Uint128::zero())?;
+        }
     }
     Ok(res)
+}
+
+// Sends rewards to the staking contract for distribution over delegators
+fn send_rewards_msg(
+    deps: &mut DepsMut,
+    rewards: u128,
+    cfg: &Config,
+) -> Result<(Vec<RewardInfo>, WasmMsg), ContractError> {
+    // Get the pending rewards distribution
+    let fp_rewards = REWARDS
+        .range(deps.storage, None, None, Order::Ascending)
+        .filter(|item| {
+            if let Ok((_, reward)) = item {
+                reward.u128() > 0
+            } else {
+                true // don't filter errors
+            }
+        })
+        .map(|item| {
+            let (fp_pubkey_hex, reward) = item?;
+            Ok(babylon_apis::btc_staking_api::RewardInfo {
+                fp_pubkey_hex,
+                reward,
+            })
+        })
+        .collect::<StdResult<Vec<_>>>()?;
+    // The rewards are sent to the BTC staking contract for further distribution
+    let msg = btc_staking::msg::ExecuteMsg::DistributeRewards {
+        fp_distribution: fp_rewards.clone(),
+    };
+    let wasm_msg = WasmMsg::Execute {
+        contract_addr: cfg.staking.to_string(),
+        msg: to_json_binary(&msg)?,
+        funds: coins(rewards, cfg.denom.as_str()),
+    };
+    Ok((fp_rewards, wasm_msg))
 }
 
 pub fn get_activated_height(staking_addr: &Addr, querier: &QuerierWrapper) -> StdResult<u64> {
