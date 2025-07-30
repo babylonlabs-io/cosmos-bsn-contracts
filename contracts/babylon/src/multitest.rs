@@ -21,7 +21,7 @@ fn initialization() {
     assert_eq!(config.checkpoint_finalization_timeout, 1);
     assert!(!config.notify_cosmos_zone);
     assert_eq!(
-        config.btc_light_client_addr().unwrap().as_str(),
+        config.btc_light_client.unwrap().as_str(),
         BTC_LIGHT_CLIENT_CONTRACT_ADDR
     );
     assert_eq!(
@@ -57,7 +57,7 @@ mod instantiation {
     fn contract_should_be_instantiated(config: Config) {
         // Confirm the btc-light-client contract has been instantiated and set
         assert_eq!(
-            config.btc_light_client_addr().unwrap().as_str(),
+            config.btc_light_client.unwrap().as_str(),
             BTC_LIGHT_CLIENT_CONTRACT_ADDR
         );
         // Confirm the btc-staking contract has been instantiated and set
