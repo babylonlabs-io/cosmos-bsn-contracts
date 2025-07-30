@@ -1,9 +1,7 @@
 use crate::error::ContractError;
 use crate::state::config::CONFIG;
-use babylon_proto::babylon::btclightclient::v1::BtcHeaderInfo;
 use babylon_proto::babylon::zoneconcierge::v1::{
-    outbound_packet::Packet as OutboundPacketType, BsnBaseBtcHeaderIbcPacket, BtcHeaders,
-    BtcTimestamp, OutboundPacket,
+    outbound_packet::Packet as OutboundPacketType, BtcHeaders, BtcTimestamp, OutboundPacket,
 };
 use cosmwasm_std::{
     Binary, DepsMut, Env, Event, Ibc3ChannelOpenResponse, IbcBasicResponse, IbcChannel,
@@ -61,7 +59,7 @@ pub fn ibc_channel_open(
 /// Second part of the 4-step handshake, i.e. ChannelOpenAck and ChannelOpenConfirm.
 pub fn ibc_channel_connect(
     deps: DepsMut,
-    env: Env,
+    _env: Env,
     msg: IbcChannelConnectMsg,
 ) -> Result<IbcBasicResponse, ContractError> {
     // Ensure we have no channel yet
@@ -88,31 +86,6 @@ pub fn ibc_channel_connect(
             .add_attribute("consumer_name", name)
             .add_attribute("consumer_description", description);
     }
-
-    // Send the base header of BTC light client to Babylon via IBC.
-    let base_header_bytes = cfg
-        .btc_light_client
-        .as_ref()
-        .map(|(_addr, base_header_bytes)| base_header_bytes)
-        .ok_or(ContractError::BtcLightClientNotSet {})?;
-
-    let base_btc_header: BtcHeaderInfo = BtcHeaderInfo::decode(base_header_bytes.as_slice())?;
-
-    let base_header_packet = BsnBaseBtcHeaderIbcPacket {
-        base_btc_header: Some(base_btc_header),
-    };
-
-    let mut buf = Vec::with_capacity(base_header_packet.encoded_len());
-    base_header_packet.encode(&mut buf)?;
-
-    let ibc_packet = cosmwasm_std::IbcMsg::SendPacket {
-        channel_id: chan_id.to_owned(),
-        data: Binary::from(buf),
-        // TODO: proper timeout
-        timeout: env.block.time.plus_hours(1).into(),
-    };
-
-    response = response.add_message(ibc_packet);
 
     Ok(response)
 }
