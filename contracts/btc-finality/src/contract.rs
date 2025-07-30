@@ -7,9 +7,9 @@ use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
 use crate::state::config::{Config, ADMIN, CONFIG, PARAMS};
 use crate::state::finality::{REWARDS, TOTAL_REWARDS};
 use crate::{finality, queries, state};
-use babylon_apis::btc_staking_api::RewardInfo;
 use babylon_apis::finality_api::SudoMsg;
-use babylon_bindings::BabylonMsg;
+use babylon_contract::msg::contract;
+use babylon_contract::msg::contract::RewardInfo;
 use btc_staking::msg::ActivatedHeightResponse;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
@@ -30,7 +30,7 @@ pub fn instantiate(
     _env: Env,
     info: MessageInfo,
     msg: InstantiateMsg,
-) -> Result<Response<BabylonMsg>, ContractError> {
+) -> Result<Response, ContractError> {
     nonpayable(&info)?;
     let denom = deps.querier.query_bonded_denom()?;
 
@@ -157,7 +157,7 @@ pub fn execute(
     env: Env,
     info: MessageInfo,
     msg: ExecuteMsg,
-) -> Result<Response<BabylonMsg>, ContractError> {
+) -> Result<Response, ContractError> {
     let api = deps.api;
     match msg {
         ExecuteMsg::UpdateAdmin { admin } => ADMIN
@@ -203,11 +203,7 @@ pub fn execute(
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn sudo(
-    mut deps: DepsMut,
-    env: Env,
-    msg: SudoMsg,
-) -> Result<Response<BabylonMsg>, ContractError> {
+pub fn sudo(mut deps: DepsMut, env: Env, msg: SudoMsg) -> Result<Response, ContractError> {
     match msg {
         SudoMsg::BeginBlock { .. } => handle_begin_block(&mut deps, env),
         SudoMsg::EndBlock {
@@ -221,7 +217,7 @@ fn handle_update_staking(
     deps: DepsMut,
     info: MessageInfo,
     staking_addr: String,
-) -> Result<Response<BabylonMsg>, ContractError> {
+) -> Result<Response, ContractError> {
     let mut cfg = CONFIG.load(deps.storage)?;
     if info.sender != cfg.babylon && !ADMIN.is_admin(deps.as_ref(), &info.sender)? {
         return Err(ContractError::Unauthorized {});
@@ -237,8 +233,8 @@ fn handle_update_staking(
     Ok(Response::new().add_attributes(attributes))
 }
 
-fn handle_begin_block(deps: &mut DepsMut, env: Env) -> Result<Response<BabylonMsg>, ContractError> {
-    // Distribute rewards
+fn handle_begin_block(deps: &mut DepsMut, env: Env) -> Result<Response, ContractError> {
+    // Distribute rewards to finality providers
     distribute_rewards_fps(deps, &env)?;
 
     // Compute active finality provider set
@@ -254,7 +250,7 @@ fn handle_end_block(
     env: Env,
     _hash_hex: &str,
     app_hash_hex: &str,
-) -> Result<Response<BabylonMsg>, ContractError> {
+) -> Result<Response, ContractError> {
     // If the BTC staking protocol is activated i.e. there exists a height where at least one
     // finality provider has voting power, start indexing and tallying blocks
     let cfg = CONFIG.load(deps.storage)?;
@@ -265,10 +261,7 @@ fn handle_end_block(
         let ev = finality::index_block(deps, env.block.height, &hex::decode(app_hash_hex)?)?;
         res = res.add_event(ev);
         // Tally all non-finalised blocks
-        let (msg, events) = finality::tally_blocks(deps, &env, activated_height)?;
-        if let Some(msg) = msg {
-            res = res.add_message(msg);
-        }
+        let events = finality::tally_blocks(deps, &env, activated_height)?;
         res = res.add_events(events);
     }
 
@@ -291,7 +284,7 @@ fn handle_end_block(
     Ok(res)
 }
 
-// Sends rewards to the staking contract for distribution over delegators
+// Sends rewards to the babylon contract for distribution over IBC to Babylon Genesis
 fn send_rewards_msg(
     deps: &mut DepsMut,
     rewards: u128,
@@ -309,18 +302,18 @@ fn send_rewards_msg(
         })
         .map(|item| {
             let (fp_pubkey_hex, reward) = item?;
-            Ok(babylon_apis::btc_staking_api::RewardInfo {
+            Ok(RewardInfo {
                 fp_pubkey_hex,
                 reward,
             })
         })
         .collect::<StdResult<Vec<_>>>()?;
-    // The rewards are sent to the BTC staking contract for further distribution
-    let msg = btc_staking::msg::ExecuteMsg::DistributeRewards {
+    // The rewards are sent to the babylon contract for IBC distribution to Babylon Genesis
+    let msg = contract::ExecuteMsg::DistributeRewards {
         fp_distribution: fp_rewards.clone(),
     };
     let wasm_msg = WasmMsg::Execute {
-        contract_addr: cfg.staking.to_string(),
+        contract_addr: cfg.babylon.to_string(),
         msg: to_json_binary(&msg)?,
         funds: coins(rewards, cfg.denom.as_str()),
     };
