@@ -66,6 +66,12 @@ pub enum ContractError {
     TooFewPubRand(u64, u64),
     #[error("The start height ({0}) has overlap with the height of the highest public randomness committed ({1})")]
     InvalidPubRandHeight(u64, u64),
+    #[error("start height {start_height} is too far into the future, current height: {current_height}, max offset: {max_offset}")]
+    FuturePubRandStartHeight {
+        start_height: u64,
+        current_height: u64,
+        max_offset: u64,
+    },
     #[error("Invalid signature over the public randomness list")]
     InvalidPubRandSignature,
     #[error("Public randomness not found for finality provider {0} at height {1}")]
