@@ -38,7 +38,7 @@ pub enum PubRandCommitError {
     EmptyFpBtcPubKey,
     #[error("Commitment must be {COMMITMENT_LENGTH_BYTES} bytes, got {0}")]
     BadCommitmentLength(usize),
-    #[error("public rand commit start block height: {0} is equal or higher than start_height + num_pub_rand ({1}) %d")]
+    #[error("public rand commit start block height: {0} is equal or higher than start_height + num_pub_rand ({1})")]
     OverflowInBlockHeight(u64, u64),
     #[error("Empty signature")]
     EmptySignature,
