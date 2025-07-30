@@ -35,6 +35,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Improvements
 
+- [#265](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/265) finality: handle public randomness misalignment
 - [#260](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/260) chore: manual changelog setup
 
 ## [v0.14.0](https://github.com/babylonlabs-io/cosmos-bsn-contracts/tree/v0.14.0) (2025-05-14)
