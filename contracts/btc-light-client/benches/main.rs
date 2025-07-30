@@ -6,7 +6,6 @@
 use babylon_test_utils::get_btc_lc_mainchain_resp;
 use btc_light_client::msg::btc_header::BtcHeader;
 use btc_light_client::msg::contract::{ExecuteMsg, InstantiateMsg};
-use btc_light_client::state::test_utils::get_btc_base_header;
 use cosmwasm_std::{Empty, Env, MessageInfo, Response};
 use cosmwasm_vm::testing::{
     execute, instantiate, mock_env, mock_info, mock_instance_with_gas_limit, MockApi, MockQuerier,
@@ -46,7 +45,7 @@ pub fn setup_instance() -> Instance<MockApi, MockStorage, MockQuerier> {
         network: btc_light_client::BitcoinNetwork::Regtest,
         btc_confirmation_depth: 10,
         checkpoint_finalization_timeout: 2,
-        base_header: get_btc_base_header(),
+        admin: None,
     };
     let info = mock_info(CREATOR, &[]);
     let res: Response = instantiate(&mut deps, mock_env(), info, msg).unwrap();

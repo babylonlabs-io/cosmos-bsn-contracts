@@ -42,6 +42,7 @@ mod tests {
     use crate::state::{BitcoinNetwork, Config, CONFIG};
     use babylon_test_utils::get_btc_lc_headers;
     use cosmwasm_std::testing::mock_dependencies;
+    use cosmwasm_std::Addr;
 
     fn setup_test_state(
         deps: &mut cosmwasm_std::OwnedDeps<
@@ -55,6 +56,7 @@ mod tests {
             network: BitcoinNetwork::Regtest,
             btc_confirmation_depth: 1,
             checkpoint_finalization_timeout: 2,
+            babylon_contract_address: Addr::unchecked("UNSET"),
         };
         CONFIG.save(&mut deps.storage, &cfg).unwrap();
 

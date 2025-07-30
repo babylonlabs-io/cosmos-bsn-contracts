@@ -1,5 +1,4 @@
 use btc_light_client::msg::contract::InstantiateMsg;
-use btc_light_client::state::test_utils::get_btc_base_header;
 use cosmwasm_std::testing::message_info;
 use cosmwasm_std::{Addr, ContractResult, Response};
 use cosmwasm_vm::testing::{instantiate, mock_env, mock_instance};
@@ -33,7 +32,7 @@ fn instantiate_works() {
         network: btc_light_client::BitcoinNetwork::Regtest,
         btc_confirmation_depth: 10,
         checkpoint_finalization_timeout: 100,
-        base_header: get_btc_base_header(),
+        admin: None,
     };
     let info = message_info(&Addr::unchecked(CREATOR), &[]);
     let res: ContractResult<Response> = instantiate(&mut deps, mock_env(), info, msg);

@@ -323,7 +323,7 @@ mod tests {
     use super::*;
     use bitcoin::block::Header as BlockHeader;
     use btc_light_client::msg::InstantiateMsg as BtcLightClientInstantiateMsg;
-    use btc_light_client::state::test_utils::get_btc_base_header;
+    
     use cosmwasm_std::testing::message_info;
     use cosmwasm_std::testing::{mock_dependencies, mock_env};
 
@@ -357,7 +357,7 @@ mod tests {
             network: btc_light_client::BitcoinNetwork::Regtest,
             btc_confirmation_depth: msg.btc_confirmation_depth,
             checkpoint_finalization_timeout: msg.checkpoint_finalization_timeout,
-            base_header: get_btc_base_header(),
+            admin: None,
         };
 
         msg.btc_light_client_msg
