@@ -276,10 +276,7 @@ pub(crate) mod ibc_packet {
                     fork_app_hash: evidence.fork_app_hash.to_vec().into(),
                     canonical_finality_sig: evidence.canonical_finality_sig.to_vec().into(),
                     fork_finality_sig: evidence.fork_finality_sig.to_vec().into(),
-                    signing_context: babylon_apis::signing_context::fp_fin_vote_context_v0(
-                        &env.block.chain_id,
-                        env.contract.address.as_str(),
-                    ),
+                    signing_context: evidence.signing_context.clone(),
                 }),
             })),
         };
