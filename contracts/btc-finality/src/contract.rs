@@ -176,12 +176,12 @@ pub fn execute(
         } => handle_finality_signature(
             deps,
             env,
-            &fp_pubkey_hex,
+            fp_pubkey_hex,
             height,
-            &pub_rand,
-            &proof,
-            &block_app_hash,
-            &signature,
+            pub_rand.into(),
+            proof,
+            block_app_hash.into(),
+            signature.into(),
         ),
         ExecuteMsg::CommitPublicRandomness {
             fp_pubkey_hex,

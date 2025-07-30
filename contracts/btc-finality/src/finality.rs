@@ -218,12 +218,12 @@ fn msg_to_sign_for_vote(context: &str, block_height: u64, block_hash: &[u8]) -> 
 pub fn handle_finality_signature(
     mut deps: DepsMut,
     env: Env,
-    fp_btc_pk_hex: &str,
+    fp_btc_pk_hex: String,
     height: u64,
-    pub_rand: &[u8],
-    proof: &Proof,
-    block_app_hash: &[u8],
-    signature: &[u8],
+    pub_rand: Vec<u8>,
+    proof: Proof,
+    block_app_hash: Vec<u8>,
+    signature: Vec<u8>,
 ) -> Result<Response, ContractError> {
     // Ensure the finality provider exists
     let staking_addr = CONFIG.load(deps.storage)?.staking;
@@ -270,7 +270,7 @@ pub fn handle_finality_signature(
         return Err(ContractError::HeightTooHigh);
     }
     // Ensure the finality provider has not cast the same vote yet
-    let existing_sig = SIGNATURES.may_load(deps.storage, (height, fp_btc_pk_hex))?;
+    let existing_sig = SIGNATURES.may_load(deps.storage, (height, &fp_btc_pk_hex))?;
     match existing_sig {
         Some(existing_sig) if existing_sig == signature => {
             deps.api.debug(&format!("Received duplicated finality vote. Height: {height}, Finality Provider: {fp_btc_pk_hex}"));
@@ -282,7 +282,7 @@ pub fn handle_finality_signature(
 
     // Find the timestamped public randomness commitment for this height from this finality provider
     let pr_commit =
-        get_timestamped_pub_rand_commit_for_height(&deps.as_ref(), fp_btc_pk_hex, height)?;
+        get_timestamped_pub_rand_commit_for_height(&deps.as_ref(), &fp_btc_pk_hex, height)?;
 
     let signing_context = babylon_apis::signing_context::fp_fin_vote_context_v0(
         &env.block.chain_id,
@@ -291,18 +291,18 @@ pub fn handle_finality_signature(
 
     // Verify the finality signature message
     verify_finality_signature(
-        fp_btc_pk_hex,
+        &fp_btc_pk_hex,
         height,
-        pub_rand,
-        proof,
+        &pub_rand,
+        &proof,
         &pr_commit,
-        block_app_hash,
-        signature,
-        signing_context.clone(),
+        &block_app_hash,
+        &signature,
+        &signing_context,
     )?;
 
     // The public randomness value is good, save it.
-    PUB_RAND_VALUES.save(deps.storage, (fp_btc_pk_hex, height), &pub_rand.to_vec())?;
+    PUB_RAND_VALUES.save(deps.storage, (&fp_btc_pk_hex, height), &pub_rand.to_vec())?;
 
     // Verify whether the voted block is a fork or not
     let indexed_block = BLOCKS
@@ -315,7 +315,7 @@ pub fn handle_finality_signature(
 
         // Construct evidence
         let mut evidence = Evidence {
-            fp_btc_pk: hex::decode(fp_btc_pk_hex)?,
+            fp_btc_pk: hex::decode(&fp_btc_pk_hex)?,
             block_height: height,
             pub_rand: pub_rand.to_vec(),
             canonical_app_hash: indexed_block.app_hash,
@@ -326,20 +326,20 @@ pub fn handle_finality_signature(
         };
 
         // If this finality provider has also signed the canonical block, slash it
-        let canonical_sig = SIGNATURES.may_load(deps.storage, (height, fp_btc_pk_hex))?;
+        let canonical_sig = SIGNATURES.may_load(deps.storage, (height, &fp_btc_pk_hex))?;
         if let Some(canonical_sig) = canonical_sig {
             // Set canonical sig
             evidence.canonical_finality_sig = canonical_sig;
             // Slash this finality provider, including setting its voting power to zero, extracting
             // its BTC SK, and emitting an event
-            let (msg, ev) = slash_finality_provider(&mut deps, fp_btc_pk_hex, &evidence)?;
+            let (msg, ev) = slash_finality_provider(&mut deps, &fp_btc_pk_hex, &evidence)?;
             res = res.add_message(msg);
             res = res.add_event(ev);
         }
         // TODO?: Also slash if this finality provider has signed another fork before
 
         // Save evidence
-        EVIDENCES.save(deps.storage, (fp_btc_pk_hex, height), &evidence)?;
+        EVIDENCES.save(deps.storage, (&fp_btc_pk_hex, height), &evidence)?;
 
         // NOTE: We should NOT return error here, otherwise the state change triggered in this tx
         // (including the evidence) will be rolled back
@@ -347,24 +347,24 @@ pub fn handle_finality_signature(
     }
 
     // This signature is good, save the vote to the store
-    SIGNATURES.save(deps.storage, (height, fp_btc_pk_hex), &signature.to_vec())?;
+    SIGNATURES.save(deps.storage, (height, &fp_btc_pk_hex), &signature)?;
 
     // Store the block height this finality provider has signed
-    FP_BLOCK_SIGNER.save(deps.storage, fp_btc_pk_hex, &height)?;
+    FP_BLOCK_SIGNER.save(deps.storage, &fp_btc_pk_hex, &height)?;
 
     // If this finality provider has signed the canonical block before, slash it via extracting its
     // secret key, and emit an event
-    if let Some(mut evidence) = EVIDENCES.may_load(deps.storage, (fp_btc_pk_hex, height))? {
+    if let Some(mut evidence) = EVIDENCES.may_load(deps.storage, (&fp_btc_pk_hex, height))? {
         // The finality provider has voted for a fork before!
         // This evidence is at the same height as this signature, slash this finality provider
 
         // Set canonical sig to this evidence
         evidence.canonical_finality_sig = signature.to_vec();
-        EVIDENCES.save(deps.storage, (fp_btc_pk_hex, height), &evidence)?;
+        EVIDENCES.save(deps.storage, (&fp_btc_pk_hex, height), &evidence)?;
 
         // Slash this finality provider, including setting its voting power to zero, extracting its
         // BTC SK, and emitting an event
-        let (msg, ev) = slash_finality_provider(&mut deps, fp_btc_pk_hex, &evidence)?;
+        let (msg, ev) = slash_finality_provider(&mut deps, &fp_btc_pk_hex, &evidence)?;
         res = res.add_message(msg);
         res = res.add_event(ev);
     }
@@ -512,7 +512,7 @@ fn verify_finality_signature(
     pr_commit: &PubRandCommit,
     app_hash: &[u8],
     signature: &[u8],
-    signing_context: String,
+    signing_context: &str,
 ) -> Result<(), ContractError> {
     let proof_height = pr_commit.start_height + proof.index;
     if block_height != proof_height {
@@ -536,7 +536,7 @@ fn verify_finality_signature(
     let pubkey = eots::PublicKey::from_hex(fp_btc_pk_hex)?;
 
     // The EOTS signature on a block will be (signing_context || block_height || block_app_hash)
-    let msg = msg_to_sign_for_vote(&signing_context, block_height, app_hash);
+    let msg = msg_to_sign_for_vote(signing_context, block_height, app_hash);
 
     let msg_hash = Sha256::digest(msg);
 
