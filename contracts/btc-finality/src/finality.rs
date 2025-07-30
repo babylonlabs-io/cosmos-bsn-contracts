@@ -82,6 +82,43 @@ impl PublicRandomnessCommitMsg {
 
         Ok(())
     }
+
+    fn verify_sig(&self, signing_context: String) -> Result<(), ContractError> {
+        let Self {
+            fp_btc_pk_hex,
+            start_height,
+            num_pub_rand,
+            commitment,
+            sig: signature,
+        } = self;
+
+        // get BTC public key for verification
+        let btc_pk_raw = hex::decode(fp_btc_pk_hex)?;
+        let btc_pk = VerifyingKey::from_bytes(&btc_pk_raw)
+            .map_err(|e| ContractError::SecP256K1Error(e.to_string()))?;
+
+        // get signature
+        if signature.is_empty() {
+            return Err(ContractError::EmptySignature);
+        }
+
+        let schnorr_sig = Signature::try_from(signature.as_slice())
+            .map_err(|e| ContractError::SecP256K1Error(e.to_string()))?;
+
+        // get signed message
+        let mut msg: Vec<u8> = vec![];
+        msg.extend_from_slice(signing_context.as_bytes());
+        msg.extend_from_slice(&start_height.to_be_bytes());
+        msg.extend_from_slice(&num_pub_rand.to_be_bytes());
+        msg.extend_from_slice(commitment);
+
+        // Verify the signature
+        btc_pk
+            .verify(&msg, &schnorr_sig)
+            .map_err(|e| ContractError::SecP256K1Error(e.to_string()))?;
+
+        Ok(())
+    }
 }
 
 pub fn handle_public_randomness_commit(
@@ -130,7 +167,7 @@ pub fn handle_public_randomness_commit(
     );
 
     // Verify signature over the list
-    verify_commitment_signature(&pub_rand_commit, signing_context)?;
+    pub_rand_commit.verify_sig(signing_context)?;
 
     // Get last public randomness commitment
     // TODO: allow committing public randomness earlier than existing ones?
@@ -164,46 +201,6 @@ pub fn handle_public_randomness_commit(
 
     // TODO: Add events (#124)
     Ok(Response::new())
-}
-
-fn verify_commitment_signature(
-    pub_rand_commit: &PublicRandomnessCommitMsg,
-    signing_context: String,
-) -> Result<(), ContractError> {
-    let PublicRandomnessCommitMsg {
-        fp_btc_pk_hex,
-        start_height,
-        num_pub_rand,
-        commitment,
-        sig: signature,
-    } = pub_rand_commit;
-
-    // get BTC public key for verification
-    let btc_pk_raw = hex::decode(fp_btc_pk_hex)?;
-    let btc_pk = VerifyingKey::from_bytes(&btc_pk_raw)
-        .map_err(|e| ContractError::SecP256K1Error(e.to_string()))?;
-
-    // get signature
-    if signature.is_empty() {
-        return Err(ContractError::EmptySignature);
-    }
-
-    let schnorr_sig = Signature::try_from(signature.as_slice())
-        .map_err(|e| ContractError::SecP256K1Error(e.to_string()))?;
-
-    // get signed message
-    let mut msg: Vec<u8> = vec![];
-    msg.extend_from_slice(signing_context.as_bytes());
-    msg.extend_from_slice(&start_height.to_be_bytes());
-    msg.extend_from_slice(&num_pub_rand.to_be_bytes());
-    msg.extend_from_slice(commitment);
-
-    // Verify the signature
-    btc_pk
-        .verify(&msg, &schnorr_sig)
-        .map_err(|e| ContractError::SecP256K1Error(e.to_string()))?;
-
-    Ok(())
 }
 
 /// Returns the message for an EOTS signature
