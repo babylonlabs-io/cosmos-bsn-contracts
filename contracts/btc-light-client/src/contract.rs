@@ -242,7 +242,6 @@ pub(crate) fn handle_btc_headers_from_babylon(
 
     // decode the first header in these new headers
     let first_new_header = new_headers.first().ok_or(ContractError::EmptyHeaders {})?;
-
     let first_new_btc_header = first_new_header.block_header()?;
 
     let new_tip = if first_new_btc_header.prev_blockhash.as_ref() == cur_tip_hash.to_vec() {
@@ -263,7 +262,7 @@ pub(crate) fn handle_btc_headers_from_babylon(
         let new_tip_work = total_work(new_tip.work.as_ref())?;
         let cur_tip_work = total_work(cur_tip.work.as_ref())?;
 
-        if new_tip_work <= cur_tip_work {
+        if new_tip_work < cur_tip_work {
             return Err(ContractError::InsufficientWork(new_tip_work, cur_tip_work));
         }
 
@@ -480,10 +479,10 @@ pub(crate) mod tests {
         // get fork headers
         let test_fork_headers = get_btc_lc_fork_headers();
 
-        // handling fork headers minus the last
+        // handling fork headers minus the two last
         let res = handle_btc_headers_from_babylon(
             &mut storage,
-            &test_fork_headers[..test_fork_headers.len() - 1],
+            &test_fork_headers[..test_fork_headers.len() - 2],
         );
         assert!(matches!(
             res.unwrap_err(),
