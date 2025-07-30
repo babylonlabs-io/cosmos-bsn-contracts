@@ -28,7 +28,7 @@ library = []
 
 [dependencies]
 babylon-apis          = { path = "../../packages/apis" }
-babylon-bindings      = { path = "../../packages/bindings" }
+
 babylon-merkle        = { path = "../../packages/merkle" }
 eots                  = { path = "../../packages/eots" }
 
