@@ -262,7 +262,7 @@ pub(crate) fn handle_btc_headers_from_babylon(
         let new_tip_work = total_work(new_tip.work.as_ref())?;
         let cur_tip_work = total_work(cur_tip.work.as_ref())?;
 
-        if new_tip_work < cur_tip_work {
+        if new_tip_work <= cur_tip_work {
             return Err(ContractError::InsufficientWork(new_tip_work, cur_tip_work));
         }
 
@@ -479,10 +479,10 @@ pub(crate) mod tests {
         // get fork headers
         let test_fork_headers = get_btc_lc_fork_headers();
 
-        // handling fork headers minus the two last
+        // handling fork headers minus the last
         let res = handle_btc_headers_from_babylon(
             &mut storage,
-            &test_fork_headers[..test_fork_headers.len() - 2],
+            &test_fork_headers[..test_fork_headers.len() - 1],
         );
         assert!(matches!(
             res.unwrap_err(),
