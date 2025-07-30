@@ -30,6 +30,20 @@ use std::collections::HashSet;
 // or performance degradation caused by excessive future commitments.
 const MAX_PUB_RAND_COMMIT_OFFSET: u64 = 160_000;
 
+const COMMITMENT_LENGTH_BYTES: usize = 32;
+
+#[derive(thiserror::Error, Debug, PartialEq)]
+pub enum PubRandCommitError {
+    #[error("Empty FP BTC PubKey")]
+    EmptyFpBtcPubKey,
+    #[error("Commitment must be {COMMITMENT_LENGTH_BYTES} bytes, got {0}")]
+    BadCommitmentLength(usize),
+    #[error("public rand commit start block height: {0} is equal or higher than start_height + num_pub_rand ({1}) %d")]
+    OverflowInBlockHeight(u64, u64),
+    #[error("Empty signature")]
+    EmptySignature,
+}
+
 // https://github.com/babylonlabs-io/babylon/blob/49972e2d3e35caf0a685c37e1f745c47b75bfc69/x/finality/types/tx.pb.go#L36
 pub struct PublicRandomnessCommitMsg {
     pub fp_btc_pk_hex: String,
@@ -41,8 +55,31 @@ pub struct PublicRandomnessCommitMsg {
 
 impl PublicRandomnessCommitMsg {
     // https://github.com/babylonlabs-io/babylon/blob/49972e2d3e35caf0a685c37e1f745c47b75bfc69/x/finality/types/msg.go#L161
-    fn validate_basic(&self) -> Result<(), ContractError> {
-        // TODO:
+    fn validate_basic(&self) -> Result<(), PubRandCommitError> {
+        if self.fp_btc_pk_hex.is_empty() {
+            return Err(PubRandCommitError::EmptyFpBtcPubKey);
+        }
+
+        // Checks if the commitment is exactly 32 bytes
+        if self.commitment.len() != COMMITMENT_LENGTH_BYTES {
+            return Err(PubRandCommitError::BadCommitmentLength(
+                self.commitment.len(),
+            ));
+        }
+
+        // To avoid public randomness reset,
+        // check for overflow when doing (StartHeight + NumPubRand)
+        if self.start_height >= (self.start_height + self.num_pub_rand) {
+            return Err(PubRandCommitError::OverflowInBlockHeight(
+                self.start_height,
+                self.start_height + self.num_pub_rand,
+            ));
+        }
+
+        if self.sig.is_empty() {
+            return Err(PubRandCommitError::EmptySignature);
+        }
+
         Ok(())
     }
 }

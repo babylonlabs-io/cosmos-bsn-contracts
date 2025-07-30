@@ -108,4 +108,6 @@ pub enum ContractError {
     JailPeriodNotPassed(String),
     #[error("Cannot unjail FP who's been jailed forever")]
     JailedForever {},
+    #[error(transparent)]
+    PubRandCommit(#[from] crate::finality::PubRandCommitError),
 }
