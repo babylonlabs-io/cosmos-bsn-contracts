@@ -91,26 +91,7 @@ pub fn handle_btc_timestamp(
     if let Some(consumer_header) = btc_ts.header.as_ref() {
         deps.api
             .debug("handle_btc_timestamp: found consumer header, processing");
-        let proof = btc_ts.proof.as_ref().ok_or_else(|| {
-            let err_msg = "empty proof in BTC timestamp";
-            deps.api.debug(&format!("handle_btc_timestamp: {err_msg}"));
-            StdError::generic_err(err_msg)
-        })?;
-        let proof_consumer_header_in_epoch = proof
-            .proof_consumer_header_in_epoch
-            .as_ref()
-            .ok_or_else(|| {
-                let err_msg = "empty proof_consumer_header_in_epoch in proof";
-                deps.api.debug(&format!("handle_btc_timestamp: {err_msg}"));
-                StdError::generic_err(err_msg)
-            })?;
-        consumer_header_chain::handle_consumer_header(
-            deps,
-            consumer_header,
-            epoch,
-            proof_consumer_header_in_epoch,
-        )
-        .map_err(|e| {
+        consumer_header_chain::handle_consumer_header(deps, consumer_header).map_err(|e| {
             let err_msg = format!("failed to handle Consumer header from Babylon: {e}");
             deps.api.debug(&format!("handle_btc_timestamp: {err_msg}"));
             StdError::generic_err(err_msg)
