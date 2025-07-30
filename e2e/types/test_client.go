@@ -269,9 +269,9 @@ func (p *TestConsumerClient) deployContracts() (*ConsumerContract, error) {
 	}
 
 	var config struct {
-		BTCLightClient []string `json:"btc_light_client"`
-		BTCStaking     string   `json:"btc_staking"`
-		BTCFinality    string   `json:"btc_finality"`
+		BTCLightClient string `json:"btc_light_client"`
+		BTCStaking     string `json:"btc_staking"`
+		BTCFinality    string `json:"btc_finality"`
 	}
 	err = json.Unmarshal(configRes, &config)
 	if err != nil {
@@ -281,7 +281,7 @@ func (p *TestConsumerClient) deployContracts() (*ConsumerContract, error) {
 	// Set BSN contracts in the Babylon module
 	contracts := &babylontypes.BSNContracts{
 		BabylonContract:        babylonAddr,
-		BtcLightClientContract: config.BTCLightClient[0], // First element is the contract address
+		BtcLightClientContract: config.BTCLightClient, // First element is the contract address
 		BtcStakingContract:     config.BTCStaking,
 		BtcFinalityContract:    config.BTCFinality,
 	}
@@ -292,7 +292,7 @@ func (p *TestConsumerClient) deployContracts() (*ConsumerContract, error) {
 	}
 
 	// Verify that the contracts exist in the wasm keeper
-	btcLightClientAccAddr, err := sdk.AccAddressFromBech32(config.BTCLightClient[0])
+	btcLightClientAccAddr, err := sdk.AccAddressFromBech32(config.BTCLightClient)
 	if err != nil {
 		return nil, fmt.Errorf("invalid btc light client address: %w", err)
 	}
