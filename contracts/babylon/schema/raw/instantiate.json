@@ -106,6 +106,15 @@
         "null"
       ]
     },
+    "ibc_packet_timeout_days": {
+      "description": "IBC packet timeout in days If not set, the default value (28 days) will be used",
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "uint64",
+      "minimum": 0.0
+    },
     "ics20_channel_id": {
       "description": "IBC information for ICS-020 rewards transfer. Required for rewards distribution on Babylon Genesis",
       "type": "string"
