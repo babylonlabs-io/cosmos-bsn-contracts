@@ -1,5 +1,4 @@
 use cosmwasm_schema::cw_serde;
-use cosmwasm_std::Uint256;
 use cw_storage_plus::{IndexedSnapshotMap, Item, Map, MultiIndex, Strategy};
 use k256::schnorr::SigningKey;
 
@@ -50,7 +49,11 @@ pub const ACTIVATED_HEIGHT: Item<u64> = Item::new("activated_height");
 pub fn fps<'a>() -> IndexedSnapshotMap<&'a str, FinalityProviderState, FinalityProviderIndexes<'a>>
 {
     let indexes = FinalityProviderIndexes {
-        power: MultiIndex::new(|_, fp_state| fp_state.power, FP_STATE_KEY, FP_POWER_KEY),
+        power: MultiIndex::new(
+            |_, fp_state| fp_state.total_active_sats,
+            FP_STATE_KEY,
+            FP_POWER_KEY,
+        ),
     };
     IndexedSnapshotMap::new(
         FP_STATE_KEY,
@@ -64,18 +67,8 @@ pub fn fps<'a>() -> IndexedSnapshotMap<&'a str, FinalityProviderState, FinalityP
 #[cw_serde]
 #[derive(Default)]
 pub struct FinalityProviderState {
-    /// Finality provider power, in satoshis.
-    /// Total satoshis delegated to this finality provider by all users
-    //TODO?: Rename to `total_delegation`
-    pub power: u64,
-    /// Points user is eligible to by single token delegation
-    //TODO?: Rename to `delegation_points`
-    //TODO: Use Uint128 (similar to #123)
-    pub points_per_stake: Uint256,
-    /// Points which were not distributed previously
-    //TODO?: Rename to `leftover_points`
-    //TODO: Use Uint128 (similar to #123)
-    pub points_leftover: Uint256,
+    /// Total active sats delegated to this finality provider
+    pub total_active_sats: u64,
 }
 
 #[cw_serde]

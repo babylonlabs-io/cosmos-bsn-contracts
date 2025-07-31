@@ -184,8 +184,10 @@ fn handle_active_delegation(
 
         // Load FP state
         let mut fp_state = fps.load(storage, fp_btc_pk_hex)?;
-        // Update aggregated voting power by FP
-        fp_state.power = fp_state.power.saturating_add(active_delegation.total_sat);
+        // Update total active sats by FP
+        fp_state.total_active_sats = fp_state
+            .total_active_sats
+            .saturating_add(active_delegation.total_sat);
 
         // Create delegation distribution info. Fail if it already exists
         delegations().create_distribution(
@@ -295,7 +297,7 @@ fn handle_slashed_delegation(
     let fps = fps();
     for fp_pubkey_hex in affected_fps {
         let mut fp_state = fps.load(storage, &fp_pubkey_hex)?;
-        fp_state.power = fp_state.power.saturating_sub(btc_del.total_sat);
+        fp_state.total_active_sats = fp_state.total_active_sats.saturating_sub(btc_del.total_sat);
 
         // Distribution alignment
         delegations().reduce_distribution(
@@ -418,8 +420,8 @@ fn discount_delegation_power(
             .load(storage, &fp_pubkey_hex)
             .map_err(|_| ContractError::FinalityProviderNotFound(fp_pubkey_hex.clone()))?;
 
-        // Update aggregated voting power by FP
-        fp_state.power = fp_state.power.saturating_sub(btc_del.total_sat);
+        // Update total active sats by FP
+        fp_state.total_active_sats = fp_state.total_active_sats.saturating_sub(btc_del.total_sat);
 
         // Load delegation
         let mut delegation = delegations()
@@ -484,12 +486,11 @@ pub(crate) fn slash_finality_provider(
     fp.slashed_btc_height = btc_height;
 
     // Record slashed event. The next `BeginBlock` will consume this event for updating the active
-    // FP set.
-    // We simply set the FP voting power to zero from the next *processing* height (See NOTE in
-    // `handle_finality_signature`)
+    // FP set. We simply set the FP total active sats to zero from the next *processing* height
+    // (See NOTE in `handle_finality_signature`)
     fps().update(deps.storage, fp_btc_pk_hex, env.block.height + 1, |fp| {
         let mut fp = fp.unwrap_or_default();
-        fp.power = 0;
+        fp.total_active_sats = 0;
         Ok::<_, ContractError>(fp)
     })?;
 
@@ -679,7 +680,7 @@ pub(crate) mod tests {
         // Check that the finality provider power has been updated
         let fp = queries::finality_provider_info(deps.as_ref(), new_fp.btc_pk_hex.clone(), None)
             .unwrap();
-        assert_eq!(fp.power, active_delegation.total_sat);
+        assert_eq!(fp.total_active_sats, active_delegation.total_sat);
     }
 
     #[test]
@@ -778,7 +779,7 @@ pub(crate) mod tests {
         // Check the finality provider power has been updated
         let fp = queries::finality_provider_info(deps.as_ref(), new_fp.btc_pk_hex.clone(), None)
             .unwrap();
-        assert_eq!(fp.power, 0);
+        assert_eq!(fp.total_active_sats, 0);
     }
 
     #[test]
@@ -826,7 +827,7 @@ pub(crate) mod tests {
         // Check the finality provider has power
         let fp = queries::finality_provider_info(deps.as_ref(), new_fp.btc_pk_hex.clone(), None)
             .unwrap();
-        assert_eq!(fp.power, btc_del.total_sat);
+        assert_eq!(fp.total_active_sats, btc_del.total_sat);
 
         // Now send the slashed delegation message
         let fp_sk = create_new_fp_sk(1);
@@ -862,10 +863,10 @@ pub(crate) mod tests {
         // Check the unbonding sig is still empty
         assert!(btc_del.undelegation_info.delegator_unbonding_info.is_none());
 
-        // Check the finality provider power has been zeroed (it has only this delegation that was
+        // Check the finality provider power remains (it has only this delegation that was
         // slashed)
         let fp = queries::finality_provider_info(deps.as_ref(), new_fp.btc_pk_hex.clone(), None)
             .unwrap();
-        assert_eq!(fp.power, 0);
+        assert_eq!(fp.total_active_sats, 0);
     }
 }

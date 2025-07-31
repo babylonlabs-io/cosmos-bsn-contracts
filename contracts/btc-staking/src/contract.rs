@@ -83,8 +83,8 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> Result<QueryResponse, Cont
         QueryMsg::FinalityProviderInfo { btc_pk_hex, height } => Ok(to_json_binary(
             &queries::finality_provider_info(deps, btc_pk_hex, height)?,
         )?),
-        QueryMsg::FinalityProvidersByPower { start_after, limit } => Ok(to_json_binary(
-            &queries::finality_providers_by_power(deps, start_after, limit)?,
+        QueryMsg::FinalityProvidersByTotalActiveSats { start_after, limit } => Ok(to_json_binary(
+            &queries::finality_providers_by_total_active_sats(deps, start_after, limit)?,
         )?),
         QueryMsg::ActivatedHeight {} => Ok(to_json_binary(&queries::activated_height(deps)?)?),
     }

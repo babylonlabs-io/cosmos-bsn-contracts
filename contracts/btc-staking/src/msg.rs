@@ -74,9 +74,9 @@ pub enum QueryMsg {
         /// If `height` is not provided, the latest aggregated power is returned
         height: Option<u64>,
     },
-    /// Returns the list of finality provider infos sorted by their aggregated power, in descending order.
-    #[returns(FinalityProvidersByPowerResponse)]
-    FinalityProvidersByPower {
+    /// Returns the list of finality provider infos sorted by their total active sats, in descending order.
+    #[returns(FinalityProvidersByTotalActiveSatsResponse)]
+    FinalityProvidersByTotalActiveSats {
         /// BTC public key of the FP to start after, or `None` to start from the top
         start_after: Option<FinalityProviderInfo>,
         limit: Option<u32>,
@@ -102,7 +102,7 @@ pub struct DelegationsByFPResponse {
 }
 
 #[cw_serde]
-pub struct FinalityProvidersByPowerResponse {
+pub struct FinalityProvidersByTotalActiveSatsResponse {
     pub fps: Vec<FinalityProviderInfo>,
 }
 
@@ -111,9 +111,8 @@ pub struct FinalityProviderInfo {
     /// Bitcoin secp256k1 PK of this finality provider.
     /// The PK follows encoding in BIP-340 spec in hex format
     pub btc_pk_hex: String,
-    /// Aggregated power of this finality provider.
-    /// The power is calculated based on the amount of BTC delegated to this finality provider
-    pub power: u64,
+    /// Total active sats delegated to this finality provider
+    pub total_active_sats: u64,
 }
 
 #[cw_serde]
