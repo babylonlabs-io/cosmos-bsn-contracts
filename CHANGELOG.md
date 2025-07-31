@@ -33,6 +33,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 [Full Changelog](https://github.com/babylonlabs-io/cosmos-bsn-contracts/compare/v0.14.0...HEAD)
 
+### State breaking
+
+- [#272](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/272) ibc: set proper timeout for IBC packets
+
 ### Improvements
 
 - [#265](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/265) finality: handle public randomness misalignment
