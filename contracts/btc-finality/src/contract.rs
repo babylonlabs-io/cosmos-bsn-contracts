@@ -452,7 +452,7 @@ pub(crate) mod tests {
                 assert_eq!(contract_addr, babylon_addr.to_string());
                 assert_eq!(funds, coins(300, "TOKEN"));
 
-                // Verify the message is a DistributeRewards message
+                // Verify the message is a RewardsDistribution message
                 let msg_data: babylon_contract::msg::contract::ExecuteMsg = from_json(msg).unwrap();
                 match msg_data {
                     babylon_contract::msg::contract::ExecuteMsg::RewardsDistribution {
@@ -464,7 +464,7 @@ pub(crate) mod tests {
                         assert_eq!(fp_distribution[1].fp_pubkey_hex, fp2);
                         assert_eq!(fp_distribution[1].reward, Uint128::from(200u128));
                     }
-                    _ => panic!("Expected DistributeRewards message"),
+                    _ => panic!("Expected RewardsDistribution message"),
                 }
             }
             _ => panic!("Expected WasmMsg::Execute"),
@@ -507,7 +507,7 @@ pub(crate) mod tests {
                 assert_eq!(contract_addr, babylon_addr.to_string());
                 assert_eq!(funds, coins(0, "TOKEN"));
 
-                // Verify the message is a DistributeRewards message with empty distribution
+                // Verify the message is a RewardsDistribution message with empty distribution
                 let msg_data: babylon_contract::msg::contract::ExecuteMsg = from_json(msg).unwrap();
                 match msg_data {
                     babylon_contract::msg::contract::ExecuteMsg::RewardsDistribution {
@@ -515,7 +515,7 @@ pub(crate) mod tests {
                     } => {
                         assert_eq!(fp_distribution.len(), 0);
                     }
-                    _ => panic!("Expected DistributeRewards message"),
+                    _ => panic!("Expected RewardsDistribution message"),
                 }
             }
             _ => panic!("Expected WasmMsg::Execute"),
