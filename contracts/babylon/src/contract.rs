@@ -1,6 +1,5 @@
 use crate::error::ContractError;
-use crate::ibc::ibc_packet::get_ibc_packet_timeout;
-use crate::ibc::{ibc_packet, IBC_TRANSFER_CHANNEL, IBC_ZC_CHANNEL};
+use crate::ibc::{get_ibc_packet_timeout, ibc_packet, IBC_TRANSFER_CHANNEL, IBC_ZC_CHANNEL};
 use crate::msg::contract::{ContractMsg, ExecuteMsg, InstantiateMsg, QueryMsg};
 use crate::msg::ibc::{BsnRewards, CallbackInfo, CallbackMemo, FpRatio};
 use crate::queries;
