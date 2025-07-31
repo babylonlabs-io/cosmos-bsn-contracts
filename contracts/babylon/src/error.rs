@@ -61,6 +61,8 @@ pub enum ContractError {
     SerdeJson(String),
     #[error("Invalid rewards: expected {0}, sent {1}")]
     InvalidRewards(Uint128, Uint128),
+    #[error("Consumer name is not set")]
+    ConsumerNameNotSet {},
 }
 
 impl From<serde_json::Error> for ContractError {
