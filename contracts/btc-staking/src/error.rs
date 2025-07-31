@@ -60,8 +60,6 @@ pub enum ContractError {
     ErrInvalidLockType,
     #[error("Invalid lock time blocks: {0}, max: {1}")]
     ErrInvalidLockTime(u32, u32),
-    #[error("The finality provider {0} does not have voting power at height {1}")]
-    NoVotingPower(String, u64),
     #[error("The chain has not reached the given height yet")]
     HeightTooHigh,
     #[error("The finality provider {0} signed two different blocks at height {1}")]
