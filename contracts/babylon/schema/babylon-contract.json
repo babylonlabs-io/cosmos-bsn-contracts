@@ -10,6 +10,7 @@
       "babylon_tag",
       "btc_confirmation_depth",
       "checkpoint_finalization_timeout",
+      "destination_module",
       "ics20_channel_id",
       "network",
       "notify_cosmos_zone"
@@ -110,6 +111,10 @@
           "null"
         ]
       },
+      "destination_module": {
+        "description": "Babylon module name for receiving ICS-20 transfers",
+        "type": "string"
+      },
       "ibc_packet_timeout_days": {
         "description": "IBC packet timeout in days If not set, the default value (28 days) will be used",
         "type": [
@@ -178,10 +183,10 @@
         "description": "Message sent by the finality contract, to send rewards to distribute to Babylon Genesis",
         "type": "object",
         "required": [
-          "distribute_rewards"
+          "rewards_distribution"
         ],
         "properties": {
-          "distribute_rewards": {
+          "rewards_distribution": {
             "type": "object",
             "required": [
               "fp_distribution"
@@ -741,6 +746,7 @@
         "btc_confirmation_depth",
         "checkpoint_finalization_timeout",
         "denom",
+        "destination_module",
         "ibc_packet_timeout_days",
         "network",
         "notify_cosmos_zone"
@@ -812,6 +818,10 @@
           ]
         },
         "denom": {
+          "type": "string"
+        },
+        "destination_module": {
+          "description": "Babylon module name for receiving ICS-20 transfers",
           "type": "string"
         },
         "ibc_packet_timeout_days": {

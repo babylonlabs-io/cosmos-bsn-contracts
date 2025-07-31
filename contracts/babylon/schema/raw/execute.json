@@ -28,10 +28,10 @@
       "description": "Message sent by the finality contract, to send rewards to distribute to Babylon Genesis",
       "type": "object",
       "required": [
-        "distribute_rewards"
+        "rewards_distribution"
       ],
       "properties": {
-        "distribute_rewards": {
+        "rewards_distribution": {
           "type": "object",
           "required": [
             "fp_distribution"

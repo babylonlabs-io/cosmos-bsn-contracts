@@ -7,6 +7,7 @@
     "btc_confirmation_depth",
     "checkpoint_finalization_timeout",
     "denom",
+    "destination_module",
     "ibc_packet_timeout_days",
     "network",
     "notify_cosmos_zone"
@@ -78,6 +79,10 @@
       ]
     },
     "denom": {
+      "type": "string"
+    },
+    "destination_module": {
+      "description": "Babylon module name for receiving ICS-20 transfers",
       "type": "string"
     },
     "ibc_packet_timeout_days": {
