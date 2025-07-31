@@ -2,17 +2,17 @@ use crate::error::ContractError;
 use crate::ibc::ibc_packet::get_ibc_packet_timeout;
 use crate::ibc::{ibc_packet, IBC_TRANSFER_CHANNEL, IBC_ZC_CHANNEL};
 use crate::msg::contract::{ContractMsg, ExecuteMsg, InstantiateMsg, QueryMsg};
+use crate::msg::ibc::{BsnRewards, CallbackInfo, CallbackMemo, FpRatio};
 use crate::queries;
 use crate::state::config::{Config, CONFIG, DEFAULT_IBC_PACKET_TIMEOUT_DAYS};
 use crate::state::consumer_header_chain::CONSUMER_HEIGHT_LAST;
 use babylon_apis::{btc_staking_api, finality_api, to_bech32_addr, to_module_canonical_addr};
 use cosmwasm_std::{
-    to_json_binary, Addr, Binary, Deps, DepsMut, Empty, Env, MessageInfo, QueryResponse, Reply,
-    Response, SubMsg, SubMsgResponse, WasmMsg,
+    to_json_binary, to_json_string, Addr, Binary, Deps, DepsMut, Empty, Env, MessageInfo,
+    QueryResponse, Reply, Response, SubMsg, SubMsgResponse, WasmMsg,
 };
 use cw2::set_contract_version;
 use cw_utils::{must_pay, ParseReplyError};
-use serde_json;
 
 pub const CONTRACT_NAME: &str = env!("CARGO_PKG_NAME");
 pub const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -348,33 +348,35 @@ pub fn execute(
             let channel_id = IBC_TRANSFER_CHANNEL.load(deps.storage)?;
 
             // Calculate ratios from absolute amounts
-            let fp_ratios: Vec<serde_json::Value> = fp_distribution
+            let fp_ratios: Vec<FpRatio> = fp_distribution
                 .iter()
                 .map(|reward_info| {
                     let ratio = reward_info.reward / total_rewards;
                     let btc_pk_bytes = hex::decode(&reward_info.fp_pubkey_hex)?;
-                    Ok(serde_json::json!({
-                        "btc_pk": Binary::new(btc_pk_bytes),
-                        "ratio": ratio.to_string()
-                    }))
+                    Ok(FpRatio {
+                        btc_pk: Binary::new(btc_pk_bytes),
+                        ratio: ratio.to_string(),
+                    })
                 })
                 .collect::<Result<Vec<_>, ContractError>>()?;
 
-            // Create memo with the proper Babylon structure
-            let memo = serde_json::json!({
-                "action": "add_bsn_rewards",
-                "dest_callback": {
-                    "address": cfg.destination_module, // Mandatory but unused
-                    "add_bsn_rewards": {
-                        "bsn_consumer_id": bsn_consumer_id,
-                        "fp_ratios": fp_ratios
-                    }
-                }
-            })
-            .to_string();
+            // Create memo with the proper Babylon structure using typed structs
+            let callback_memo = CallbackMemo {
+                action: "add_bsn_rewards".to_string(),
+                dest_callback: CallbackInfo {
+                    address: cfg.destination_module.clone(),
+                    add_bsn_rewards: BsnRewards {
+                        bsn_consumer_id,
+                        fp_ratios,
+                    },
+                },
+            };
+
+            let memo = to_json_string(&callback_memo)?;
 
             // Define destination address using the rewards module name from config
-            let rcpt_addr = to_bech32_addr("bbn", &to_module_canonical_addr(&cfg.destination_module))?;
+            let rcpt_addr =
+                to_bech32_addr("bbn", &to_module_canonical_addr(&cfg.destination_module))?;
 
             // Create ICS20 transfer message
             let transfer_msg = cosmwasm_std::IbcMsg::Transfer {
@@ -570,7 +572,8 @@ mod tests {
         // Try to call with wrong sender
         let wrong_sender = deps.api.addr_make("wrong_sender");
         let fp_distribution = vec![RewardInfo {
-            fp_pubkey_hex: "02eec7245d6b7d2ccb30380bfbe2a3648cd7a942653f5aa340edcea1f283686619".to_string(),
+            fp_pubkey_hex: "02eec7245d6b7d2ccb30380bfbe2a3648cd7a942653f5aa340edcea1f283686619"
+                .to_string(),
             reward: Uint128::new(1000),
         }];
 
@@ -614,7 +617,8 @@ mod tests {
 
         // Test with no funds sent
         let fp_distribution = vec![RewardInfo {
-            fp_pubkey_hex: "02eec7245d6b7d2ccb30380bfbe2a3648cd7a942653f5aa340edcea1f283686619".to_string(),
+            fp_pubkey_hex: "02eec7245d6b7d2ccb30380bfbe2a3648cd7a942653f5aa340edcea1f283686619"
+                .to_string(),
             reward: Uint128::new(1000),
         }];
 
@@ -636,11 +640,13 @@ mod tests {
         // Test with wrong amount sent
         let fp_distribution = vec![
             RewardInfo {
-                fp_pubkey_hex: "02eec7245d6b7d2ccb30380bfbe2a3648cd7a942653f5aa340edcea1f283686619".to_string(),
+                fp_pubkey_hex: "02eec7245d6b7d2ccb30380bfbe2a3648cd7a942653f5aa340edcea1f283686619"
+                    .to_string(),
                 reward: Uint128::new(1000),
             },
             RewardInfo {
-                fp_pubkey_hex: "03a0434d9e47f3c86235477c7b1ae6ae5d3442d49b1943c2b752a68e2a47e247c7".to_string(),
+                fp_pubkey_hex: "03a0434d9e47f3c86235477c7b1ae6ae5d3442d49b1943c2b752a68e2a47e247c7"
+                    .to_string(),
                 reward: Uint128::new(500),
             },
         ];
@@ -691,11 +697,13 @@ mod tests {
         // Test with valid distribution using proper hex strings for BIP340 public keys
         let fp_distribution = vec![
             RewardInfo {
-                fp_pubkey_hex: "02eec7245d6b7d2ccb30380bfbe2a3648cd7a942653f5aa340edcea1f283686619".to_string(),
+                fp_pubkey_hex: "02eec7245d6b7d2ccb30380bfbe2a3648cd7a942653f5aa340edcea1f283686619"
+                    .to_string(),
                 reward: Uint128::new(600),
             },
             RewardInfo {
-                fp_pubkey_hex: "03a0434d9e47f3c86235477c7b1ae6ae5d3442d49b1943c2b752a68e2a47e247c7".to_string(),
+                fp_pubkey_hex: "03a0434d9e47f3c86235477c7b1ae6ae5d3442d49b1943c2b752a68e2a47e247c7"
+                    .to_string(),
                 reward: Uint128::new(400),
             },
         ];
