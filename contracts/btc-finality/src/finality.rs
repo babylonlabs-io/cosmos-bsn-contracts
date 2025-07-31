@@ -308,11 +308,9 @@ pub fn handle_finality_signature(
     )?;
 
     // The public randomness value is good, save it.
-    // TODO?: Don't save public randomness values, to save storage space (#124)
     PUB_RAND_VALUES.save(deps.storage, (fp_btc_pk_hex, height), &pub_rand.to_vec())?;
 
     // Verify whether the voted block is a fork or not
-    // TODO?: Do not rely on 'canonical' (i.e. BFT-consensus provided) blocks info
     let indexed_block = BLOCKS
         .load(deps.storage, height)
         .map_err(|err| ContractError::BlockNotFound(height, err.to_string()))?;
