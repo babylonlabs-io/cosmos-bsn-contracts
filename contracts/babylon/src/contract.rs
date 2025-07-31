@@ -1,8 +1,8 @@
 use crate::error::ContractError;
-use crate::ibc::{ibc_packet, IBC_CHANNEL, IBC_TRANSFER};
+use crate::ibc::{ibc_packet, IBC_TRANSFER_CHANNEL, IBC_ZC_CHANNEL};
 use crate::msg::contract::{ContractMsg, ExecuteMsg, InstantiateMsg, QueryMsg};
 use crate::queries;
-use crate::state::config::{Config, CONFIG};
+use crate::state::config::{Config, CONFIG, DEFAULT_IBC_PACKET_TIMEOUT_DAYS};
 use crate::state::consumer_header_chain::CONSUMER_HEIGHT_LAST;
 use babylon_apis::{btc_staking_api, finality_api};
 use cosmwasm_std::{
@@ -44,6 +44,9 @@ pub fn instantiate(
         consumer_name: None,
         consumer_description: None,
         denom,
+        ibc_packet_timeout_days: msg
+            .ibc_packet_timeout_days
+            .unwrap_or(DEFAULT_IBC_PACKET_TIMEOUT_DAYS),
     };
 
     let mut res = Response::new().add_attribute("action", "instantiate");
@@ -83,22 +86,9 @@ pub fn instantiate(
         // Test code sets a channel, so that we can better approximate IBC in test code
         #[cfg(any(test, all(feature = "library", not(target_arch = "wasm32"))))]
         {
-            let channel = cosmwasm_std::testing::mock_ibc_channel(
-                "channel-123",
-                cosmwasm_std::IbcOrder::Ordered,
-                "babylon",
-            );
-            IBC_CHANNEL.save(deps.storage, &channel)?;
+            IBC_ZC_CHANNEL.save(deps.storage, &"channel-123".to_string())?;
         }
         res = res.add_submessage(init_msg);
-    }
-    // Initialize the last Consumer height to 0 to avoid not found error
-    CONSUMER_HEIGHT_LAST.save(deps.storage, &0)?;
-    // Mock the last Consumer height for multi-test
-    #[cfg(any(test, all(feature = "library", not(target_arch = "wasm32"))))]
-    {
-        let last_consumer_height = 100;
-        CONSUMER_HEIGHT_LAST.save(deps.storage, &last_consumer_height)?;
     }
 
     if let Some(btc_finality_code_id) = msg.btc_finality_code_id {
@@ -119,7 +109,16 @@ pub fn instantiate(
     CONFIG.save(deps.storage, &cfg)?;
 
     // Save the IBC transfer info
-    IBC_TRANSFER.save(deps.storage, &msg.ics20_channel_id)?;
+    IBC_TRANSFER_CHANNEL.save(deps.storage, &msg.ics20_channel_id)?;
+
+    // Initialize the last Consumer height to 0 to avoid not found error
+    CONSUMER_HEIGHT_LAST.save(deps.storage, &0)?;
+    // Mock the last Consumer height for multi-test
+    #[cfg(any(test, all(feature = "library", not(target_arch = "wasm32"))))]
+    {
+        let last_consumer_height = 100;
+        CONSUMER_HEIGHT_LAST.save(deps.storage, &last_consumer_height)?;
+    }
 
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
     Ok(res)
@@ -299,8 +298,8 @@ pub fn execute(
             res = res.add_message(wasm_msg);
 
             // Send over IBC to the Provider (Babylon)
-            let channel = IBC_CHANNEL.load(deps.storage)?;
-            let ibc_msg = ibc_packet::slashing_msg(&env, &channel, &evidence)?;
+            let channel_id = IBC_ZC_CHANNEL.load(deps.storage)?;
+            let ibc_msg = ibc_packet::slashing_msg(&deps.as_ref(), &env, &channel_id, &evidence)?;
             // Send packet only if we are IBC enabled
             // TODO: send in test code when multi-test can handle it
             #[cfg(not(any(test, feature = "library")))]

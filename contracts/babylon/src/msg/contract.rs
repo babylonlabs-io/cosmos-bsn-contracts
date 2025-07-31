@@ -58,6 +58,8 @@ pub struct InstantiateMsg {
     /// IBC information for ICS-020 rewards transfer.
     /// Required for rewards distribution on Babylon Genesis
     pub ics20_channel_id: String,
+    /// IBC packet timeout in days
+    pub ibc_packet_timeout_days: Option<u64>,
 }
 
 impl InstantiateMsg {
@@ -79,6 +81,7 @@ impl InstantiateMsg {
             consumer_name: None,
             consumer_description: None,
             ics20_channel_id: "channel-0".to_string(),
+            ibc_packet_timeout_days: None,
         }
     }
 }
