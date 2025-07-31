@@ -4,7 +4,7 @@ use crate::msg::contract::{ContractMsg, ExecuteMsg, InstantiateMsg, QueryMsg};
 use crate::queries;
 use crate::state::config::{Config, CONFIG};
 use crate::state::consumer_header_chain::CONSUMER_HEIGHT_LAST;
-use babylon_apis::{btc_staking_api, finality_api};
+use babylon_apis::{btc_staking_api, finality_api, to_bech32_addr, to_module_canonical_addr};
 use cosmwasm_std::{
     to_json_binary, Addr, Binary, Deps, DepsMut, Empty, Env, MessageInfo, QueryResponse, Reply,
     Response, SubMsg, SubMsgResponse, WasmMsg,
@@ -347,10 +347,13 @@ pub fn execute(
             })
             .to_string();
 
+            // Define destination address
+            let rcpt_addr = to_bech32_addr("bbn", &to_module_canonical_addr("zoneconcierge"))?;
+
             // Create ICS20 transfer message
             let transfer_msg = cosmwasm_std::IbcMsg::Transfer {
                 channel_id,
-                to_address: "zoneconcierge".to_string(), // FIXME: Send to module account address on Babylon Genesis
+                to_address: rcpt_addr.into(),
                 amount: cosmwasm_std::Coin {
                     denom: cfg.denom.clone(),
                     amount: funds_sent_total,
