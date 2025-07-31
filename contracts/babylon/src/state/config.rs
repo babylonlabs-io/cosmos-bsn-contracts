@@ -2,6 +2,8 @@ use cosmwasm_schema::cw_serde;
 use cosmwasm_std::Addr;
 use cw_storage_plus::Item;
 
+pub const DEFAULT_IBC_PACKET_TIMEOUT_DAYS: u64 = 28; // 28 days
+
 pub(crate) const CONFIG: Item<Config> = Item::new("config");
 
 #[cw_serde]
@@ -25,4 +27,6 @@ pub struct Config {
     /// Consumer description
     pub consumer_description: Option<String>,
     pub denom: String,
+    /// IBC packet timeout in days
+    pub ibc_packet_timeout_days: u64,
 }

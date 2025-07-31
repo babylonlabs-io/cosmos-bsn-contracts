@@ -1,13 +1,21 @@
 use crate::error::ContractError;
 use crate::state::config::CONFIG;
-use babylon_proto::babylon::zoneconcierge::v1::{
-    outbound_packet::Packet as OutboundPacketType, BtcHeaders, BtcTimestamp, OutboundPacket,
+use babylon_apis::btc_staking_api::{
+    ActiveBtcDelegation, NewFinalityProvider, SlashedBtcDelegation, UnbondedBtcDelegation,
+};
+use babylon_apis::finality_api::Evidence;
+use babylon_proto::babylon::{
+    btcstaking::v1::BtcStakingIbcPacket,
+    zoneconcierge::v1::{
+        inbound_packet::Packet as InboundPacketType, outbound_packet::Packet as OutboundPacketType,
+        BsnSlashingIbcPacket, BtcHeaders, BtcTimestamp, InboundPacket, OutboundPacket,
+    },
 };
 use cosmwasm_std::{
-    Binary, DepsMut, Env, Event, Ibc3ChannelOpenResponse, IbcBasicResponse, IbcChannel,
-    IbcChannelCloseMsg, IbcChannelConnectMsg, IbcChannelOpenMsg, IbcChannelOpenResponse, IbcOrder,
-    IbcPacketAckMsg, IbcPacketReceiveMsg, IbcPacketTimeoutMsg, IbcReceiveResponse, IbcTimeout,
-    Never, StdAck, StdError, StdResult,
+    to_json_binary, Binary, DepsMut, Env, Event, Ibc3ChannelOpenResponse, IbcBasicResponse,
+    IbcChannelCloseMsg, IbcChannelConnectMsg, IbcChannelOpenMsg, IbcChannelOpenResponse, IbcMsg,
+    IbcOrder, IbcPacketAckMsg, IbcPacketReceiveMsg, IbcPacketTimeoutMsg, IbcReceiveResponse,
+    IbcTimeout, Never, StdAck, StdError, StdResult, WasmMsg,
 };
 use cw_storage_plus::Item;
 use prost::Message;
@@ -15,10 +23,11 @@ use prost::Message;
 /// IBC custom channel settings
 pub const IBC_VERSION: &str = "zoneconcierge-1";
 pub const IBC_ORDERING: IbcOrder = IbcOrder::Ordered;
-pub const IBC_CHANNEL: Item<IbcChannel> = Item::new("ibc_channel");
 
-/// IBC transfer (ICS-020) channel settings
-pub const IBC_TRANSFER: Item<String> = Item::new("ibc_ics20");
+/// IBC Zone Concierge channel ID
+pub const IBC_ZC_CHANNEL: Item<String> = Item::new("ibc_zc");
+/// IBC transfer (ICS-020) channel ID
+pub const IBC_TRANSFER_CHANNEL: Item<String> = Item::new("ibc_ics20");
 
 /// This is executed during the ChannelOpenInit and ChannelOpenTry
 /// of the IBC 4-step channel protocol
@@ -31,7 +40,7 @@ pub fn ibc_channel_open(
     msg: IbcChannelOpenMsg,
 ) -> Result<IbcChannelOpenResponse, ContractError> {
     // Ensure we have no channel yet
-    if IBC_CHANNEL.may_load(deps.storage)?.is_some() {
+    if IBC_ZC_CHANNEL.may_load(deps.storage)?.is_some() {
         return Err(ContractError::IbcChannelAlreadyOpen {});
     }
     // The IBC channel has to be ordered
@@ -63,13 +72,13 @@ pub fn ibc_channel_connect(
     msg: IbcChannelConnectMsg,
 ) -> Result<IbcBasicResponse, ContractError> {
     // Ensure we have no channel yet
-    if IBC_CHANNEL.may_load(deps.storage)?.is_some() {
+    if IBC_ZC_CHANNEL.may_load(deps.storage)?.is_some() {
         return Err(ContractError::IbcChannelAlreadyOpen {});
     }
     let channel = msg.channel();
 
     // Store the channel
-    IBC_CHANNEL.save(deps.storage, channel)?;
+    IBC_ZC_CHANNEL.save(deps.storage, &channel.endpoint.channel_id)?;
 
     // Load the config
     let cfg = CONFIG.load(deps.storage)?;
@@ -146,18 +155,15 @@ pub fn ibc_packet_receive(
 
 // Methods to handle PacketMsg variants
 pub(crate) mod ibc_packet {
+    use cosmwasm_std::Deps;
+
     use super::*;
-    use crate::state::config::CONFIG;
-    use babylon_apis::btc_staking_api::SlashedBtcDelegation;
-    use babylon_apis::btc_staking_api::{
-        ActiveBtcDelegation, NewFinalityProvider, UnbondedBtcDelegation,
-    };
-    use babylon_apis::finality_api::Evidence;
-    use babylon_proto::babylon::btcstaking::v1::BtcStakingIbcPacket;
-    use babylon_proto::babylon::zoneconcierge::v1::{
-        inbound_packet::Packet as InboundPacketType, BsnSlashingIbcPacket, InboundPacket,
-    };
-    use cosmwasm_std::{to_json_binary, IbcChannel, IbcMsg, WasmMsg};
+
+    fn get_ibc_packet_timeout(env: &Env, deps: &Deps) -> StdResult<IbcTimeout> {
+        let cfg = CONFIG.load(deps.storage)?;
+        let timeout = env.block.time.plus_days(cfg.ibc_packet_timeout_days);
+        Ok(IbcTimeout::with_timestamp(timeout))
+    }
 
     pub fn handle_btc_timestamp(
         deps: &mut DepsMut,
@@ -262,8 +268,9 @@ pub(crate) mod ibc_packet {
     }
 
     pub fn slashing_msg(
+        deps: &Deps,
         env: &Env,
-        channel: &IbcChannel,
+        channel_id: &str,
         evidence: &Evidence,
     ) -> Result<IbcMsg, ContractError> {
         let packet = InboundPacket {
@@ -281,19 +288,12 @@ pub(crate) mod ibc_packet {
             })),
         };
         let msg = IbcMsg::SendPacket {
-            channel_id: channel.endpoint.channel_id.clone(),
+            channel_id: channel_id.to_string(),
             data: Binary::new(packet.encode_to_vec()),
-            timeout: packet_timeout(env),
+            timeout: get_ibc_packet_timeout(env, deps)?,
         };
         Ok(msg)
     }
-}
-
-const DEFAULT_TIMEOUT: u64 = 24 * 60 * 60; // 24 hours
-
-pub fn packet_timeout(env: &Env) -> IbcTimeout {
-    let timeout = env.block.time.plus_seconds(DEFAULT_TIMEOUT);
-    IbcTimeout::with_timestamp(timeout)
 }
 
 pub fn ibc_packet_ack(
