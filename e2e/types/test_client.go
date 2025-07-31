@@ -281,7 +281,7 @@ func (p *TestConsumerClient) deployContracts() (*ConsumerContract, error) {
 	// Set BSN contracts in the Babylon module
 	contracts := &babylontypes.BSNContracts{
 		BabylonContract:        babylonAddr,
-		BtcLightClientContract: config.BTCLightClient, // First element is the contract address
+		BtcLightClientContract: config.BTCLightClient,
 		BtcStakingContract:     config.BTCStaking,
 		BtcFinalityContract:    config.BTCFinality,
 	}
