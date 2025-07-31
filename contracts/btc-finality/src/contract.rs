@@ -346,7 +346,7 @@ pub(crate) mod tests {
     use super::*;
 
     use cosmwasm_std::{
-        from_json, coins,
+        coins, from_json,
         testing::{message_info, mock_dependencies, mock_env},
     };
     use cw_controllers::AdminResponse;
@@ -424,9 +424,15 @@ pub(crate) mod tests {
         // Add some rewards for FPs
         let fp1 = "fp1".to_string();
         let fp2 = "fp2".to_string();
-        REWARDS.save(&mut deps.storage, &fp1, &Uint128::from(100u128)).unwrap();
-        REWARDS.save(&mut deps.storage, &fp2, &Uint128::from(200u128)).unwrap();
-        TOTAL_REWARDS.save(&mut deps.storage, &Uint128::from(300u128)).unwrap();
+        REWARDS
+            .save(&mut deps.storage, &fp1, &Uint128::from(100u128))
+            .unwrap();
+        REWARDS
+            .save(&mut deps.storage, &fp2, &Uint128::from(200u128))
+            .unwrap();
+        TOTAL_REWARDS
+            .save(&mut deps.storage, &Uint128::from(300u128))
+            .unwrap();
 
         // Test send_rewards_msg
         let (fp_rewards, wasm_msg) = send_rewards_msg(&mut deps.as_mut(), 300, &config).unwrap();
@@ -440,23 +446,29 @@ pub(crate) mod tests {
 
         // Verify the WasmMsg is correct
         match wasm_msg {
-            WasmMsg::Execute { contract_addr, msg, funds } => {
+            WasmMsg::Execute {
+                contract_addr,
+                msg,
+                funds,
+            } => {
                 assert_eq!(contract_addr, babylon_addr.to_string());
                 assert_eq!(funds, coins(300, "TOKEN"));
 
                 // Verify the message is a DistributeRewards message
                 let msg_data: babylon_contract::msg::contract::ExecuteMsg = from_json(msg).unwrap();
                 match msg_data {
-                    babylon_contract::msg::contract::ExecuteMsg::DistributeRewards { fp_distribution } => {
+                    babylon_contract::msg::contract::ExecuteMsg::DistributeRewards {
+                        fp_distribution,
+                    } => {
                         assert_eq!(fp_distribution.len(), 2);
                         assert_eq!(fp_distribution[0].fp_pubkey_hex, fp1);
                         assert_eq!(fp_distribution[0].reward, Uint128::from(100u128));
                         assert_eq!(fp_distribution[1].fp_pubkey_hex, fp2);
                         assert_eq!(fp_distribution[1].reward, Uint128::from(200u128));
-                    },
+                    }
                     _ => panic!("Expected DistributeRewards message"),
                 }
-            },
+            }
             _ => panic!("Expected WasmMsg::Execute"),
         }
     }
@@ -477,7 +489,9 @@ pub(crate) mod tests {
         CONFIG.save(&mut deps.storage, &config).unwrap();
 
         // No rewards in storage
-        TOTAL_REWARDS.save(&mut deps.storage, &Uint128::zero()).unwrap();
+        TOTAL_REWARDS
+            .save(&mut deps.storage, &Uint128::zero())
+            .unwrap();
 
         // Test send_rewards_msg with no rewards
         let (fp_rewards, wasm_msg) = send_rewards_msg(&mut deps.as_mut(), 0, &config).unwrap();
@@ -487,19 +501,25 @@ pub(crate) mod tests {
 
         // Verify the WasmMsg is correct (should still be created but with 0 funds)
         match wasm_msg {
-            WasmMsg::Execute { contract_addr, msg, funds } => {
+            WasmMsg::Execute {
+                contract_addr,
+                msg,
+                funds,
+            } => {
                 assert_eq!(contract_addr, babylon_addr.to_string());
                 assert_eq!(funds, coins(0, "TOKEN"));
 
                 // Verify the message is a DistributeRewards message with empty distribution
                 let msg_data: babylon_contract::msg::contract::ExecuteMsg = from_json(msg).unwrap();
                 match msg_data {
-                    babylon_contract::msg::contract::ExecuteMsg::DistributeRewards { fp_distribution } => {
+                    babylon_contract::msg::contract::ExecuteMsg::DistributeRewards {
+                        fp_distribution,
+                    } => {
                         assert_eq!(fp_distribution.len(), 0);
-                    },
+                    }
                     _ => panic!("Expected DistributeRewards message"),
                 }
-            },
+            }
             _ => panic!("Expected WasmMsg::Execute"),
         }
     }
