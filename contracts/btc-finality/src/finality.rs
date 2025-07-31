@@ -971,3 +971,117 @@ pub fn distribute_rewards_fps(deps: &mut DepsMut, env: &Env) -> Result<(), Contr
     })?;
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rand::rngs::StdRng;
+    use rand::{Rng, SeedableRng};
+
+    // Helper function to generate random bytes
+    fn gen_random_bytes(rng: &mut StdRng, len: usize) -> Vec<u8> {
+        (0..len).map(|_| rng.gen()).collect()
+    }
+
+    #[test]
+    fn test_msg_add_finality_sig_validate_basic() {
+        let mut rng = StdRng::seed_from_u64(1);
+
+        struct TestCase {
+            name: &'static str,
+            msg_modifier: fn(&mut AddFinalitySigMsg),
+            expected: Result<(), FinalitySigError>,
+        }
+
+        let test_cases = vec![
+            TestCase {
+                name: "valid message",
+                // No modification needed for valid message
+                msg_modifier: |_| {},
+                expected: Ok(()),
+            },
+            TestCase {
+                name: "empty FP BTC PubKey",
+                msg_modifier: |msg| msg.fp_btc_pk_hex.clear(),
+                expected: Err(FinalitySigError::EmptyFpBtcPk),
+            },
+            TestCase {
+                name: "invalid FP BTC PubKey length",
+                msg_modifier: |msg| {
+                    msg.fp_btc_pk_hex = hex::encode(&vec![0u8; 16]); // Too short
+                },
+                expected: Err(FinalitySigError::InvalidFpBtcPkLength {
+                    actual: 16,
+                    expected: 32,
+                }),
+            },
+            TestCase {
+                name: "empty Public Randomness",
+                msg_modifier: |msg: &mut AddFinalitySigMsg| msg.pub_rand.clear(),
+                expected: Err(FinalitySigError::EmptyPubRand),
+            },
+            TestCase {
+                name: "invalid Public Randomness length",
+                msg_modifier: |msg| {
+                    msg.pub_rand = vec![0u8; 16]; // Too short
+                },
+                expected: Err(FinalitySigError::InvalidPubRandLength {
+                    actual: 16,
+                    expected: 32,
+                }),
+            },
+            TestCase {
+                name: "empty finality signature",
+                msg_modifier: |msg| msg.signature.clear(),
+                expected: Err(FinalitySigError::EmptyFinalitySig),
+            },
+            TestCase {
+                name: "invalid finality signature length",
+                msg_modifier: |msg| {
+                    msg.signature = vec![0u8; 16]; // Too short
+                },
+                expected: Err(FinalitySigError::InvalidFinalitySigLength {
+                    actual: 16,
+                    expected: 32,
+                }),
+            },
+            TestCase {
+                name: "invalid block app hash length",
+                msg_modifier: |msg| {
+                    msg.block_app_hash = vec![0u8; 16]; // Too short
+                },
+                expected: Err(FinalitySigError::InvalidBlockAppHashLength {
+                    actual: 16,
+                    expected: 32,
+                }),
+            },
+        ];
+
+        for TestCase {
+            name,
+            msg_modifier,
+            expected,
+        } in test_cases
+        {
+            // Create a valid message
+            let mut msg = AddFinalitySigMsg {
+                fp_btc_pk_hex: hex::encode(&gen_random_bytes(&mut rng, BIP340_PUB_KEY_LEN)),
+                height: rng.gen_range(1..1000),
+                pub_rand: gen_random_bytes(&mut rng, SCHNORR_PUB_RAND_LEN),
+                proof: Proof {
+                    total: 0,
+                    index: 0,
+                    leaf_hash: Default::default(),
+                    aunts: Default::default(),
+                },
+                block_app_hash: gen_random_bytes(&mut rng, TMHASH_SIZE),
+                signature: gen_random_bytes(&mut rng, SCHNORR_EOTS_SIG_LEN),
+            };
+
+            // Apply the test case modifier
+            msg_modifier(&mut msg);
+
+            assert_eq!(msg.validate_basic(), expected, "Test case failed: {}", name);
+        }
+    }
+}
