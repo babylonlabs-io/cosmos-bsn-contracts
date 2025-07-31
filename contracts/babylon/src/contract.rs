@@ -8,7 +8,7 @@ use crate::state::config::{Config, CONFIG, DEFAULT_IBC_PACKET_TIMEOUT_DAYS};
 use crate::state::consumer_header_chain::CONSUMER_HEIGHT_LAST;
 use babylon_apis::{btc_staking_api, finality_api, to_bech32_addr, to_module_canonical_addr};
 use cosmwasm_std::{
-    to_json_binary, to_json_string, Addr, Binary, Deps, DepsMut, Empty, Env, MessageInfo,
+    to_json_binary, to_json_string, Addr, Binary, Decimal, Deps, DepsMut, Empty, Env, MessageInfo,
     QueryResponse, Reply, Response, SubMsg, SubMsgResponse, WasmMsg,
 };
 use cw2::set_contract_version;
@@ -351,11 +351,13 @@ pub fn execute(
             let fp_ratios: Vec<FpRatio> = fp_distribution
                 .iter()
                 .map(|reward_info| {
-                    let ratio = reward_info.reward / total_rewards;
+                    // Convert to Decimal for proper ratio calculation
+                    let reward_decimal = Decimal::from_ratio(reward_info.reward, total_rewards);
+
                     let btc_pk_bytes = hex::decode(&reward_info.fp_pubkey_hex)?;
                     Ok(FpRatio {
                         btc_pk: Binary::new(btc_pk_bytes),
-                        ratio: ratio.to_string(),
+                        ratio: reward_decimal,
                     })
                 })
                 .collect::<Result<Vec<_>, ContractError>>()?;
