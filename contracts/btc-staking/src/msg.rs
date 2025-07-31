@@ -113,6 +113,8 @@ pub struct FinalityProviderInfo {
     pub btc_pk_hex: String,
     /// Total active sats delegated to this finality provider
     pub total_active_sats: u64,
+    /// Whether this finality provider is slashed
+    pub slashed: bool,
 }
 
 #[cw_serde]

@@ -15,7 +15,7 @@ use crate::msg::{
 use crate::state::config::{Config, Params};
 use crate::state::config::{CONFIG, PARAMS};
 use crate::state::staking::{
-    fps, BtcDelegation, FinalityProviderState, ACTIVATED_HEIGHT, BTC_DELEGATIONS, FPS,
+    get_fp_state_map, BtcDelegation, FinalityProviderState, ACTIVATED_HEIGHT, BTC_DELEGATIONS, FPS,
     FP_DELEGATIONS,
 };
 use babylon_apis::btc_staking_api::FinalityProvider;
@@ -146,14 +146,15 @@ pub fn finality_provider_info(
     height: Option<u64>,
 ) -> Result<FinalityProviderInfo, ContractError> {
     let fp_state = match height {
-        Some(h) => fps().may_load_at_height(deps.storage, &btc_pk_hex, h),
-        None => fps().may_load(deps.storage, &btc_pk_hex),
+        Some(h) => get_fp_state_map().may_load_at_height(deps.storage, &btc_pk_hex, h),
+        None => get_fp_state_map().may_load(deps.storage, &btc_pk_hex),
     }?
     .ok_or_else(|| ContractError::FinalityProviderNotFound(btc_pk_hex.clone()))?;
 
     Ok(FinalityProviderInfo {
         btc_pk_hex,
         total_active_sats: fp_state.total_active_sats,
+        slashed: fp_state.slashed,
     })
 }
 
@@ -165,7 +166,7 @@ pub fn finality_providers_by_total_active_sats(
     let limit = limit.unwrap_or(DEFAULT_LIMIT).min(MAX_LIMIT) as usize;
     let start =
         start_after.map(|fpp| Bound::exclusive((fpp.total_active_sats, fpp.btc_pk_hex.clone())));
-    let fps = fps()
+    let fps = get_fp_state_map()
         .idx
         .power
         .range(deps.storage, None, start, Descending)
@@ -174,12 +175,14 @@ pub fn finality_providers_by_total_active_sats(
             let (
                 btc_pk_hex,
                 FinalityProviderState {
-                    total_active_sats, ..
+                    total_active_sats,
+                    slashed,
                 },
             ) = item?;
             Ok(FinalityProviderInfo {
                 btc_pk_hex,
                 total_active_sats,
+                slashed,
             })
         })
         .collect::<StdResult<Vec<_>>>()?;
@@ -196,21 +199,19 @@ pub fn activated_height(deps: Deps) -> Result<ActivatedHeightResponse, ContractE
 
 #[cfg(test)]
 mod tests {
-    use cosmwasm_std::storage_keys::namespace_with_key;
-    use cosmwasm_std::testing::message_info;
-    use cosmwasm_std::testing::{mock_dependencies, mock_env};
-    use cosmwasm_std::StdError::NotFound;
-    use cosmwasm_std::{from_json, Env, Storage};
-
-    use babylon_apis::btc_staking_api::{FinalityProvider, UnbondedBtcDelegation};
-    use babylon_test_utils::{create_new_finality_provider, get_btc_del_unbonding_sig};
-
     use crate::contract::{execute, instantiate};
     use crate::error::ContractError;
     use crate::msg::{ExecuteMsg, FinalityProviderInfo, InstantiateMsg};
     use crate::staking::tests::staking_tx_hash;
     use crate::state::staking::{BtcDelegation, FinalityProviderState, FP_STATE_KEY};
     use crate::test_utils::staking_params;
+    use babylon_apis::btc_staking_api::{FinalityProvider, UnbondedBtcDelegation};
+    use babylon_test_utils::{create_new_finality_provider, get_btc_del_unbonding_sig};
+    use cosmwasm_std::storage_keys::namespace_with_key;
+    use cosmwasm_std::testing::message_info;
+    use cosmwasm_std::testing::{mock_dependencies, mock_env};
+    use cosmwasm_std::StdError::NotFound;
+    use cosmwasm_std::{from_json, Env, Storage};
 
     const CREATOR: &str = "creator";
 
@@ -653,6 +654,7 @@ mod tests {
             FinalityProviderInfo {
                 btc_pk_hex: fp1_pk.clone(),
                 total_active_sats: 250,
+                slashed: false,
             }
         );
 
@@ -664,6 +666,7 @@ mod tests {
             FinalityProviderInfo {
                 btc_pk_hex: fp1_pk.clone(),
                 total_active_sats: 0, // Historical data is not checkpoint yet
+                slashed: false,
             }
         );
 
@@ -675,6 +678,7 @@ mod tests {
             FinalityProviderInfo {
                 btc_pk_hex: fp1_pk.clone(),
                 total_active_sats: 250,
+                slashed: false,
             }
         );
 
@@ -686,6 +690,7 @@ mod tests {
             FinalityProviderInfo {
                 btc_pk_hex: fp1_pk.clone(),
                 total_active_sats: 250,
+                slashed: false,
             }
         );
 
@@ -808,7 +813,7 @@ mod tests {
 
         execute(deps.as_mut(), mock_env(), info.clone(), msg).unwrap();
 
-        // Query finality providers by power
+        // Query finality providers by total active sats
         let fps =
             crate::queries::finality_providers_by_total_active_sats(deps.as_ref(), None, None)
                 .unwrap()
@@ -818,16 +823,19 @@ mod tests {
             FinalityProviderInfo {
                 btc_pk_hex: fp2_pk.clone(),
                 total_active_sats: 225,
+                slashed: false,
             }
         });
         // fp1 and fp3 can be in arbitrary order
         let fp1_info = FinalityProviderInfo {
             btc_pk_hex: fp1_pk.clone(),
             total_active_sats: 100,
+            slashed: false,
         };
         let fp3_info = FinalityProviderInfo {
             btc_pk_hex: fp3_pk.clone(),
             total_active_sats: 100,
+            slashed: false,
         };
         assert!(
             (fps[1] == fp1_info && fps[2] == fp3_info)
@@ -844,6 +852,7 @@ mod tests {
             FinalityProviderInfo {
                 btc_pk_hex: fp2_pk.clone(),
                 total_active_sats: 225,
+                slashed: false,
             }
         });
         assert!(fps[1] == fp1_info || fps[1] == fp3_info);

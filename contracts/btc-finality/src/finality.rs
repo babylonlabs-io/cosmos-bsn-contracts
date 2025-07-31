@@ -701,8 +701,12 @@ pub fn compute_active_finality_providers(
         let (filtered, running_total): (Vec<_>, Vec<_>) = batch
             .into_iter()
             .filter(|fp| {
-                // Filter out FPs with no active sats (also includes slashed FPs)
+                // Filter out FPs with no active sats
                 if fp.total_active_sats == 0 {
+                    return false;
+                }
+                // Filter out slashed FPs
+                if fp.slashed {
                     return false;
                 }
                 // Filter out FPs that are jailed.

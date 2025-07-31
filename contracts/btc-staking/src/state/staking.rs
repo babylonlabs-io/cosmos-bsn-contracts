@@ -46,8 +46,8 @@ pub const ACTIVATED_HEIGHT: Item<u64> = Item::new("activated_height");
 /// The power index is a `MultiIndex`, as there can be multiple FPs with the same power.
 ///
 /// The indexes are not snapshotted; only the current power is indexed at any given time.
-pub fn fps<'a>() -> IndexedSnapshotMap<&'a str, FinalityProviderState, FinalityProviderIndexes<'a>>
-{
+pub fn get_fp_state_map<'a>(
+) -> IndexedSnapshotMap<&'a str, FinalityProviderState, FinalityProviderIndexes<'a>> {
     let indexes = FinalityProviderIndexes {
         power: MultiIndex::new(
             |_, fp_state| fp_state.total_active_sats,
@@ -69,6 +69,8 @@ pub fn fps<'a>() -> IndexedSnapshotMap<&'a str, FinalityProviderState, FinalityP
 pub struct FinalityProviderState {
     /// Total active sats delegated to this finality provider
     pub total_active_sats: u64,
+    /// Whether this finality provider is slashed
+    pub slashed: bool,
 }
 
 #[cw_serde]

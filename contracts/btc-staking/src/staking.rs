@@ -9,8 +9,9 @@ use crate::error::ContractError;
 use crate::state::config::{ADMIN, CONFIG, PARAMS};
 use crate::state::delegations::delegations;
 use crate::state::staking::{
-    fps, BtcDelegation, DelegatorUnbondingInfo, FinalityProviderState, ACTIVATED_HEIGHT,
-    BTC_DELEGATIONS, BTC_DELEGATION_EXPIRY_INDEX, DELEGATION_FPS, FPS, FP_DELEGATIONS,
+    get_fp_state_map, BtcDelegation, DelegatorUnbondingInfo, FinalityProviderState,
+    ACTIVATED_HEIGHT, BTC_DELEGATIONS, BTC_DELEGATION_EXPIRY_INDEX, DELEGATION_FPS, FPS,
+    FP_DELEGATIONS,
 };
 use crate::validation::{
     verify_active_delegation, verify_new_fp, verify_slashed_delegation, verify_undelegation,
@@ -91,7 +92,7 @@ fn handle_new_fp(
     FPS.save(storage, &fp.btc_pk_hex, &fp)?;
     // Set its voting power to zero
     let fp_state = FinalityProviderState::default();
-    fps().save(storage, &fp.btc_pk_hex, &fp_state, height)?;
+    get_fp_state_map().save(storage, &fp.btc_pk_hex, &fp_state, height)?;
 
     Ok(())
 }
@@ -153,7 +154,7 @@ fn handle_active_delegation(
     let canonical_addr = to_canonical_addr(&active_delegation.staker_addr, "bbn")?;
 
     // Update delegations by registered finality provider
-    let fps = fps();
+    let fp_state_map = get_fp_state_map();
     let mut registered_fp = false;
     for fp_btc_pk_hex in &active_delegation.fp_btc_pk_list {
         // Skip if finality provider is not registered, as it can belong to another Consumer,
@@ -183,7 +184,7 @@ fn handle_active_delegation(
         DELEGATION_FPS.save(storage, staking_tx_hash.as_ref(), &delegation_fps)?;
 
         // Load FP state
-        let mut fp_state = fps.load(storage, fp_btc_pk_hex)?;
+        let mut fp_state = fp_state_map.load(storage, fp_btc_pk_hex)?;
         // Update total active sats by FP
         fp_state.total_active_sats = fp_state
             .total_active_sats
@@ -199,7 +200,7 @@ fn handle_active_delegation(
         )?;
 
         // Save FP state
-        fps.save(storage, fp_btc_pk_hex, &fp_state, height)?;
+        fp_state_map.save(storage, fp_btc_pk_hex, &fp_state, height)?;
 
         registered_fp = true;
     }
@@ -294,9 +295,9 @@ fn handle_slashed_delegation(
 
     // Discount the voting power from the affected finality providers
     let affected_fps = DELEGATION_FPS.load(storage, staking_tx_hash.as_ref())?;
-    let fps = fps();
+    let fp_state_map = get_fp_state_map();
     for fp_pubkey_hex in affected_fps {
-        let mut fp_state = fps.load(storage, &fp_pubkey_hex)?;
+        let mut fp_state = fp_state_map.load(storage, &fp_pubkey_hex)?;
         fp_state.total_active_sats = fp_state.total_active_sats.saturating_sub(btc_del.total_sat);
 
         // Distribution alignment
@@ -308,7 +309,7 @@ fn handle_slashed_delegation(
         )?;
 
         // Save FP state
-        fps.save(storage, &fp_pubkey_hex, &fp_state, height)?;
+        fp_state_map.save(storage, &fp_pubkey_hex, &fp_state, height)?;
     }
 
     // Mark the delegation as slashed
@@ -412,11 +413,11 @@ fn discount_delegation_power(
     btc_del: &BtcDelegation,
 ) -> Result<(), ContractError> {
     let affected_fps = DELEGATION_FPS.load(storage, staking_tx_hash)?;
-    let fps = fps();
+    let fp_state_map = get_fp_state_map();
 
     for fp_pubkey_hex in affected_fps {
         // Load FP state
-        let mut fp_state = fps
+        let mut fp_state = fp_state_map
             .load(storage, &fp_pubkey_hex)
             .map_err(|_| ContractError::FinalityProviderNotFound(fp_pubkey_hex.clone()))?;
 
@@ -437,7 +438,7 @@ fn discount_delegation_power(
             .save(storage, (staking_tx_hash, &fp_pubkey_hex), &delegation)?;
 
         // Save / update FP state
-        fps.save(storage, &fp_pubkey_hex, &fp_state, height)?;
+        fp_state_map.save(storage, &fp_pubkey_hex, &fp_state, height)?;
     }
 
     Ok(())
@@ -488,9 +489,9 @@ pub(crate) fn slash_finality_provider(
     // Record slashed event. The next `BeginBlock` will consume this event for updating the active
     // FP set. We simply set the FP total active sats to zero from the next *processing* height
     // (See NOTE in `handle_finality_signature`)
-    fps().update(deps.storage, fp_btc_pk_hex, env.block.height + 1, |fp| {
+    get_fp_state_map().update(deps.storage, fp_btc_pk_hex, env.block.height + 1, |fp| {
         let mut fp = fp.unwrap_or_default();
-        fp.total_active_sats = 0;
+        fp.slashed = true;
         Ok::<_, ContractError>(fp)
     })?;
 
