@@ -1,5 +1,5 @@
 use cosmwasm_schema::{cw_serde, QueryResponses};
-use cosmwasm_std::{Binary, StdError, StdResult};
+use cosmwasm_std::{Binary, StdError, StdResult, Uint128};
 
 use babylon_apis::finality_api::Evidence;
 
@@ -137,6 +137,17 @@ pub enum ExecuteMsg {
     /// This will be forwarded over IBC to the Babylon side for propagation to other Consumers, and
     /// Babylon itself
     Slashing { evidence: Evidence },
+    /// Message sent by the finality contract, to send rewards to distribute to Babylon Genesis
+    DistributeRewards {
+        /// List of finality providers and their rewards
+        fp_distribution: Vec<RewardInfo>,
+    },
+}
+
+#[cw_serde]
+pub struct RewardInfo {
+    pub fp_pubkey_hex: String,
+    pub reward: Uint128,
 }
 
 #[cw_serde]

@@ -1,5 +1,5 @@
 use crate::error::ContractError;
-use crate::ibc::{ibc_packet, IBC_CHANNEL, IBC_TRANSFER};
+use crate::ibc::{ibc_packet, packet_timeout, IBC_CHANNEL, IBC_TRANSFER};
 use crate::msg::contract::{ContractMsg, ExecuteMsg, InstantiateMsg, QueryMsg};
 use crate::queries;
 use crate::state::config::{Config, CONFIG};
@@ -10,7 +10,8 @@ use cosmwasm_std::{
     Response, SubMsg, SubMsgResponse, WasmMsg,
 };
 use cw2::set_contract_version;
-use cw_utils::ParseReplyError;
+use cw_utils::{may_pay, ParseReplyError};
+use serde_json;
 
 pub const CONTRACT_NAME: &str = env!("CARGO_PKG_NAME");
 pub const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -314,6 +315,65 @@ pub fn execute(
 
             // TODO: Add events (#124)
             Ok(res)
+        }
+        ExecuteMsg::DistributeRewards { fp_distribution } => {
+            // Check that the sender is the finality contract
+            let cfg = CONFIG.load(deps.storage)?;
+            let finality_addr = cfg
+                .btc_finality
+                .ok_or(ContractError::BtcFinalityNotSet {})?;
+            if info.sender != finality_addr {
+                return Err(ContractError::Unauthorized {});
+            }
+
+            // Check that the funds are there
+            let denom = deps.querier.query_bonded_denom()?;
+            let funds_sent_total = may_pay(&info, &denom)?;
+
+            // Calculate total rewards to send
+            let total_rewards = fp_distribution
+                .iter()
+                .map(|reward_info| reward_info.reward)
+                .sum();
+
+            // Check that the total rewards  to distribute match the funds sent
+            if funds_sent_total != total_rewards {
+                return Err(ContractError::InvalidRewards(
+                    total_rewards,
+                    funds_sent_total,
+                ));
+            }
+
+            // Get the ICS20 transfer channel ID
+            let channel_id = IBC_TRANSFER.load(deps.storage)?;
+
+            // Create memo with distribution information as JSON
+            let memo = serde_json::json!({
+                "fp_distribution": fp_distribution
+            })
+            .to_string();
+
+            // Create ICS20 transfer message
+            let transfer_msg = cosmwasm_std::IbcMsg::Transfer {
+                channel_id,
+                to_address: "zoneconcierge".to_string(), // FIXME: Send to module account address on Babylon Genesis
+                amount: cosmwasm_std::Coin {
+                    denom,
+                    amount: funds_sent_total,
+                },
+                timeout: packet_timeout(&env),
+                memo: Some(memo),
+            };
+
+            let mut response = Response::new()
+                .add_attribute("action", "distribute_rewards")
+                .add_attribute("total_rewards", total_rewards.to_string())
+                .add_attribute("fp_count", fp_distribution.len().to_string());
+
+            // Send IBC transfer message
+            response = response.add_message(transfer_msg);
+
+            Ok(response)
         }
     }
 }
