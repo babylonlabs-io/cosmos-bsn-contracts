@@ -5,10 +5,9 @@ use crate::finality::{
 };
 use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
 use crate::state::config::{Config, ADMIN, CONFIG, PARAMS};
-use crate::state::finality::{REWARDS, TOTAL_REWARDS};
+use crate::state::finality::{REWARDS, TOTAL_PENDING_REWARDS};
 use crate::{finality, queries, state};
 use babylon_apis::finality_api::SudoMsg;
-use babylon_contract::msg::contract;
 use babylon_contract::msg::contract::RewardInfo;
 use btc_staking::msg::ActivatedHeightResponse;
 #[cfg(not(feature = "library"))]
@@ -50,7 +49,7 @@ pub fn instantiate(
     let params = msg.params.unwrap_or_default();
     PARAMS.save(deps.storage, &params)?;
     // initialize storage, so no issue when reading for the first time
-    TOTAL_REWARDS.save(deps.storage, &Uint128::zero())?;
+    TOTAL_PENDING_REWARDS.save(deps.storage, &Uint128::zero())?;
 
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
     Ok(Response::new().add_attribute("action", "instantiate"))
@@ -265,11 +264,10 @@ fn handle_end_block(
         res = res.add_events(events);
     }
 
-    // On an epoch boundary, send rewards for distribution.
-    // Rewards are sent to the staking contract for distribution over delegators
+    // On an epoch boundary, send rewards for distribution to Babylon Genesis
     let params = PARAMS.load(deps.storage)?;
     if env.block.height > 0 && env.block.height % params.epoch_length == 0 {
-        let rewards = TOTAL_REWARDS.load(deps.storage)?;
+        let rewards = TOTAL_PENDING_REWARDS.load(deps.storage)?;
         if rewards.u128() > 0 {
             let (fp_rewards, wasm_msg) = send_rewards_msg(deps, rewards.u128(), &cfg)?;
             res = res.add_message(wasm_msg);
@@ -277,14 +275,14 @@ fn handle_end_block(
             for reward in fp_rewards {
                 REWARDS.remove(deps.storage, &reward.fp_pubkey_hex);
             }
-            // Zero out total rewards
-            TOTAL_REWARDS.save(deps.storage, &Uint128::zero())?;
+            // Zero out total pending rewards
+            TOTAL_PENDING_REWARDS.save(deps.storage, &Uint128::zero())?;
         }
     }
     Ok(res)
 }
 
-// Sends rewards to the babylon contract for distribution over IBC to Babylon Genesis
+// Sends rewards to the babylon contract to send it via IBC to Babylon Genesis
 fn send_rewards_msg(
     deps: &mut DepsMut,
     rewards: u128,
@@ -309,7 +307,7 @@ fn send_rewards_msg(
         })
         .collect::<StdResult<Vec<_>>>()?;
     // The rewards are sent to the babylon contract for IBC distribution to Babylon Genesis
-    let msg = contract::ExecuteMsg::DistributeRewards {
+    let msg = babylon_contract::msg::contract::ExecuteMsg::DistributeRewards {
         fp_distribution: fp_rewards.clone(),
     };
     let wasm_msg = WasmMsg::Execute {
@@ -430,7 +428,7 @@ pub(crate) mod tests {
         REWARDS
             .save(&mut deps.storage, &fp2, &Uint128::from(200u128))
             .unwrap();
-        TOTAL_REWARDS
+        TOTAL_PENDING_REWARDS
             .save(&mut deps.storage, &Uint128::from(300u128))
             .unwrap();
 
@@ -489,7 +487,7 @@ pub(crate) mod tests {
         CONFIG.save(&mut deps.storage, &config).unwrap();
 
         // No rewards in storage
-        TOTAL_REWARDS
+        TOTAL_PENDING_REWARDS
             .save(&mut deps.storage, &Uint128::zero())
             .unwrap();
 

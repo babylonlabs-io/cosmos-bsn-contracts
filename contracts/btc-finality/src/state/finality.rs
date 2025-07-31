@@ -39,4 +39,4 @@ pub const EVIDENCES: Map<(&str, u64), Evidence> = Map::new("evidences");
 pub const REWARDS: Map<&str, Uint128> = Map::new("rewards");
 
 /// Total pending rewards
-pub const TOTAL_REWARDS: Item<Uint128> = Item::new("total_rewards");
+pub const TOTAL_PENDING_REWARDS: Item<Uint128> = Item::new("pending_rewards");

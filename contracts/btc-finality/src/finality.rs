@@ -3,7 +3,7 @@ use crate::error::ContractError;
 use crate::state::config::{ADMIN, CONFIG, PARAMS};
 use crate::state::finality::{
     BLOCKS, EVIDENCES, FP_BLOCK_SIGNER, FP_SET, FP_START_HEIGHT, JAIL, NEXT_HEIGHT, REWARDS,
-    SIGNATURES, TOTAL_REWARDS,
+    SIGNATURES, TOTAL_PENDING_REWARDS,
 };
 use crate::state::public_randomness::{
     get_last_finalized_height, get_last_pub_rand_commit,
@@ -822,14 +822,15 @@ pub fn distribute_rewards_fps(deps: &mut DepsMut, env: &Env) -> Result<(), Contr
     if total_voting_power == 0 {
         return Ok(());
     }
-    // Get the rewards to distribute (bank balance of the finality contract minus already distributed rewards)
-    let distributed_rewards = TOTAL_REWARDS.load(deps.storage)?;
+    // Get the rewards to distribute (bank balance of the finality contract, minus previously / already distributed rewards
+    // (pending to be sent to Babylon on an epoch boundary))
+    let total_pending_rewards = TOTAL_PENDING_REWARDS.load(deps.storage)?;
     let cfg = CONFIG.load(deps.storage)?;
     let rewards_amount = deps
         .querier
         .query_balance(env.contract.address.clone(), cfg.denom)?
         .amount
-        .saturating_sub(distributed_rewards);
+        .saturating_sub(total_pending_rewards);
     // Short-circuit if there are no rewards to distribute
     if rewards_amount.is_zero() {
         return Ok(());
@@ -847,7 +848,7 @@ pub fn distribute_rewards_fps(deps: &mut DepsMut, env: &Env) -> Result<(), Contr
         accumulated_rewards += reward;
     }
     // Update the total rewards
-    TOTAL_REWARDS.update(deps.storage, |r| {
+    TOTAL_PENDING_REWARDS.update(deps.storage, |r| {
         Ok::<Uint128, ContractError>(r + accumulated_rewards)
     })?;
     Ok(())
