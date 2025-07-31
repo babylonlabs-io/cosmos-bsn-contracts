@@ -92,6 +92,9 @@ pub enum QueryMsg {
     /// Returns the set of active finality providers at a given height
     #[returns(ActiveFinalityProvidersResponse)]
     ActiveFinalityProviders { height: u64 },
+    /// Returns the voting power of a given finality provider at a given height
+    #[returns(FinalityProviderPowerResponse)]
+    FinalityProviderPower { btc_pk_hex: String, height: u64 },
 }
 
 #[cw_serde]
@@ -124,4 +127,9 @@ pub struct JailedFinalityProvider {
 #[cw_serde]
 pub struct ActiveFinalityProvidersResponse {
     pub active_finality_providers: HashMap<String, u64>,
+}
+
+#[cw_serde]
+pub struct FinalityProviderPowerResponse {
+    pub power: u64,
 }

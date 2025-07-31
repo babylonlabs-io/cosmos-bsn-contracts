@@ -532,4 +532,18 @@ impl Suite {
             .unwrap()
             .active_finality_providers
     }
+
+    pub fn get_finality_provider_power(&self, btc_pk_hex: &str, height: u64) -> u64 {
+        self.app
+            .wrap()
+            .query_wasm_smart::<crate::msg::FinalityProviderPowerResponse>(
+                self.finality.clone(),
+                &crate::msg::QueryMsg::FinalityProviderPower {
+                    btc_pk_hex: btc_pk_hex.to_string(),
+                    height,
+                },
+            )
+            .unwrap()
+            .power
+    }
 }

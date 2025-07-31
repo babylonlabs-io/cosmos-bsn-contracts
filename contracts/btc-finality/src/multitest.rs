@@ -324,6 +324,53 @@ mod finality {
         assert_eq!(active_fps.len(), 1);
         assert!(active_fps.contains_key(&new_fp.btc_pk_hex));
     }
+
+    #[test]
+    fn finality_provider_power_query_works() {
+        // Read public randomness commitment test data
+        let (pk_hex, pub_rand, pubrand_signature) = get_public_randomness_commitment();
+
+        let initial_height = pub_rand.start_height;
+        let initial_funds = &[coin(1_000_000, "TOKEN")];
+
+        let mut suite = SuiteBuilder::new()
+            .with_height(initial_height)
+            .with_funds(initial_funds)
+            .build();
+
+        // Register one FP
+        let new_fp = create_new_finality_provider(1);
+        assert_eq!(new_fp.btc_pk_hex, pk_hex);
+
+        suite.register_finality_providers(&[new_fp]).unwrap();
+
+        // Before adding delegation, power should be 0
+        let power = suite.get_finality_provider_power(&pk_hex, initial_height + 1);
+        assert_eq!(power, 0);
+
+        // Add a delegation, so that the finality provider has some power
+        let mut del1 = get_derived_btc_delegation(1, &[1]);
+        del1.fp_btc_pk_list = vec![pk_hex.clone()];
+
+        suite.add_delegations(&[del1.clone()]).unwrap();
+
+        // Now commit the public randomness
+        suite
+            .commit_public_randomness(&pk_hex, &pub_rand, &pubrand_signature)
+            .unwrap();
+
+        // Call the begin-block / end-block sudo handler(s)
+        let height = suite.next_block("deadbeef01".as_bytes()).unwrap().height;
+
+        // Query the power for the finality provider at this height
+        let power = suite.get_finality_provider_power(&pk_hex, height);
+        assert_eq!(power, del1.total_sat);
+
+        // Query for a non-existent FP should return 0
+        let non_existent_pk = format!("02{}", "0".repeat(62));
+        let power = suite.get_finality_provider_power(&non_existent_pk, height);
+        assert_eq!(power, 0);
+    }
 }
 
 mod slashing {

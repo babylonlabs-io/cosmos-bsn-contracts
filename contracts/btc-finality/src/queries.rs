@@ -6,8 +6,8 @@ use babylon_apis::finality_api::IndexedBlock;
 
 use crate::error::ContractError;
 use crate::msg::{
-    ActiveFinalityProvidersResponse, BlocksResponse, EvidenceResponse, FinalitySignatureResponse,
-    JailedFinalityProvider, JailedFinalityProvidersResponse,
+    ActiveFinalityProvidersResponse, BlocksResponse, EvidenceResponse, FinalityProviderPowerResponse,
+    FinalitySignatureResponse, JailedFinalityProvider, JailedFinalityProvidersResponse,
 };
 use crate::state::config::{Config, Params};
 use crate::state::config::{CONFIG, PARAMS};
@@ -112,4 +112,15 @@ pub fn active_finality_providers(
     Ok(ActiveFinalityProvidersResponse {
         active_finality_providers: active_fps,
     })
+}
+
+pub fn finality_provider_power(
+    deps: Deps,
+    btc_pk_hex: String,
+    height: u64,
+) -> Result<FinalityProviderPowerResponse, ContractError> {
+    let power_table = get_power_table_at_height(deps.storage, height)?;
+    let power = power_table.get(&btc_pk_hex).copied().unwrap_or(0);
+
+    Ok(FinalityProviderPowerResponse { power })
 }
