@@ -10,7 +10,9 @@ pub fn new_btc_headers_msg(
     headers: &[BtcHeaderInfo],
 ) -> Result<WasmMsg, ContractError> {
     let cfg = CONFIG.load(deps.storage)?;
-    let contract_addr = cfg.btc_light_client_addr()?;
+    let contract_addr = cfg
+        .btc_light_client
+        .ok_or(ContractError::BtcLightClientNotSet {})?;
 
     let btc_headers = btc_headers_from_info(headers)?;
 
@@ -24,7 +26,7 @@ pub fn new_btc_headers_msg(
         first_height: Some(first_height),
     };
     let wasm_msg = WasmMsg::Execute {
-        contract_addr,
+        contract_addr: contract_addr.to_string(),
         msg: to_json_binary(&msg)?,
         funds: vec![],
     };
