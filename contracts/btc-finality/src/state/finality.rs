@@ -1,11 +1,8 @@
 use crate::error::ContractError;
 use babylon_apis::finality_api::{Evidence, IndexedBlock};
-use babylon_apis::finality_api::{Evidence, IndexedBlock};
-use btc_staking::msg::FinalityProviderInfo;
 use cosmwasm_std::Order::Ascending;
 use cosmwasm_std::Uint128;
 use cosmwasm_std::{StdResult, Storage};
-use cw_storage_plus::{Item, Map};
 use cw_storage_plus::{Item, Map};
 use std::collections::HashMap;
 
