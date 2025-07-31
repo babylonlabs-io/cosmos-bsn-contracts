@@ -186,9 +186,10 @@ pub(crate) mod ibc_packet {
 
     use super::*;
 
-    fn ibc_packet_timeout(env: &Env, timeout_days: u64) -> IbcTimeout {
-        let timeout = env.block.time.plus_days(timeout_days);
-        IbcTimeout::with_timestamp(timeout)
+    fn get_ibc_packet_timeout(env: &Env, deps: &Deps) -> StdResult<IbcTimeout> {
+        let cfg = CONFIG.load(deps.storage)?;
+        let timeout = env.block.time.plus_days(cfg.ibc_packet_timeout_days);
+        Ok(IbcTimeout::with_timestamp(timeout))
     }
 
     pub fn handle_btc_timestamp(
@@ -299,8 +300,6 @@ pub(crate) mod ibc_packet {
         channel_id: &str,
         evidence: &Evidence,
     ) -> Result<IbcMsg, ContractError> {
-        let cfg = CONFIG.load(deps.storage)?;
-
         let packet = InboundPacket {
             packet: Some(InboundPacketType::BsnSlashing(BsnSlashingIbcPacket {
                 evidence: Some(babylon_proto::babylon::finality::v1::Evidence {
@@ -321,7 +320,7 @@ pub(crate) mod ibc_packet {
         let msg = IbcMsg::SendPacket {
             channel_id: channel_id.to_string(),
             data: Binary::new(packet.encode_to_vec()),
-            timeout: ibc_packet_timeout(env, cfg.ibc_packet_timeout_days),
+            timeout: get_ibc_packet_timeout(env, deps)?,
         };
         Ok(msg)
     }
