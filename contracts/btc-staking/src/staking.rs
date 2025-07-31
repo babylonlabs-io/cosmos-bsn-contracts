@@ -481,7 +481,7 @@ fn slash_finality_provider(
     }
     // Set the finality provider as slashed
     fp.slashed_height = env.block.height;
-    fp.slashed_btc_height = get_btc_tip_height(&deps)?;
+    fp.slashed_btc_height = get_btc_tip_height(&deps).unwrap_or_default();
 
     // Record slashed event. The next `BeginBlock` will consume this event for updating the active
     // FP set. We simply set the FP total active sats to zero from the next *processing* height
