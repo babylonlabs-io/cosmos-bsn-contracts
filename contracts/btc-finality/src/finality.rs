@@ -749,11 +749,9 @@ pub fn compute_active_finality_providers(
 
     // Online FPs verification
     // Store starting heights of fps entering the active set
-    let old_fps = get_power_table_at_height(deps.storage, env.block.height - 1)?
-        .keys()
-        .cloned()
-        .collect();
-    let cur_fps: HashSet<String> = fp_power_table.keys().cloned().collect();
+    let old_power_table = get_power_table_at_height(deps.storage, env.block.height - 1)?;
+    let old_fps = old_power_table.keys().collect();
+    let cur_fps: HashSet<_> = fp_power_table.keys().collect();
     let new_fps = cur_fps.difference(&old_fps);
     for fp in new_fps {
         // Active since the next block. Only save if not already set
@@ -798,9 +796,7 @@ pub fn compute_active_finality_providers(
     Ok(())
 }
 
-/// Query BTC staking contract for finality providers by total active sats.
-///
-/// This is used to get the finality providers with the highest total active sats.
+/// Queries the BTC staking contract for finality providers ordered by total active sats.
 pub fn query_fps_by_total_active_sats(
     staking_addr: &Addr,
     querier: &QuerierWrapper,
