@@ -42,6 +42,21 @@ pub struct BtcHeader {
     pub nonce: u32,
 }
 
+impl Default for BtcHeader {
+    fn default() -> Self {
+        Self {
+            version: 1,
+            prev_blockhash: "0000000000000000000000000000000000000000000000000000000000000000"
+                .to_string(),
+            merkle_root: "0000000000000000000000000000000000000000000000000000000000000000"
+                .to_string(),
+            time: 0,
+            bits: 0,
+            nonce: 0,
+        }
+    }
+}
+
 impl BtcHeader {
     pub fn to_btc_header_info(
         &self,
@@ -198,6 +213,17 @@ pub struct BtcHeaderResponse {
     pub height: u32,
     /// The cumulative total work of this block and all of its ancestors.
     pub cum_work: cosmwasm_std::Uint256,
+}
+
+impl Default for BtcHeaderResponse {
+    fn default() -> Self {
+        Self {
+            header: BtcHeader::default(),
+            hash: String::new(),
+            height: 0,
+            cum_work: cosmwasm_std::Uint256::zero(),
+        }
+    }
 }
 
 /// Bitcoin header responses.

@@ -463,28 +463,25 @@ fn btc_undelegate(
 
 /// Slashes a finality provider with the given PK.
 /// A slashed finality provider will not have voting power
-pub(crate) fn slash_finality_provider(
+fn slash_finality_provider(
     deps: DepsMut,
     env: Env,
     fp_btc_pk_hex: &str,
 ) -> Result<Response, ContractError> {
     // Ensure finality provider exists
-    let mut fp = FPS.load(deps.storage, fp_btc_pk_hex)?;
+    let mut fp = FPS
+        .load(deps.storage, fp_btc_pk_hex)
+        .map_err(|_| ContractError::FinalityProviderNotFound(fp_btc_pk_hex.to_string()))?;
 
-    // Check if the finality provider is already slashed
-    if fp.slashed_height > 0 {
+    // Ensure the finality provider is not already slashed
+    if fp.is_slashed() {
         return Err(ContractError::FinalityProviderAlreadySlashed(
             fp_btc_pk_hex.to_string(),
         ));
     }
     // Set the finality provider as slashed
     fp.slashed_height = env.block.height;
-
-    // Set BTC slashing height (if available from the babylon contract)
-    // FIXME: Turn this into a hard error (related to #7.2)
-    // return fmt.Errorf("failed to get current BTC tip")
-    let btc_height = get_btc_tip_height(&deps).unwrap_or_default();
-    fp.slashed_btc_height = btc_height;
+    fp.slashed_btc_height = get_btc_tip_height(&deps)?;
 
     // Record slashed event. The next `BeginBlock` will consume this event for updating the active
     // FP set. We simply set the FP total active sats to zero from the next *processing* height
@@ -520,20 +517,20 @@ fn get_btc_tip_height(deps: &DepsMut) -> Result<u32, ContractError> {
 #[cfg(test)]
 pub(crate) mod tests {
     use super::*;
-
-    use cosmwasm_std::testing::{message_info, mock_dependencies, mock_env};
-
-    use babylon_test_utils::{
-        create_new_finality_provider, create_new_fp_sk, get_active_btc_delegation,
-        get_btc_del_unbonding_sig, get_derived_btc_delegation,
-    };
-
     use crate::contract::tests::{CREATOR, INIT_ADMIN};
     use crate::contract::{execute, instantiate};
     use crate::msg::{ExecuteMsg, InstantiateMsg};
     use crate::queries;
     use crate::state::staking::BtcUndelegationInfo;
     use crate::test_utils::staking_params;
+    use babylon_test_utils::{
+        create_new_finality_provider, create_new_fp_sk, get_active_btc_delegation,
+        get_btc_del_unbonding_sig, get_derived_btc_delegation,
+    };
+    use btc_light_client::msg::btc_header::BtcHeaderResponse;
+    use cosmwasm_std::testing::{message_info, mock_dependencies, mock_env};
+    use cosmwasm_std::SystemError;
+    use cosmwasm_std::{from_json, to_json_binary, Addr, ContractResult, SystemResult, WasmQuery};
 
     // Compute staking tx hash of a delegation
     pub(crate) fn staking_tx_hash(del: &BtcDelegation) -> Txid {
@@ -869,5 +866,94 @@ pub(crate) mod tests {
         let fp = queries::finality_provider_info(deps.as_ref(), new_fp.btc_pk_hex.clone(), None)
             .unwrap();
         assert_eq!(fp.total_active_sats, 0);
+    }
+
+    #[test]
+    fn test_slash_finality_provider() {
+        let mut deps = mock_dependencies();
+        let env = mock_env();
+        let info = message_info(&deps.api.addr_make(CREATOR), &[]);
+
+        // Mock the BTC light client query
+        deps.querier.update_wasm(|query| match query {
+            WasmQuery::Smart {
+                contract_addr: _,
+                msg,
+            } => {
+                let query_msg: btc_light_client::msg::contract::QueryMsg = from_json(msg).unwrap();
+                match query_msg {
+                    btc_light_client::msg::contract::QueryMsg::BtcTipHeader {} => {
+                        let response = BtcHeaderResponse::default();
+                        SystemResult::Ok(ContractResult::Ok(to_json_binary(&response).unwrap()))
+                    }
+                    _ => SystemResult::Err(SystemError::UnsupportedRequest {
+                        kind: "unsupported query".to_string(),
+                    }),
+                }
+            }
+            _ => SystemResult::Err(SystemError::UnsupportedRequest {
+                kind: "unsupported query".to_string(),
+            }),
+        });
+
+        let params = staking_params();
+        instantiate(
+            deps.as_mut(),
+            env.clone(),
+            info.clone(),
+            InstantiateMsg {
+                params: Some(params),
+                admin: None,
+            },
+        )
+        .unwrap();
+
+        // Mock the btc light client address
+        let mut config = CONFIG.load(&deps.storage).unwrap();
+        config.btc_light_client = Addr::unchecked("BTC_LIGHT_CLIENT_CONTRACT_ADDR");
+        CONFIG.save(&mut deps.storage, &config).unwrap();
+
+        // Register one FP first
+        let new_fp = create_new_finality_provider(1);
+
+        // Build valid active delegation
+        let active_delegation = get_derived_btc_delegation(1, &[1]);
+
+        let msg = ExecuteMsg::BtcStaking {
+            new_fp: vec![new_fp.clone()],
+            active_del: vec![active_delegation.clone()],
+            slashed_del: vec![],
+            unbonded_del: vec![],
+        };
+
+        execute(deps.as_mut(), env.clone(), info.clone(), msg).unwrap();
+
+        // Check that the finality provider has power before slashing
+        let fp = queries::finality_provider_info(deps.as_ref(), new_fp.btc_pk_hex.clone(), None)
+            .unwrap();
+        assert_eq!(fp.total_active_sats, active_delegation.total_sat);
+        assert!(!fp.slashed);
+
+        // Slash the finality provider
+        slash_finality_provider(deps.as_mut(), env.clone(), &new_fp.btc_pk_hex).unwrap();
+
+        // Check that the finality provider is now slashed
+        let fp = queries::finality_provider_info(deps.as_ref(), new_fp.btc_pk_hex.clone(), None)
+            .unwrap();
+        assert!(fp.slashed);
+        assert_eq!(fp.total_active_sats, active_delegation.total_sat);
+
+        // Try to slash the same finality provider again - should fail
+        let err =
+            slash_finality_provider(deps.as_mut(), env.clone(), &new_fp.btc_pk_hex).unwrap_err();
+        assert!(matches!(
+            err,
+            ContractError::FinalityProviderAlreadySlashed(pk) if pk == new_fp.btc_pk_hex
+        ));
+
+        // Try to slash a non-existent finality provider - should fail
+        let err =
+            slash_finality_provider(deps.as_mut(), env.clone(), "non_existent_fp").unwrap_err();
+        assert!(matches!(err, ContractError::FinalityProviderNotFound(_)));
     }
 }
