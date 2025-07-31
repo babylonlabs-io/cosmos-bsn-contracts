@@ -346,11 +346,10 @@ pub(crate) mod tests {
     use super::*;
 
     use cosmwasm_std::{
-        from_json,
+        from_json, coins,
         testing::{message_info, mock_dependencies, mock_env},
     };
     use cw_controllers::AdminResponse;
-
     pub(crate) const CREATOR: &str = "creator";
     pub(crate) const INIT_ADMIN: &str = "initial_admin";
     const NEW_ADMIN: &str = "new_admin";
@@ -405,6 +404,104 @@ pub(crate) mod tests {
         let res = query(deps.as_ref(), mock_env(), QueryMsg::Admin {}).unwrap();
         let admin: AdminResponse = from_json(res).unwrap();
         assert_eq!(admin.admin.unwrap(), init_admin.as_str())
+    }
+
+    #[test]
+    fn test_send_rewards_msg() {
+        let mut deps = mock_dependencies();
+
+        // Set up the contract with config
+        let babylon_addr = deps.api.addr_make("babylon");
+        let staking_addr = deps.api.addr_make("staking");
+        let config = Config {
+            denom: "TOKEN".to_string(),
+            blocks_per_year: 1000,
+            babylon: babylon_addr.clone(),
+            staking: staking_addr.clone(),
+        };
+        CONFIG.save(&mut deps.storage, &config).unwrap();
+
+        // Add some rewards for FPs
+        let fp1 = "fp1".to_string();
+        let fp2 = "fp2".to_string();
+        REWARDS.save(&mut deps.storage, &fp1, &Uint128::from(100u128)).unwrap();
+        REWARDS.save(&mut deps.storage, &fp2, &Uint128::from(200u128)).unwrap();
+        TOTAL_REWARDS.save(&mut deps.storage, &Uint128::from(300u128)).unwrap();
+
+        // Test send_rewards_msg
+        let (fp_rewards, wasm_msg) = send_rewards_msg(&mut deps.as_mut(), 300, &config).unwrap();
+
+        // Verify the rewards are correct
+        assert_eq!(fp_rewards.len(), 2);
+        assert_eq!(fp_rewards[0].fp_pubkey_hex, fp1);
+        assert_eq!(fp_rewards[0].reward, Uint128::from(100u128));
+        assert_eq!(fp_rewards[1].fp_pubkey_hex, fp2);
+        assert_eq!(fp_rewards[1].reward, Uint128::from(200u128));
+
+        // Verify the WasmMsg is correct
+        match wasm_msg {
+            WasmMsg::Execute { contract_addr, msg, funds } => {
+                assert_eq!(contract_addr, babylon_addr.to_string());
+                assert_eq!(funds, coins(300, "TOKEN"));
+
+                // Verify the message is a DistributeRewards message
+                let msg_data: babylon_contract::msg::contract::ExecuteMsg = from_json(msg).unwrap();
+                match msg_data {
+                    babylon_contract::msg::contract::ExecuteMsg::DistributeRewards { fp_distribution } => {
+                        assert_eq!(fp_distribution.len(), 2);
+                        assert_eq!(fp_distribution[0].fp_pubkey_hex, fp1);
+                        assert_eq!(fp_distribution[0].reward, Uint128::from(100u128));
+                        assert_eq!(fp_distribution[1].fp_pubkey_hex, fp2);
+                        assert_eq!(fp_distribution[1].reward, Uint128::from(200u128));
+                    },
+                    _ => panic!("Expected DistributeRewards message"),
+                }
+            },
+            _ => panic!("Expected WasmMsg::Execute"),
+        }
+    }
+
+    #[test]
+    fn test_send_rewards_msg_with_no_rewards() {
+        let mut deps = mock_dependencies();
+
+        // Set up the contract with config
+        let babylon_addr = deps.api.addr_make("babylon");
+        let staking_addr = deps.api.addr_make("staking");
+        let config = Config {
+            denom: "TOKEN".to_string(),
+            blocks_per_year: 1000,
+            babylon: babylon_addr.clone(),
+            staking: staking_addr.clone(),
+        };
+        CONFIG.save(&mut deps.storage, &config).unwrap();
+
+        // No rewards in storage
+        TOTAL_REWARDS.save(&mut deps.storage, &Uint128::zero()).unwrap();
+
+        // Test send_rewards_msg with no rewards
+        let (fp_rewards, wasm_msg) = send_rewards_msg(&mut deps.as_mut(), 0, &config).unwrap();
+
+        // Verify no rewards are returned
+        assert_eq!(fp_rewards.len(), 0);
+
+        // Verify the WasmMsg is correct (should still be created but with 0 funds)
+        match wasm_msg {
+            WasmMsg::Execute { contract_addr, msg, funds } => {
+                assert_eq!(contract_addr, babylon_addr.to_string());
+                assert_eq!(funds, coins(0, "TOKEN"));
+
+                // Verify the message is a DistributeRewards message with empty distribution
+                let msg_data: babylon_contract::msg::contract::ExecuteMsg = from_json(msg).unwrap();
+                match msg_data {
+                    babylon_contract::msg::contract::ExecuteMsg::DistributeRewards { fp_distribution } => {
+                        assert_eq!(fp_distribution.len(), 0);
+                    },
+                    _ => panic!("Expected DistributeRewards message"),
+                }
+            },
+            _ => panic!("Expected WasmMsg::Execute"),
+        }
     }
 
     #[test]
