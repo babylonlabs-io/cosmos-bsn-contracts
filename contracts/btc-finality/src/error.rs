@@ -102,6 +102,8 @@ pub enum ContractError {
     MissingBlocksPerYear {},
     #[error("Division by zero")]
     DivideByZero,
+    #[error("Invalid rewards recipient")]
+    InvalidRewardsRecipient {},
     #[error("{0}")]
     PubRandCommitNotBTCTimestamped(String),
     #[error("Jail for {0} did not yet expire")]

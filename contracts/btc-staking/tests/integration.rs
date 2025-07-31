@@ -5,8 +5,6 @@ use btc_staking::msg::InstantiateMsg;
 
 #[cfg(clippy)]
 static WASM: &[u8] = &[];
-#[cfg(clippy)]
-static WASM_FULL: &[u8] = &[];
 
 // wasm binary lite version
 #[cfg(not(clippy))]

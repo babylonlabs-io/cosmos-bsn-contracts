@@ -3,26 +3,29 @@ use derivative::Derivative;
 use hex::ToHex;
 
 use cosmwasm_std::testing::mock_dependencies;
-use cosmwasm_std::{to_json_binary, Addr, BlockInfo, Coin, Empty, Timestamp};
+use cosmwasm_std::{to_json_binary, Addr, BlockInfo, Coin, Timestamp};
 use cw_multi_test::{next_block, AppResponse, Contract, ContractWrapper, Executor};
+
+use babylon_apis::btc_staking_api::{ActiveBtcDelegation, FinalityProvider, NewFinalityProvider};
+use babylon_apis::error::StakingApiError;
+use babylon_apis::finality_api::{IndexedBlock, PubRandCommit};
+use babylon_apis::{btc_staking_api, finality_api, to_bech32_addr, to_canonical_addr};
+use babylon_bindings_test::BabylonApp;
+use btc_light_client::msg::InstantiateMsg as BtcLightClientInstantiateMsg;
+use btc_light_client::BitcoinNetwork;
+use cosmwasm_std::Empty;
+
+use btc_staking::msg::{ActivatedHeightResponse, FinalityProviderInfo};
 
 use crate::msg::QueryMsg::JailedFinalityProviders;
 use crate::msg::{
     ActiveFinalityProvidersResponse, EvidenceResponse, FinalitySignatureResponse, InstantiateMsg,
     JailedFinalityProvider, JailedFinalityProvidersResponse,
 };
-use babylon_apis::btc_staking_api::{ActiveBtcDelegation, FinalityProvider, NewFinalityProvider};
-use babylon_apis::error::StakingApiError;
-use babylon_apis::finality_api::{IndexedBlock, PubRandCommit};
-use babylon_apis::{btc_staking_api, finality_api, to_bech32_addr, to_canonical_addr};
-use babylon_bindings_test::BabylonApp;
 use babylon_bindings_test::{
     BTC_FINALITY_CONTRACT_ADDR, BTC_LIGHT_CLIENT_CONTRACT_ADDR, BTC_STAKING_CONTRACT_ADDR,
     USER_ADDR,
 };
-use btc_light_client::msg::InstantiateMsg as BtcLightClientInstantiateMsg;
-use btc_light_client::BitcoinNetwork;
-use btc_staking::msg::{ActivatedHeightResponse, FinalityProviderInfo};
 
 fn contract_btc_light_client() -> Box<dyn Contract<Empty>> {
     let contract = ContractWrapper::new(
@@ -158,6 +161,7 @@ impl SuiteBuilder {
                     consumer_description: Some("Test Consumer Description".to_string()),
                     ics20_channel_id: "channel-0".to_string(),
                     ibc_packet_timeout_days: None,
+                    destination_module: "btcstaking".to_string(),
                 },
                 &[],
                 "babylon",
@@ -207,6 +211,12 @@ impl Suite {
     fn extract_prefix(addr: &Addr) -> &str {
         let bech32_prefix = addr.as_str().split('1').collect::<Vec<_>>()[0];
         bech32_prefix
+    }
+
+    #[allow(dead_code)]
+    #[track_caller]
+    pub fn get_balance(&self, addr: &Addr, denom: &str) -> Coin {
+        self.app.wrap().query_balance(addr, denom).unwrap()
     }
 
     #[allow(dead_code)]

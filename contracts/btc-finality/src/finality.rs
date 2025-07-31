@@ -2,7 +2,8 @@ use crate::contract::encode_smart_query;
 use crate::error::ContractError;
 use crate::state::config::{ADMIN, CONFIG, PARAMS};
 use crate::state::finality::{
-    BLOCKS, EVIDENCES, FP_BLOCK_SIGNER, FP_SET, FP_START_HEIGHT, JAIL, NEXT_HEIGHT, SIGNATURES,
+    BLOCKS, EVIDENCES, FP_BLOCK_SIGNER, FP_SET, FP_START_HEIGHT, JAIL, NEXT_HEIGHT, REWARDS,
+    SIGNATURES, TOTAL_PENDING_REWARDS,
 };
 use crate::state::public_randomness::{
     get_last_finalized_height, get_last_pub_rand_commit,
@@ -17,7 +18,7 @@ use btc_staking::msg::{FinalityProviderInfo, FinalityProvidersByPowerResponse};
 use cosmwasm_std::Order::Ascending;
 use cosmwasm_std::{
     to_json_binary, Addr, DepsMut, Env, Event, MessageInfo, QuerierWrapper, Response, StdResult,
-    Storage, WasmMsg,
+    Storage, Uint128, WasmMsg,
 };
 use k256::schnorr::{signature::Verifier, Signature, VerifyingKey};
 use k256::sha2::{Digest, Sha256};
@@ -804,4 +805,51 @@ pub fn list_fps_by_power(
     )?;
     let res: FinalityProvidersByPowerResponse = querier.query(&query)?;
     Ok(res.fps)
+}
+
+/// Distributes rewards to finality providers who are in the active set at `height`.
+pub fn distribute_rewards_fps(deps: &mut DepsMut, env: &Env) -> Result<(), ContractError> {
+    // Try to use the finality provider set at the previous height
+    let active_fps = FP_SET.may_load(deps.storage, env.block.height - 1)?;
+    // Short-circuit if there are no active finality providers
+    let active_fps = match active_fps {
+        Some(active_fps) => active_fps,
+        None => return Ok(()),
+    };
+    // Get the voting power of the active FPS
+    let total_voting_power = active_fps.iter().map(|fp| fp.power as u128).sum::<u128>();
+    // Short-circuit if the total voting power is zero
+    if total_voting_power == 0 {
+        return Ok(());
+    }
+    // Get the rewards to distribute (bank balance of the finality contract, minus previously / already distributed rewards
+    // (pending to be sent to Babylon on an epoch boundary))
+    let total_pending_rewards = TOTAL_PENDING_REWARDS.load(deps.storage)?;
+    let cfg = CONFIG.load(deps.storage)?;
+    let rewards_amount = deps
+        .querier
+        .query_balance(env.contract.address.clone(), cfg.denom)?
+        .amount
+        .saturating_sub(total_pending_rewards);
+    // Short-circuit if there are no rewards to distribute
+    if rewards_amount.is_zero() {
+        return Ok(());
+    }
+    // Compute the rewards for each active FP
+    let mut accumulated_rewards = Uint128::zero();
+    for fp in active_fps {
+        let reward = (rewards_amount.u128() * fp.power as u128) / total_voting_power;
+        let reward = Uint128::from(reward);
+        // Update the rewards for this FP
+        REWARDS.update(deps.storage, &fp.btc_pk_hex, |r| {
+            Ok::<Uint128, ContractError>(r.unwrap_or_default() + reward)
+        })?;
+        // Compute the total rewards
+        accumulated_rewards += reward;
+    }
+    // Update the total rewards
+    TOTAL_PENDING_REWARDS.update(deps.storage, |r| {
+        Ok::<Uint128, ContractError>(r + accumulated_rewards)
+    })?;
+    Ok(())
 }
