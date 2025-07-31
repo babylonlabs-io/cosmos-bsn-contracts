@@ -35,6 +35,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### State breaking
 
+- [#276](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/276) finality: fix finality voting issue
 - [#272](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/272) ibc: set proper timeout for IBC packets
 
 ### Improvements
