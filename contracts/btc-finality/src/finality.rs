@@ -818,6 +818,10 @@ pub fn distribute_rewards_fps(deps: &mut DepsMut, env: &Env) -> Result<(), Contr
     };
     // Get the voting power of the active FPS
     let total_voting_power = active_fps.iter().map(|fp| fp.power as u128).sum::<u128>();
+    // Short-circuit if the total voting power is zero
+    if total_voting_power == 0 {
+        return Ok(());
+    }
     // Get the rewards to distribute (bank balance of the finality contract minus already distributed rewards)
     let distributed_rewards = TOTAL_REWARDS.load(deps.storage)?;
     let cfg = CONFIG.load(deps.storage)?;
