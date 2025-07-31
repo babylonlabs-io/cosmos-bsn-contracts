@@ -5,12 +5,10 @@ use babylon_apis::btc_staking_api::{
 };
 use babylon_apis::finality_api::Evidence;
 use babylon_proto::babylon::{
-    btclightclient::v1::BtcHeaderInfo,
     btcstaking::v1::BtcStakingIbcPacket,
     zoneconcierge::v1::{
         inbound_packet::Packet as InboundPacketType, outbound_packet::Packet as OutboundPacketType,
-        BsnBaseBtcHeaderIbcPacket, BsnSlashingIbcPacket, BtcHeaders, BtcTimestamp, InboundPacket,
-        OutboundPacket,
+        BsnSlashingIbcPacket, BtcHeaders, BtcTimestamp, InboundPacket, OutboundPacket,
     },
 };
 use cosmwasm_std::{
@@ -70,7 +68,7 @@ pub fn ibc_channel_open(
 /// Second part of the 4-step handshake, i.e. ChannelOpenAck and ChannelOpenConfirm.
 pub fn ibc_channel_connect(
     deps: DepsMut,
-    env: Env,
+    _env: Env,
     msg: IbcChannelConnectMsg,
 ) -> Result<IbcBasicResponse, ContractError> {
     // Ensure we have no channel yet
@@ -97,31 +95,6 @@ pub fn ibc_channel_connect(
             .add_attribute("consumer_name", name)
             .add_attribute("consumer_description", description);
     }
-
-    // Send the base header of BTC light client to Babylon via IBC.
-    let base_header_bytes = cfg
-        .btc_light_client
-        .as_ref()
-        .map(|(_addr, base_header_bytes)| base_header_bytes)
-        .ok_or(ContractError::BtcLightClientNotSet {})?;
-
-    let base_btc_header: BtcHeaderInfo = BtcHeaderInfo::decode(base_header_bytes.as_slice())?;
-
-    let base_header_packet = BsnBaseBtcHeaderIbcPacket {
-        base_btc_header: Some(base_btc_header),
-    };
-
-    let mut buf = Vec::with_capacity(base_header_packet.encoded_len());
-    base_header_packet.encode(&mut buf)?;
-
-    let ibc_packet = cosmwasm_std::IbcMsg::SendPacket {
-        channel_id: chan_id.to_owned(),
-        data: Binary::from(buf),
-        // TODO: proper timeout
-        timeout: env.block.time.plus_hours(1).into(),
-    };
-
-    response = response.add_message(ibc_packet);
 
     Ok(response)
 }
@@ -310,10 +283,7 @@ pub(crate) mod ibc_packet {
                     fork_app_hash: evidence.fork_app_hash.to_vec().into(),
                     canonical_finality_sig: evidence.canonical_finality_sig.to_vec().into(),
                     fork_finality_sig: evidence.fork_finality_sig.to_vec().into(),
-                    signing_context: babylon_apis::signing_context::fp_fin_vote_context_v0(
-                        &env.block.chain_id,
-                        env.contract.address.as_str(),
-                    ),
+                    signing_context: evidence.signing_context.clone(),
                 }),
             })),
         };

@@ -242,7 +242,6 @@ pub(crate) fn handle_btc_headers_from_babylon(
 
     // decode the first header in these new headers
     let first_new_header = new_headers.first().ok_or(ContractError::EmptyHeaders {})?;
-
     let first_new_btc_header = first_new_header.block_header()?;
 
     let new_tip = if first_new_btc_header.prev_blockhash.as_ref() == cur_tip_hash.to_vec() {
