@@ -159,6 +159,7 @@ impl SuiteBuilder {
                     consumer_name: Some("TestConsumer".to_string()),
                     consumer_description: Some("Test Consumer Description".to_string()),
                     ics20_channel_id: self.ics20_channel_id,
+                    ibc_packet_timeout_days: None,
                 },
                 &[],
                 "babylon",

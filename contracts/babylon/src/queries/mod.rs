@@ -1,5 +1,5 @@
 use crate::error::{BabylonEpochChainError, ConsumerHeaderChainError, ContractError};
-use crate::ibc::IBC_TRANSFER;
+use crate::ibc::IBC_TRANSFER_CHANNEL;
 use crate::msg::consumer_header::{ConsumerHeaderResponse, ConsumerHeightResponse};
 use crate::msg::epoch::{CheckpointResponse, EpochResponse};
 use crate::msg::ibc::TransferInfoResponse;
@@ -65,6 +65,6 @@ pub(crate) fn consumer_header(
 }
 
 pub(crate) fn transfer_info(deps: Deps) -> Result<TransferInfoResponse, ContractError> {
-    let transfer_info = IBC_TRANSFER.may_load(deps.storage)?;
+    let transfer_info = IBC_TRANSFER_CHANNEL.may_load(deps.storage)?;
     Ok(transfer_info)
 }
