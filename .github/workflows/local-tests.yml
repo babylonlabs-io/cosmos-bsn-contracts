@@ -47,6 +47,20 @@ jobs:
             exit 1;
           fi
 
+  check-proto-up-to-date:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4.1.0
+      - name: Generate proto
+        run: bash scripts/protocgen.sh
+      - name: Check for schema drift
+        run: |
+          if ! git diff --quiet -- packages/proto; then
+            echo "❌ Protobuf bindings are out-of-date. Run scripts/protocgen.sh and commit the result."
+            git --no-pager diff -- packages/proto;
+            exit 1;
+          fi
+
   check-go-datagen:
     runs-on: ubuntu-latest
     steps:
