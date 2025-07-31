@@ -49,6 +49,7 @@ pub fn instantiate(
         ibc_packet_timeout_days: msg
             .ibc_packet_timeout_days
             .unwrap_or(DEFAULT_IBC_PACKET_TIMEOUT_DAYS),
+        destination_module: msg.destination_module,
     };
 
     let mut res = Response::new().add_attribute("action", "instantiate");
@@ -338,13 +339,13 @@ pub fn execute(
                 ));
             }
 
-            // Get the ICS20 transfer channel ID
-            let channel_id = IBC_TRANSFER_CHANNEL.load(deps.storage)?;
-
             // Get consumer name for bsn_consumer_id
             let bsn_consumer_id = cfg
                 .consumer_name
                 .ok_or(ContractError::ConsumerNameNotSet {})?;
+
+            // Get the ICS20 transfer channel ID
+            let channel_id = IBC_TRANSFER_CHANNEL.load(deps.storage)?;
 
             // Calculate ratios from absolute amounts
             let fp_ratios: Vec<serde_json::Value> = fp_distribution
@@ -363,7 +364,7 @@ pub fn execute(
             let memo = serde_json::json!({
                 "action": "add_bsn_rewards",
                 "dest_callback": {
-                    "address": "", // Mandatory but unused
+                    "address": cfg.destination_module, // Mandatory but unused
                     "add_bsn_rewards": {
                         "bsn_consumer_id": bsn_consumer_id,
                         "fp_ratios": fp_ratios
@@ -372,8 +373,8 @@ pub fn execute(
             })
             .to_string();
 
-            // Define destination address
-            let rcpt_addr = to_bech32_addr("bbn", &to_module_canonical_addr("zoneconcierge"))?;
+            // Define destination address using the rewards module name from config
+            let rcpt_addr = to_bech32_addr("bbn", &to_module_canonical_addr(&cfg.destination_module))?;
 
             // Create ICS20 transfer message
             let transfer_msg = cosmwasm_std::IbcMsg::Transfer {
@@ -557,6 +558,7 @@ mod tests {
             consumer_description: Some("Test Consumer Description".to_string()),
             denom: "stake".to_string(),
             ibc_packet_timeout_days: 1,
+            destination_module: "btcstaking".to_string(),
         };
         CONFIG.save(&mut deps.storage, &cfg).unwrap();
 
@@ -601,6 +603,7 @@ mod tests {
             consumer_description: Some("Test Consumer Description".to_string()),
             denom: "stake".to_string(),
             ibc_packet_timeout_days: 1,
+            destination_module: "btcstaking".to_string(),
         };
         CONFIG.save(&mut deps.storage, &cfg).unwrap();
 
@@ -676,6 +679,7 @@ mod tests {
             consumer_description: Some("Test Consumer Description".to_string()),
             denom: "stake".to_string(),
             ibc_packet_timeout_days: 1,
+            destination_module: "btcstaking".to_string(),
         };
         CONFIG.save(&mut deps.storage, &cfg).unwrap();
 

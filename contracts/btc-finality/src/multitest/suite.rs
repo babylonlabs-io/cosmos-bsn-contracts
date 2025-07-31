@@ -161,6 +161,7 @@ impl SuiteBuilder {
                     consumer_description: Some("Test Consumer Description".to_string()),
                     ics20_channel_id: "channel-0".to_string(),
                     ibc_packet_timeout_days: None,
+                    destination_module: "btcstaking".to_string(),
                 },
                 &[],
                 "babylon",

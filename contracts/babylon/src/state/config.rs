@@ -29,4 +29,6 @@ pub struct Config {
     pub denom: String,
     /// IBC packet timeout in days
     pub ibc_packet_timeout_days: u64,
+    /// Babylon module name for receiving ICS-20 transfers
+    pub destination_module: String,
 }

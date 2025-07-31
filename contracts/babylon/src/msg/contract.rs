@@ -61,6 +61,8 @@ pub struct InstantiateMsg {
     /// IBC packet timeout in days
     /// If not set, the default value (28 days) will be used
     pub ibc_packet_timeout_days: Option<u64>,
+    /// Babylon module name for receiving ICS-20 transfers
+    pub destination_module: String,
 }
 
 impl InstantiateMsg {
@@ -83,6 +85,7 @@ impl InstantiateMsg {
             consumer_description: None,
             ics20_channel_id: "channel-0".to_string(),
             ibc_packet_timeout_days: None,
+            destination_module: "btcstaking".to_string(),
         }
     }
 }
