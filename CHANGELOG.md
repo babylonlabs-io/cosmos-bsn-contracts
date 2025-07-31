@@ -37,6 +37,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 - [#274](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/274) Send rewards to Babylon for distribution
 
+### State breaking
+
+- [#272](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/272) ibc: set proper timeout for IBC packets
+
 ### Improvements
 
 - [#270](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/270) fix: fix Babylon SDK e2e
