@@ -10,7 +10,7 @@ use cosmwasm_std::{
     Response, SubMsg, SubMsgResponse, WasmMsg,
 };
 use cw2::set_contract_version;
-use cw_utils::{may_pay, ParseReplyError};
+use cw_utils::{must_pay, ParseReplyError};
 use serde_json;
 
 pub const CONTRACT_NAME: &str = env!("CARGO_PKG_NAME");
@@ -327,8 +327,7 @@ pub fn execute(
             }
 
             // Check that the funds are there
-            let denom = deps.querier.query_bonded_denom()?;
-            let funds_sent_total = may_pay(&info, &denom)?;
+            let funds_sent_total = must_pay(&info, &cfg.denom)?;
 
             // Calculate total rewards to send
             let total_rewards = fp_distribution
@@ -358,7 +357,7 @@ pub fn execute(
                 channel_id,
                 to_address: "zoneconcierge".to_string(), // FIXME: Send to module account address on Babylon Genesis
                 amount: cosmwasm_std::Coin {
-                    denom,
+                    denom: cfg.denom.clone(),
                     amount: funds_sent_total,
                 },
                 timeout: packet_timeout(&env),
@@ -380,9 +379,13 @@ pub fn execute(
 
 #[cfg(test)]
 mod tests {
+
     use super::*;
+    use crate::msg::contract::RewardInfo;
     use bitcoin::block::Header as BlockHeader;
     use btc_light_client::msg::InstantiateMsg as BtcLightClientInstantiateMsg;
+
+    use cosmwasm_std::Uint128;
 
     use cosmwasm_std::testing::message_info;
     use cosmwasm_std::testing::{mock_dependencies, mock_env};
@@ -510,5 +513,117 @@ mod tests {
             }
             .into()
         );
+    }
+
+    #[test]
+    fn test_distribute_rewards_unauthorized() {
+        let mut deps = mock_dependencies();
+
+        // Set up config with finality contract address
+        let finality_addr = deps.api.addr_make("finality_contract");
+        let cfg = Config {
+            network: btc_light_client::BitcoinNetwork::Regtest,
+            babylon_tag: vec![1, 2, 3, 4],
+            btc_confirmation_depth: 1,
+            checkpoint_finalization_timeout: 1,
+            notify_cosmos_zone: false,
+            btc_light_client: None,
+            btc_staking: None,
+            btc_finality: Some(finality_addr.clone()),
+            consumer_name: None,
+            consumer_description: None,
+            denom: "stake".to_string(),
+        };
+        CONFIG.save(&mut deps.storage, &cfg).unwrap();
+
+        // Try to call with wrong sender
+        let wrong_sender = deps.api.addr_make("wrong_sender");
+        let fp_distribution = vec![RewardInfo {
+            fp_pubkey_hex: "fp1".to_string(),
+            reward: Uint128::new(1000),
+        }];
+
+        let msg = ExecuteMsg::DistributeRewards { fp_distribution };
+        let info = message_info(&wrong_sender, &[]);
+
+        let err = execute(deps.as_mut(), mock_env(), info, msg).unwrap_err();
+        match err {
+            ContractError::Unauthorized {} => {}
+            _ => panic!("Expected Unauthorized error"),
+        }
+    }
+
+    #[test]
+    fn test_distribute_rewards_invalid_amount() {
+        let mut deps = mock_dependencies();
+
+        // Set up config with finality contract address
+        let finality_addr = deps.api.addr_make("finality_contract");
+        let cfg = Config {
+            network: btc_light_client::BitcoinNetwork::Regtest,
+            babylon_tag: vec![1, 2, 3, 4],
+            btc_confirmation_depth: 1,
+            checkpoint_finalization_timeout: 1,
+            notify_cosmos_zone: false,
+            btc_light_client: None,
+            btc_staking: None,
+            btc_finality: Some(finality_addr.clone()),
+            consumer_name: None,
+            consumer_description: None,
+            denom: "stake".to_string(),
+        };
+        CONFIG.save(&mut deps.storage, &cfg).unwrap();
+
+        // Set up IBC transfer channel
+        IBC_TRANSFER
+            .save(&mut deps.storage, &"channel-0".to_string())
+            .unwrap();
+
+        // Test with no funds sent
+        let fp_distribution = vec![RewardInfo {
+            fp_pubkey_hex: "fp1".to_string(),
+            reward: Uint128::new(1000),
+        }];
+
+        let funds = vec![];
+        let msg = ExecuteMsg::DistributeRewards { fp_distribution };
+        let info = message_info(&finality_addr, &funds);
+
+        let err = execute(deps.as_mut(), mock_env(), info, msg).unwrap_err();
+        match err {
+            ContractError::Payment(payment_err) => {
+                assert!(matches!(
+                    payment_err,
+                    cw_utils::PaymentError::NoFunds { .. }
+                ));
+            }
+            _ => panic!("Expected Payment error, got: {:?}", err),
+        }
+
+        // Test with wrong amount sent
+        let fp_distribution = vec![
+            RewardInfo {
+                fp_pubkey_hex: "fp1".to_string(),
+                reward: Uint128::new(1000),
+            },
+            RewardInfo {
+                fp_pubkey_hex: "fp2".to_string(),
+                reward: Uint128::new(2000),
+            },
+        ];
+
+        // Send 1500 instead of 3000
+        let funds = vec![cosmwasm_std::coin(1500, "stake")];
+        let msg = ExecuteMsg::DistributeRewards { fp_distribution };
+        let info = message_info(&finality_addr, &funds);
+
+        let err = execute(deps.as_mut(), mock_env(), info, msg).unwrap_err();
+        match err {
+            ContractError::InvalidRewards(expected, sent) => {
+                assert_eq!(expected, Uint128::new(3000));
+                assert_eq!(sent, Uint128::new(1500));
+            }
+            _ => panic!("Expected InvalidRewards, got: {:?}", err),
+        }
     }
 }
