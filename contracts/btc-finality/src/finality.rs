@@ -252,7 +252,7 @@ pub fn handle_finality_signature(
     //     this means Babylon will lose safety under an adaptive adversary corrupting even 1
     //     finality provider. It can simply corrupt a new finality provider and equivocate a
     //     historical block over and over again, making a previous block not finalisable forever
-    if fp.slashed_height > 0 && fp.slashed_height < height {
+    if fp.slashed_height > 0 {
         return Err(ContractError::FinalityProviderAlreadySlashed(
             fp_btc_pk_hex.to_string(),
         ));
