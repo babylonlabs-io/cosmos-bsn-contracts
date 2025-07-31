@@ -2,8 +2,8 @@ use crate::contract::encode_smart_query;
 use crate::error::ContractError;
 use crate::state::config::{ADMIN, CONFIG, PARAMS};
 use crate::state::finality::{
-    get_power_table_at_height, BLOCKS, EVIDENCES, FP_BLOCK_SIGNER, FP_POWER_TABLE, FP_START_HEIGHT,
-    JAIL, NEXT_HEIGHT, SIGNATURES,
+    ensure_fp_has_power, get_power_table_at_height, BLOCKS, EVIDENCES, FP_BLOCK_SIGNER,
+    FP_POWER_TABLE, FP_START_HEIGHT, JAIL, NEXT_HEIGHT, SIGNATURES,
 };
 use crate::state::public_randomness::{
     get_last_finalized_height, get_last_pub_rand_commit,
@@ -259,13 +259,7 @@ pub fn handle_finality_signature(
     }
 
     // Ensure the finality provider has voting power at this height
-    let fp_power = FP_POWER_TABLE.load(deps.storage, (height, fp_btc_pk_hex))?;
-    if fp_power == 0 {
-        return Err(ContractError::NoVotingPower(
-            fp_btc_pk_hex.to_string(),
-            height,
-        ));
-    }
+    ensure_fp_has_power(deps.storage, height, fp_btc_pk_hex)?;
 
     // Ensure the signature is not empty
     if signature.is_empty() {

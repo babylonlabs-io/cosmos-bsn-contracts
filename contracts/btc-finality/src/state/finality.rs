@@ -1,3 +1,4 @@
+use crate::error::ContractError;
 use babylon_apis::finality_api::{Evidence, IndexedBlock};
 use cosmwasm_std::Order::Ascending;
 use cosmwasm_std::{StdResult, Storage};
@@ -24,6 +25,21 @@ pub fn get_power_table_at_height(
         .prefix(height)
         .range(storage, None, None, Ascending)
         .collect::<StdResult<HashMap<String, u64>>>()
+}
+
+pub fn ensure_fp_has_power(
+    storage: &mut dyn Storage,
+    height: u64,
+    fp_btc_pk_hex: &str,
+) -> Result<(), ContractError> {
+    let power = FP_POWER_TABLE.may_load(storage, (height, fp_btc_pk_hex))?;
+    if power.is_none() {
+        return Err(ContractError::NoVotingPower(
+            fp_btc_pk_hex.to_string(),
+            height,
+        ));
+    }
+    Ok(())
 }
 
 /// Map of finality providers to block height they initially entered the active set.
