@@ -58,6 +58,7 @@ pub fn get_consumer_header(
     Ok(indexed_header)
 }
 
+#[allow(dead_code)]
 fn verify_consumer_header(
     _deps: Deps,
     _consumer_header: &IndexedHeader,
@@ -82,16 +83,7 @@ fn insert_consumer_header(deps: &mut DepsMut, consumer_header: &IndexedHeader) -
 pub fn handle_consumer_header(
     deps: &mut DepsMut,
     consumer_header: &IndexedHeader,
-    epoch: &Epoch,
-    proof_consumer_header_in_epoch: &ProofOps,
 ) -> Result<(), error::ConsumerHeaderChainError> {
-    verify_consumer_header(
-        deps.as_ref(),
-        consumer_header,
-        epoch,
-        proof_consumer_header_in_epoch,
-    )?;
-
     insert_consumer_header(deps, consumer_header)?;
 
     Ok(())

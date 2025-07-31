@@ -166,16 +166,8 @@ fn reply_init_callback_light_client(
     // Try to get contract address from events in reply
     let addr = reply_init_get_contract_address(&reply)?;
 
-    // Fetch the first msg_response as the base header data of BTC light client.
-    let base_header_bytes = reply
-        .msg_responses
-        .into_iter()
-        .next()
-        .ok_or(ContractError::MissingBaseHeaderInBtcLightClientResponse)?
-        .value;
-
     CONFIG.update(deps.storage, |mut cfg| {
-        cfg.btc_light_client = Some((addr, base_header_bytes));
+        cfg.btc_light_client = Some(addr);
         Ok::<_, ContractError>(cfg)
     })?;
 
@@ -210,7 +202,10 @@ fn reply_init_callback_finality(
     // Set the BTC finality contract address to the BTC staking contract
     let cfg = CONFIG.load(deps.storage)?;
     let msg = btc_staking_api::ExecuteMsg::UpdateContractAddresses {
-        btc_light_client: cfg.btc_light_client_addr()?,
+        btc_light_client: cfg
+            .btc_light_client
+            .ok_or(ContractError::BtcLightClientNotSet {})?
+            .to_string(),
         finality: cfg
             .btc_finality
             .ok_or(ContractError::BtcFinalityNotSet {})?
