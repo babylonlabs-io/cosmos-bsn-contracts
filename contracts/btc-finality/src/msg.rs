@@ -1,13 +1,12 @@
+use crate::state::config::Params;
+use babylon_apis::finality_api::{Evidence, IndexedBlock};
 use cosmwasm_schema::{cw_serde, QueryResponses};
+use std::collections::HashMap;
 #[cfg(not(target_arch = "wasm32"))]
 use {
     crate::state::config::Config, babylon_apis::finality_api::PubRandCommit,
     cw_controllers::AdminResponse,
 };
-
-use crate::state::config::Params;
-use babylon_apis::finality_api::{Evidence, IndexedBlock};
-use btc_staking::msg::FinalityProviderInfo;
 
 #[cw_serde]
 #[derive(Default)]
@@ -124,5 +123,5 @@ pub struct JailedFinalityProvider {
 
 #[cw_serde]
 pub struct ActiveFinalityProvidersResponse {
-    pub active_finality_providers: Vec<FinalityProviderInfo>,
+    pub active_finality_providers: HashMap<String, u64>,
 }

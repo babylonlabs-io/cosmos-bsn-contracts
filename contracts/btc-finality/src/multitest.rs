@@ -201,9 +201,9 @@ mod finality {
 
         suite.add_delegations(&[del1.clone()]).unwrap();
 
-        // Check that the finality provider power has been updated
+        // Check that the finality provider total active sats has been updated
         let fp_info = suite.get_finality_provider_info(&new_fp.btc_pk_hex, None);
-        assert_eq!(fp_info.power, del1.total_sat);
+        assert_eq!(fp_info.total_active_sats, del1.total_sat);
 
         // Submit public randomness commitment for the FP and the involved heights
         suite
@@ -300,9 +300,9 @@ mod finality {
 
         suite.add_delegations(&[del1.clone()]).unwrap();
 
-        // Check that the finality provider power has been updated
+        // Check that the finality provider total active sats has been updated
         let fp_info = suite.get_finality_provider_info(&new_fp.btc_pk_hex, None);
-        assert_eq!(fp_info.power, del1.total_sat);
+        assert_eq!(fp_info.total_active_sats, del1.total_sat);
 
         // Call the begin-block / end-block sudo handler(s)
         let height = suite.next_block("deadbeef01".as_bytes()).unwrap().height;
@@ -322,7 +322,7 @@ mod finality {
         // Assert the finality provider is now in the active set
         let active_fps = suite.get_active_finality_providers(height);
         assert_eq!(active_fps.len(), 1);
-        assert_eq!(active_fps[0].btc_pk_hex, new_fp.btc_pk_hex.clone(),);
+        assert!(active_fps.contains_key(&new_fp.btc_pk_hex));
     }
 }
 
@@ -370,7 +370,7 @@ mod slashing {
 
         // Check that the finality provider power has been updated
         let fp_info = suite.get_finality_provider_info(&new_fp.btc_pk_hex, None);
-        assert_eq!(fp_info.power, del1.total_sat);
+        assert_eq!(fp_info.total_active_sats, del1.total_sat);
 
         // Submit public randomness commitment for the FP and the involved heights
         suite
@@ -571,7 +571,7 @@ mod jailing {
         let active_fps = suite.get_active_finality_providers(next_height);
         // All unjailed fps are selected
         assert_eq!(active_fps.len(), 1);
-        assert_eq!(active_fps[0].btc_pk_hex, new_fp1.btc_pk_hex.clone(),);
+        assert!(active_fps.contains_key(&new_fp1.btc_pk_hex));
 
         // Moving forward so offline detection kicks in
         suite.advance_seconds(4000).unwrap();
@@ -617,6 +617,6 @@ mod jailing {
         // blocks again
         let active_fps = suite.get_active_finality_providers(next_height);
         assert_eq!(active_fps.len(), 1);
-        assert_eq!(active_fps[0].btc_pk_hex, new_fp1.btc_pk_hex.clone(),);
+        assert!(active_fps.contains_key(&new_fp1.btc_pk_hex));
     }
 }

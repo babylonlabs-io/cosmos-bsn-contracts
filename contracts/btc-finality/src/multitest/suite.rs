@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use anyhow::Result as AnyResult;
 use derivative::Derivative;
 use hex::ToHex;
@@ -519,7 +521,7 @@ impl Suite {
             .jailed_finality_providers
     }
 
-    pub fn get_active_finality_providers(&self, height: u64) -> Vec<FinalityProviderInfo> {
+    pub fn get_active_finality_providers(&self, height: u64) -> HashMap<String, u64> {
         self.app
             .wrap()
             .query_wasm_smart::<ActiveFinalityProvidersResponse>(

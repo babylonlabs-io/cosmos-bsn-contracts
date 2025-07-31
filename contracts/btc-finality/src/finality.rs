@@ -2,7 +2,8 @@ use crate::contract::encode_smart_query;
 use crate::error::ContractError;
 use crate::state::config::{ADMIN, CONFIG, PARAMS};
 use crate::state::finality::{
-    BLOCKS, EVIDENCES, FP_BLOCK_SIGNER, FP_SET, FP_START_HEIGHT, JAIL, NEXT_HEIGHT, SIGNATURES,
+    get_power_table_at_height, BLOCKS, EVIDENCES, FP_BLOCK_SIGNER, FP_POWER_TABLE, FP_START_HEIGHT,
+    JAIL, NEXT_HEIGHT, SIGNATURES,
 };
 use crate::state::public_randomness::{
     get_last_finalized_height, get_last_pub_rand_commit,
@@ -13,7 +14,7 @@ use babylon_apis::btc_staking_api::FinalityProvider;
 use babylon_apis::finality_api::{Evidence, IndexedBlock, PubRandCommit};
 use babylon_apis::to_canonical_addr;
 use babylon_merkle::Proof;
-use btc_staking::msg::{FinalityProviderInfo, FinalityProvidersByPowerResponse};
+use btc_staking::msg::{FinalityProviderInfo, FinalityProvidersByTotalActiveSatsResponse};
 use cosmwasm_std::Order::Ascending;
 use cosmwasm_std::{
     to_json_binary, Addr, DepsMut, Env, Event, MessageInfo, QuerierWrapper, Response, StdResult,
@@ -22,7 +23,7 @@ use cosmwasm_std::{
 use k256::schnorr::{signature::Verifier, Signature, VerifyingKey};
 use k256::sha2::{Digest, Sha256};
 use std::cmp::max;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 // The maximum number of blocks into the future
 // that a public randomness commitment start height can target. This limit prevents abuse by capping
@@ -258,17 +259,8 @@ pub fn handle_finality_signature(
     }
 
     // Ensure the finality provider has voting power at this height
-    let fp: FinalityProviderInfo = deps
-        .querier
-        .query_wasm_smart(
-            staking_addr.clone(),
-            &btc_staking::msg::QueryMsg::FinalityProviderInfo {
-                btc_pk_hex: fp_btc_pk_hex.to_string(),
-                height: Some(height),
-            },
-        )
-        .map_err(|_| ContractError::NoVotingPower(fp_btc_pk_hex.to_string(), height))?;
-    if fp.power == 0 {
+    let fp_power = FP_POWER_TABLE.load(deps.storage, (height, fp_btc_pk_hex))?;
+    if fp_power == 0 {
         return Err(ContractError::NoVotingPower(
             fp_btc_pk_hex.to_string(),
             height,
@@ -614,16 +606,17 @@ pub fn tally_blocks(
     for h in start_height..=env.block.height {
         let mut indexed_block = BLOCKS.load(deps.storage, h)?;
         // Get the finality provider set of this block
-        let fp_set = FP_SET.may_load(deps.storage, h)?;
+        let fp_power_table = get_power_table_at_height(deps.storage, h)?;
+        let has_fp = !fp_power_table.is_empty();
 
-        match (fp_set, indexed_block.finalized) {
-            (Some(fp_set), false) => {
+        match (has_fp, indexed_block.finalized) {
+            (true, false) => {
                 // Has finality providers, non-finalised: tally and try to finalise the block
                 let voter_btc_pks = SIGNATURES
                     .prefix(indexed_block.height)
                     .keys(deps.storage, None, None, Ascending)
                     .collect::<StdResult<Vec<_>>>()?;
-                if tally(&fp_set, &voter_btc_pks) {
+                if tally(&fp_power_table, &voter_btc_pks) {
                     // If this block gets >2/3 votes, finalise it
                     let ev = finalize_block(deps.storage, &mut indexed_block, &voter_btc_pks)?;
                     events.push(ev);
@@ -633,20 +626,20 @@ pub fn tally_blocks(
                     break;
                 }
             }
-            (None, false) => {
+            (false, false) => {
                 // Does not have finality providers, non-finalised: not finalisable,
                 // Increment the next height to finalise and continue
                 NEXT_HEIGHT.save(deps.storage, &(indexed_block.height + 1))?;
                 continue;
             }
-            (Some(_), true) => {
+            (true, true) => {
                 // Has finality providers and the block is finalised.
                 // This can only be a programming error
                 return Err(ContractError::FinalisedBlockWithFinalityProviderSet(
                     indexed_block.height,
                 ));
             }
-            (None, true) => {
+            (false, true) => {
                 // Does not have finality providers, finalised: impossible to happen
                 return Err(ContractError::FinalisedBlockWithoutFinalityProviderSet(
                     indexed_block.height,
@@ -659,14 +652,14 @@ pub fn tally_blocks(
 }
 
 /// Checks whether a block with the given finality provider set and votes reaches a quorum or not.
-fn tally(fp_set: &[FinalityProviderInfo], voters: &[String]) -> bool {
+fn tally(fp_power_table: &HashMap<String, u64>, voters: &[String]) -> bool {
     let voters: HashSet<String> = voters.iter().cloned().collect();
     let mut total_power = 0;
     let mut voted_power = 0;
-    for fp_info in fp_set {
-        total_power += fp_info.power;
-        if voters.contains(&fp_info.btc_pk_hex) {
-            voted_power += fp_info.power;
+    for (fp_btc_pk_hex, power) in fp_power_table {
+        total_power += power;
+        if voters.contains(fp_btc_pk_hex) {
+            voted_power += power;
         }
     }
     voted_power * 3 > total_power * 2
@@ -706,53 +699,65 @@ pub fn compute_active_finality_providers(
     let last_finalized_height = get_last_finalized_height(&deps.as_ref())?;
 
     // Get all finality providers from the staking contract, filtered
-    let mut batch = list_fps_by_power(&cfg.staking, &deps.querier, None, QUERY_LIMIT)?;
+    let mut batch = query_fps_by_total_active_sats(&cfg.staking, &deps.querier, None, QUERY_LIMIT)?;
 
-    let mut finality_providers = vec![];
+    let mut fp_power_table = HashMap::new();
     let mut total_power: u64 = 0;
-    while !batch.is_empty() && finality_providers.len() < max_active_fps {
+    while !batch.is_empty() && fp_power_table.len() < max_active_fps {
         let last = batch.last().cloned();
 
         let (filtered, running_total): (Vec<_>, Vec<_>) = batch
             .into_iter()
             .filter(|fp| {
-                // Filter out FPs with no voting power
-                if fp.power == 0 {
+                // Filter out FPs with no active sats (also includes slashed FPs)
+                if fp.total_active_sats == 0 {
                     return false;
                 }
                 // Filter out FPs that are jailed.
                 // Error (shouldn't happen) is being mapped to "jailed forever"
-                JAIL.may_load(deps.storage, &fp.btc_pk_hex)
+                if JAIL
+                    .may_load(deps.storage, &fp.btc_pk_hex)
                     .unwrap_or(Some(JAIL_FOREVER))
-                    .is_none()
+                    .is_some()
+                {
+                    return false;
+                }
                 // Filter out FPs that don't have timestamped public randomness
-                && has_timestamped_pub_rand_commit_for_height(&deps.as_ref(), &fp.btc_pk_hex, env.block.height, Some(last_finalized_height))
+                if !has_timestamped_pub_rand_commit_for_height(
+                    &deps.as_ref(),
+                    &fp.btc_pk_hex,
+                    env.block.height,
+                    Some(last_finalized_height),
+                ) {
+                    return false;
+                }
+
+                true
             })
             .scan(total_power, |acc, fp| {
-                *acc += fp.power;
+                *acc += fp.total_active_sats;
                 Some((fp, *acc))
             })
             .unzip();
 
-        finality_providers.extend_from_slice(&filtered);
+        // Add the filtered finality providers to the power table
+        for fp in filtered {
+            fp_power_table.insert(fp.btc_pk_hex, fp.total_active_sats);
+        }
+        // Update the total power
         total_power = running_total.last().copied().unwrap_or_default();
 
         // and get the next page
-        batch = list_fps_by_power(&cfg.staking, &deps.querier, last, QUERY_LIMIT)?;
+        batch = query_fps_by_total_active_sats(&cfg.staking, &deps.querier, last, QUERY_LIMIT)?;
     }
 
     // Online FPs verification
     // Store starting heights of fps entering the active set
-    let old_fps: HashSet<String> = FP_SET
-        .may_load(deps.storage, env.block.height - 1)?
-        .unwrap_or(vec![])
-        .iter()
-        .map(|fp| fp.btc_pk_hex.clone())
+    let old_fps = get_power_table_at_height(deps.storage, env.block.height - 1)?
+        .keys()
+        .cloned()
         .collect();
-    let cur_fps: HashSet<String> = finality_providers
-        .iter()
-        .map(|fp| fp.btc_pk_hex.clone())
-        .collect();
+    let cur_fps: HashSet<String> = fp_power_table.keys().cloned().collect();
     let new_fps = cur_fps.difference(&old_fps);
     for fp in new_fps {
         // Active since the next block. Only save if not already set
@@ -764,11 +769,11 @@ pub fn compute_active_finality_providers(
 
     // Check for inactive finality providers, and jail them
     let params = PARAMS.load(deps.storage)?;
-    finality_providers.iter().try_for_each(|fp| {
-        let mut last_sign_height = FP_BLOCK_SIGNER.may_load(deps.storage, &fp.btc_pk_hex)?;
+    fp_power_table.iter().try_for_each(|(fp_btc_pk_hex, _)| {
+        let mut last_sign_height = FP_BLOCK_SIGNER.may_load(deps.storage, fp_btc_pk_hex)?;
         if last_sign_height.is_none() {
             // Not a block signer yet, check their start height instead
-            last_sign_height = FP_START_HEIGHT.may_load(deps.storage, &fp.btc_pk_hex)?;
+            last_sign_height = FP_START_HEIGHT.may_load(deps.storage, fp_btc_pk_hex)?;
         }
         match last_sign_height {
             Some(h) if h > env.block.height.saturating_sub(params.missed_blocks_window) => {
@@ -776,7 +781,7 @@ pub fn compute_active_finality_providers(
             }
             _ => {
                 // FP is inactive for at least missed_blocks_window, jail! (if not already jailed)
-                JAIL.update(deps.storage, &fp.btc_pk_hex, |jailed| match jailed {
+                JAIL.update(deps.storage, fp_btc_pk_hex, |jailed| match jailed {
                     Some(jail_time) => Ok::<_, ContractError>(jail_time),
                     None => Ok(env.block.time.seconds() + params.jail_duration),
                 })?;
@@ -786,13 +791,21 @@ pub fn compute_active_finality_providers(
     })?;
 
     // Save the new set of active finality providers
-    // TODO: Purge old (height - finality depth) FP_SET entries to avoid bloating the storage (#124)
-    FP_SET.save(deps.storage, env.block.height, &finality_providers)?;
+    for (fp_btc_pk_hex, power) in fp_power_table {
+        FP_POWER_TABLE.save(
+            deps.storage,
+            (env.block.height, fp_btc_pk_hex.as_str()),
+            &power,
+        )?;
+    }
 
     Ok(())
 }
 
-pub fn list_fps_by_power(
+/// Query BTC staking contract for finality providers by total active sats.
+///
+/// This is used to get the finality providers with the highest total active sats.
+pub fn query_fps_by_total_active_sats(
     staking_addr: &Addr,
     querier: &QuerierWrapper,
     start_after: Option<FinalityProviderInfo>,
@@ -800,8 +813,8 @@ pub fn list_fps_by_power(
 ) -> StdResult<Vec<FinalityProviderInfo>> {
     let query = encode_smart_query(
         staking_addr,
-        &btc_staking::msg::QueryMsg::FinalityProvidersByPower { start_after, limit },
+        &btc_staking::msg::QueryMsg::FinalityProvidersByTotalActiveSats { start_after, limit },
     )?;
-    let res: FinalityProvidersByPowerResponse = querier.query(&query)?;
+    let res: FinalityProvidersByTotalActiveSatsResponse = querier.query(&query)?;
     Ok(res.fps)
 }

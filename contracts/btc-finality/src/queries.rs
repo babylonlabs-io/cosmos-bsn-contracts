@@ -11,7 +11,7 @@ use crate::msg::{
 };
 use crate::state::config::{Config, Params};
 use crate::state::config::{CONFIG, PARAMS};
-use crate::state::finality::{BLOCKS, EVIDENCES, FP_SET, JAIL, SIGNATURES};
+use crate::state::finality::{get_power_table_at_height, BLOCKS, EVIDENCES, JAIL, SIGNATURES};
 
 pub fn config(deps: Deps) -> StdResult<Config> {
     CONFIG.load(deps.storage)
@@ -107,7 +107,7 @@ pub fn active_finality_providers(
     deps: Deps,
     height: u64,
 ) -> Result<ActiveFinalityProvidersResponse, ContractError> {
-    let active_fps = FP_SET.may_load(deps.storage, height)?.unwrap_or_default();
+    let active_fps = get_power_table_at_height(deps.storage, height)?;
 
     Ok(ActiveFinalityProvidersResponse {
         active_finality_providers: active_fps,

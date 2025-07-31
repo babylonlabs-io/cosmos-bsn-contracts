@@ -1,6 +1,8 @@
 use babylon_apis::finality_api::{Evidence, IndexedBlock};
-use btc_staking::msg::FinalityProviderInfo;
+use cosmwasm_std::Order::Ascending;
+use cosmwasm_std::{StdResult, Storage};
 use cw_storage_plus::{Item, Map};
+use std::collections::HashMap;
 
 /// Map of signatures by block height and FP
 pub const SIGNATURES: Map<(u64, &str), Vec<u8>> = Map::new("fp_sigs");
@@ -11,8 +13,18 @@ pub const BLOCKS: Map<u64, IndexedBlock> = Map::new("blocks");
 /// Next height to finalise
 pub const NEXT_HEIGHT: Item<u64> = Item::new("next_height");
 
-/// `FP_SET` is the calculated list of the active finality providers by height
-pub const FP_SET: Map<u64, Vec<FinalityProviderInfo>> = Map::new("fp_set");
+/// `FP_POWER_TABLE` is the map of finality providers to their total active sats at a given height
+pub const FP_POWER_TABLE: Map<(u64, &str), u64> = Map::new("fp_power_table");
+
+pub fn get_power_table_at_height(
+    storage: &dyn Storage,
+    height: u64,
+) -> StdResult<HashMap<String, u64>> {
+    FP_POWER_TABLE
+        .prefix(height)
+        .range(storage, None, None, Ascending)
+        .collect::<StdResult<HashMap<String, u64>>>()
+}
 
 /// Map of finality providers to block height they initially entered the active set.
 /// If an FP isn't in this map, he was not in the active finality provider set,
