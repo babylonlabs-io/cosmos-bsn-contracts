@@ -406,16 +406,16 @@ pub fn execute(
 
 #[cfg(test)]
 mod tests {
-
     use super::*;
-    use crate::msg::contract::RewardInfo;
+
     use bitcoin::block::Header as BlockHeader;
     use btc_light_client::msg::InstantiateMsg as BtcLightClientInstantiateMsg;
 
-    use cosmwasm_std::Uint128;
-
     use cosmwasm_std::testing::message_info;
     use cosmwasm_std::testing::{mock_dependencies, mock_env};
+    use cosmwasm_std::Uint128;
+
+    use crate::msg::contract::RewardInfo;
 
     const CREATOR: &str = "creator";
 
