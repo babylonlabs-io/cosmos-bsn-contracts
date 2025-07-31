@@ -31,9 +31,9 @@ pub struct Params {
     #[derivative(Default(value = "1"))]
     pub min_pub_rand: u64,
 
-    /// Number of blocks that defines an epoch.
-    #[derivative(Default(value = "50"))] // 50 * ~6.5s = ~5min
-    pub epoch_length: u64,
+    /// Number of blocks that define the rewards distribution interval
+    #[derivative(Default(value = "50"))]
+    pub reward_interval: u64,
     /// Missed number of blocks an FP can be jailed for due to offline detection
     #[derivative(Default(value = "250"))]
     pub missed_blocks_window: u64,

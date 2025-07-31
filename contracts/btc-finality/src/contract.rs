@@ -266,7 +266,7 @@ fn handle_end_block(
 
     // On an epoch boundary, send rewards for distribution to Babylon Genesis
     let params = PARAMS.load(deps.storage)?;
-    if env.block.height > 0 && env.block.height % params.epoch_length == 0 {
+    if env.block.height > 0 && env.block.height % params.reward_interval == 0 {
         let rewards = TOTAL_PENDING_REWARDS.load(deps.storage)?;
         if rewards.u128() > 0 {
             let (fp_rewards, wasm_msg) = send_rewards_msg(deps, rewards.u128(), &cfg)?;

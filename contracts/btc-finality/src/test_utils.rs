@@ -7,7 +7,7 @@ pub fn finality_params(missed_blocks_window: Option<u64>) -> Params {
         max_active_finality_providers: 100,
         min_pub_rand: 1,
 
-        epoch_length: 50,
+        reward_interval: 50,
         missed_blocks_window,
         jail_duration: 86400,
     }

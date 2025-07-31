@@ -520,7 +520,7 @@ mod tests {
     #[test]
     fn instantiate_finality_params_works() {
         let mut deps = mock_dependencies();
-        let params = r#"{"params": {"epoch_length": 10}}"#;
+        let params = r#"{"params": {"reward_interval": 10}}"#;
         let mut msg = InstantiateMsg::new_test();
         msg.btc_finality_code_id.replace(2);
         msg.btc_finality_msg
