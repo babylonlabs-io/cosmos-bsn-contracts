@@ -351,12 +351,13 @@ pub fn execute(
                 .iter()
                 .map(|reward_info| {
                     let ratio = reward_info.reward / total_rewards;
-                    serde_json::json!({
-                        "btc_pk": reward_info.fp_pubkey_hex,
+                    let btc_pk_bytes = hex::decode(&reward_info.fp_pubkey_hex)?;
+                    Ok(serde_json::json!({
+                        "btc_pk": Binary::new(btc_pk_bytes),
                         "ratio": ratio.to_string()
-                    })
+                    }))
                 })
-                .collect();
+                .collect::<Result<Vec<_>, ContractError>>()?;
 
             // Create memo with the proper Babylon structure
             let memo = serde_json::json!({
@@ -567,7 +568,7 @@ mod tests {
         // Try to call with wrong sender
         let wrong_sender = deps.api.addr_make("wrong_sender");
         let fp_distribution = vec![RewardInfo {
-            fp_pubkey_hex: "fp1".to_string(),
+            fp_pubkey_hex: "02eec7245d6b7d2ccb30380bfbe2a3648cd7a942653f5aa340edcea1f283686619".to_string(),
             reward: Uint128::new(1000),
         }];
 
@@ -610,7 +611,7 @@ mod tests {
 
         // Test with no funds sent
         let fp_distribution = vec![RewardInfo {
-            fp_pubkey_hex: "fp1".to_string(),
+            fp_pubkey_hex: "02eec7245d6b7d2ccb30380bfbe2a3648cd7a942653f5aa340edcea1f283686619".to_string(),
             reward: Uint128::new(1000),
         }];
 
@@ -632,25 +633,25 @@ mod tests {
         // Test with wrong amount sent
         let fp_distribution = vec![
             RewardInfo {
-                fp_pubkey_hex: "fp1".to_string(),
+                fp_pubkey_hex: "02eec7245d6b7d2ccb30380bfbe2a3648cd7a942653f5aa340edcea1f283686619".to_string(),
                 reward: Uint128::new(1000),
             },
             RewardInfo {
-                fp_pubkey_hex: "fp2".to_string(),
-                reward: Uint128::new(2000),
+                fp_pubkey_hex: "03a0434d9e47f3c86235477c7b1ae6ae5d3442d49b1943c2b752a68e2a47e247c7".to_string(),
+                reward: Uint128::new(500),
             },
         ];
 
-        // Send 1500 instead of 3000
-        let funds = vec![cosmwasm_std::coin(1500, "stake")];
+        // Send 1000 instead of 1500 (total rewards)
+        let funds = vec![cosmwasm_std::coin(1000, "stake")];
         let msg = ExecuteMsg::DistributeRewards { fp_distribution };
         let info = message_info(&finality_addr, &funds);
 
         let err = execute(deps.as_mut(), mock_env(), info, msg).unwrap_err();
         match err {
             ContractError::InvalidRewards(expected, sent) => {
-                assert_eq!(expected, Uint128::new(3000));
-                assert_eq!(sent, Uint128::new(1500));
+                assert_eq!(expected, Uint128::new(1500));
+                assert_eq!(sent, Uint128::new(1000));
             }
             _ => panic!("Expected InvalidRewards, got: {:?}", err),
         }
@@ -683,14 +684,14 @@ mod tests {
             .save(&mut deps.storage, &"channel-0".to_string())
             .unwrap();
 
-        // Test with valid distribution
+        // Test with valid distribution using proper hex strings for BIP340 public keys
         let fp_distribution = vec![
             RewardInfo {
-                fp_pubkey_hex: "fp1".to_string(),
+                fp_pubkey_hex: "02eec7245d6b7d2ccb30380bfbe2a3648cd7a942653f5aa340edcea1f283686619".to_string(),
                 reward: Uint128::new(600),
             },
             RewardInfo {
-                fp_pubkey_hex: "fp2".to_string(),
+                fp_pubkey_hex: "03a0434d9e47f3c86235477c7b1ae6ae5d3442d49b1943c2b752a68e2a47e247c7".to_string(),
                 reward: Uint128::new(400),
             },
         ];
