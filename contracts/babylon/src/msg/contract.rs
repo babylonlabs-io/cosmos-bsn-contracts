@@ -59,6 +59,7 @@ pub struct InstantiateMsg {
     /// Required for rewards distribution on Babylon Genesis
     pub ics20_channel_id: String,
     /// IBC packet timeout in days
+    /// If not set, the default value (28 days) will be used
     pub ibc_packet_timeout_days: Option<u64>,
 }
 
