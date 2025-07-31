@@ -307,7 +307,7 @@ fn send_rewards_msg(
         })
         .collect::<StdResult<Vec<_>>>()?;
     // The rewards are sent to the babylon contract for IBC distribution to Babylon Genesis
-    let msg = babylon_contract::msg::contract::ExecuteMsg::DistributeRewards {
+    let msg = babylon_contract::msg::contract::ExecuteMsg::RewardsDistribution {
         fp_distribution: fp_rewards.clone(),
     };
     let wasm_msg = WasmMsg::Execute {
@@ -455,7 +455,7 @@ pub(crate) mod tests {
                 // Verify the message is a DistributeRewards message
                 let msg_data: babylon_contract::msg::contract::ExecuteMsg = from_json(msg).unwrap();
                 match msg_data {
-                    babylon_contract::msg::contract::ExecuteMsg::DistributeRewards {
+                    babylon_contract::msg::contract::ExecuteMsg::RewardsDistribution {
                         fp_distribution,
                     } => {
                         assert_eq!(fp_distribution.len(), 2);
@@ -510,7 +510,7 @@ pub(crate) mod tests {
                 // Verify the message is a DistributeRewards message with empty distribution
                 let msg_data: babylon_contract::msg::contract::ExecuteMsg = from_json(msg).unwrap();
                 match msg_data {
-                    babylon_contract::msg::contract::ExecuteMsg::DistributeRewards {
+                    babylon_contract::msg::contract::ExecuteMsg::RewardsDistribution {
                         fp_distribution,
                     } => {
                         assert_eq!(fp_distribution.len(), 0);

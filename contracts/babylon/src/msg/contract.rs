@@ -145,7 +145,7 @@ pub enum ExecuteMsg {
     /// Babylon itself
     Slashing { evidence: Evidence },
     /// Message sent by the finality contract, to send rewards to distribute to Babylon Genesis
-    DistributeRewards {
+    RewardsDistribution {
         /// List of finality providers and their rewards
         fp_distribution: Vec<RewardInfo>,
     },

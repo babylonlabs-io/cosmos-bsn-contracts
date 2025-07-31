@@ -311,7 +311,7 @@ pub fn execute(
             // TODO: Add events (#124)
             Ok(res)
         }
-        ExecuteMsg::DistributeRewards { fp_distribution } => {
+        ExecuteMsg::RewardsDistribution { fp_distribution } => {
             // Check that the sender is the finality contract
             let cfg = CONFIG.load(deps.storage)?;
             let finality_addr = cfg
@@ -578,7 +578,7 @@ mod tests {
             reward: Uint128::new(1000),
         }];
 
-        let msg = ExecuteMsg::DistributeRewards { fp_distribution };
+        let msg = ExecuteMsg::RewardsDistribution { fp_distribution };
         let info = message_info(&wrong_sender, &[]);
 
         let err = execute(deps.as_mut(), mock_env(), info, msg).unwrap_err();
@@ -624,7 +624,7 @@ mod tests {
         }];
 
         let funds = vec![];
-        let msg = ExecuteMsg::DistributeRewards { fp_distribution };
+        let msg = ExecuteMsg::RewardsDistribution { fp_distribution };
         let info = message_info(&finality_addr, &funds);
 
         let err = execute(deps.as_mut(), mock_env(), info, msg).unwrap_err();
@@ -654,7 +654,7 @@ mod tests {
 
         // Send 1000 instead of 1500 (total rewards)
         let funds = vec![cosmwasm_std::coin(1000, "stake")];
-        let msg = ExecuteMsg::DistributeRewards { fp_distribution };
+        let msg = ExecuteMsg::RewardsDistribution { fp_distribution };
         let info = message_info(&finality_addr, &funds);
 
         let err = execute(deps.as_mut(), mock_env(), info, msg).unwrap_err();
@@ -713,7 +713,7 @@ mod tests {
             denom: "stake".to_string(),
             amount: Uint128::new(1000),
         }];
-        let msg = ExecuteMsg::DistributeRewards { fp_distribution };
+        let msg = ExecuteMsg::RewardsDistribution { fp_distribution };
         let info = message_info(&finality_addr, &funds);
 
         let response = execute(deps.as_mut(), mock_env(), info, msg).unwrap();
