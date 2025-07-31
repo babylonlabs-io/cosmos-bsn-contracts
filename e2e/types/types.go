@@ -102,6 +102,7 @@ func NewBabylonInitMsg(
 		"consumer_name":                   consumerName,
 		"consumer_description":            consumerDescription,
 		"ics20_channel_id":                ics20ChannelID,
+		"destination_module":              "btcstaking",
 	}
 
 	jsonBytes, err := json.Marshal(data)

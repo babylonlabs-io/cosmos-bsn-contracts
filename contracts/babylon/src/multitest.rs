@@ -132,7 +132,7 @@ mod instantiation {
     fn instantiate_finality_msg_works() {
         // Params setting is an all-or-nothing operation, i.e. all the params have to be set
         let params = btc_finality::state::config::Params {
-            epoch_length: 10,
+            reward_interval: 10,
             max_active_finality_providers: 5,
             min_pub_rand: 2,
             missed_blocks_window: 100,

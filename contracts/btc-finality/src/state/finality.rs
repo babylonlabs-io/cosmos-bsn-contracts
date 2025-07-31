@@ -1,7 +1,11 @@
 use crate::error::ContractError;
 use babylon_apis::finality_api::{Evidence, IndexedBlock};
+use babylon_apis::finality_api::{Evidence, IndexedBlock};
+use btc_staking::msg::FinalityProviderInfo;
 use cosmwasm_std::Order::Ascending;
+use cosmwasm_std::Uint128;
 use cosmwasm_std::{StdResult, Storage};
+use cw_storage_plus::{Item, Map};
 use cw_storage_plus::{Item, Map};
 use std::collections::HashMap;
 
@@ -59,3 +63,9 @@ pub const JAIL: Map<&str, u64> = Map::new("jail");
 
 /// Map of double signing evidence by FP and block height
 pub const EVIDENCES: Map<(&str, u64), Evidence> = Map::new("evidences");
+
+/// Map of pending finality provider rewards
+pub const REWARDS: Map<&str, Uint128> = Map::new("rewards");
+
+/// Total pending rewards
+pub const TOTAL_PENDING_REWARDS: Item<Uint128> = Item::new("pending_rewards");

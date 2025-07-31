@@ -12,7 +12,7 @@ use babylon_proto::babylon::{
     },
 };
 use cosmwasm_std::{
-    to_json_binary, Binary, DepsMut, Env, Event, Ibc3ChannelOpenResponse, IbcBasicResponse,
+    to_json_binary, Binary, Deps, DepsMut, Env, Event, Ibc3ChannelOpenResponse, IbcBasicResponse,
     IbcChannelCloseMsg, IbcChannelConnectMsg, IbcChannelOpenMsg, IbcChannelOpenResponse, IbcMsg,
     IbcOrder, IbcPacketAckMsg, IbcPacketReceiveMsg, IbcPacketTimeoutMsg, IbcReceiveResponse,
     IbcTimeout, Never, StdAck, StdError, StdResult, WasmMsg,
@@ -28,6 +28,13 @@ pub const IBC_ORDERING: IbcOrder = IbcOrder::Ordered;
 pub const IBC_ZC_CHANNEL: Item<String> = Item::new("ibc_zc");
 /// IBC transfer (ICS-020) channel ID
 pub const IBC_TRANSFER_CHANNEL: Item<String> = Item::new("ibc_ics20");
+
+/// Get IBC packet timeout based on configuration
+pub fn get_ibc_packet_timeout(env: &Env, deps: &Deps) -> StdResult<IbcTimeout> {
+    let cfg = CONFIG.load(deps.storage)?;
+    let timeout = env.block.time.plus_days(cfg.ibc_packet_timeout_days);
+    Ok(IbcTimeout::with_timestamp(timeout))
+}
 
 /// This is executed during the ChannelOpenInit and ChannelOpenTry
 /// of the IBC 4-step channel protocol
@@ -158,12 +165,6 @@ pub(crate) mod ibc_packet {
     use cosmwasm_std::Deps;
 
     use super::*;
-
-    fn get_ibc_packet_timeout(env: &Env, deps: &Deps) -> StdResult<IbcTimeout> {
-        let cfg = CONFIG.load(deps.storage)?;
-        let timeout = env.block.time.plus_days(cfg.ibc_packet_timeout_days);
-        Ok(IbcTimeout::with_timestamp(timeout))
-    }
 
     pub fn handle_btc_timestamp(
         deps: &mut DepsMut,

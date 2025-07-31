@@ -1,6 +1,6 @@
 use babylon_apis::error::StakingApiError;
 use btc_light_client::error::ContractError as BTCLightclientError;
-use cosmwasm_std::StdError;
+use cosmwasm_std::{StdError, Uint128};
 use cw_utils::{ParseReplyError, PaymentError};
 
 use thiserror::Error;
@@ -59,6 +59,10 @@ pub enum ContractError {
     ProstDecode(#[from] prost::DecodeError),
     #[error("SerdeJson error: {0}")]
     SerdeJson(String),
+    #[error("Invalid rewards: expected {0}, sent {1}")]
+    InvalidRewards(Uint128, Uint128),
+    #[error("Consumer name is not set")]
+    ConsumerNameNotSet {},
 }
 
 impl From<serde_json::Error> for ContractError {

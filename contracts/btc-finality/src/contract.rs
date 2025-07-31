@@ -1,18 +1,21 @@
 use crate::error::ContractError;
 use crate::finality::{
-    compute_active_finality_providers, handle_finality_signature, handle_public_randomness_commit,
-    handle_unjail,
+    compute_active_finality_providers, distribute_rewards_fps, handle_finality_signature,
+    handle_public_randomness_commit, handle_unjail,
 };
 use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
 use crate::state::config::{Config, ADMIN, CONFIG, PARAMS};
+use crate::state::finality::{REWARDS, TOTAL_PENDING_REWARDS};
 use crate::{finality, queries, state};
 use babylon_apis::finality_api::SudoMsg;
+use babylon_contract::msg::contract::RewardInfo;
 use btc_staking::msg::ActivatedHeightResponse;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    attr, to_json_binary, Addr, CustomQuery, Deps, DepsMut, Empty, Env, MessageInfo,
-    QuerierWrapper, QueryRequest, QueryResponse, Reply, Response, StdResult, WasmQuery,
+    attr, coins, to_json_binary, Addr, CustomQuery, Deps, DepsMut, Empty, Env, MessageInfo, Order,
+    QuerierWrapper, QueryRequest, QueryResponse, Reply, Response, StdResult, Uint128, WasmMsg,
+    WasmQuery,
 };
 use cw2::set_contract_version;
 use cw_utils::{maybe_addr, nonpayable};
@@ -45,6 +48,8 @@ pub fn instantiate(
 
     let params = msg.params.unwrap_or_default();
     PARAMS.save(deps.storage, &params)?;
+    // initialize storage, so no issue when reading for the first time
+    TOTAL_PENDING_REWARDS.save(deps.storage, &Uint128::zero())?;
 
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
     Ok(Response::new().add_attribute("action", "instantiate"))
@@ -231,10 +236,14 @@ fn handle_update_staking(
 }
 
 fn handle_begin_block(deps: &mut DepsMut, env: Env) -> Result<Response, ContractError> {
+    // Distribute rewards to finality providers
+    distribute_rewards_fps(deps, &env)?;
+
     // Compute active finality provider set
     let max_active_fps = PARAMS.load(deps.storage)?.max_active_finality_providers as usize;
     compute_active_finality_providers(deps, &env, max_active_fps)?;
 
+    // TODO: Add events (#124)
     Ok(Response::new())
 }
 
@@ -258,12 +267,58 @@ fn handle_end_block(
         res = res.add_events(events);
     }
 
+    // On an epoch boundary, send rewards for distribution to Babylon Genesis
     let params = PARAMS.load(deps.storage)?;
-    if env.block.height > 0 && env.block.height % params.epoch_length == 0 {
-        // TODO: On an epoch boundary, send rewards for distribution
-        // https://github.com/babylonlabs-io/cosmos-bsn-contracts/issues/227
+    if env.block.height > 0 && env.block.height % params.reward_interval == 0 {
+        let rewards = TOTAL_PENDING_REWARDS.load(deps.storage)?;
+        if rewards.u128() > 0 {
+            let (fp_rewards, wasm_msg) = send_rewards_msg(deps, rewards.u128(), &cfg)?;
+            res = res.add_message(wasm_msg);
+            // Zero out individual rewards
+            for reward in fp_rewards {
+                REWARDS.remove(deps.storage, &reward.fp_pubkey_hex);
+            }
+            // Zero out total pending rewards
+            TOTAL_PENDING_REWARDS.save(deps.storage, &Uint128::zero())?;
+        }
     }
     Ok(res)
+}
+
+// Sends rewards to the babylon contract to send it via IBC to Babylon Genesis
+fn send_rewards_msg(
+    deps: &mut DepsMut,
+    rewards: u128,
+    cfg: &Config,
+) -> Result<(Vec<RewardInfo>, WasmMsg), ContractError> {
+    // Get the pending rewards distribution
+    let fp_rewards = REWARDS
+        .range(deps.storage, None, None, Order::Ascending)
+        .filter(|item| {
+            if let Ok((_, reward)) = item {
+                reward.u128() > 0
+            } else {
+                true // don't filter errors
+            }
+        })
+        .map(|item| {
+            let (fp_pubkey_hex, reward) = item?;
+            Ok(RewardInfo {
+                fp_pubkey_hex,
+                reward,
+            })
+        })
+        .collect::<StdResult<Vec<_>>>()?;
+    // The rewards are sent to the babylon contract for IBC distribution to Babylon Genesis
+    let msg = babylon_contract::msg::contract::ExecuteMsg::RewardsDistribution {
+        fp_distribution: fp_rewards.clone(),
+    };
+    let wasm_msg = WasmMsg::Execute {
+        contract_addr: cfg.babylon.to_string(),
+        msg: to_json_binary(&msg)?,
+        funds: coins(rewards, cfg.denom.as_str()),
+    };
+    Ok((fp_rewards, wasm_msg))
 }
 
 pub fn get_activated_height(staking_addr: &Addr, querier: &QuerierWrapper) -> StdResult<u64> {
@@ -292,11 +347,10 @@ pub(crate) mod tests {
     use super::*;
 
     use cosmwasm_std::{
-        from_json,
+        coins, from_json,
         testing::{message_info, mock_dependencies, mock_env},
     };
     use cw_controllers::AdminResponse;
-
     pub(crate) const CREATOR: &str = "creator";
     pub(crate) const INIT_ADMIN: &str = "initial_admin";
     const NEW_ADMIN: &str = "new_admin";
@@ -351,6 +405,124 @@ pub(crate) mod tests {
         let res = query(deps.as_ref(), mock_env(), QueryMsg::Admin {}).unwrap();
         let admin: AdminResponse = from_json(res).unwrap();
         assert_eq!(admin.admin.unwrap(), init_admin.as_str())
+    }
+
+    #[test]
+    fn test_send_rewards_msg() {
+        let mut deps = mock_dependencies();
+
+        // Set up the contract with config
+        let babylon_addr = deps.api.addr_make("babylon");
+        let staking_addr = deps.api.addr_make("staking");
+        let config = Config {
+            denom: "TOKEN".to_string(),
+            blocks_per_year: 1000,
+            babylon: babylon_addr.clone(),
+            staking: staking_addr.clone(),
+        };
+        CONFIG.save(&mut deps.storage, &config).unwrap();
+
+        // Add some rewards for FPs
+        let fp1 = "fp1".to_string();
+        let fp2 = "fp2".to_string();
+        REWARDS
+            .save(&mut deps.storage, &fp1, &Uint128::from(100u128))
+            .unwrap();
+        REWARDS
+            .save(&mut deps.storage, &fp2, &Uint128::from(200u128))
+            .unwrap();
+        TOTAL_PENDING_REWARDS
+            .save(&mut deps.storage, &Uint128::from(300u128))
+            .unwrap();
+
+        // Test send_rewards_msg
+        let (fp_rewards, wasm_msg) = send_rewards_msg(&mut deps.as_mut(), 300, &config).unwrap();
+
+        // Verify the rewards are correct
+        assert_eq!(fp_rewards.len(), 2);
+        assert_eq!(fp_rewards[0].fp_pubkey_hex, fp1);
+        assert_eq!(fp_rewards[0].reward, Uint128::from(100u128));
+        assert_eq!(fp_rewards[1].fp_pubkey_hex, fp2);
+        assert_eq!(fp_rewards[1].reward, Uint128::from(200u128));
+
+        // Verify the WasmMsg is correct
+        match wasm_msg {
+            WasmMsg::Execute {
+                contract_addr,
+                msg,
+                funds,
+            } => {
+                assert_eq!(contract_addr, babylon_addr.to_string());
+                assert_eq!(funds, coins(300, "TOKEN"));
+
+                // Verify the message is a RewardsDistribution message
+                let msg_data: babylon_contract::msg::contract::ExecuteMsg = from_json(msg).unwrap();
+                match msg_data {
+                    babylon_contract::msg::contract::ExecuteMsg::RewardsDistribution {
+                        fp_distribution,
+                    } => {
+                        assert_eq!(fp_distribution.len(), 2);
+                        assert_eq!(fp_distribution[0].fp_pubkey_hex, fp1);
+                        assert_eq!(fp_distribution[0].reward, Uint128::from(100u128));
+                        assert_eq!(fp_distribution[1].fp_pubkey_hex, fp2);
+                        assert_eq!(fp_distribution[1].reward, Uint128::from(200u128));
+                    }
+                    _ => panic!("Expected RewardsDistribution message"),
+                }
+            }
+            _ => panic!("Expected WasmMsg::Execute"),
+        }
+    }
+
+    #[test]
+    fn test_send_rewards_msg_with_no_rewards() {
+        let mut deps = mock_dependencies();
+
+        // Set up the contract with config
+        let babylon_addr = deps.api.addr_make("babylon");
+        let staking_addr = deps.api.addr_make("staking");
+        let config = Config {
+            denom: "TOKEN".to_string(),
+            blocks_per_year: 1000,
+            babylon: babylon_addr.clone(),
+            staking: staking_addr.clone(),
+        };
+        CONFIG.save(&mut deps.storage, &config).unwrap();
+
+        // No rewards in storage
+        TOTAL_PENDING_REWARDS
+            .save(&mut deps.storage, &Uint128::zero())
+            .unwrap();
+
+        // Test send_rewards_msg with no rewards
+        let (fp_rewards, wasm_msg) = send_rewards_msg(&mut deps.as_mut(), 0, &config).unwrap();
+
+        // Verify no rewards are returned
+        assert_eq!(fp_rewards.len(), 0);
+
+        // Verify the WasmMsg is correct (should still be created but with 0 funds)
+        match wasm_msg {
+            WasmMsg::Execute {
+                contract_addr,
+                msg,
+                funds,
+            } => {
+                assert_eq!(contract_addr, babylon_addr.to_string());
+                assert_eq!(funds, coins(0, "TOKEN"));
+
+                // Verify the message is a RewardsDistribution message with empty distribution
+                let msg_data: babylon_contract::msg::contract::ExecuteMsg = from_json(msg).unwrap();
+                match msg_data {
+                    babylon_contract::msg::contract::ExecuteMsg::RewardsDistribution {
+                        fp_distribution,
+                    } => {
+                        assert_eq!(fp_distribution.len(), 0);
+                    }
+                    _ => panic!("Expected RewardsDistribution message"),
+                }
+            }
+            _ => panic!("Expected WasmMsg::Execute"),
+        }
     }
 
     #[test]

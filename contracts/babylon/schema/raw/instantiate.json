@@ -6,6 +6,7 @@
     "babylon_tag",
     "btc_confirmation_depth",
     "checkpoint_finalization_timeout",
+    "destination_module",
     "ics20_channel_id",
     "network",
     "notify_cosmos_zone"
@@ -105,6 +106,10 @@
         "string",
         "null"
       ]
+    },
+    "destination_module": {
+      "description": "Babylon module name for receiving ICS-20 transfers",
+      "type": "string"
     },
     "ibc_packet_timeout_days": {
       "description": "IBC packet timeout in days If not set, the default value (28 days) will be used",

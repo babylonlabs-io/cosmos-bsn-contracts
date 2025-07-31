@@ -33,6 +33,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 [Full Changelog](https://github.com/babylonlabs-io/cosmos-bsn-contracts/compare/v0.14.0...HEAD)
 
+### Features
+
+- [#274](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/274) Send rewards to Babylon for distribution
+
 ### State breaking
 
 - [#276](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/276) finality: fix finality voting issue

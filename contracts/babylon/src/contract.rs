@@ -1,16 +1,17 @@
 use crate::error::ContractError;
-use crate::ibc::{ibc_packet, IBC_TRANSFER_CHANNEL, IBC_ZC_CHANNEL};
+use crate::ibc::{get_ibc_packet_timeout, ibc_packet, IBC_TRANSFER_CHANNEL, IBC_ZC_CHANNEL};
 use crate::msg::contract::{ContractMsg, ExecuteMsg, InstantiateMsg, QueryMsg};
+use crate::msg::ibc::{BsnRewards, CallbackInfo, CallbackMemo, FpRatio};
 use crate::queries;
 use crate::state::config::{Config, CONFIG, DEFAULT_IBC_PACKET_TIMEOUT_DAYS};
 use crate::state::consumer_header_chain::CONSUMER_HEIGHT_LAST;
-use babylon_apis::{btc_staking_api, finality_api};
+use babylon_apis::{btc_staking_api, finality_api, to_bech32_addr, to_module_canonical_addr};
 use cosmwasm_std::{
-    to_json_binary, Addr, Binary, Deps, DepsMut, Empty, Env, MessageInfo, QueryResponse, Reply,
-    Response, SubMsg, SubMsgResponse, WasmMsg,
+    to_json_binary, to_json_string, Addr, Binary, Decimal, Deps, DepsMut, Empty, Env, MessageInfo,
+    QueryResponse, Reply, Response, SubMsg, SubMsgResponse, WasmMsg,
 };
 use cw2::set_contract_version;
-use cw_utils::ParseReplyError;
+use cw_utils::{must_pay, ParseReplyError};
 
 pub const CONTRACT_NAME: &str = env!("CARGO_PKG_NAME");
 pub const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -47,6 +48,7 @@ pub fn instantiate(
         ibc_packet_timeout_days: msg
             .ibc_packet_timeout_days
             .unwrap_or(DEFAULT_IBC_PACKET_TIMEOUT_DAYS),
+        destination_module: msg.destination_module,
     };
 
     let mut res = Response::new().add_attribute("action", "instantiate");
@@ -309,17 +311,111 @@ pub fn execute(
             // TODO: Add events (#124)
             Ok(res)
         }
+        ExecuteMsg::RewardsDistribution { fp_distribution } => {
+            // Check that the sender is the finality contract
+            let cfg = CONFIG.load(deps.storage)?;
+            let finality_addr = cfg
+                .btc_finality
+                .ok_or(ContractError::BtcFinalityNotSet {})?;
+            if info.sender != finality_addr {
+                return Err(ContractError::Unauthorized {});
+            }
+
+            // Check that the funds are there
+            let funds_sent_total = must_pay(&info, &cfg.denom)?;
+
+            // Calculate total rewards to send
+            let total_rewards = fp_distribution
+                .iter()
+                .map(|reward_info| reward_info.reward)
+                .sum();
+
+            // Check that the total rewards  to distribute match the funds sent
+            if funds_sent_total != total_rewards {
+                return Err(ContractError::InvalidRewards(
+                    total_rewards,
+                    funds_sent_total,
+                ));
+            }
+
+            // Get consumer name for bsn_consumer_id
+            let bsn_consumer_id = cfg
+                .consumer_name
+                .ok_or(ContractError::ConsumerNameNotSet {})?;
+
+            // Get the ICS20 transfer channel ID
+            let channel_id = IBC_TRANSFER_CHANNEL.load(deps.storage)?;
+
+            // Calculate ratios from absolute amounts
+            let fp_ratios: Vec<FpRatio> = fp_distribution
+                .iter()
+                .map(|reward_info| {
+                    // Convert to Decimal for proper ratio calculation
+                    let reward_decimal = Decimal::from_ratio(reward_info.reward, total_rewards);
+
+                    let btc_pk_bytes = hex::decode(&reward_info.fp_pubkey_hex)?;
+                    Ok(FpRatio {
+                        btc_pk: Binary::new(btc_pk_bytes),
+                        ratio: reward_decimal,
+                    })
+                })
+                .collect::<Result<Vec<_>, ContractError>>()?;
+
+            // Create memo with the proper Babylon structure using typed structs
+            let callback_memo = CallbackMemo {
+                action: "add_bsn_rewards".to_string(),
+                dest_callback: CallbackInfo {
+                    address: cfg.destination_module.clone(),
+                    add_bsn_rewards: BsnRewards {
+                        bsn_consumer_id,
+                        fp_ratios,
+                    },
+                },
+            };
+
+            let memo = to_json_string(&callback_memo)?;
+
+            // Define destination address using the rewards module name from config
+            let rcpt_addr =
+                to_bech32_addr("bbn", &to_module_canonical_addr(&cfg.destination_module))?;
+
+            // Create ICS20 transfer message
+            let transfer_msg = cosmwasm_std::IbcMsg::Transfer {
+                channel_id,
+                to_address: rcpt_addr.into(),
+                amount: cosmwasm_std::Coin {
+                    denom: cfg.denom.clone(),
+                    amount: funds_sent_total,
+                },
+                timeout: get_ibc_packet_timeout(&env, &deps.as_ref())?,
+                memo: Some(memo),
+            };
+
+            let mut response = Response::new()
+                .add_attribute("action", "distribute_rewards")
+                .add_attribute("total_rewards", total_rewards.to_string())
+                .add_attribute("fp_count", fp_distribution.len().to_string());
+
+            // Send IBC transfer message
+            response = response.add_message(transfer_msg);
+
+            Ok(response)
+        }
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
     use bitcoin::block::Header as BlockHeader;
     use btc_light_client::msg::InstantiateMsg as BtcLightClientInstantiateMsg;
 
     use cosmwasm_std::testing::message_info;
     use cosmwasm_std::testing::{mock_dependencies, mock_env};
+    use cosmwasm_std::Uint128;
+
+    use crate::msg::contract::RewardInfo;
 
     const CREATOR: &str = "creator";
 
@@ -424,7 +520,7 @@ mod tests {
     #[test]
     fn instantiate_finality_params_works() {
         let mut deps = mock_dependencies();
-        let params = r#"{"params": {"epoch_length": 10}}"#;
+        let params = r#"{"params": {"reward_interval": 10}}"#;
         let mut msg = InstantiateMsg::new_test();
         msg.btc_finality_code_id.replace(2);
         msg.btc_finality_msg
@@ -444,5 +540,196 @@ mod tests {
             }
             .into()
         );
+    }
+
+    #[test]
+    fn test_distribute_rewards_unauthorized() {
+        let mut deps = mock_dependencies();
+
+        // Set up config with finality contract address
+        let finality_addr = deps.api.addr_make("finality_contract");
+        let cfg = Config {
+            network: btc_light_client::BitcoinNetwork::Regtest,
+            babylon_tag: vec![1, 2, 3, 4],
+            btc_confirmation_depth: 1,
+            checkpoint_finalization_timeout: 1,
+            notify_cosmos_zone: false,
+            btc_light_client: None,
+            btc_staking: None,
+            btc_finality: Some(finality_addr.clone()),
+            consumer_name: Some("TestConsumer".to_string()),
+            consumer_description: Some("Test Consumer Description".to_string()),
+            denom: "stake".to_string(),
+            ibc_packet_timeout_days: 1,
+            destination_module: "btcstaking".to_string(),
+        };
+        CONFIG.save(&mut deps.storage, &cfg).unwrap();
+
+        // Set up IBC transfer channel
+        IBC_TRANSFER_CHANNEL
+            .save(&mut deps.storage, &"channel-0".to_string())
+            .unwrap();
+
+        // Try to call with wrong sender
+        let wrong_sender = deps.api.addr_make("wrong_sender");
+        let fp_distribution = vec![RewardInfo {
+            fp_pubkey_hex: "02eec7245d6b7d2ccb30380bfbe2a3648cd7a942653f5aa340edcea1f283686619"
+                .to_string(),
+            reward: Uint128::new(1000),
+        }];
+
+        let msg = ExecuteMsg::RewardsDistribution { fp_distribution };
+        let info = message_info(&wrong_sender, &[]);
+
+        let err = execute(deps.as_mut(), mock_env(), info, msg).unwrap_err();
+        match err {
+            ContractError::Unauthorized {} => {}
+            _ => panic!("Expected Unauthorized error"),
+        }
+    }
+
+    #[test]
+    fn test_distribute_rewards_invalid_amount() {
+        let mut deps = mock_dependencies();
+
+        // Set up config with finality contract address
+        let finality_addr = deps.api.addr_make("finality_contract");
+        let cfg = Config {
+            network: btc_light_client::BitcoinNetwork::Regtest,
+            babylon_tag: vec![1, 2, 3, 4],
+            btc_confirmation_depth: 1,
+            checkpoint_finalization_timeout: 1,
+            notify_cosmos_zone: false,
+            btc_light_client: None,
+            btc_staking: None,
+            btc_finality: Some(finality_addr.clone()),
+            consumer_name: Some("TestConsumer".to_string()),
+            consumer_description: Some("Test Consumer Description".to_string()),
+            denom: "stake".to_string(),
+            ibc_packet_timeout_days: 1,
+            destination_module: "btcstaking".to_string(),
+        };
+        CONFIG.save(&mut deps.storage, &cfg).unwrap();
+
+        // Set up IBC transfer channel
+        IBC_TRANSFER_CHANNEL
+            .save(&mut deps.storage, &"channel-0".to_string())
+            .unwrap();
+
+        // Test with no funds sent
+        let fp_distribution = vec![RewardInfo {
+            fp_pubkey_hex: "02eec7245d6b7d2ccb30380bfbe2a3648cd7a942653f5aa340edcea1f283686619"
+                .to_string(),
+            reward: Uint128::new(1000),
+        }];
+
+        let funds = vec![];
+        let msg = ExecuteMsg::RewardsDistribution { fp_distribution };
+        let info = message_info(&finality_addr, &funds);
+
+        let err = execute(deps.as_mut(), mock_env(), info, msg).unwrap_err();
+        match err {
+            ContractError::Payment(payment_err) => {
+                assert!(matches!(
+                    payment_err,
+                    cw_utils::PaymentError::NoFunds { .. }
+                ));
+            }
+            _ => panic!("Expected Payment error, got: {:?}", err),
+        }
+
+        // Test with wrong amount sent
+        let fp_distribution = vec![
+            RewardInfo {
+                fp_pubkey_hex: "02eec7245d6b7d2ccb30380bfbe2a3648cd7a942653f5aa340edcea1f283686619"
+                    .to_string(),
+                reward: Uint128::new(1000),
+            },
+            RewardInfo {
+                fp_pubkey_hex: "03a0434d9e47f3c86235477c7b1ae6ae5d3442d49b1943c2b752a68e2a47e247c7"
+                    .to_string(),
+                reward: Uint128::new(500),
+            },
+        ];
+
+        // Send 1000 instead of 1500 (total rewards)
+        let funds = vec![cosmwasm_std::coin(1000, "stake")];
+        let msg = ExecuteMsg::RewardsDistribution { fp_distribution };
+        let info = message_info(&finality_addr, &funds);
+
+        let err = execute(deps.as_mut(), mock_env(), info, msg).unwrap_err();
+        match err {
+            ContractError::InvalidRewards(expected, sent) => {
+                assert_eq!(expected, Uint128::new(1500));
+                assert_eq!(sent, Uint128::new(1000));
+            }
+            _ => panic!("Expected InvalidRewards, got: {:?}", err),
+        }
+    }
+
+    #[test]
+    fn test_distribute_rewards_memo_structure() {
+        let mut deps = mock_dependencies();
+
+        // Set up config with finality contract address
+        let finality_addr = deps.api.addr_make("finality_contract");
+        let cfg = Config {
+            network: btc_light_client::BitcoinNetwork::Regtest,
+            babylon_tag: vec![1, 2, 3, 4],
+            btc_confirmation_depth: 1,
+            checkpoint_finalization_timeout: 1,
+            notify_cosmos_zone: false,
+            btc_light_client: None,
+            btc_staking: None,
+            btc_finality: Some(finality_addr.clone()),
+            consumer_name: Some("TestConsumer".to_string()),
+            consumer_description: Some("Test Consumer Description".to_string()),
+            denom: "stake".to_string(),
+            ibc_packet_timeout_days: 1,
+            destination_module: "btcstaking".to_string(),
+        };
+        CONFIG.save(&mut deps.storage, &cfg).unwrap();
+
+        // Set up IBC transfer channel
+        IBC_TRANSFER_CHANNEL
+            .save(&mut deps.storage, &"channel-0".to_string())
+            .unwrap();
+
+        // Test with valid distribution using proper hex strings for BIP340 public keys
+        let fp_distribution = vec![
+            RewardInfo {
+                fp_pubkey_hex: "02eec7245d6b7d2ccb30380bfbe2a3648cd7a942653f5aa340edcea1f283686619"
+                    .to_string(),
+                reward: Uint128::new(600),
+            },
+            RewardInfo {
+                fp_pubkey_hex: "03a0434d9e47f3c86235477c7b1ae6ae5d3442d49b1943c2b752a68e2a47e247c7"
+                    .to_string(),
+                reward: Uint128::new(400),
+            },
+        ];
+
+        let funds = vec![cosmwasm_std::Coin {
+            denom: "stake".to_string(),
+            amount: Uint128::new(1000),
+        }];
+        let msg = ExecuteMsg::RewardsDistribution { fp_distribution };
+        let info = message_info(&finality_addr, &funds);
+
+        let response = execute(deps.as_mut(), mock_env(), info, msg).unwrap();
+
+        // Verify that the response contains an IBC transfer message
+        assert_eq!(response.messages.len(), 1);
+
+        // The memo should be properly structured for Babylon
+        // We can't easily test the exact memo content here, but we can verify
+        // that the execution succeeds and produces the expected response structure
+        assert_eq!(response.attributes.len(), 3);
+        assert_eq!(response.attributes[0].key, "action");
+        assert_eq!(response.attributes[0].value, "distribute_rewards");
+        assert_eq!(response.attributes[1].key, "total_rewards");
+        assert_eq!(response.attributes[1].value, "1000");
+        assert_eq!(response.attributes[2].key, "fp_count");
+        assert_eq!(response.attributes[2].value, "2");
     }
 }
