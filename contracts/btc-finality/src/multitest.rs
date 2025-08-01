@@ -452,8 +452,8 @@ mod slashing {
             )
             .unwrap();
 
-        // Submitting the same signature twice is tolerated
-        suite
+        // Submitting the same signature twice is not allowed.
+        assert!(suite
             .submit_finality_signature(
                 &pk_hex,
                 submit_height,
@@ -462,7 +462,7 @@ mod slashing {
                 &add_finality_signature.block_app_hash,
                 &finality_signature,
             )
-            .unwrap();
+            .is_err());
 
         // Submit another (different and valid) finality signature, from the same finality provider
         // at the same height, and with the same proof
