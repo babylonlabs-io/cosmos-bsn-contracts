@@ -232,14 +232,10 @@ pub enum FinalitySigError {
     EmptyFpBtcPk,
     #[error("invalid finality provider BTC public key length: got {actual}, want {expected}")]
     InvalidFpBtcPkLength { actual: usize, expected: usize },
-    #[error("empty Public Randomness")]
-    EmptyPubRand,
     #[error("invalid public randomness length: got {actual}, want {expected}")]
     InvalidPubRandLength { actual: usize, expected: usize },
     #[error("empty inclusion proof")]
     EmptyProof,
-    #[error("empty finality signature")]
-    EmptyFinalitySig,
     #[error("invalid finality signature length: got {actual}, want {expected}")]
     InvalidFinalitySigLength { actual: usize, expected: usize },
     #[error("invalid block app hash length: got {actual}, want {expected}")]
@@ -275,11 +271,6 @@ impl AddFinalitySigMsg {
             });
         }
 
-        // Validate Public Randomness
-        if self.pub_rand.is_empty() {
-            return Err(FinalitySigError::EmptyPubRand);
-        }
-
         // Validate Public Randomness length
         if self.pub_rand.len() != SCHNORR_PUB_RAND_LEN {
             return Err(FinalitySigError::InvalidPubRandLength {
@@ -289,11 +280,6 @@ impl AddFinalitySigMsg {
         }
 
         // `self.proof` is not an Option, thus it must not be empty.
-
-        // Validate finality signature
-        if self.signature.is_empty() {
-            return Err(FinalitySigError::EmptyFinalitySig);
-        }
 
         // Validate finality signature length
         if self.signature.len() != SCHNORR_EOTS_SIG_LEN {
@@ -923,8 +909,8 @@ pub fn distribute_rewards_fps(deps: &mut DepsMut, env: &Env) -> Result<(), Contr
     }
     // Get the voting power of the active FPS
     let total_voting_power = active_fps
-        .iter()
-        .map(|(_, power)| *power as u128)
+        .values()
+        .map(|power| *power as u128)
         .sum::<u128>();
     // Short-circuit if the total voting power is zero
     if total_voting_power == 0 {
@@ -999,7 +985,7 @@ mod tests {
             TestCase {
                 name: "invalid FP BTC PubKey length",
                 msg_modifier: |msg| {
-                    msg.fp_btc_pk_hex = hex::encode(&vec![0u8; 16]); // Too short
+                    msg.fp_btc_pk_hex = hex::encode(vec![0u8; 16]); // Too short
                 },
                 expected: Err(FinalitySigError::InvalidFpBtcPkLength {
                     actual: 16,
@@ -1009,7 +995,10 @@ mod tests {
             TestCase {
                 name: "empty Public Randomness",
                 msg_modifier: |msg| msg.pub_rand.clear(),
-                expected: Err(FinalitySigError::EmptyPubRand),
+                expected: Err(FinalitySigError::InvalidPubRandLength {
+                    actual: 0,
+                    expected: 32,
+                }),
             },
             TestCase {
                 name: "invalid Public Randomness length",
@@ -1024,7 +1013,10 @@ mod tests {
             TestCase {
                 name: "empty finality signature",
                 msg_modifier: |msg| msg.signature.clear(),
-                expected: Err(FinalitySigError::EmptyFinalitySig),
+                expected: Err(FinalitySigError::InvalidFinalitySigLength {
+                    actual: 0,
+                    expected: 32,
+                }),
             },
             TestCase {
                 name: "invalid finality signature length",
@@ -1056,7 +1048,7 @@ mod tests {
         {
             // Create a valid message
             let mut msg = AddFinalitySigMsg {
-                fp_btc_pk_hex: hex::encode(&gen_random_bytes(&mut rng, BIP340_PUB_KEY_LEN)),
+                fp_btc_pk_hex: hex::encode(gen_random_bytes(&mut rng, BIP340_PUB_KEY_LEN)),
                 height: rng.gen_range(1..1000),
                 pub_rand: gen_random_bytes(&mut rng, SCHNORR_PUB_RAND_LEN),
                 proof: Proof {
