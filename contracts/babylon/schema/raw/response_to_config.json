@@ -3,24 +3,14 @@
   "title": "Config",
   "type": "object",
   "required": [
-    "babylon_tag",
     "btc_confirmation_depth",
     "checkpoint_finalization_timeout",
     "denom",
     "destination_module",
     "ibc_packet_timeout_days",
-    "network",
-    "notify_cosmos_zone"
+    "network"
   ],
   "properties": {
-    "babylon_tag": {
-      "type": "array",
-      "items": {
-        "type": "integer",
-        "format": "uint8",
-        "minimum": 0.0
-      }
-    },
     "btc_confirmation_depth": {
       "type": "integer",
       "format": "uint32",
@@ -93,10 +83,6 @@
     },
     "network": {
       "$ref": "#/definitions/BitcoinNetwork"
-    },
-    "notify_cosmos_zone": {
-      "description": "Whether to send Cosmos zone messages notifying BTC-finalised headers. NOTE: if set to true, then the Cosmos zone needs to integrate the corresponding message handler as well",
-      "type": "boolean"
     }
   },
   "additionalProperties": false,

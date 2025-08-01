@@ -9,13 +9,8 @@ pub(crate) const CONFIG: Item<Config> = Item::new("config");
 #[cw_serde]
 pub struct Config {
     pub network: btc_light_client::BitcoinNetwork,
-    pub babylon_tag: Vec<u8>,
     pub btc_confirmation_depth: u32,
     pub checkpoint_finalization_timeout: u32,
-    /// Whether to send Cosmos zone messages notifying BTC-finalised headers.
-    /// NOTE: if set to true, then the Cosmos zone needs to integrate the corresponding message
-    /// handler as well
-    pub notify_cosmos_zone: bool,
     /// If set, this stores the address of the BTC light client contract on the Consumer.
     pub btc_light_client: Option<Addr>,
     /// If set, this stores a BTC staking contract used for BTC re-staking

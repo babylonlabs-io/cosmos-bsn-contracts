@@ -210,7 +210,6 @@ func (p *TestConsumerClient) deployContracts() (*ConsumerContract, error) {
 	network := "regtest"
 	kValue := 1
 	wValue := 2
-	babylonTag := "01020304"
 	consumerName := "test-consumer"
 	consumerDescription := "test-consumer-description"
 	ics20ChannelID := "channel-1"
@@ -223,10 +222,8 @@ func (p *TestConsumerClient) deployContracts() (*ConsumerContract, error) {
 	// Build the Babylon contract instantiation message
 	babylonInitMsg := NewBabylonInitMsg(
 		network,
-		babylonTag,
 		kValue,
 		wValue,
-		false,
 		btcLightClientCodeID,
 		btcLightClientInitMsg,
 		btcStakingCodeID,

@@ -1,6 +1,6 @@
 use crate::error::ContractError;
 use crate::ibc::{get_ibc_packet_timeout, ibc_packet, IBC_TRANSFER_CHANNEL, IBC_ZC_CHANNEL};
-use crate::msg::contract::{ContractMsg, ExecuteMsg, InstantiateMsg, QueryMsg};
+use crate::msg::contract::{ExecuteMsg, InstantiateMsg, QueryMsg};
 use crate::msg::ibc::{BsnRewards, CallbackInfo, CallbackMemo, FpRatio};
 use crate::queries;
 use crate::state::config::{Config, CONFIG, DEFAULT_IBC_PACKET_TIMEOUT_DAYS};
@@ -35,10 +35,8 @@ pub fn instantiate(
     let denom = deps.querier.query_bonded_denom()?;
     let mut cfg = Config {
         network: msg.network,
-        babylon_tag: msg.babylon_tag_to_bytes()?,
         btc_confirmation_depth: msg.btc_confirmation_depth,
         checkpoint_finalization_timeout: msg.checkpoint_finalization_timeout,
-        notify_cosmos_zone: msg.notify_cosmos_zone,
         btc_light_client: None, // Will be set in `reply` if `btc_light_client_code_id` is provided
         btc_staking: None,      // Will be set in `reply` if `btc_staking_code_id` is provided
         btc_finality: None,     // Will be set in `reply` if `btc_finality_code_id` is provided
@@ -550,10 +548,8 @@ mod tests {
         let finality_addr = deps.api.addr_make("finality_contract");
         let cfg = Config {
             network: btc_light_client::BitcoinNetwork::Regtest,
-            babylon_tag: vec![1, 2, 3, 4],
             btc_confirmation_depth: 1,
             checkpoint_finalization_timeout: 1,
-            notify_cosmos_zone: false,
             btc_light_client: None,
             btc_staking: None,
             btc_finality: Some(finality_addr.clone()),
@@ -596,10 +592,8 @@ mod tests {
         let finality_addr = deps.api.addr_make("finality_contract");
         let cfg = Config {
             network: btc_light_client::BitcoinNetwork::Regtest,
-            babylon_tag: vec![1, 2, 3, 4],
             btc_confirmation_depth: 1,
             checkpoint_finalization_timeout: 1,
-            notify_cosmos_zone: false,
             btc_light_client: None,
             btc_staking: None,
             btc_finality: Some(finality_addr.clone()),
@@ -675,10 +669,8 @@ mod tests {
         let finality_addr = deps.api.addr_make("finality_contract");
         let cfg = Config {
             network: btc_light_client::BitcoinNetwork::Regtest,
-            babylon_tag: vec![1, 2, 3, 4],
             btc_confirmation_depth: 1,
             checkpoint_finalization_timeout: 1,
-            notify_cosmos_zone: false,
             btc_light_client: None,
             btc_staking: None,
             btc_finality: Some(finality_addr.clone()),
