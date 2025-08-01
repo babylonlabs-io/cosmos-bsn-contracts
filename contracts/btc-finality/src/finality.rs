@@ -59,7 +59,7 @@ pub enum PubRandCommitError {
 }
 
 // https://github.com/babylonlabs-io/babylon/blob/49972e2d3e35caf0a685c37e1f745c47b75bfc69/x/finality/types/tx.pb.go#L36
-pub struct PublicRandomnessCommitMsg {
+pub struct MsgCommitPubRand {
     pub fp_btc_pk_hex: String,
     pub start_height: u64,
     pub num_pub_rand: u64,
@@ -67,7 +67,7 @@ pub struct PublicRandomnessCommitMsg {
     pub sig: Vec<u8>,
 }
 
-impl PublicRandomnessCommitMsg {
+impl MsgCommitPubRand {
     // https://github.com/babylonlabs-io/babylon/blob/49972e2d3e35caf0a685c37e1f745c47b75bfc69/x/finality/types/msg.go#L161
     fn validate_basic(&self) -> Result<(), PubRandCommitError> {
         if self.fp_btc_pk_hex.is_empty() {
@@ -138,7 +138,7 @@ impl PublicRandomnessCommitMsg {
 pub fn handle_public_randomness_commit(
     deps: DepsMut,
     env: &Env,
-    pub_rand_commit: PublicRandomnessCommitMsg,
+    pub_rand_commit: MsgCommitPubRand,
 ) -> Result<Response, ContractError> {
     pub_rand_commit.validate_basic()?;
 
@@ -251,7 +251,7 @@ pub enum FinalitySigError {
 }
 
 // https://github.com/babylonlabs-io/babylon/blob/49972e2d3e35caf0a685c37e1f745c47b75bfc69/x/finality/types/tx.pb.go#L154
-pub struct AddFinalitySigMsg {
+pub struct MsgAddFinalitySig {
     pub fp_btc_pk_hex: String,
     pub height: u64,
     pub pub_rand: Vec<u8>,
@@ -260,7 +260,7 @@ pub struct AddFinalitySigMsg {
     pub signature: Vec<u8>,
 }
 
-impl AddFinalitySigMsg {
+impl MsgAddFinalitySig {
     // https://github.com/babylonlabs-io/babylon/blob/49972e2d3e35caf0a685c37e1f745c47b75bfc69/x/finality/types/msg.go#L40
     fn validate_basic(&self) -> Result<(), FinalitySigError> {
         // Validate FP BTC PubKey
@@ -308,7 +308,6 @@ impl AddFinalitySigMsg {
 
     /// Verifies the finality signature message w.r.t. the public randomness commitment:
     /// - Public randomness inclusion proof.
-    /// - Finality signature
     fn verify_finality_signature(
         &self,
         pr_commit: &PubRandCommit,
@@ -351,7 +350,7 @@ impl AddFinalitySigMsg {
 pub fn handle_finality_signature(
     mut deps: DepsMut,
     env: Env,
-    add_finality_sig: AddFinalitySigMsg,
+    add_finality_sig: MsgAddFinalitySig,
 ) -> Result<Response, ContractError> {
     add_finality_sig.validate_basic()?;
 
@@ -422,7 +421,7 @@ pub fn handle_finality_signature(
 
     add_finality_sig.verify_finality_signature(&pr_commit, &signing_context)?;
 
-    let AddFinalitySigMsg {
+    let MsgAddFinalitySig {
         fp_btc_pk_hex,
         height,
         pub_rand,
@@ -956,7 +955,7 @@ mod tests {
 
         struct TestCase {
             name: &'static str,
-            msg_modifier: fn(&mut AddFinalitySigMsg),
+            msg_modifier: fn(&mut MsgAddFinalitySig),
             expected: Result<(), FinalitySigError>,
         }
 
@@ -1037,7 +1036,7 @@ mod tests {
         } in test_cases
         {
             // Create a valid message
-            let mut msg = AddFinalitySigMsg {
+            let mut msg = MsgAddFinalitySig {
                 fp_btc_pk_hex: hex::encode(gen_random_bytes(&mut rng, BIP340_PUB_KEY_LEN)),
                 height: rng.gen_range(1..1000),
                 pub_rand: gen_random_bytes(&mut rng, SCHNORR_PUB_RAND_LEN),
