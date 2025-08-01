@@ -18,6 +18,30 @@ pub const NEXT_HEIGHT: Item<u64> = Item::new("next_height");
 /// `FP_POWER_TABLE` is the map of finality providers to their total active sats at a given height
 pub const FP_POWER_TABLE: Map<(u64, &str), u64> = Map::new("fp_power_table");
 
+/// Map of finality providers to block height they initially entered the active set.
+/// If an FP isn't in this map, he was not in the active finality provider set,
+/// since forever, or since its latest unjailing.
+pub const FP_START_HEIGHT: Map<&str, u64> = Map::new("start_height");
+
+/// Map of finality providers to block heights they had last signed a block,
+/// since the beginning, or since their last unjailing.
+pub const FP_BLOCK_SIGNER: Map<&str, u64> = Map::new("block_signer");
+
+/// Map of jailed FPs to jail expiration time.
+/// If an FP doesn't appear in this map, it is not jailed.
+/// The value is the time in seconds since UNIX epoch when the FP will be released from jail.
+/// If it's zero, the FP will be jailed forever.
+pub const JAIL: Map<&str, u64> = Map::new("jail");
+
+/// Map of double signing evidence by FP and block height
+pub const EVIDENCES: Map<(&str, u64), Evidence> = Map::new("evidences");
+
+/// Map of pending finality provider rewards
+pub const REWARDS: Map<&str, Uint128> = Map::new("rewards");
+
+/// Total pending rewards
+pub const TOTAL_PENDING_REWARDS: Item<Uint128> = Item::new("pending_rewards");
+
 pub fn get_power_table_at_height(
     storage: &dyn Storage,
     height: u64,
@@ -42,27 +66,3 @@ pub fn ensure_fp_has_power(
     }
     Ok(())
 }
-
-/// Map of finality providers to block height they initially entered the active set.
-/// If an FP isn't in this map, he was not in the active finality provider set,
-/// since forever, or since its latest unjailing.
-pub const FP_START_HEIGHT: Map<&str, u64> = Map::new("start_height");
-
-/// Map of finality providers to block heights they had last signed a block,
-/// since the beginning, or since their last unjailing.
-pub const FP_BLOCK_SIGNER: Map<&str, u64> = Map::new("block_signer");
-
-/// Map of jailed FPs to jail expiration time.
-/// If an FP doesn't appear in this map, it is not jailed.
-/// The value is the time in seconds since UNIX epoch when the FP will be released from jail.
-/// If it's zero, the FP will be jailed forever.
-pub const JAIL: Map<&str, u64> = Map::new("jail");
-
-/// Map of double signing evidence by FP and block height
-pub const EVIDENCES: Map<(&str, u64), Evidence> = Map::new("evidences");
-
-/// Map of pending finality provider rewards
-pub const REWARDS: Map<&str, Uint128> = Map::new("rewards");
-
-/// Total pending rewards
-pub const TOTAL_PENDING_REWARDS: Item<Uint128> = Item::new("pending_rewards");
