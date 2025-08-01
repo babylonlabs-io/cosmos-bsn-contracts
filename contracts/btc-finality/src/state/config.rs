@@ -15,7 +15,6 @@ pub(crate) const ADMIN: Admin = Admin::new("admin");
 #[cw_serde]
 pub struct Config {
     pub denom: String,
-    pub blocks_per_year: u64,
     pub babylon: Addr,
     pub staking: Addr,
 }
