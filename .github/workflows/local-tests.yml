@@ -17,6 +17,15 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # based on https://github.com/bnjbvr/cargo-machete
+  machete:
+    name: machete
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Machete
+        uses: bnjbvr/cargo-machete@main
+        
   check-schema-binary-naming:
     runs-on: ubuntu-latest
     steps:

@@ -34,7 +34,6 @@ cranelift = ["cosmwasm-vm/cranelift"]
 library = []
 
 [dependencies]
-babylon-apis     = { path = "../../packages/apis" }
 babylon-proto    = { path = "../../packages/proto" }
 bitcoin          = { workspace = true }
 cosmwasm-schema  = { workspace = true }

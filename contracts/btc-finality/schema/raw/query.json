@@ -17,20 +17,6 @@
       "additionalProperties": false
     },
     {
-      "description": "Returns the current Consumer-specific parameters of the btc-staking contract.",
-      "type": "object",
-      "required": [
-        "params"
-      ],
-      "properties": {
-        "params": {
-          "type": "object",
-          "additionalProperties": false
-        }
-      },
-      "additionalProperties": false
-    },
-    {
       "description": "Returns the current admin of the contract.",
       "type": "object",
       "required": [
