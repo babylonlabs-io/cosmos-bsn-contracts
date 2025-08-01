@@ -71,10 +71,8 @@ func NewBTCFinalityInitMsg(admin string) []byte {
 
 func NewBabylonInitMsg(
 	network string,
-	babylonTag string,
 	k int,
 	w int,
-	notifyCosmosZone bool,
 	btcLightClientCodeID uint64,
 	btcLightClientInitMsg []byte,
 	btcStakingCodeID uint64,
@@ -88,10 +86,8 @@ func NewBabylonInitMsg(
 ) []byte {
 	data := map[string]interface{}{
 		"network":                         network,
-		"babylon_tag":                     babylonTag,
 		"btc_confirmation_depth":          k,
 		"checkpoint_finalization_timeout": w,
-		"notify_cosmos_zone":              notifyCosmosZone,
 		"btc_light_client_code_id":        btcLightClientCodeID,
 		"btc_light_client_msg":            base64.StdEncoding.EncodeToString(btcLightClientInitMsg),
 		"btc_staking_code_id":             btcStakingCodeID,
