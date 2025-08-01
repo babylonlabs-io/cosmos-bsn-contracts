@@ -6,7 +6,7 @@ use cosmwasm_std::{DepsMut, Env, Event, MessageInfo, Order, Response, StdResult,
 use cw_storage_plus::Bound;
 
 use crate::error::ContractError;
-use crate::state::config::{ADMIN, CONFIG, PARAMS};
+use crate::state::config::{ADMIN, CONFIG};
 use crate::state::delegations::delegations;
 use crate::state::staking::{
     get_fp_state_map, BtcDelegation, DelegatorUnbondingInfo, FinalityProviderState,
@@ -102,12 +102,7 @@ fn handle_active_delegation(
     height: u64,
     active_delegation: &ActiveBtcDelegation,
 ) -> Result<(), ContractError> {
-    // TODO: Get params / improve active delegation validation (related to #7.2)
-    // btc_confirmation_depth
-    // checkpoint_finalization_timeout
-    // minimum_unbonding_time
-
-    let params = PARAMS.load(storage)?;
+    let cfg = CONFIG.load(storage)?;
 
     // Basic stateless checks
     active_delegation.validate()?;
@@ -142,7 +137,7 @@ fn handle_active_delegation(
     }
 
     // verify the active delegation
-    verify_active_delegation(&params, active_delegation, &staking_tx)?;
+    verify_active_delegation(&cfg, active_delegation, &staking_tx)?;
 
     // All good, construct BTCDelegation and insert BTC delegation
     // NOTE: the BTC delegation does not have voting power yet.
@@ -243,6 +238,8 @@ fn handle_undelegation(
     // Basic stateless checks
     undelegation.validate()?;
 
+    let cfg = CONFIG.load(storage)?;
+
     let staking_tx_hash = Txid::from_str(&undelegation.staking_tx_hash)?;
     let mut btc_del = BTC_DELEGATIONS.load(storage, staking_tx_hash.as_ref())?;
 
@@ -254,8 +251,7 @@ fn handle_undelegation(
     }
 
     // verify the early unbonded delegation
-    let params = PARAMS.load(storage)?;
-    verify_undelegation(&params, &btc_del, &undelegation.unbonding_tx_sig)?;
+    verify_undelegation(&cfg, &btc_del, &undelegation.unbonding_tx_sig)?;
 
     // Add the signature to the BTC delegation's undelegation and set back
     btc_undelegate(storage, &staking_tx_hash, &mut btc_del)?;
@@ -522,7 +518,6 @@ pub(crate) mod tests {
     use crate::msg::{ExecuteMsg, InstantiateMsg};
     use crate::queries;
     use crate::state::staking::BtcUndelegationInfo;
-    use crate::test_utils::staking_params;
     use babylon_test_utils::{
         create_new_finality_provider, create_new_fp_sk, get_active_btc_delegation,
         get_btc_del_unbonding_sig, get_derived_btc_delegation,
@@ -549,7 +544,6 @@ pub(crate) mod tests {
             mock_env(),
             info.clone(),
             InstantiateMsg {
-                params: None,
                 admin: Some(init_admin.to_string()), // Admin provided
             },
         )
@@ -581,7 +575,6 @@ pub(crate) mod tests {
             mock_env(),
             info.clone(),
             InstantiateMsg {
-                params: None,
                 admin: Some(init_admin.to_string()), // Admin provided
             },
         )
@@ -621,15 +614,11 @@ pub(crate) mod tests {
         let mut deps = mock_dependencies();
         let info = message_info(&deps.api.addr_make(CREATOR), &[]);
 
-        let params = staking_params();
         instantiate(
             deps.as_mut(),
             mock_env(),
             info.clone(),
-            InstantiateMsg {
-                params: Some(params),
-                admin: None,
-            },
+            InstantiateMsg { admin: None },
         )
         .unwrap();
 
@@ -686,15 +675,11 @@ pub(crate) mod tests {
         let mut deps = mock_dependencies();
         let info = message_info(&deps.api.addr_make(CREATOR), &[]);
 
-        let params = staking_params();
         instantiate(
             deps.as_mut(),
             mock_env(),
             info.clone(),
-            InstantiateMsg {
-                params: Some(params),
-                admin: None,
-            },
+            InstantiateMsg { admin: None },
         )
         .unwrap();
 
@@ -785,15 +770,11 @@ pub(crate) mod tests {
         let mut deps = mock_dependencies();
         let info = message_info(&deps.api.addr_make(CREATOR), &[]);
 
-        let params = staking_params();
         instantiate(
             deps.as_mut(),
             mock_env(),
             info.clone(),
-            InstantiateMsg {
-                params: Some(params),
-                admin: None,
-            },
+            InstantiateMsg { admin: None },
         )
         .unwrap();
 
@@ -896,15 +877,11 @@ pub(crate) mod tests {
             }),
         });
 
-        let params = staking_params();
         instantiate(
             deps.as_mut(),
             env.clone(),
             info.clone(),
-            InstantiateMsg {
-                params: Some(params),
-                admin: None,
-            },
+            InstantiateMsg { admin: None },
         )
         .unwrap();
 

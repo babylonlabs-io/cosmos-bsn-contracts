@@ -1,3 +1,5 @@
+use crate::state::staking::BtcDelegation;
+use babylon_apis::btc_staking_api::FinalityProvider;
 use cosmwasm_schema::{cw_serde, QueryResponses};
 #[cfg(not(target_arch = "wasm32"))]
 use {
@@ -5,15 +7,9 @@ use {
     cw_controllers::AdminResponse,
 };
 
-use babylon_apis::btc_staking_api::FinalityProvider;
-
-use crate::state::config::Params;
-use crate::state::staking::BtcDelegation;
-
 #[cw_serde]
 #[derive(Default)]
 pub struct InstantiateMsg {
-    pub params: Option<Params>,
     pub admin: Option<String>,
 }
 
@@ -25,9 +21,6 @@ pub enum QueryMsg {
     /// Returns the current configuration of the btc-staking contract.
     #[returns(Config)]
     Config {},
-    /// Returns the current Consumer-specific parameters of the btc-staking contract.
-    #[returns(Params)]
-    Params {},
     /// Returns the current admin of the contract.
     #[returns(AdminResponse)]
     Admin {},

@@ -116,7 +116,6 @@ impl SuiteBuilder {
         let btc_finality_code_id =
             app.store_code_with_creator(owner.clone(), contract_btc_finality());
         let contract_code_id = app.store_code_with_creator(owner.clone(), contract_babylon());
-        let staking_params = btc_staking::test_utils::staking_params();
         let finality_params = crate::test_utils::finality_params(self.missed_blocks_window);
 
         let btc_light_client_msg = {
@@ -144,11 +143,7 @@ impl SuiteBuilder {
                     btc_light_client_msg: Some(btc_light_client_msg),
                     btc_staking_code_id: Some(btc_staking_code_id),
                     btc_staking_msg: Some(
-                        to_json_binary(&btc_staking::msg::InstantiateMsg {
-                            params: Some(staking_params),
-                            admin: None,
-                        })
-                        .unwrap(),
+                        to_json_binary(&btc_staking::msg::InstantiateMsg { admin: None }).unwrap(),
                     ),
                     btc_finality_code_id: Some(btc_finality_code_id),
                     btc_finality_msg: Some(
@@ -273,15 +268,6 @@ impl Suite {
         self.app
             .wrap()
             .query_wasm_smart(self.staking.clone(), &btc_staking::msg::QueryMsg::Config {})
-            .unwrap()
-    }
-
-    #[track_caller]
-    #[allow(dead_code)]
-    pub fn get_btc_staking_params(&self) -> btc_staking::state::config::Params {
-        self.app
-            .wrap()
-            .query_wasm_smart(self.staking.clone(), &btc_staking::msg::QueryMsg::Params {})
             .unwrap()
     }
 
