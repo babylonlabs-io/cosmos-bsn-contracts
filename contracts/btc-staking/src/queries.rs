@@ -1,32 +1,19 @@
-use std::str::FromStr;
-
-use bitcoin::hashes::Hash;
-use bitcoin::Txid;
-
-use cosmwasm_std::Order::Descending;
-use cosmwasm_std::{Deps, Order, StdResult};
-use cw_storage_plus::Bound;
-
 use crate::error::ContractError;
 use crate::msg::{
     ActivatedHeightResponse, BtcDelegationsResponse, DelegationsByFPResponse, FinalityProviderInfo,
     FinalityProvidersByTotalActiveSatsResponse, FinalityProvidersResponse,
 };
-use crate::state::config::{Config, Params};
-use crate::state::config::{CONFIG, PARAMS};
 use crate::state::staking::{
     get_fp_state_map, BtcDelegation, FinalityProviderState, ACTIVATED_HEIGHT, BTC_DELEGATIONS, FPS,
     FP_DELEGATIONS,
 };
 use babylon_apis::btc_staking_api::FinalityProvider;
-
-pub fn config(deps: Deps) -> StdResult<Config> {
-    CONFIG.load(deps.storage)
-}
-
-pub fn params(deps: Deps) -> StdResult<Params> {
-    PARAMS.load(deps.storage)
-}
+use bitcoin::hashes::Hash;
+use bitcoin::Txid;
+use cosmwasm_std::Order::Descending;
+use cosmwasm_std::{Deps, Order, StdResult};
+use cw_storage_plus::Bound;
+use std::str::FromStr;
 
 pub fn finality_provider(deps: Deps, btc_pk_hex: String) -> StdResult<FinalityProvider> {
     FPS.load(deps.storage, &btc_pk_hex)
@@ -204,7 +191,6 @@ mod tests {
     use crate::msg::{ExecuteMsg, FinalityProviderInfo, InstantiateMsg};
     use crate::staking::tests::staking_tx_hash;
     use crate::state::staking::{BtcDelegation, FinalityProviderState, FP_STATE_KEY};
-    use crate::test_utils::staking_params;
     use babylon_apis::btc_staking_api::{FinalityProvider, UnbondedBtcDelegation};
     use babylon_test_utils::{create_new_finality_provider, get_btc_del_unbonding_sig};
     use cosmwasm_std::storage_keys::namespace_with_key;
@@ -234,15 +220,11 @@ mod tests {
         let mut deps = mock_dependencies();
         let info = message_info(&deps.api.addr_make(CREATOR), &[]);
 
-        let params = staking_params();
         instantiate(
             deps.as_mut(),
             mock_env(),
             info.clone(),
-            InstantiateMsg {
-                params: Some(params),
-                admin: None,
-            },
+            InstantiateMsg::default(),
         )
         .unwrap();
 
@@ -293,15 +275,11 @@ mod tests {
         let mut deps = mock_dependencies();
         let info = message_info(&deps.api.addr_make(CREATOR), &[]);
 
-        let params = staking_params();
         instantiate(
             deps.as_mut(),
             mock_env(),
             info.clone(),
-            InstantiateMsg {
-                params: Some(params),
-                admin: None,
-            },
+            InstantiateMsg::default(),
         )
         .unwrap();
 
@@ -366,15 +344,11 @@ mod tests {
         let mut deps = mock_dependencies();
         let info = message_info(&deps.api.addr_make(CREATOR), &[]);
 
-        let params = staking_params();
         instantiate(
             deps.as_mut(),
             mock_env(),
             info.clone(),
-            InstantiateMsg {
-                params: Some(params),
-                admin: None,
-            },
+            InstantiateMsg::default(),
         )
         .unwrap();
 
@@ -453,15 +427,11 @@ mod tests {
         let mut deps = mock_dependencies();
         let info = message_info(&deps.api.addr_make(CREATOR), &[]);
 
-        let params = staking_params();
         instantiate(
             deps.as_mut(),
             mock_env(),
             info.clone(),
-            InstantiateMsg {
-                params: Some(params),
-                admin: None,
-            },
+            InstantiateMsg::default(),
         )
         .unwrap();
 
@@ -512,15 +482,11 @@ mod tests {
         let mut deps = mock_dependencies();
         let info = message_info(&deps.api.addr_make(CREATOR), &[]);
 
-        let params = staking_params();
         instantiate(
             deps.as_mut(),
             mock_env(),
             info.clone(),
-            InstantiateMsg {
-                params: Some(params),
-                admin: None,
-            },
+            InstantiateMsg::default(),
         )
         .unwrap();
 
@@ -604,15 +570,11 @@ mod tests {
 
         let initial_env = mock_env_height(10);
 
-        let params = staking_params();
         instantiate(
             deps.as_mut(),
             initial_env.clone(),
             info.clone(),
-            InstantiateMsg {
-                params: Some(params),
-                admin: None,
-            },
+            InstantiateMsg::default(),
         )
         .unwrap();
 
@@ -711,15 +673,11 @@ mod tests {
         let mut deps = mock_dependencies();
         let info = message_info(&deps.api.addr_make(CREATOR), &[]);
 
-        let params = staking_params();
         instantiate(
             deps.as_mut(),
             mock_env(),
             info.clone(),
-            InstantiateMsg {
-                params: Some(params),
-                admin: None,
-            },
+            InstantiateMsg::default(),
         )
         .unwrap();
 
@@ -765,15 +723,11 @@ mod tests {
         let mut deps = mock_dependencies();
         let info = message_info(&deps.api.addr_make(CREATOR), &[]);
 
-        let params = staking_params();
         instantiate(
             deps.as_mut(),
             mock_env(),
             info.clone(),
-            InstantiateMsg {
-                params: Some(params),
-                admin: None,
-            },
+            InstantiateMsg::default(),
         )
         .unwrap();
 

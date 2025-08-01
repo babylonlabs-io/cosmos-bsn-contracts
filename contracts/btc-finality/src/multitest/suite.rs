@@ -1,13 +1,4 @@
-use std::collections::HashMap;
-
 use anyhow::Result as AnyResult;
-use derivative::Derivative;
-use hex::ToHex;
-
-use cosmwasm_std::testing::mock_dependencies;
-use cosmwasm_std::{to_json_binary, Addr, BlockInfo, Coin, Timestamp};
-use cw_multi_test::{next_block, AppResponse, Contract, ContractWrapper, Executor};
-
 use babylon_apis::btc_staking_api::{ActiveBtcDelegation, FinalityProvider, NewFinalityProvider};
 use babylon_apis::error::StakingApiError;
 use babylon_apis::finality_api::{IndexedBlock, PubRandCommit};
@@ -15,7 +6,13 @@ use babylon_apis::{btc_staking_api, finality_api, to_bech32_addr, to_canonical_a
 use babylon_bindings_test::BabylonApp;
 use btc_light_client::msg::InstantiateMsg as BtcLightClientInstantiateMsg;
 use btc_light_client::BitcoinNetwork;
+use cosmwasm_std::testing::mock_dependencies;
 use cosmwasm_std::Empty;
+use cosmwasm_std::{to_json_binary, Addr, BlockInfo, Coin, Timestamp};
+use cw_multi_test::{next_block, AppResponse, Contract, ContractWrapper, Executor};
+use derivative::Derivative;
+use hex::ToHex;
+use std::collections::HashMap;
 
 use btc_staking::msg::{ActivatedHeightResponse, FinalityProviderInfo};
 
@@ -116,8 +113,6 @@ impl SuiteBuilder {
         let btc_finality_code_id =
             app.store_code_with_creator(owner.clone(), contract_btc_finality());
         let contract_code_id = app.store_code_with_creator(owner.clone(), contract_babylon());
-        let staking_params = btc_staking::test_utils::staking_params();
-        let finality_params = crate::test_utils::finality_params(self.missed_blocks_window);
 
         let btc_light_client_msg = {
             let btc_lc_init_msg = BtcLightClientInstantiateMsg {
@@ -144,17 +139,13 @@ impl SuiteBuilder {
                     btc_light_client_msg: Some(btc_light_client_msg),
                     btc_staking_code_id: Some(btc_staking_code_id),
                     btc_staking_msg: Some(
-                        to_json_binary(&btc_staking::msg::InstantiateMsg {
-                            params: Some(staking_params),
-                            admin: None,
-                        })
-                        .unwrap(),
+                        to_json_binary(&btc_staking::msg::InstantiateMsg { admin: None }).unwrap(),
                     ),
                     btc_finality_code_id: Some(btc_finality_code_id),
                     btc_finality_msg: Some(
                         to_json_binary(&InstantiateMsg {
-                            params: Some(finality_params),
                             admin: Some(owner.to_string()),
+                            ..Default::default()
                         })
                         .unwrap(),
                     ),
@@ -273,15 +264,6 @@ impl Suite {
         self.app
             .wrap()
             .query_wasm_smart(self.staking.clone(), &btc_staking::msg::QueryMsg::Config {})
-            .unwrap()
-    }
-
-    #[track_caller]
-    #[allow(dead_code)]
-    pub fn get_btc_staking_params(&self) -> btc_staking::state::config::Params {
-        self.app
-            .wrap()
-            .query_wasm_smart(self.staking.clone(), &btc_staking::msg::QueryMsg::Params {})
             .unwrap()
     }
 

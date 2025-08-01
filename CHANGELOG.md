@@ -33,18 +33,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 [Full Changelog](https://github.com/babylonlabs-io/cosmos-bsn-contracts/compare/v0.14.0...HEAD)
 
-### Features
-
-- [#274](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/274) Send rewards to Babylon for distribution
-
 ### State breaking
 
+- [#274](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/274) Send rewards to Babylon for distribution
+- [#279](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/279) chore: clean up BTC finality contract parameters and merge them into Config
+- [#280](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/280) btcstaking: cleanup BTC staking parameters
 - [#276](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/276) finality: fix finality voting issue
 - [#272](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/272) ibc: set proper timeout for IBC packets
 
 ### Improvements
 
 - [#282](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/282) finality: introduce `AddFinalitySig` and add `validate_basic()` check
+- [#281](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/281) chore: Cleanup unused dependencies and enforce dependency check in CI
 - [#270](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/270) fix: fix Babylon SDK e2e
 - [#265](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/265) finality: handle public randomness misalignment
 - [#260](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/260) chore: manual changelog setup

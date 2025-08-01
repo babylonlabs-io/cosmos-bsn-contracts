@@ -36,7 +36,6 @@ babylon-contract      = { path = "../babylon", features = [ "library" ] }
 btc-light-client      = { path = "../btc-light-client", features = [ "library" ] }
 btc-staking           = { path = "../btc-staking", features = [ "library" ] }
 
-anybuf           = { workspace = true }
 bitcoin          = { workspace = true }
 cosmwasm-schema  = { workspace = true }
 cosmwasm-std     = { workspace = true }

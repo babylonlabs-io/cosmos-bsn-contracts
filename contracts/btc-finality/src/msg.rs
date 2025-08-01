@@ -1,4 +1,3 @@
-use crate::state::config::Params;
 use babylon_apis::finality_api::{Evidence, IndexedBlock};
 use cosmwasm_schema::{cw_serde, QueryResponses};
 use std::collections::HashMap;
@@ -11,8 +10,12 @@ use {
 #[cw_serde]
 #[derive(Default)]
 pub struct InstantiateMsg {
-    pub params: Option<Params>,
     pub admin: Option<String>,
+    pub max_active_finality_providers: Option<u32>,
+    pub min_pub_rand: Option<u64>,
+    pub reward_interval: Option<u64>,
+    pub missed_blocks_window: Option<u64>,
+    pub jail_duration: Option<u64>,
 }
 
 pub type ExecuteMsg = babylon_apis::finality_api::ExecuteMsg;
@@ -23,9 +26,6 @@ pub enum QueryMsg {
     /// Returns the current configuration of the btc-finality contract.
     #[returns(Config)]
     Config {},
-    /// Returns the current Consumer-specific parameters of the btc-finality contract.
-    #[returns(Params)]
-    Params {},
     /// Returns the current admin of the contract.
     #[returns(AdminResponse)]
     Admin {},

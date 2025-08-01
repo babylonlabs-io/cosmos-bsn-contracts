@@ -1,25 +1,14 @@
+use crate::error::ContractError;
+use crate::msg::{
+    ActiveFinalityProvidersResponse, BlocksResponse, EvidenceResponse,
+    FinalityProviderPowerResponse, FinalitySignatureResponse, JailedFinalityProvider,
+    JailedFinalityProvidersResponse,
+};
+use crate::state::finality::{get_power_table_at_height, BLOCKS, EVIDENCES, JAIL, SIGNATURES};
+use babylon_apis::finality_api::IndexedBlock;
 use cosmwasm_std::Order::{Ascending, Descending};
 use cosmwasm_std::{Deps, StdResult};
 use cw_storage_plus::Bound;
-
-use babylon_apis::finality_api::IndexedBlock;
-
-use crate::error::ContractError;
-use crate::msg::{
-    ActiveFinalityProvidersResponse, BlocksResponse, EvidenceResponse, FinalityProviderPowerResponse,
-    FinalitySignatureResponse, JailedFinalityProvider, JailedFinalityProvidersResponse,
-};
-use crate::state::config::{Config, Params};
-use crate::state::config::{CONFIG, PARAMS};
-use crate::state::finality::{get_power_table_at_height, BLOCKS, EVIDENCES, JAIL, SIGNATURES};
-
-pub fn config(deps: Deps) -> StdResult<Config> {
-    CONFIG.load(deps.storage)
-}
-
-pub fn params(deps: Deps) -> StdResult<Params> {
-    PARAMS.load(deps.storage)
-}
 
 // Settings for pagination
 const MAX_LIMIT: u32 = 30;

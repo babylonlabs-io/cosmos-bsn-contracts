@@ -4,7 +4,10 @@ use crate::finality::{
     handle_public_randomness_commit, handle_unjail,
 };
 use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
-use crate::state::config::{Config, ADMIN, CONFIG, PARAMS};
+use crate::state::config::{
+    Config, ADMIN, CONFIG, DEFAULT_JAIL_DURATION, DEFAULT_MAX_ACTIVE_FINALITY_PROVIDERS,
+    DEFAULT_MIN_PUB_RAND, DEFAULT_MISSED_BLOCKS_WINDOW, DEFAULT_REWARD_INTERVAL,
+};
 use crate::state::finality::{REWARDS, TOTAL_PENDING_REWARDS};
 use crate::{finality, queries, state};
 use babylon_apis::finality_api::SudoMsg;
@@ -33,56 +36,30 @@ pub fn instantiate(
     nonpayable(&info)?;
     let denom = deps.querier.query_bonded_denom()?;
 
-    // Query blocks per year from the chain's mint module
-    let blocks_per_year = get_blocks_per_year(&mut deps)?;
     let config = Config {
         denom,
-        blocks_per_year,
         babylon: info.sender,
         staking: Addr::unchecked("UNSET"), // To be set later, through `UpdateStaking`
+        max_active_finality_providers: msg
+            .max_active_finality_providers
+            .unwrap_or(DEFAULT_MAX_ACTIVE_FINALITY_PROVIDERS),
+        min_pub_rand: msg.min_pub_rand.unwrap_or(DEFAULT_MIN_PUB_RAND),
+        reward_interval: msg.reward_interval.unwrap_or(DEFAULT_REWARD_INTERVAL),
+        missed_blocks_window: msg
+            .missed_blocks_window
+            .unwrap_or(DEFAULT_MISSED_BLOCKS_WINDOW),
+        jail_duration: msg.jail_duration.unwrap_or(DEFAULT_JAIL_DURATION),
     };
     CONFIG.save(deps.storage, &config)?;
 
     let api = deps.api;
     ADMIN.set(deps.branch(), maybe_addr(api, msg.admin.clone())?)?;
 
-    let params = msg.params.unwrap_or_default();
-    PARAMS.save(deps.storage, &params)?;
     // initialize storage, so no issue when reading for the first time
     TOTAL_PENDING_REWARDS.save(deps.storage, &Uint128::zero())?;
 
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
     Ok(Response::new().add_attribute("action", "instantiate"))
-}
-
-/// Queries the chain's blocks per year using the mint Params Grpc query
-fn get_blocks_per_year(deps: &mut DepsMut) -> Result<u64, ContractError> {
-    let blocks_per_year;
-    #[cfg(any(test, all(feature = "library", not(target_arch = "wasm32"))))]
-    {
-        let _ = deps;
-        blocks_per_year = 60 * 60 * 24 * 365 / 6; // Default / hardcoded value for tests
-    }
-    #[cfg(not(any(test, all(feature = "library", not(target_arch = "wasm32")))))]
-    {
-        let res = deps.querier.query_grpc(
-            "/cosmos.mint.v1beta1.Query/Params".into(),
-            cosmwasm_std::Binary::new("".into()),
-        )?;
-        // Deserialize protobuf
-        let res_decoded =
-            anybuf::Bufany::deserialize(&res).expect("Static value must not fail to deserialize");
-        // See https://github.com/cosmos/cosmos-sdk/blob/8bfcf554275c1efbb42666cc8510d2da139b67fa/proto/cosmos/mint/v1beta1/query.proto#L35-L36
-        let res_params = res_decoded
-            .message(1)
-            .expect("Static value must contain a message at index 1");
-        // See https://github.com/cosmos/cosmos-sdk/blob/8bfcf554275c1efbb42666cc8510d2da139b67fa/proto/cosmos/mint/v1beta1/mint.proto#L60-L61
-        // to see from where the field number comes from
-        blocks_per_year = res_params
-            .uint64(6)
-            .ok_or(ContractError::MissingBlocksPerYear {})?;
-    }
-    Ok(blocks_per_year)
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
@@ -93,8 +70,7 @@ pub fn reply(_deps: DepsMut, _env: Env, _reply: Reply) -> StdResult<Response> {
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> Result<QueryResponse, ContractError> {
     match msg {
-        QueryMsg::Config {} => Ok(to_json_binary(&queries::config(deps)?)?),
-        QueryMsg::Params {} => Ok(to_json_binary(&queries::params(deps)?)?),
+        QueryMsg::Config {} => Ok(to_json_binary(&CONFIG.load(deps.storage)?)?),
         QueryMsg::Admin {} => to_json_binary(&ADMIN.query_admin(deps)?).map_err(Into::into),
         QueryMsg::FinalitySignature { btc_pk_hex, height } => Ok(to_json_binary(
             &queries::finality_signature(deps, btc_pk_hex, height)?,
@@ -242,7 +218,7 @@ fn handle_begin_block(deps: &mut DepsMut, env: Env) -> Result<Response, Contract
     distribute_rewards_fps(deps, &env)?;
 
     // Compute active finality provider set
-    let max_active_fps = PARAMS.load(deps.storage)?.max_active_finality_providers as usize;
+    let max_active_fps = CONFIG.load(deps.storage)?.max_active_finality_providers as usize;
     compute_active_finality_providers(deps, &env, max_active_fps)?;
 
     // TODO: Add events (#124)
@@ -270,8 +246,7 @@ fn handle_end_block(
     }
 
     // On an epoch boundary, send rewards for distribution to Babylon Genesis
-    let params = PARAMS.load(deps.storage)?;
-    if env.block.height > 0 && env.block.height % params.reward_interval == 0 {
+    if env.block.height > 0 && env.block.height % cfg.reward_interval == 0 {
         let rewards = TOTAL_PENDING_REWARDS.load(deps.storage)?;
         if rewards.u128() > 0 {
             let (fp_rewards, wasm_msg) = send_rewards_msg(deps, rewards.u128(), &cfg)?;
@@ -362,10 +337,7 @@ pub(crate) mod tests {
         let mut deps = mock_dependencies();
 
         // Create an InstantiateMsg with admin set to None
-        let msg = InstantiateMsg {
-            params: None,
-            admin: None, // No admin provided
-        };
+        let msg = InstantiateMsg::default();
 
         let info = message_info(&deps.api.addr_make(CREATOR), &[]);
 
@@ -387,8 +359,8 @@ pub(crate) mod tests {
 
         // Create an InstantiateMsg with admin set to Some(INIT_ADMIN.into())
         let msg = InstantiateMsg {
-            params: None,
             admin: Some(init_admin.to_string()), // Admin provided
+            ..Default::default()
         };
 
         let info = message_info(&deps.api.addr_make(CREATOR), &[]);
@@ -418,9 +390,13 @@ pub(crate) mod tests {
         let staking_addr = deps.api.addr_make("staking");
         let config = Config {
             denom: "TOKEN".to_string(),
-            blocks_per_year: 1000,
             babylon: babylon_addr.clone(),
             staking: staking_addr.clone(),
+            max_active_finality_providers: DEFAULT_MAX_ACTIVE_FINALITY_PROVIDERS,
+            min_pub_rand: DEFAULT_MIN_PUB_RAND,
+            reward_interval: DEFAULT_REWARD_INTERVAL,
+            missed_blocks_window: DEFAULT_MISSED_BLOCKS_WINDOW,
+            jail_duration: DEFAULT_JAIL_DURATION,
         };
         CONFIG.save(&mut deps.storage, &config).unwrap();
 
@@ -485,9 +461,13 @@ pub(crate) mod tests {
         let staking_addr = deps.api.addr_make("staking");
         let config = Config {
             denom: "TOKEN".to_string(),
-            blocks_per_year: 1000,
             babylon: babylon_addr.clone(),
             staking: staking_addr.clone(),
+            max_active_finality_providers: DEFAULT_MAX_ACTIVE_FINALITY_PROVIDERS,
+            min_pub_rand: DEFAULT_MIN_PUB_RAND,
+            reward_interval: DEFAULT_REWARD_INTERVAL,
+            missed_blocks_window: DEFAULT_MISSED_BLOCKS_WINDOW,
+            jail_duration: DEFAULT_JAIL_DURATION,
         };
         CONFIG.save(&mut deps.storage, &config).unwrap();
 
@@ -534,15 +514,15 @@ pub(crate) mod tests {
         let new_admin = deps.api.addr_make(NEW_ADMIN);
 
         // Create an InstantiateMsg with admin set to Some(INIT_ADMIN.into())
-        let instantiate_msg = InstantiateMsg {
-            params: None,
+        let msg = InstantiateMsg {
             admin: Some(init_admin.to_string()), // Admin provided
+            ..Default::default()
         };
 
         let info = message_info(&deps.api.addr_make(CREATOR), &[]);
 
         // Call the instantiate function
-        let res = instantiate(deps.as_mut(), mock_env(), info.clone(), instantiate_msg).unwrap();
+        let res = instantiate(deps.as_mut(), mock_env(), info.clone(), msg).unwrap();
 
         // Assert that no messages were sent
         assert_eq!(0, res.messages.len());
