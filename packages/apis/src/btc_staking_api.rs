@@ -102,6 +102,12 @@ pub struct FinalityProvider {
     pub consumer_id: String,
 }
 
+impl FinalityProvider {
+    pub fn is_slashed(&self) -> bool {
+        self.slashed_height > 0 || self.slashed_btc_height > 0
+    }
+}
+
 impl From<&NewFinalityProvider> for FinalityProvider {
     fn from(new_fp: &NewFinalityProvider) -> Self {
         FinalityProvider {
