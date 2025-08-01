@@ -16,10 +16,8 @@ fn initialization() {
     // Check that the contracts were initialized correctly
     let config = suite.get_config();
     assert_eq!(config.network, btc_light_client::BitcoinNetwork::Testnet);
-    assert_eq!(config.babylon_tag, [1, 2, 3, 4]);
     assert_eq!(config.btc_confirmation_depth, 1);
     assert_eq!(config.checkpoint_finalization_timeout, 1);
-    assert!(!config.notify_cosmos_zone);
     assert_eq!(
         config.btc_light_client.unwrap().as_str(),
         BTC_LIGHT_CLIENT_CONTRACT_ADDR

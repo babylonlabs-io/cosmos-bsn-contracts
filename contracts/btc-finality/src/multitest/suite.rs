@@ -131,10 +131,8 @@ impl SuiteBuilder {
                 owner.clone(),
                 &babylon_contract::msg::contract::InstantiateMsg {
                     network: BitcoinNetwork::Testnet,
-                    babylon_tag: "01020304".to_string(),
                     btc_confirmation_depth: 1,
                     checkpoint_finalization_timeout: 1,
-                    notify_cosmos_zone: false,
                     btc_light_client_code_id: Some(btc_light_client_code_id),
                     btc_light_client_msg: Some(btc_light_client_msg),
                     btc_staking_code_id: Some(btc_staking_code_id),

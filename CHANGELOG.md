@@ -35,6 +35,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### State breaking
 
+- [#283](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/283) babylon: remove unused fields in config and instantiation msg for Babylon contract
 - [#274](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/274) Send rewards to Babylon for distribution
 - [#279](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/279) chore: clean up BTC finality contract parameters and merge them into Config
 - [#280](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/280) btcstaking: cleanup BTC staking parameters
