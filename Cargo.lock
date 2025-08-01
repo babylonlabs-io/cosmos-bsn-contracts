@@ -68,12 +68,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "55cc3b69f167a1ef2e161439aa98aed94e6028e5f9a59be9a6ffb47aef1651f9"
 
 [[package]]
-name = "anybuf"
-version = "0.5.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ecb50559f19eb92f65279f9de03e4625ed0572e7564ef3de5253e13928c55266"
-
-[[package]]
 name = "anyhow"
 version = "1.0.98"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -474,7 +468,6 @@ checksum = "3e31ea183f6ee62ac8b8a8cf7feddd766317adfb13ff469de57ce033efd6a790"
 name = "btc-finality"
 version = "0.15.1"
 dependencies = [
- "anybuf",
  "anyhow",
  "assert_matches",
  "babylon-apis",
@@ -549,7 +542,6 @@ dependencies = [
  "cw-storage-plus",
  "cw-utils",
  "cw2",
- "derivative",
  "eots",
  "hex",
  "k256",
