@@ -365,14 +365,11 @@ pub fn handle_finality_signature(
     // Ensure the finality provider has voting power at this height
     ensure_fp_has_power(deps.storage, height, &fp_btc_pk_hex)?;
 
-    // Ensure the signature is not empty
-    if signature.is_empty() {
-        return Err(ContractError::EmptySignature);
-    }
     // Ensure the height is proper
     if env.block.height < height {
         return Err(ContractError::HeightTooHigh);
     }
+
     // Ensure the finality provider has not cast the same vote yet
     let existing_sig = SIGNATURES.may_load(deps.storage, (height, &fp_btc_pk_hex))?;
     match existing_sig {
@@ -1010,7 +1007,7 @@ mod tests {
             },
             TestCase {
                 name: "empty Public Randomness",
-                msg_modifier: |msg: &mut AddFinalitySigMsg| msg.pub_rand.clear(),
+                msg_modifier: |msg| msg.pub_rand.clear(),
                 expected: Err(FinalitySigError::EmptyPubRand),
             },
             TestCase {
