@@ -4,15 +4,20 @@
   "type": "object",
   "required": [
     "btc_pk_hex",
-    "power"
+    "slashed",
+    "total_active_sats"
   ],
   "properties": {
     "btc_pk_hex": {
       "description": "Bitcoin secp256k1 PK of this finality provider. The PK follows encoding in BIP-340 spec in hex format",
       "type": "string"
     },
-    "power": {
-      "description": "Aggregated power of this finality provider. The power is calculated based on the amount of BTC delegated to this finality provider",
+    "slashed": {
+      "description": "Whether this finality provider is slashed",
+      "type": "boolean"
+    },
+    "total_active_sats": {
+      "description": "Total active sats delegated to this finality provider",
       "type": "integer",
       "format": "uint64",
       "minimum": 0.0
