@@ -32,25 +32,18 @@ library = []
 [dependencies]
 babylon-apis     = { path = "../../packages/apis" }
 babylon-proto    = { path = "../../packages/proto" }
-babylon-test-utils   = { path = "../../packages/test-utils" }
 bitcoin          = { workspace = true }
-blst             = { workspace = true }
 cosmwasm-schema  = { workspace = true }
 cosmwasm-std     = { workspace = true }
 cw2              = { workspace = true }
 cw-storage-plus  = { workspace = true }
 cw-utils         = { workspace = true }
 hex              = { workspace = true }
-ibc-core-commitment-types = { workspace = true }
-ibc-core-host-types = { workspace = true }
 ibc-proto        = { workspace = true }
 tendermint-proto = { workspace = true }
-cosmos-sdk-proto = { workspace = true }
 thiserror        = { workspace = true }
 prost            = { workspace = true }
-ics23            = { workspace = true }
 serde_json       = { workspace = true }
-sha2             = { workspace = true }
 
 btc-light-client = { path = "../btc-light-client", features = [ "library" ] }
 
