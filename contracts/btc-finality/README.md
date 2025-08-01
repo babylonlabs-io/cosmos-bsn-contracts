@@ -117,22 +117,3 @@ EndBlock {
   app_hash_hex: String,
 },
 ```
-
-### Custom Messages
-
-Custom messages are used by the Cosmos BSN contracts to interact with the
-Babylon SDK `babylon` module.
-
-`MintRewards` Message:
-
-This privileged message is used to mint the requested block rewards for the
-finality providers.
-It can only be sent from the finality contract.
-
-```rust
-/// MintRewards mints the requested block rewards for the finality providers.
-/// It can only be sent from the finality contract.
-/// The rewards are minted to the staking contract address, so that they
-/// can be distributed across the active finality provider set
-MintRewards { amount: Coin, recipient: String },
-```

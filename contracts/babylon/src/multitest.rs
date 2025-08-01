@@ -118,18 +118,7 @@ mod instantiation {
 
     #[test]
     fn instantiate_finality_msg_works() {
-        // Params setting is an all-or-nothing operation, i.e. all the params have to be set
-        let params = btc_finality::state::config::Params {
-            reward_interval: 10,
-            max_active_finality_providers: 5,
-            min_pub_rand: 2,
-            missed_blocks_window: 100,
-            jail_duration: 3600,
-        };
-        let finality_instantiation_msg = btc_finality::msg::InstantiateMsg {
-            params: Some(params),
-            admin: None,
-        };
+        let finality_instantiation_msg = btc_finality::msg::InstantiateMsg::default();
         let suite = SuiteBuilder::new()
             .with_finality_msg(&to_json_string(&finality_instantiation_msg).unwrap())
             .build();

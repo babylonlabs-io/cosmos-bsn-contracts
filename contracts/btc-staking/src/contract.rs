@@ -188,9 +188,7 @@ pub mod tests {
         let mut deps = mock_dependencies();
 
         // Create an InstantiateMsg with admin set to None
-        let msg = InstantiateMsg {
-            admin: None, // No admin provided
-        };
+        let msg = InstantiateMsg::default();
 
         let info = message_info(&deps.api.addr_make(CREATOR), &[]);
 

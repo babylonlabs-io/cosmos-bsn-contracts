@@ -44,7 +44,7 @@ cosmwasm-std     = { workspace = true }
 cw2              = { workspace = true }
 cw-storage-plus  = { workspace = true }
 cw-utils         = { workspace = true }
-derivative       = { workspace = true }
+
 hex              = { workspace = true }
 k256             = { workspace = true } 
 prost            = { workspace = true }
