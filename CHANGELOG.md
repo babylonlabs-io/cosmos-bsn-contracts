@@ -44,6 +44,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Improvements
 
+- [#282](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/282) finality: introduce `AddFinalitySig` and add `validate_basic()` check
 - [#281](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/281) chore: Cleanup unused dependencies and enforce dependency check in CI
 - [#270](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/270) fix: fix Babylon SDK e2e
 - [#265](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/265) finality: handle public randomness misalignment

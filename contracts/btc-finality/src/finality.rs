@@ -33,6 +33,15 @@ const MAX_PUB_RAND_COMMIT_OFFSET: u64 = 160_000;
 
 const COMMITMENT_LENGTH_BYTES: usize = 32;
 
+// BIP340 public key length
+const BIP340_PUB_KEY_LEN: usize = 32;
+// Schnorr public randomness length
+const SCHNORR_PUB_RAND_LEN: usize = 32;
+// Schnorr EOTS signature length
+const SCHNORR_EOTS_SIG_LEN: usize = 32;
+// Tendermint hash size (SHA256)
+const TMHASH_SIZE: usize = 32;
+
 #[derive(thiserror::Error, Debug, PartialEq)]
 pub enum PubRandCommitError {
     #[error("Empty FP BTC PubKey")]
@@ -216,17 +225,98 @@ fn msg_to_sign_for_vote(context: &str, block_height: u64, block_hash: &[u8]) -> 
     msg
 }
 
-#[allow(clippy::too_many_arguments)]
+/// Finality signature error types.
+#[derive(thiserror::Error, Debug, PartialEq)]
+pub enum FinalitySigError {
+    #[error("empty Finality Provider BTC PubKey")]
+    EmptyFpBtcPk,
+    #[error("invalid finality provider BTC public key length: got {actual}, want {expected}")]
+    InvalidFpBtcPkLength { actual: usize, expected: usize },
+    #[error("invalid public randomness length: got {actual}, want {expected}")]
+    InvalidPubRandLength { actual: usize, expected: usize },
+    #[error("empty inclusion proof")]
+    EmptyProof,
+    #[error("invalid finality signature length: got {actual}, want {expected}")]
+    InvalidFinalitySigLength { actual: usize, expected: usize },
+    #[error("invalid block app hash length: got {actual}, want {expected}")]
+    InvalidBlockAppHashLength { actual: usize, expected: usize },
+    #[error(transparent)]
+    Hex(#[from] hex::FromHexError),
+}
+
+// https://github.com/babylonlabs-io/babylon/blob/49972e2d3e35caf0a685c37e1f745c47b75bfc69/x/finality/types/tx.pb.go#L154
+pub struct AddFinalitySigMsg {
+    pub fp_btc_pk_hex: String,
+    pub height: u64,
+    pub pub_rand: Vec<u8>,
+    pub proof: Proof,
+    pub block_app_hash: Vec<u8>,
+    pub signature: Vec<u8>,
+}
+
+impl AddFinalitySigMsg {
+    // https://github.com/babylonlabs-io/babylon/blob/49972e2d3e35caf0a685c37e1f745c47b75bfc69/x/finality/types/msg.go#L40
+    fn validate_basic(&self) -> Result<(), FinalitySigError> {
+        // Validate FP BTC PubKey
+        if self.fp_btc_pk_hex.is_empty() {
+            return Err(FinalitySigError::EmptyFpBtcPk);
+        }
+
+        // Validate FP BTC PubKey length
+        let fp_btc_pk = hex::decode(&self.fp_btc_pk_hex)?;
+        if fp_btc_pk.len() != BIP340_PUB_KEY_LEN {
+            return Err(FinalitySigError::InvalidFpBtcPkLength {
+                actual: fp_btc_pk.len(),
+                expected: BIP340_PUB_KEY_LEN,
+            });
+        }
+
+        // Validate Public Randomness length
+        if self.pub_rand.len() != SCHNORR_PUB_RAND_LEN {
+            return Err(FinalitySigError::InvalidPubRandLength {
+                actual: self.pub_rand.len(),
+                expected: SCHNORR_PUB_RAND_LEN,
+            });
+        }
+
+        // `self.proof` is not an Option, thus it must not be empty.
+
+        // Validate finality signature length
+        if self.signature.len() != SCHNORR_EOTS_SIG_LEN {
+            return Err(FinalitySigError::InvalidFinalitySigLength {
+                actual: self.signature.len(),
+                expected: SCHNORR_EOTS_SIG_LEN,
+            });
+        }
+
+        // Validate block app hash length
+        if self.block_app_hash.len() != TMHASH_SIZE {
+            return Err(FinalitySigError::InvalidBlockAppHashLength {
+                actual: self.block_app_hash.len(),
+                expected: TMHASH_SIZE,
+            });
+        }
+
+        Ok(())
+    }
+}
+
 pub fn handle_finality_signature(
     mut deps: DepsMut,
     env: Env,
-    fp_btc_pk_hex: &str,
-    height: u64,
-    pub_rand: &[u8],
-    proof: &Proof,
-    block_app_hash: &[u8],
-    signature: &[u8],
+    add_finality_sig: AddFinalitySigMsg,
 ) -> Result<Response, ContractError> {
+    add_finality_sig.validate_basic()?;
+
+    let AddFinalitySigMsg {
+        fp_btc_pk_hex,
+        height,
+        pub_rand,
+        proof,
+        block_app_hash,
+        signature,
+    } = add_finality_sig;
+
     // Ensure the finality provider exists
     let staking_addr = CONFIG.load(deps.storage)?.staking;
     let fp: FinalityProvider = deps.querier.query_wasm_smart(
@@ -261,18 +351,15 @@ pub fn handle_finality_signature(
     }
 
     // Ensure the finality provider has voting power at this height
-    ensure_fp_has_power(deps.storage, height, fp_btc_pk_hex)?;
+    ensure_fp_has_power(deps.storage, height, &fp_btc_pk_hex)?;
 
-    // Ensure the signature is not empty
-    if signature.is_empty() {
-        return Err(ContractError::EmptySignature);
-    }
     // Ensure the height is proper
     if env.block.height < height {
         return Err(ContractError::HeightTooHigh);
     }
+
     // Ensure the finality provider has not cast the same vote yet
-    let existing_sig = SIGNATURES.may_load(deps.storage, (height, fp_btc_pk_hex))?;
+    let existing_sig = SIGNATURES.may_load(deps.storage, (height, &fp_btc_pk_hex))?;
     match existing_sig {
         Some(existing_sig) if existing_sig == signature => {
             deps.api.debug(&format!("Received duplicated finality vote. Height: {height}, Finality Provider: {fp_btc_pk_hex}"));
@@ -284,7 +371,7 @@ pub fn handle_finality_signature(
 
     // Find the timestamped public randomness commitment for this height from this finality provider
     let pr_commit =
-        get_timestamped_pub_rand_commit_for_height(&deps.as_ref(), fp_btc_pk_hex, height)?;
+        get_timestamped_pub_rand_commit_for_height(&deps.as_ref(), &fp_btc_pk_hex, height)?;
 
     let signing_context = babylon_apis::signing_context::fp_fin_vote_context_v0(
         &env.block.chain_id,
@@ -293,18 +380,18 @@ pub fn handle_finality_signature(
 
     // Verify the finality signature message
     verify_finality_signature(
-        fp_btc_pk_hex,
+        &fp_btc_pk_hex,
         height,
-        pub_rand,
-        proof,
+        &pub_rand,
+        &proof,
         &pr_commit,
-        block_app_hash,
-        signature,
-        signing_context.clone(),
+        &block_app_hash,
+        &signature,
+        &signing_context,
     )?;
 
     // The public randomness value is good, save it.
-    PUB_RAND_VALUES.save(deps.storage, (fp_btc_pk_hex, height), &pub_rand.to_vec())?;
+    PUB_RAND_VALUES.save(deps.storage, (&fp_btc_pk_hex, height), &pub_rand.to_vec())?;
 
     // Verify whether the voted block is a fork or not
     let indexed_block = BLOCKS
@@ -317,7 +404,7 @@ pub fn handle_finality_signature(
 
         // Construct evidence
         let mut evidence = Evidence {
-            fp_btc_pk: hex::decode(fp_btc_pk_hex)?,
+            fp_btc_pk: hex::decode(&fp_btc_pk_hex)?,
             block_height: height,
             pub_rand: pub_rand.to_vec(),
             canonical_app_hash: indexed_block.app_hash,
@@ -328,20 +415,20 @@ pub fn handle_finality_signature(
         };
 
         // If this finality provider has also signed the canonical block, slash it
-        let canonical_sig = SIGNATURES.may_load(deps.storage, (height, fp_btc_pk_hex))?;
+        let canonical_sig = SIGNATURES.may_load(deps.storage, (height, &fp_btc_pk_hex))?;
         if let Some(canonical_sig) = canonical_sig {
             // Set canonical sig
             evidence.canonical_finality_sig = canonical_sig;
             // Slash this finality provider, including setting its voting power to zero, extracting
             // its BTC SK, and emitting an event
-            let (msg, ev) = slash_finality_provider(&mut deps, fp_btc_pk_hex, &evidence)?;
+            let (msg, ev) = slash_finality_provider(&mut deps, &fp_btc_pk_hex, &evidence)?;
             res = res.add_message(msg);
             res = res.add_event(ev);
         }
         // TODO?: Also slash if this finality provider has signed another fork before
 
         // Save evidence
-        EVIDENCES.save(deps.storage, (fp_btc_pk_hex, height), &evidence)?;
+        EVIDENCES.save(deps.storage, (&fp_btc_pk_hex, height), &evidence)?;
 
         // NOTE: We should NOT return error here, otherwise the state change triggered in this tx
         // (including the evidence) will be rolled back
@@ -349,24 +436,24 @@ pub fn handle_finality_signature(
     }
 
     // This signature is good, save the vote to the store
-    SIGNATURES.save(deps.storage, (height, fp_btc_pk_hex), &signature.to_vec())?;
+    SIGNATURES.save(deps.storage, (height, &fp_btc_pk_hex), &signature)?;
 
     // Store the block height this finality provider has signed
-    FP_BLOCK_SIGNER.save(deps.storage, fp_btc_pk_hex, &height)?;
+    FP_BLOCK_SIGNER.save(deps.storage, &fp_btc_pk_hex, &height)?;
 
     // If this finality provider has signed the canonical block before, slash it via extracting its
     // secret key, and emit an event
-    if let Some(mut evidence) = EVIDENCES.may_load(deps.storage, (fp_btc_pk_hex, height))? {
+    if let Some(mut evidence) = EVIDENCES.may_load(deps.storage, (&fp_btc_pk_hex, height))? {
         // The finality provider has voted for a fork before!
         // This evidence is at the same height as this signature, slash this finality provider
 
         // Set canonical sig to this evidence
         evidence.canonical_finality_sig = signature.to_vec();
-        EVIDENCES.save(deps.storage, (fp_btc_pk_hex, height), &evidence)?;
+        EVIDENCES.save(deps.storage, (&fp_btc_pk_hex, height), &evidence)?;
 
         // Slash this finality provider, including setting its voting power to zero, extracting its
         // BTC SK, and emitting an event
-        let (msg, ev) = slash_finality_provider(&mut deps, fp_btc_pk_hex, &evidence)?;
+        let (msg, ev) = slash_finality_provider(&mut deps, &fp_btc_pk_hex, &evidence)?;
         res = res.add_message(msg);
         res = res.add_event(ev);
     }
@@ -514,7 +601,7 @@ fn verify_finality_signature(
     pr_commit: &PubRandCommit,
     app_hash: &[u8],
     signature: &[u8],
-    signing_context: String,
+    signing_context: &str,
 ) -> Result<(), ContractError> {
     let proof_height = pr_commit.start_height + proof.index;
     if block_height != proof_height {
@@ -538,7 +625,7 @@ fn verify_finality_signature(
     let pubkey = eots::PublicKey::from_hex(fp_btc_pk_hex)?;
 
     // The EOTS signature on a block will be (signing_context || block_height || block_app_hash)
-    let msg = msg_to_sign_for_vote(&signing_context, block_height, app_hash);
+    let msg = msg_to_sign_for_vote(signing_context, block_height, app_hash);
 
     let msg_hash = Sha256::digest(msg);
 
@@ -822,8 +909,8 @@ pub fn distribute_rewards_fps(deps: &mut DepsMut, env: &Env) -> Result<(), Contr
     }
     // Get the voting power of the active FPS
     let total_voting_power = active_fps
-        .iter()
-        .map(|(_, power)| *power as u128)
+        .values()
+        .map(|power| *power as u128)
         .sum::<u128>();
     // Short-circuit if the total voting power is zero
     if total_voting_power == 0 {
@@ -859,4 +946,125 @@ pub fn distribute_rewards_fps(deps: &mut DepsMut, env: &Env) -> Result<(), Contr
         Ok::<Uint128, ContractError>(r + accumulated_rewards)
     })?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rand::rngs::StdRng;
+    use rand::{Rng, SeedableRng};
+
+    // Helper function to generate random bytes
+    fn gen_random_bytes(rng: &mut StdRng, len: usize) -> Vec<u8> {
+        (0..len).map(|_| rng.gen()).collect()
+    }
+
+    // https://github.com/babylonlabs-io/babylon/blob/49972e2d3e35caf0a685c37e1f745c47b75bfc69/x/finality/types/msg_test.go#L167
+    #[test]
+    fn test_msg_add_finality_sig_validate_basic() {
+        let mut rng = StdRng::seed_from_u64(1);
+
+        struct TestCase {
+            name: &'static str,
+            msg_modifier: fn(&mut AddFinalitySigMsg),
+            expected: Result<(), FinalitySigError>,
+        }
+
+        let test_cases = vec![
+            TestCase {
+                name: "valid message",
+                // No modification needed for valid message
+                msg_modifier: |_| {},
+                expected: Ok(()),
+            },
+            TestCase {
+                name: "empty FP BTC PubKey",
+                msg_modifier: |msg| msg.fp_btc_pk_hex.clear(),
+                expected: Err(FinalitySigError::EmptyFpBtcPk),
+            },
+            TestCase {
+                name: "invalid FP BTC PubKey length",
+                msg_modifier: |msg| {
+                    msg.fp_btc_pk_hex = hex::encode(vec![0u8; 16]); // Too short
+                },
+                expected: Err(FinalitySigError::InvalidFpBtcPkLength {
+                    actual: 16,
+                    expected: 32,
+                }),
+            },
+            TestCase {
+                name: "empty Public Randomness",
+                msg_modifier: |msg| msg.pub_rand.clear(),
+                expected: Err(FinalitySigError::InvalidPubRandLength {
+                    actual: 0,
+                    expected: 32,
+                }),
+            },
+            TestCase {
+                name: "invalid Public Randomness length",
+                msg_modifier: |msg| {
+                    msg.pub_rand = vec![0u8; 16]; // Too short
+                },
+                expected: Err(FinalitySigError::InvalidPubRandLength {
+                    actual: 16,
+                    expected: 32,
+                }),
+            },
+            TestCase {
+                name: "empty finality signature",
+                msg_modifier: |msg| msg.signature.clear(),
+                expected: Err(FinalitySigError::InvalidFinalitySigLength {
+                    actual: 0,
+                    expected: 32,
+                }),
+            },
+            TestCase {
+                name: "invalid finality signature length",
+                msg_modifier: |msg| {
+                    msg.signature = vec![0u8; 16]; // Too short
+                },
+                expected: Err(FinalitySigError::InvalidFinalitySigLength {
+                    actual: 16,
+                    expected: 32,
+                }),
+            },
+            TestCase {
+                name: "invalid block app hash length",
+                msg_modifier: |msg| {
+                    msg.block_app_hash = vec![0u8; 16]; // Too short
+                },
+                expected: Err(FinalitySigError::InvalidBlockAppHashLength {
+                    actual: 16,
+                    expected: 32,
+                }),
+            },
+        ];
+
+        for TestCase {
+            name,
+            msg_modifier,
+            expected,
+        } in test_cases
+        {
+            // Create a valid message
+            let mut msg = AddFinalitySigMsg {
+                fp_btc_pk_hex: hex::encode(gen_random_bytes(&mut rng, BIP340_PUB_KEY_LEN)),
+                height: rng.gen_range(1..1000),
+                pub_rand: gen_random_bytes(&mut rng, SCHNORR_PUB_RAND_LEN),
+                proof: Proof {
+                    total: 0,
+                    index: 0,
+                    leaf_hash: Default::default(),
+                    aunts: Default::default(),
+                },
+                block_app_hash: gen_random_bytes(&mut rng, TMHASH_SIZE),
+                signature: gen_random_bytes(&mut rng, SCHNORR_EOTS_SIG_LEN),
+            };
+
+            // Apply the test case modifier
+            msg_modifier(&mut msg);
+
+            assert_eq!(msg.validate_basic(), expected, "Test case failed: {}", name);
+        }
+    }
 }

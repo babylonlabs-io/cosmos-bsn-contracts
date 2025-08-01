@@ -493,6 +493,7 @@ dependencies = [
  "k256",
  "pbjson-types",
  "prost",
+ "rand",
  "tendermint-proto",
  "thiserror 1.0.69",
 ]

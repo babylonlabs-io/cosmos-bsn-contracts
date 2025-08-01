@@ -152,12 +152,14 @@ pub fn execute(
         } => handle_finality_signature(
             deps,
             env,
-            &fp_pubkey_hex,
-            height,
-            &pub_rand,
-            &proof,
-            &block_app_hash,
-            &signature,
+            crate::finality::AddFinalitySigMsg {
+                fp_btc_pk_hex: fp_pubkey_hex,
+                height,
+                pub_rand: pub_rand.into(),
+                proof,
+                block_app_hash: block_app_hash.into(),
+                signature: signature.into(),
+            },
         ),
         ExecuteMsg::CommitPublicRandomness {
             fp_pubkey_hex,
