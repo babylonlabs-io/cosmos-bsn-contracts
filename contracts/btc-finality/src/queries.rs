@@ -121,3 +121,7 @@ pub fn votes(deps: Deps, height: u64) -> Result<VotesResponse, ContractError> {
         .collect::<StdResult<Vec<_>>>()?;
     Ok(VotesResponse { btc_pks })
 }
+
+pub fn signing_info(deps: Deps, btc_pk_hex: String) -> Result<SigningInfoRepsonse, ContractError> {
+    todo!()
+}

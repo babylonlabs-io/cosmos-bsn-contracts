@@ -141,3 +141,11 @@ pub struct FinalityProviderPowerResponse {
 pub struct VotesResponse {
     pub btc_pks: Vec<String>,
 }
+
+#[cw_serde]
+pub struct SigningInfoRepsonse {
+    pub fp_btc_pk_hex: String,
+    pub start_height: u64,
+    pub missed_blocks_counter: u64,
+    pub jailed_until: u64,
+}
