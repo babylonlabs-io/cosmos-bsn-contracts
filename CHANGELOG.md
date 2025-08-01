@@ -33,12 +33,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 [Full Changelog](https://github.com/babylonlabs-io/cosmos-bsn-contracts/compare/v0.14.0...HEAD)
 
-### Features
-
-- [#274](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/274) Send rewards to Babylon for distribution
-
 ### State breaking
 
+- [#274](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/274) Send rewards to Babylon for distribution
+- [#279](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/279) chore: clean up BTC finality contract parameters and merge them into Config
 - [#276](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/276) finality: fix finality voting issue
 - [#272](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/272) ibc: set proper timeout for IBC packets
 
