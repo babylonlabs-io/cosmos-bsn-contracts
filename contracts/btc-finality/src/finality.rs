@@ -1,6 +1,6 @@
 use crate::contract::encode_smart_query;
 use crate::error::ContractError;
-use crate::state::config::{ADMIN, CONFIG, PARAMS};
+use crate::state::config::{ADMIN, CONFIG};
 use crate::state::finality::{
     ensure_fp_has_power, get_power_table_at_height, BLOCKS, EVIDENCES, FP_BLOCK_SIGNER,
     FP_POWER_TABLE, FP_START_HEIGHT, JAIL, NEXT_HEIGHT, REWARDS, SIGNATURES, TOTAL_PENDING_REWARDS,
@@ -129,6 +129,8 @@ pub fn handle_public_randomness_commit(
 ) -> Result<Response, ContractError> {
     pub_rand_commit.validate_basic()?;
 
+    let cfg = CONFIG.load(deps.storage)?;
+
     // Check the commit start height is not too far into the future
     if pub_rand_commit.start_height >= env.block.height + MAX_PUB_RAND_COMMIT_OFFSET {
         return Err(ContractError::FuturePubRandStartHeight {
@@ -139,7 +141,7 @@ pub fn handle_public_randomness_commit(
     }
 
     // Ensure the request contains enough amounts of public randomness
-    let min_pub_rand = PARAMS.load(deps.storage)?.min_pub_rand;
+    let min_pub_rand = cfg.min_pub_rand;
     if pub_rand_commit.num_pub_rand < min_pub_rand {
         return Err(ContractError::TooFewPubRand(
             min_pub_rand,
@@ -153,7 +155,7 @@ pub fn handle_public_randomness_commit(
     let _fp: FinalityProvider = deps
         .querier
         .query_wasm_smart(
-            CONFIG.load(deps.storage)?.staking,
+            cfg.staking,
             &btc_staking::msg::QueryMsg::FinalityProvider {
                 btc_pk_hex: pub_rand_commit.fp_btc_pk_hex.clone(),
             },
@@ -762,7 +764,6 @@ pub fn compute_active_finality_providers(
     }
 
     // Check for inactive finality providers, and jail them
-    let params = PARAMS.load(deps.storage)?;
     fp_power_table.iter().try_for_each(|(fp_btc_pk_hex, _)| {
         let mut last_sign_height = FP_BLOCK_SIGNER.may_load(deps.storage, fp_btc_pk_hex)?;
         if last_sign_height.is_none() {
@@ -770,14 +771,14 @@ pub fn compute_active_finality_providers(
             last_sign_height = FP_START_HEIGHT.may_load(deps.storage, fp_btc_pk_hex)?;
         }
         match last_sign_height {
-            Some(h) if h > env.block.height.saturating_sub(params.missed_blocks_window) => {
+            Some(h) if h > env.block.height.saturating_sub(cfg.missed_blocks_window) => {
                 Ok::<_, ContractError>(())
             }
             _ => {
                 // FP is inactive for at least missed_blocks_window, jail! (if not already jailed)
                 JAIL.update(deps.storage, fp_btc_pk_hex, |jailed| match jailed {
                     Some(jail_time) => Ok::<_, ContractError>(jail_time),
-                    None => Ok(env.block.time.seconds() + params.jail_duration),
+                    None => Ok(env.block.time.seconds() + cfg.jail_duration),
                 })?;
                 Ok(())
             }

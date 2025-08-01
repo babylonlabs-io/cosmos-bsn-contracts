@@ -29,7 +29,11 @@ fn instantiate_works() {
     let mut deps = mock_instance(WASM, &[]);
 
     let msg = InstantiateMsg {
-        params: None,
+        max_active_finality_providers: None,
+        min_pub_rand: None,
+        reward_interval: None,
+        missed_blocks_window: None,
+        jail_duration: None,
         admin: None,
     };
     let info = mock_info(CREATOR, &[]);

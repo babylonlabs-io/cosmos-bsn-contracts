@@ -4,7 +4,10 @@ use crate::finality::{
     handle_public_randomness_commit, handle_unjail,
 };
 use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
-use crate::state::config::{Config, ADMIN, CONFIG, PARAMS};
+use crate::state::config::{
+    Config, ADMIN, CONFIG, DEFAULT_JAIL_DURATION, DEFAULT_MAX_ACTIVE_FINALITY_PROVIDERS,
+    DEFAULT_MIN_PUB_RAND, DEFAULT_MISSED_BLOCKS_WINDOW, DEFAULT_REWARD_INTERVAL,
+};
 use crate::state::finality::{REWARDS, TOTAL_PENDING_REWARDS};
 use crate::{finality, queries, state};
 use babylon_apis::finality_api::SudoMsg;
@@ -37,14 +40,21 @@ pub fn instantiate(
         denom,
         babylon: info.sender,
         staking: Addr::unchecked("UNSET"), // To be set later, through `UpdateStaking`
+        max_active_finality_providers: msg
+            .max_active_finality_providers
+            .unwrap_or(DEFAULT_MAX_ACTIVE_FINALITY_PROVIDERS),
+        min_pub_rand: msg.min_pub_rand.unwrap_or(DEFAULT_MIN_PUB_RAND),
+        reward_interval: msg.reward_interval.unwrap_or(DEFAULT_REWARD_INTERVAL),
+        missed_blocks_window: msg
+            .missed_blocks_window
+            .unwrap_or(DEFAULT_MISSED_BLOCKS_WINDOW),
+        jail_duration: msg.jail_duration.unwrap_or(DEFAULT_JAIL_DURATION),
     };
     CONFIG.save(deps.storage, &config)?;
 
     let api = deps.api;
     ADMIN.set(deps.branch(), maybe_addr(api, msg.admin.clone())?)?;
 
-    let params = msg.params.unwrap_or_default();
-    PARAMS.save(deps.storage, &params)?;
     // initialize storage, so no issue when reading for the first time
     TOTAL_PENDING_REWARDS.save(deps.storage, &Uint128::zero())?;
 
@@ -60,8 +70,7 @@ pub fn reply(_deps: DepsMut, _env: Env, _reply: Reply) -> StdResult<Response> {
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> Result<QueryResponse, ContractError> {
     match msg {
-        QueryMsg::Config {} => Ok(to_json_binary(&queries::config(deps)?)?),
-        QueryMsg::Params {} => Ok(to_json_binary(&queries::params(deps)?)?),
+        QueryMsg::Config {} => Ok(to_json_binary(&CONFIG.load(deps.storage)?)?),
         QueryMsg::Admin {} => to_json_binary(&ADMIN.query_admin(deps)?).map_err(Into::into),
         QueryMsg::FinalitySignature { btc_pk_hex, height } => Ok(to_json_binary(
             &queries::finality_signature(deps, btc_pk_hex, height)?,
@@ -207,7 +216,7 @@ fn handle_begin_block(deps: &mut DepsMut, env: Env) -> Result<Response, Contract
     distribute_rewards_fps(deps, &env)?;
 
     // Compute active finality provider set
-    let max_active_fps = PARAMS.load(deps.storage)?.max_active_finality_providers as usize;
+    let max_active_fps = CONFIG.load(deps.storage)?.max_active_finality_providers as usize;
     compute_active_finality_providers(deps, &env, max_active_fps)?;
 
     // TODO: Add events (#124)
@@ -235,8 +244,7 @@ fn handle_end_block(
     }
 
     // On an epoch boundary, send rewards for distribution to Babylon Genesis
-    let params = PARAMS.load(deps.storage)?;
-    if env.block.height > 0 && env.block.height % params.reward_interval == 0 {
+    if env.block.height > 0 && env.block.height % cfg.reward_interval == 0 {
         let rewards = TOTAL_PENDING_REWARDS.load(deps.storage)?;
         if rewards.u128() > 0 {
             let (fp_rewards, wasm_msg) = send_rewards_msg(deps, rewards.u128(), &cfg)?;
@@ -328,7 +336,11 @@ pub(crate) mod tests {
 
         // Create an InstantiateMsg with admin set to None
         let msg = InstantiateMsg {
-            params: None,
+            max_active_finality_providers: None,
+            min_pub_rand: None,
+            reward_interval: None,
+            missed_blocks_window: None,
+            jail_duration: None,
             admin: None, // No admin provided
         };
 
@@ -352,7 +364,11 @@ pub(crate) mod tests {
 
         // Create an InstantiateMsg with admin set to Some(INIT_ADMIN.into())
         let msg = InstantiateMsg {
-            params: None,
+            max_active_finality_providers: None,
+            min_pub_rand: None,
+            reward_interval: None,
+            missed_blocks_window: None,
+            jail_duration: None,
             admin: Some(init_admin.to_string()), // Admin provided
         };
 
@@ -385,6 +401,11 @@ pub(crate) mod tests {
             denom: "TOKEN".to_string(),
             babylon: babylon_addr.clone(),
             staking: staking_addr.clone(),
+            max_active_finality_providers: DEFAULT_MAX_ACTIVE_FINALITY_PROVIDERS,
+            min_pub_rand: DEFAULT_MIN_PUB_RAND,
+            reward_interval: DEFAULT_REWARD_INTERVAL,
+            missed_blocks_window: DEFAULT_MISSED_BLOCKS_WINDOW,
+            jail_duration: DEFAULT_JAIL_DURATION,
         };
         CONFIG.save(&mut deps.storage, &config).unwrap();
 
@@ -451,6 +472,11 @@ pub(crate) mod tests {
             denom: "TOKEN".to_string(),
             babylon: babylon_addr.clone(),
             staking: staking_addr.clone(),
+            max_active_finality_providers: DEFAULT_MAX_ACTIVE_FINALITY_PROVIDERS,
+            min_pub_rand: DEFAULT_MIN_PUB_RAND,
+            reward_interval: DEFAULT_REWARD_INTERVAL,
+            missed_blocks_window: DEFAULT_MISSED_BLOCKS_WINDOW,
+            jail_duration: DEFAULT_JAIL_DURATION,
         };
         CONFIG.save(&mut deps.storage, &config).unwrap();
 
@@ -498,7 +524,11 @@ pub(crate) mod tests {
 
         // Create an InstantiateMsg with admin set to Some(INIT_ADMIN.into())
         let instantiate_msg = InstantiateMsg {
-            params: None,
+            max_active_finality_providers: None,
+            min_pub_rand: None,
+            reward_interval: None,
+            missed_blocks_window: None,
+            jail_duration: None,
             admin: Some(init_admin.to_string()), // Admin provided
         };
 
