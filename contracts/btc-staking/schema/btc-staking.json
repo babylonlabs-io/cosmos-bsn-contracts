@@ -12,80 +12,9 @@
           "string",
           "null"
         ]
-      },
-      "params": {
-        "anyOf": [
-          {
-            "$ref": "#/definitions/Params"
-          },
-          {
-            "type": "null"
-          }
-        ]
       }
     },
-    "additionalProperties": false,
-    "definitions": {
-      "BitcoinNetwork": {
-        "type": "string",
-        "enum": [
-          "mainnet",
-          "testnet",
-          "signet",
-          "regtest"
-        ]
-      },
-      "Params": {
-        "description": "Params define Consumer-selectable BTC staking parameters",
-        "type": "object",
-        "required": [
-          "btc_network",
-          "covenant_pks",
-          "covenant_quorum",
-          "min_slashing_tx_fee_sat",
-          "slashing_pk_script",
-          "slashing_rate"
-        ],
-        "properties": {
-          "btc_network": {
-            "description": "Network the BTC staking protocol is running on.",
-            "allOf": [
-              {
-                "$ref": "#/definitions/BitcoinNetwork"
-              }
-            ]
-          },
-          "covenant_pks": {
-            "description": "List of public keys held by the covenant committee each PK follows encoding in BIP-340 spec on Bitcoin",
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "covenant_quorum": {
-            "description": "Minimum number of signatures needed for the covenant multi-signature.",
-            "type": "integer",
-            "format": "uint32",
-            "minimum": 0.0
-          },
-          "min_slashing_tx_fee_sat": {
-            "description": "Minimum amount of tx fee (quantified in Satoshi) needed for the pre-signed slashing tx.",
-            "type": "integer",
-            "format": "uint64",
-            "minimum": 0.0
-          },
-          "slashing_pk_script": {
-            "description": "Pk script that the slashed BTC goes to, in string format on Bitcoin.",
-            "type": "string"
-          },
-          "slashing_rate": {
-            "description": "Portion of the staked amount to be slashed, expressed as a decimal (e.g. 0.5 for 50%).",
-            "type": "string"
-          }
-        },
-        "additionalProperties": false
-      }
-    }
+    "additionalProperties": false
   },
   "execute": {
     "$schema": "http://json-schema.org/draft-07/schema#",
@@ -623,20 +552,6 @@
         "additionalProperties": false
       },
       {
-        "description": "Returns the current Consumer-specific parameters of the btc-staking contract.",
-        "type": "object",
-        "required": [
-          "params"
-        ],
-        "properties": {
-          "params": {
-            "type": "object",
-            "additionalProperties": false
-          }
-        },
-        "additionalProperties": false
-      },
-      {
         "description": "Returns the current admin of the contract.",
         "type": "object",
         "required": [
@@ -819,13 +734,13 @@
         "additionalProperties": false
       },
       {
-        "description": "Returns the list of finality provider infos sorted by their aggregated power, in descending order.",
+        "description": "Returns the list of finality provider infos sorted by their total active sats, in descending order.",
         "type": "object",
         "required": [
-          "finality_providers_by_power"
+          "finality_providers_by_total_active_sats"
         ],
         "properties": {
-          "finality_providers_by_power": {
+          "finality_providers_by_total_active_sats": {
             "type": "object",
             "properties": {
               "limit": {
@@ -873,15 +788,20 @@
         "type": "object",
         "required": [
           "btc_pk_hex",
-          "power"
+          "slashed",
+          "total_active_sats"
         ],
         "properties": {
           "btc_pk_hex": {
             "description": "Bitcoin secp256k1 PK of this finality provider. The PK follows encoding in BIP-340 spec in hex format",
             "type": "string"
           },
-          "power": {
-            "description": "Aggregated power of this finality provider. The power is calculated based on the amount of BTC delegated to this finality provider",
+          "slashed": {
+            "description": "Whether this finality provider is slashed",
+            "type": "boolean"
+          },
+          "total_active_sats": {
+            "description": "Total active sats delegated to this finality provider",
             "type": "integer",
             "format": "uint64",
             "minimum": 0.0
@@ -1641,15 +1561,20 @@
       "type": "object",
       "required": [
         "btc_pk_hex",
-        "power"
+        "slashed",
+        "total_active_sats"
       ],
       "properties": {
         "btc_pk_hex": {
           "description": "Bitcoin secp256k1 PK of this finality provider. The PK follows encoding in BIP-340 spec in hex format",
           "type": "string"
         },
-        "power": {
-          "description": "Aggregated power of this finality provider. The power is calculated based on the amount of BTC delegated to this finality provider",
+        "slashed": {
+          "description": "Whether this finality provider is slashed",
+          "type": "boolean"
+        },
+        "total_active_sats": {
+          "description": "Total active sats delegated to this finality provider",
           "type": "integer",
           "format": "uint64",
           "minimum": 0.0
@@ -1809,9 +1734,9 @@
         }
       }
     },
-    "finality_providers_by_power": {
+    "finality_providers_by_total_active_sats": {
       "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "FinalityProvidersByPowerResponse",
+      "title": "FinalityProvidersByTotalActiveSatsResponse",
       "type": "object",
       "required": [
         "fps"
@@ -1830,84 +1755,26 @@
           "type": "object",
           "required": [
             "btc_pk_hex",
-            "power"
+            "slashed",
+            "total_active_sats"
           ],
           "properties": {
             "btc_pk_hex": {
               "description": "Bitcoin secp256k1 PK of this finality provider. The PK follows encoding in BIP-340 spec in hex format",
               "type": "string"
             },
-            "power": {
-              "description": "Aggregated power of this finality provider. The power is calculated based on the amount of BTC delegated to this finality provider",
+            "slashed": {
+              "description": "Whether this finality provider is slashed",
+              "type": "boolean"
+            },
+            "total_active_sats": {
+              "description": "Total active sats delegated to this finality provider",
               "type": "integer",
               "format": "uint64",
               "minimum": 0.0
             }
           },
           "additionalProperties": false
-        }
-      }
-    },
-    "params": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Params",
-      "description": "Params define Consumer-selectable BTC staking parameters",
-      "type": "object",
-      "required": [
-        "btc_network",
-        "covenant_pks",
-        "covenant_quorum",
-        "min_slashing_tx_fee_sat",
-        "slashing_pk_script",
-        "slashing_rate"
-      ],
-      "properties": {
-        "btc_network": {
-          "description": "Network the BTC staking protocol is running on.",
-          "allOf": [
-            {
-              "$ref": "#/definitions/BitcoinNetwork"
-            }
-          ]
-        },
-        "covenant_pks": {
-          "description": "List of public keys held by the covenant committee each PK follows encoding in BIP-340 spec on Bitcoin",
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "covenant_quorum": {
-          "description": "Minimum number of signatures needed for the covenant multi-signature.",
-          "type": "integer",
-          "format": "uint32",
-          "minimum": 0.0
-        },
-        "min_slashing_tx_fee_sat": {
-          "description": "Minimum amount of tx fee (quantified in Satoshi) needed for the pre-signed slashing tx.",
-          "type": "integer",
-          "format": "uint64",
-          "minimum": 0.0
-        },
-        "slashing_pk_script": {
-          "description": "Pk script that the slashed BTC goes to, in string format on Bitcoin.",
-          "type": "string"
-        },
-        "slashing_rate": {
-          "description": "Portion of the staked amount to be slashed, expressed as a decimal (e.g. 0.5 for 50%).",
-          "type": "string"
-        }
-      },
-      "additionalProperties": false,
-      "definitions": {
-        "BitcoinNetwork": {
-          "type": "string",
-          "enum": [
-            "mainnet",
-            "testnet",
-            "signet",
-            "regtest"
-          ]
         }
       }
     }

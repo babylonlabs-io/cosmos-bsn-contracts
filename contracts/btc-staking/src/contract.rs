@@ -2,7 +2,7 @@ use crate::error::ContractError;
 use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
 use crate::queries;
 use crate::staking::{handle_btc_staking, handle_slash_fp, process_expired_btc_delegations};
-use crate::state::config::{Config, ADMIN, CONFIG, PARAMS};
+use crate::state::config::{Config, ADMIN, CONFIG};
 use babylon_apis::btc_staking_api::SudoMsg;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
@@ -36,10 +36,6 @@ pub fn instantiate(
     let api = deps.api;
     ADMIN.set(deps.branch(), maybe_addr(api, msg.admin.clone())?)?;
 
-    let params = msg.params.unwrap_or_default();
-    PARAMS.save(deps.storage, &params)?;
-    // initialize storage, so no issue when reading for the first time
-
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
     Ok(Response::new().add_attribute("action", "instantiate"))
 }
@@ -52,8 +48,7 @@ pub fn reply(_deps: DepsMut, _env: Env, _reply: Reply) -> StdResult<Response> {
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> Result<QueryResponse, ContractError> {
     match msg {
-        QueryMsg::Config {} => Ok(to_json_binary(&queries::config(deps)?)?),
-        QueryMsg::Params {} => Ok(to_json_binary(&queries::params(deps)?)?),
+        QueryMsg::Config {} => Ok(to_json_binary(&CONFIG.load(deps.storage)?)?),
         QueryMsg::Admin {} => to_json_binary(&ADMIN.query_admin(deps)?).map_err(Into::into),
         QueryMsg::FinalityProvider { btc_pk_hex } => Ok(to_json_binary(
             &queries::finality_provider(deps, btc_pk_hex)?,
@@ -194,7 +189,6 @@ pub mod tests {
 
         // Create an InstantiateMsg with admin set to None
         let msg = InstantiateMsg {
-            params: None,
             admin: None, // No admin provided
         };
 
@@ -218,7 +212,6 @@ pub mod tests {
 
         // Create an InstantiateMsg with admin set to Some(INIT_ADMIN.into())
         let msg = InstantiateMsg {
-            params: None,
             admin: Some(init_admin.to_string()), // Admin provided
         };
 
@@ -248,7 +241,6 @@ pub mod tests {
 
         // Create an InstantiateMsg with admin set to Some(INIT_ADMIN.into())
         let instantiate_msg = InstantiateMsg {
-            params: None,
             admin: Some(init_admin.to_string()), // Admin provided
         };
 
@@ -300,7 +292,6 @@ pub mod tests {
 
         // Create an InstantiateMsg with admin
         let instantiate_msg = InstantiateMsg {
-            params: None,
             admin: Some(init_admin.to_string()),
         };
 
@@ -335,15 +326,12 @@ pub mod tests {
         assert_eq!(4, res.attributes.len());
 
         // Verify config was updated
-        let config = queries::config(deps.as_ref()).unwrap();
+        let cfg = CONFIG.load(&deps.storage).unwrap();
         assert_eq!(
-            config.finality,
+            cfg.finality,
             Addr::unchecked(btc_light_client_contract_addr)
         );
-        assert_eq!(
-            config.btc_light_client,
-            Addr::unchecked(babylon_contract_addr)
-        );
+        assert_eq!(cfg.btc_light_client, Addr::unchecked(babylon_contract_addr));
 
         // Update with babylon
         let babylon_info = message_info(&deps.api.addr_make(CREATOR), &[]);
@@ -355,14 +343,11 @@ pub mod tests {
         assert_eq!(4, res.attributes.len());
 
         // Verify config was updated again
-        let config = queries::config(deps.as_ref()).unwrap();
+        let cfg = CONFIG.load(&deps.storage).unwrap();
         assert_eq!(
-            config.finality,
+            cfg.finality,
             Addr::unchecked(btc_light_client_contract_addr)
         );
-        assert_eq!(
-            config.btc_light_client,
-            Addr::unchecked(babylon_contract_addr)
-        );
+        assert_eq!(cfg.btc_light_client, Addr::unchecked(babylon_contract_addr));
     }
 }
