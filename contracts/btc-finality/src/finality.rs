@@ -724,7 +724,7 @@ pub fn tally_blocks(
 
 /// Checks whether a block with the given finality provider set and votes reaches a quorum or not.
 fn tally(fp_power_table: &HashMap<String, u64>, voters: &[String]) -> bool {
-    let voters: HashSet<String> = voters.iter().cloned().collect();
+    let voters: HashSet<_> = voters.iter().collect();
     let mut total_power = 0;
     let mut voted_power = 0;
     for (fp_btc_pk_hex, power) in fp_power_table {
