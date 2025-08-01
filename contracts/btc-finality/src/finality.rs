@@ -240,6 +240,8 @@ pub enum FinalitySigError {
     InvalidFinalitySigLength { actual: usize, expected: usize },
     #[error("invalid block app hash length: got {actual}, want {expected}")]
     InvalidBlockAppHashLength { actual: usize, expected: usize },
+    #[error("duplicate finality vote")]
+    DuplicatedCovenantSig,
     #[error(transparent)]
     Hex(#[from] hex::FromHexError),
 }
@@ -364,7 +366,8 @@ pub fn handle_finality_signature(
         Some(existing_sig) if existing_sig == signature => {
             deps.api.debug(&format!("Received duplicated finality vote. Height: {height}, Finality Provider: {fp_btc_pk_hex}"));
             // Exactly the same vote already exists, return success to the provider
-            return Ok(Response::new());
+            // While there is no tx refunding in the contract, an error is still returned for consistency.
+            return Err(FinalitySigError::DuplicatedCovenantSig.into());
         }
         _ => {}
     }
