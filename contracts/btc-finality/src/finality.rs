@@ -42,6 +42,10 @@ const SCHNORR_EOTS_SIG_LEN: usize = 32;
 // Tendermint hash size (SHA256)
 const TMHASH_SIZE: usize = 32;
 
+const QUERY_LIMIT: Option<u32> = Some(30);
+
+pub const JAIL_FOREVER: u64 = 0;
+
 #[derive(thiserror::Error, Debug, PartialEq)]
 pub enum PubRandCommitError {
     #[error("Empty FP BTC PubKey")]
@@ -498,8 +502,6 @@ pub fn handle_finality_signature(
     Ok(res)
 }
 
-pub const JAIL_FOREVER: u64 = 0;
-
 pub fn handle_unjail(
     deps: DepsMut,
     env: &Env,
@@ -755,8 +757,6 @@ fn finalize_block(
         .add_attribute("finalized_height", block.height.to_string());
     Ok(ev)
 }
-
-const QUERY_LIMIT: Option<u32> = Some(30);
 
 /// Sorts all finality providers, counts the total voting power of top finality providers, and records them
 /// in the contract state.
