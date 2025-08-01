@@ -223,33 +223,25 @@ fn msg_to_sign_for_vote(context: &str, block_height: u64, block_hash: &[u8]) -> 
     msg
 }
 
-// Error types
+/// Finality signature error types.
 #[derive(thiserror::Error, Debug, PartialEq)]
 pub enum FinalitySigError {
     #[error("empty Finality Provider BTC PubKey")]
     EmptyFpBtcPk,
-
     #[error("invalid finality provider BTC public key length: got {actual}, want {expected}")]
     InvalidFpBtcPkLength { actual: usize, expected: usize },
-
     #[error("empty Public Randomness")]
     EmptyPubRand,
-
     #[error("invalid public randomness length: got {actual}, want {expected}")]
     InvalidPubRandLength { actual: usize, expected: usize },
-
     #[error("empty inclusion proof")]
     EmptyProof,
-
     #[error("empty finality signature")]
     EmptyFinalitySig,
-
     #[error("invalid finality signature length: got {actual}, want {expected}")]
     InvalidFinalitySigLength { actual: usize, expected: usize },
-
     #[error("invalid block app hash length: got {actual}, want {expected}")]
     InvalidBlockAppHashLength { actual: usize, expected: usize },
-
     #[error(transparent)]
     Hex(#[from] hex::FromHexError),
 }
@@ -371,7 +363,7 @@ pub fn handle_finality_signature(
     }
 
     // Ensure the finality provider has voting power at this height
-    ensure_fp_has_power(deps.storage, height, fp_btc_pk_hex)?;
+    ensure_fp_has_power(deps.storage, height, &fp_btc_pk_hex)?;
 
     // Ensure the signature is not empty
     if signature.is_empty() {
@@ -983,6 +975,7 @@ mod tests {
         (0..len).map(|_| rng.gen()).collect()
     }
 
+    // https://github.com/babylonlabs-io/babylon/blob/49972e2d3e35caf0a685c37e1f745c47b75bfc69/x/finality/types/msg_test.go#L167
     #[test]
     fn test_msg_add_finality_sig_validate_basic() {
         let mut rng = StdRng::seed_from_u64(1);
