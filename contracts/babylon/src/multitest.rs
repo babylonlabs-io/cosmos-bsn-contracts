@@ -118,14 +118,7 @@ mod instantiation {
 
     #[test]
     fn instantiate_finality_msg_works() {
-        let finality_instantiation_msg = btc_finality::msg::InstantiateMsg {
-            max_active_finality_providers: None,
-            min_pub_rand: None,
-            reward_interval: None,
-            missed_blocks_window: None,
-            jail_duration: None,
-            admin: None,
-        };
+        let finality_instantiation_msg = btc_finality::msg::InstantiateMsg::default();
         let suite = SuiteBuilder::new()
             .with_finality_msg(&to_json_string(&finality_instantiation_msg).unwrap())
             .build();

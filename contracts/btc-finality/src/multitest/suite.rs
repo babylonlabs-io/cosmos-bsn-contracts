@@ -144,12 +144,8 @@ impl SuiteBuilder {
                     btc_finality_code_id: Some(btc_finality_code_id),
                     btc_finality_msg: Some(
                         to_json_binary(&InstantiateMsg {
-                            max_active_finality_providers: None,
-                            min_pub_rand: None,
-                            reward_interval: None,
-                            missed_blocks_window: None,
-                            jail_duration: None,
                             admin: Some(owner.to_string()),
+                            ..Default::default()
                         })
                         .unwrap(),
                     ),

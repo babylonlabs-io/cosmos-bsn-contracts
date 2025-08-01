@@ -618,7 +618,7 @@ pub(crate) mod tests {
             deps.as_mut(),
             mock_env(),
             info.clone(),
-            InstantiateMsg { admin: None },
+            InstantiateMsg::default(),
         )
         .unwrap();
 
@@ -679,7 +679,7 @@ pub(crate) mod tests {
             deps.as_mut(),
             mock_env(),
             info.clone(),
-            InstantiateMsg { admin: None },
+            InstantiateMsg::default(),
         )
         .unwrap();
 
@@ -774,7 +774,7 @@ pub(crate) mod tests {
             deps.as_mut(),
             mock_env(),
             info.clone(),
-            InstantiateMsg { admin: None },
+            InstantiateMsg::default(),
         )
         .unwrap();
 
@@ -881,7 +881,7 @@ pub(crate) mod tests {
             deps.as_mut(),
             env.clone(),
             info.clone(),
-            InstantiateMsg { admin: None },
+            InstantiateMsg::default(),
         )
         .unwrap();
 

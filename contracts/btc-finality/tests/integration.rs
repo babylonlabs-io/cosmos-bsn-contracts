@@ -28,14 +28,7 @@ fn wasm_size_limit_check() {
 fn instantiate_works() {
     let mut deps = mock_instance(WASM, &[]);
 
-    let msg = InstantiateMsg {
-        max_active_finality_providers: None,
-        min_pub_rand: None,
-        reward_interval: None,
-        missed_blocks_window: None,
-        jail_duration: None,
-        admin: None,
-    };
+    let msg = InstantiateMsg::default();
     let info = mock_info(CREATOR, &[]);
     let res: ContractResult<Response> = instantiate(&mut deps, mock_env(), info, msg);
     let msgs = res.unwrap().messages;

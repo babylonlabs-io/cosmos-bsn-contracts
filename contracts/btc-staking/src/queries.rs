@@ -224,7 +224,7 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             info.clone(),
-            InstantiateMsg { admin: None },
+            InstantiateMsg::default(),
         )
         .unwrap();
 
@@ -279,7 +279,7 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             info.clone(),
-            InstantiateMsg { admin: None },
+            InstantiateMsg::default(),
         )
         .unwrap();
 
@@ -348,7 +348,7 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             info.clone(),
-            InstantiateMsg { admin: None },
+            InstantiateMsg::default(),
         )
         .unwrap();
 
@@ -431,7 +431,7 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             info.clone(),
-            InstantiateMsg { admin: None },
+            InstantiateMsg::default(),
         )
         .unwrap();
 
@@ -486,7 +486,7 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             info.clone(),
-            InstantiateMsg { admin: None },
+            InstantiateMsg::default(),
         )
         .unwrap();
 
@@ -574,7 +574,7 @@ mod tests {
             deps.as_mut(),
             initial_env.clone(),
             info.clone(),
-            InstantiateMsg { admin: None },
+            InstantiateMsg::default(),
         )
         .unwrap();
 
@@ -677,7 +677,7 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             info.clone(),
-            InstantiateMsg { admin: None },
+            InstantiateMsg::default(),
         )
         .unwrap();
 
@@ -727,7 +727,7 @@ mod tests {
             deps.as_mut(),
             mock_env(),
             info.clone(),
-            InstantiateMsg { admin: None },
+            InstantiateMsg::default(),
         )
         .unwrap();
 

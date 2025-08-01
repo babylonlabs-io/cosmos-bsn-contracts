@@ -335,14 +335,7 @@ pub(crate) mod tests {
         let mut deps = mock_dependencies();
 
         // Create an InstantiateMsg with admin set to None
-        let msg = InstantiateMsg {
-            max_active_finality_providers: None,
-            min_pub_rand: None,
-            reward_interval: None,
-            missed_blocks_window: None,
-            jail_duration: None,
-            admin: None, // No admin provided
-        };
+        let msg = InstantiateMsg::default();
 
         let info = message_info(&deps.api.addr_make(CREATOR), &[]);
 
@@ -364,12 +357,8 @@ pub(crate) mod tests {
 
         // Create an InstantiateMsg with admin set to Some(INIT_ADMIN.into())
         let msg = InstantiateMsg {
-            max_active_finality_providers: None,
-            min_pub_rand: None,
-            reward_interval: None,
-            missed_blocks_window: None,
-            jail_duration: None,
             admin: Some(init_admin.to_string()), // Admin provided
+            ..Default::default()
         };
 
         let info = message_info(&deps.api.addr_make(CREATOR), &[]);
@@ -523,19 +512,15 @@ pub(crate) mod tests {
         let new_admin = deps.api.addr_make(NEW_ADMIN);
 
         // Create an InstantiateMsg with admin set to Some(INIT_ADMIN.into())
-        let instantiate_msg = InstantiateMsg {
-            max_active_finality_providers: None,
-            min_pub_rand: None,
-            reward_interval: None,
-            missed_blocks_window: None,
-            jail_duration: None,
+        let msg = InstantiateMsg {
             admin: Some(init_admin.to_string()), // Admin provided
+            ..Default::default()
         };
 
         let info = message_info(&deps.api.addr_make(CREATOR), &[]);
 
         // Call the instantiate function
-        let res = instantiate(deps.as_mut(), mock_env(), info.clone(), instantiate_msg).unwrap();
+        let res = instantiate(deps.as_mut(), mock_env(), info.clone(), msg).unwrap();
 
         // Assert that no messages were sent
         assert_eq!(0, res.messages.len());
