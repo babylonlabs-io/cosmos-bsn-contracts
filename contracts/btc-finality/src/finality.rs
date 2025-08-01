@@ -244,8 +244,8 @@ pub enum FinalitySigError {
     InvalidFinalitySigLength { actual: usize, expected: usize },
     #[error("invalid block app hash length: got {actual}, want {expected}")]
     InvalidBlockAppHashLength { actual: usize, expected: usize },
-    #[error("duplicate finality vote")]
-    DuplicatedCovenantSig,
+    #[error("duplicated finality vote")]
+    DuplicatedFinalitySig,
     #[error(transparent)]
     Hex(#[from] hex::FromHexError),
 }
@@ -405,7 +405,8 @@ pub fn handle_finality_signature(
             deps.api.debug(&format!("Received duplicated finality vote. Height: {height}, Finality Provider: {fp_btc_pk_hex}"));
             // Exactly the same vote already exists, return success to the provider
             // While there is no tx refunding in the contract, an error is still returned for consistency.
-            return Err(FinalitySigError::DuplicatedCovenantSig.into());
+            // https://github.com/babylonlabs-io/babylon/blob/80d89b10add5d914f2a7353b725b803b17fb7cc5/x/finality/keeper/msg_server.go#L131
+            return Err(FinalitySigError::DuplicatedFinalitySig.into());
         }
         _ => {}
     }
