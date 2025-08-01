@@ -2,7 +2,7 @@ use crate::error::ContractError;
 use crate::msg::{
     ActiveFinalityProvidersResponse, BlocksResponse, EvidenceResponse,
     FinalityProviderPowerResponse, FinalitySignatureResponse, JailedFinalityProvider,
-    JailedFinalityProvidersResponse,
+    JailedFinalityProvidersResponse, VotesResponse,
 };
 use crate::state::finality::{get_power_table_at_height, BLOCKS, EVIDENCES, JAIL, SIGNATURES};
 use babylon_apis::finality_api::IndexedBlock;
@@ -112,4 +112,12 @@ pub fn finality_provider_power(
     let power = power_table.get(&btc_pk_hex).copied().unwrap_or(0);
 
     Ok(FinalityProviderPowerResponse { power })
+}
+
+pub fn votes(deps: Deps, height: u64) -> Result<VotesResponse, ContractError> {
+    let btc_pks = SIGNATURES
+        .prefix(height)
+        .keys(deps.storage, None, None, Ascending)
+        .collect::<StdResult<Vec<_>>>()?;
+    Ok(VotesResponse { btc_pks })
 }

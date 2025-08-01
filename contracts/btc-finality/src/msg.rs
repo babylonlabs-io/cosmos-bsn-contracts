@@ -95,6 +95,9 @@ pub enum QueryMsg {
     /// Returns the voting power of a given finality provider at a given height
     #[returns(FinalityProviderPowerResponse)]
     FinalityProviderPower { btc_pk_hex: String, height: u64 },
+    /// Returns the finality providers who have signed the block at given height.
+    #[returns(VotesResponse)]
+    Votes { height: u64 },
 }
 
 #[cw_serde]
@@ -132,4 +135,9 @@ pub struct ActiveFinalityProvidersResponse {
 #[cw_serde]
 pub struct FinalityProviderPowerResponse {
     pub power: u64,
+}
+
+#[cw_serde]
+pub struct VotesResponse {
+    pub btc_pks: Vec<String>,
 }
