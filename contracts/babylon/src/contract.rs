@@ -351,9 +351,8 @@ pub fn execute(
                     // Convert to Decimal for proper ratio calculation
                     let reward_decimal = Decimal::from_ratio(reward_info.reward, total_rewards);
 
-                    let btc_pk_bytes = hex::decode(&reward_info.fp_pubkey_hex)?;
                     Ok(FpRatio {
-                        btc_pk: Binary::new(btc_pk_bytes),
+                        btc_pk: reward_info.fp_pubkey_hex.clone(),
                         ratio: reward_decimal,
                     })
                 })
