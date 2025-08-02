@@ -1,7 +1,6 @@
 use ibc_proto::ibc::core::channel::v1::{acknowledgement::Response, Acknowledgement};
 
 use cosmwasm_schema::cw_serde;
-use cosmwasm_std::Binary;
 use cosmwasm_std::Decimal;
 
 pub type TransferInfoResponse = Option<String>;
@@ -48,6 +47,7 @@ pub struct BsnRewards {
 
 #[cw_serde]
 pub struct FpRatio {
-    pub btc_pk: Binary,
+    // FP BTC public key, encoded in hex
+    pub btc_pk: String,
     pub ratio: Decimal,
 }
