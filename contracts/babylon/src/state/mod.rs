@@ -15,19 +15,19 @@ pub fn handle_btc_timestamp(
     btc_ts: &BtcTimestamp,
 ) -> Result<Option<WasmMsg>, StdError> {
     deps.api
-        .debug("handle_btc_timestamp: starting to process BTC timestamp");
+        .debug("CONTRACT: handle_btc_timestamp: starting to process BTC timestamp");
 
     let mut wasm_msg = None;
 
     // only process BTC headers if they exist and are not empty
     if let Some(btc_headers) = btc_ts.btc_headers.as_ref() {
         deps.api.debug(&format!(
-            "handle_btc_timestamp: found {} BTC headers",
+            "CONTRACT: handle_btc_timestamp: found {} BTC headers",
             btc_headers.headers.len()
         ));
         if !btc_headers.headers.is_empty() {
             deps.api
-                .debug("handle_btc_timestamp: creating BTC headers message");
+                .debug("CONTRACT: handle_btc_timestamp: creating BTC headers message");
             wasm_msg = Some(
                 crate::utils::btc_light_client_executor::new_btc_headers_msg(
                     deps,
@@ -35,13 +35,15 @@ pub fn handle_btc_timestamp(
                 )
                 .map_err(|e| {
                     let err_msg = format!("failed to submit BTC headers: {e}");
-                    deps.api.debug(&format!("handle_btc_timestamp: {err_msg}"));
+                    deps.api
+                        .debug(&format!("CONTRACT: handle_btc_timestamp: {err_msg}"));
                     StdError::generic_err(err_msg)
                 })?,
             );
         }
     } else {
-        deps.api.debug("handle_btc_timestamp: no BTC headers found");
+        deps.api
+            .debug("CONTRACT: handle_btc_timestamp: no BTC headers found");
     }
 
     // extract and init/handle Babylon epoch chain
@@ -49,12 +51,12 @@ pub fn handle_btc_timestamp(
         babylon_epoch_chain::extract_data_from_btc_ts(btc_ts)?;
 
     deps.api.debug(&format!(
-        "handle_btc_timestamp: extracted epoch {}",
+        "CONTRACT: handle_btc_timestamp: extracted epoch {}",
         epoch.epoch_number
     ));
 
     if babylon_epoch_chain::is_initialized(deps) {
-        deps.api.debug("handle_btc_timestamp: Babylon epoch chain is initialized, handling epoch and checkpoint");
+        deps.api.debug("CONTRACT: handle_btc_timestamp: Babylon epoch chain is initialized, handling epoch and checkpoint");
         babylon_epoch_chain::handle_epoch_and_checkpoint(
             deps,
             btc_ts.btc_headers.as_ref(),
@@ -65,7 +67,8 @@ pub fn handle_btc_timestamp(
         )
         .map_err(|e| {
             let err_msg = format!("failed to handle Babylon epoch from Babylon: {e}");
-            deps.api.debug(&format!("handle_btc_timestamp: {err_msg}"));
+            deps.api
+                .debug(&format!("CONTRACT: handle_btc_timestamp: {err_msg}"));
             StdError::generic_err(err_msg)
         })?;
     } else {
@@ -81,7 +84,8 @@ pub fn handle_btc_timestamp(
         )
         .map_err(|e| {
             let err_msg = format!("failed to initialize Babylon epoch: {e}");
-            deps.api.debug(&format!("handle_btc_timestamp: {err_msg}"));
+            deps.api
+                .debug(&format!("CONTRACT: handle_btc_timestamp: {err_msg}"));
             StdError::generic_err(err_msg)
         })?;
     }
@@ -93,7 +97,8 @@ pub fn handle_btc_timestamp(
             .debug("handle_btc_timestamp: found consumer header, processing");
         consumer_header_chain::handle_consumer_header(deps, consumer_header).map_err(|e| {
             let err_msg = format!("failed to handle Consumer header from Babylon: {e}");
-            deps.api.debug(&format!("handle_btc_timestamp: {err_msg}"));
+            deps.api
+                .debug(&format!("CONTRACT: handle_btc_timestamp: {err_msg}"));
             StdError::generic_err(err_msg)
         })?;
     } else {

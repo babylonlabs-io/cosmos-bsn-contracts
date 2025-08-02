@@ -362,7 +362,7 @@ pub fn handle_finality_signature(
     let existing_sig = SIGNATURES.may_load(deps.storage, (height, &fp_btc_pk_hex))?;
     match existing_sig {
         Some(existing_sig) if existing_sig == signature => {
-            deps.api.debug(&format!("Received duplicated finality vote. Height: {height}, Finality Provider: {fp_btc_pk_hex}"));
+            deps.api.debug(&format!("CONTRACT: handle_finality_signature: Received duplicated finality vote. Height: {height}, Finality Provider: {fp_btc_pk_hex}"));
             // Exactly the same vote already exists, return success to the provider
             return Ok(Response::new());
         }

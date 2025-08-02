@@ -256,7 +256,7 @@ pub(crate) mod ibc_packet {
             &btc_headers.headers,
         )
         .map_err(|e| {
-            let err = format!("failed to submit BTC headers: {e}");
+            let err = format!("CONTRACT: handle_btc_headers, failed to submit BTC headers: {e}");
             deps.api.debug(&err);
             StdError::generic_err(err)
         })?;

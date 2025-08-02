@@ -67,10 +67,10 @@ pub fn execute(
 
             handle_btc_headers(deps, info, headers, first_work, first_height)
                 .inspect(|_| {
-                    api.debug(&format!("Successfully handled {headers_len} BTC headers"));
+                    api.debug(&format!("CONTRACT: handle_btc_headers: Successfully handled {headers_len} BTC headers"));
                 })
                 .inspect_err(|e| {
-                    api.debug(&format!("Failed to handle {headers_len} BTC headers: {e}"));
+                    api.debug(&format!("CONTRACT: handle_btc_headers: Failed to handle {headers_len} BTC headers: {e}"));
                 })
         }
     }
