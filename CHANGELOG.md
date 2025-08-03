@@ -44,6 +44,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Improvements
 
+- [#287](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/285) refactor: simplify finality Error type
 - [#285](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/285) finality: return error on the duplicated finality vote
 - [#282](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/282) finality: introduce `AddFinalitySig` and add `validate_basic()` check
 - [#281](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/281) chore: Cleanup unused dependencies and enforce dependency check in CI
