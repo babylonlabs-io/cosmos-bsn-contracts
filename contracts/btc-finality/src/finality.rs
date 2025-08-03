@@ -402,7 +402,7 @@ pub fn handle_finality_signature(
     let existing_sig = SIGNATURES.may_load(deps.storage, (height, fp_btc_pk_hex))?;
     match existing_sig {
         Some(existing_sig) if existing_sig == add_finality_sig.signature => {
-            deps.api.debug(&format!("Received duplicated finality vote. Height: {height}, Finality Provider: {fp_btc_pk_hex}"));
+            deps.api.debug(&format!("CONTRACT: handle_finality_signature: Received duplicated finality vote. Height: {height}, Finality Provider: {fp_btc_pk_hex}"));
             // Exactly the same vote already exists, return success to the provider
             // While there is no tx refunding in the contract, an error is still returned for consistency.
             // https://github.com/babylonlabs-io/babylon/blob/80d89b10add5d914f2a7353b725b803b17fb7cc5/x/finality/keeper/msg_server.go#L131
