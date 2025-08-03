@@ -56,6 +56,16 @@ pub enum PubRandCommitError {
     OverflowInBlockHeight(u64, u64),
     #[error("Empty signature")]
     EmptySignature,
+    #[error("Ecdsa error: {0}")]
+    Ecdsa(String),
+    #[error(transparent)]
+    Hex(#[from] hex::FromHexError),
+}
+
+impl From<k256::ecdsa::Error> for PubRandCommitError {
+    fn from(e: k256::ecdsa::Error) -> Self {
+        Self::Ecdsa(e.to_string())
+    }
 }
 
 // https://github.com/babylonlabs-io/babylon/blob/49972e2d3e35caf0a685c37e1f745c47b75bfc69/x/finality/types/tx.pb.go#L36
@@ -97,7 +107,7 @@ impl MsgCommitPubRand {
         Ok(())
     }
 
-    fn verify_sig(&self, signing_context: String) -> Result<(), ContractError> {
+    fn verify_sig(&self, signing_context: String) -> Result<(), PubRandCommitError> {
         let Self {
             fp_btc_pk_hex,
             start_height,
@@ -108,16 +118,9 @@ impl MsgCommitPubRand {
 
         // get BTC public key for verification
         let btc_pk_raw = hex::decode(fp_btc_pk_hex)?;
-        let btc_pk = VerifyingKey::from_bytes(&btc_pk_raw)
-            .map_err(|e| ContractError::SecP256K1Error(e.to_string()))?;
+        let btc_pk = VerifyingKey::from_bytes(&btc_pk_raw)?;
 
-        // get signature
-        if signature.is_empty() {
-            return Err(ContractError::EmptySignature);
-        }
-
-        let schnorr_sig = Signature::try_from(signature.as_slice())
-            .map_err(|e| ContractError::SecP256K1Error(e.to_string()))?;
+        let schnorr_sig = Signature::try_from(signature.as_slice())?;
 
         // get signed message
         let mut msg: Vec<u8> = vec![];
@@ -127,9 +130,7 @@ impl MsgCommitPubRand {
         msg.extend_from_slice(commitment);
 
         // Verify the signature
-        btc_pk
-            .verify(&msg, &schnorr_sig)
-            .map_err(|e| ContractError::SecP256K1Error(e.to_string()))?;
+        btc_pk.verify(&msg, &schnorr_sig)?;
 
         Ok(())
     }
