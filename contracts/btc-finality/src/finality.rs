@@ -345,7 +345,7 @@ impl MsgAddFinalitySig {
         let msg_hash = Sha256::digest(msg);
 
         if !pubkey.verify_hash(&self.pub_rand, msg_hash.into(), &self.signature)? {
-            return Err(ContractError::FailedSignatureVerification("EOTS".into()));
+            return Err(ContractError::FailedToVerifyEots);
         }
 
         Ok(())
