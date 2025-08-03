@@ -124,9 +124,9 @@ impl MsgCommitPubRand {
 
         // get signed message
         let mut msg: Vec<u8> = vec![];
-        msg.extend_from_slice(signing_context.as_bytes());
-        msg.extend_from_slice(&start_height.to_be_bytes());
-        msg.extend_from_slice(&num_pub_rand.to_be_bytes());
+        msg.extend(signing_context.into_bytes());
+        msg.extend(start_height.to_be_bytes());
+        msg.extend(num_pub_rand.to_be_bytes());
         msg.extend_from_slice(commitment);
 
         // Verify the signature
