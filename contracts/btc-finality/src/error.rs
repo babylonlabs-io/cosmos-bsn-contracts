@@ -12,6 +12,8 @@ use cw_utils::PaymentError;
 use babylon_apis::error::StakingApiError;
 use babylon_merkle::MerkleError;
 
+// TODO: Consider merging `crate::finality::PubRandCommitError` and `crate::finality::FinalitySigError`
+// into `ContractError`, or alternatively, split `ContractError` into them completely.
 #[derive(Error, Debug, PartialEq)]
 pub enum ContractError {
     #[error("Unauthorized")]
