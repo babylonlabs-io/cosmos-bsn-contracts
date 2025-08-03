@@ -203,18 +203,22 @@ pub fn handle_public_randomness_commit(
     }
 
     // All good, store the given public randomness commitment
+    let MsgCommitPubRand {
+        fp_btc_pk_hex,
+        start_height,
+        num_pub_rand,
+        commitment,
+        ..
+    } = pub_rand_commit;
+
     let pr_commit = PubRandCommit {
-        start_height: pub_rand_commit.start_height,
-        num_pub_rand: pub_rand_commit.num_pub_rand,
+        start_height,
+        num_pub_rand,
         height: env.block.height,
-        commitment: pub_rand_commit.commitment.clone(),
+        commitment,
     };
 
-    PUB_RAND_COMMITS.save(
-        deps.storage,
-        (&pub_rand_commit.fp_btc_pk_hex, pr_commit.start_height),
-        &pr_commit,
-    )?;
+    PUB_RAND_COMMITS.save(deps.storage, (&fp_btc_pk_hex, start_height), &pr_commit)?;
 
     // TODO: Add events (#124)
     Ok(Response::new())
