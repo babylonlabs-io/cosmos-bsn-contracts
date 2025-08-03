@@ -58,26 +58,8 @@ pub enum ContractError {
     ErrInvalidLockType,
     #[error("Invalid lock time blocks: {0}, max: {1}")]
     ErrInvalidLockTime(u32, u32),
-    #[error("The chain has not reached the given height yet")]
-    HeightTooHigh,
-    #[error("The finality provider {0} signed two different blocks at height {1}")]
-    DuplicateFinalityVote(String, u64),
-    #[error("The request contains too few public randomness. Required minimum: {0}, actual: {1}")]
-    TooFewPubRand(u64, u64),
-    #[error("Invalid signature over the public randomness list")]
-    InvalidPubRandSignature,
-    #[error("Public randomness not found for finality provider {0} at height {1}")]
-    MissingPubRandCommit(String, u64),
-    #[error("The inclusion proof for height {0} does not correspond to the given height ({1})")]
-    InvalidFinalitySigHeight(u64, u64),
-    #[error("The total amount of public randomnesses in the proof ({0}) does not match the amount of public committed randomness ({1})")]
-    InvalidFinalitySigAmount(u64, u64),
-    #[error("Invalid finality signature: {0}")]
-    InvalidSignature(String),
     #[error("Failed to verify signature: {0}")]
     FailedSignatureVerification(String),
-    #[error("Block {0} is not found: {1}")]
-    BlockNotFound(u64, String),
     #[error("The finality provider {0} has already been slashed")]
     FinalityProviderAlreadySlashed(String),
     #[error("Delegation {0} to FP {1} not found")]
