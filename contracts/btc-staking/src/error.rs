@@ -36,8 +36,6 @@ pub enum ContractError {
     Conversion(#[from] ConversionOverflowError),
     #[error("Unauthorized")]
     Unauthorized,
-    #[error("Failed to verify the finality provider registration request: {0}")]
-    FinalityProviderVerificationError(String),
     #[error("Finality provider already exists: {0}")]
     FinalityProviderAlreadyExists(String),
     #[error("No finality providers are registered in this Consumer")]
@@ -66,8 +64,6 @@ pub enum ContractError {
     DuplicateFinalityVote(String, u64),
     #[error("The request contains too few public randomness. Required minimum: {0}, actual: {1}")]
     TooFewPubRand(u64, u64),
-    #[error("The start height ({0}) has overlap with the height of the highest public randomness committed ({1})")]
-    InvalidPubRandHeight(u64, u64),
     #[error("Invalid signature over the public randomness list")]
     InvalidPubRandSignature,
     #[error("Public randomness not found for finality provider {0} at height {1}")]
@@ -80,20 +76,10 @@ pub enum ContractError {
     InvalidSignature(String),
     #[error("Failed to verify signature: {0}")]
     FailedSignatureVerification(String),
-    #[error("Block {0} is finalized, but last finalized height does not reach here")]
-    FinalisedBlockWithFinalityProviderSet(u64),
-    #[error("Block {0} is finalized, but does not have a finality provider set")]
-    FinalisedBlockWithoutFinalityProviderSet(u64),
     #[error("Block {0} is not found: {1}")]
     BlockNotFound(u64, String),
     #[error("The finality provider {0} has already been slashed")]
     FinalityProviderAlreadySlashed(String),
-    #[error("Failed to slash finality provider: {0}")]
-    FailedToSlashFinalityProvider(String),
-    #[error("Failed to extract secret key: {0}")]
-    SecretKeyExtractionError(String),
-    #[error("Hash length error: {0}")]
-    WrongHashLength(String),
     #[error("Delegation {0} to FP {1} not found")]
     DelegationToFpNotFound(String, String),
     #[error("Ecdsa error: {0}")]

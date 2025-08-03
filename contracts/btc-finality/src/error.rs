@@ -34,28 +34,12 @@ pub enum ContractError {
     HexError(#[from] FromHexError),
     #[error("EOTS error: {0}")]
     EotsError(#[from] eots::Error),
-    #[error("{0}")]
-    SecP256K1Error(String), // TODO: inherit errors from k256
     #[error("Unauthorized")]
     Unauthorized,
-    #[error("Failed to verify the finality provider registration request: {0}")]
-    FinalityProviderVerificationError(String),
-    #[error("Finality provider already exists: {0}")]
-    FinalityProviderAlreadyExists(String),
-    #[error("No finality providers are registered in this Consumer")]
-    FinalityProviderNotRegistered,
     #[error("Finality provider not found: {0}")]
     FinalityProviderNotFound(String),
-    #[error("Staking tx hash already exists: {0}")]
-    DelegationAlreadyExists(String),
     #[error("Invalid Btc tx: {0}")]
     InvalidBtcTx(String),
-    #[error("Empty signature from the delegator")]
-    EmptySignature,
-    #[error("Invalid lock type: seconds")]
-    ErrInvalidLockType,
-    #[error("Invalid lock time blocks: {0}, max: {1}")]
-    ErrInvalidLockTime(u32, u32),
     #[error("The finality provider {0} does not have voting power at height {1}")]
     NoVotingPower(String, u64),
     #[error("The chain has not reached the given height yet")]
@@ -92,16 +76,8 @@ pub enum ContractError {
     BlockNotFound(u64, String),
     #[error("The finality provider {0} has already been slashed")]
     FinalityProviderAlreadySlashed(String),
-    #[error("Failed to slash finality provider: {0}")]
-    FailedToSlashFinalityProvider(String),
     #[error("Failed to extract secret key: {0}")]
     SecretKeyExtractionError(String),
-    #[error("Hash length error: {0}")]
-    WrongHashLength(String),
-    #[error("Division by zero")]
-    DivideByZero,
-    #[error("Invalid rewards recipient")]
-    InvalidRewardsRecipient {},
     #[error("{0}")]
     PubRandCommitNotBTCTimestamped(String),
     #[error("Jail for {0} did not yet expire")]
