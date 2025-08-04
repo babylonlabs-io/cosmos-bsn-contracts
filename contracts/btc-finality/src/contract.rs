@@ -16,9 +16,9 @@ use btc_staking::msg::ActivatedHeightResponse;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    attr, coins, to_json_binary, Addr, CustomQuery, Deps, DepsMut, Empty, Env, MessageInfo, Order,
-    QuerierWrapper, QueryRequest, QueryResponse, Reply, Response, StdResult, Uint128, WasmMsg,
-    WasmQuery,
+    attr, coin, coins, to_json_binary, Addr, CustomQuery, Deps, DepsMut, Empty, Env, MessageInfo,
+    Order, QuerierWrapper, QueryRequest, QueryResponse, Reply, Response, StdResult, Uint128,
+    WasmMsg, WasmQuery,
 };
 use cw2::set_contract_version;
 use cw_utils::{maybe_addr, nonpayable};
@@ -559,5 +559,112 @@ pub(crate) mod tests {
 
         // Use assert_admin to verify that the admin was updated correctly
         ADMIN.assert_admin(deps.as_ref(), &new_admin).unwrap();
+    }
+
+    #[test]
+    fn test_distribute_rewards_basic() {
+        let mut deps = mock_dependencies();
+        let mut env = mock_env();
+        env.contract.address = deps.api.addr_make("finality_contract");
+
+        // Setup minimal config
+        CONFIG
+            .save(
+                &mut deps.storage,
+                &Config {
+                    denom: "TOKEN".to_string(),
+                    babylon: deps.api.addr_make("babylon"),
+                    staking: deps.api.addr_make("staking"),
+                    max_active_finality_providers: 100,
+                    min_pub_rand: 1,
+                    reward_interval: 50,
+                    missed_blocks_window: 250,
+                    jail_duration: 86400,
+                },
+            )
+            .unwrap();
+
+        // Set contract balance
+        deps.querier
+            .bank
+            .update_balance(env.contract.address.clone(), vec![coin(1000, "TOKEN")]);
+
+        // Setup: 2 FPs with different participation
+        use crate::state::finality::{FP_POWER_TABLE, SIGNATURES};
+        let fp1 = "fp1".to_string();
+        let fp2 = "fp2".to_string();
+
+        // Both FPs have power at height 100
+        FP_POWER_TABLE
+            .save(&mut deps.storage, (100, &fp1), &1000)
+            .unwrap();
+        FP_POWER_TABLE
+            .save(&mut deps.storage, (100, &fp2), &500)
+            .unwrap();
+
+        // Only FP1 votes
+        SIGNATURES
+            .save(&mut deps.storage, (100, &fp1), &vec![1, 2, 3])
+            .unwrap();
+
+        TOTAL_PENDING_REWARDS
+            .save(&mut deps.storage, &Uint128::zero())
+            .unwrap();
+
+        // Test reward distribution
+        use crate::finality::distribute_rewards_in_range;
+        distribute_rewards_in_range(&mut deps.as_mut(), &env, 100, 101).unwrap();
+
+        // FP1 gets all rewards since only it voted
+        let fp1_reward = REWARDS.load(&deps.storage, &fp1).unwrap();
+        let fp2_reward = REWARDS.may_load(&deps.storage, &fp2).unwrap();
+
+        assert_eq!(fp1_reward, Uint128::from(1000u128));
+        assert_eq!(fp2_reward, None);
+    }
+
+    #[test]
+    fn test_distribute_rewards_edge_cases() {
+        let mut deps = mock_dependencies();
+        let mut env = mock_env();
+        env.contract.address = deps.api.addr_make("finality_contract");
+
+        CONFIG
+            .save(
+                &mut deps.storage,
+                &Config {
+                    denom: "TOKEN".to_string(),
+                    babylon: deps.api.addr_make("babylon"),
+                    staking: deps.api.addr_make("staking"),
+                    max_active_finality_providers: 100,
+                    min_pub_rand: 1,
+                    reward_interval: 50,
+                    missed_blocks_window: 250,
+                    jail_duration: 86400,
+                },
+            )
+            .unwrap();
+
+        TOTAL_PENDING_REWARDS
+            .save(&mut deps.storage, &Uint128::zero())
+            .unwrap();
+
+        use crate::finality::distribute_rewards_in_range;
+
+        // Test 1: No balance - should not panic
+        deps.querier
+            .bank
+            .update_balance(env.contract.address.clone(), vec![coin(0, "TOKEN")]);
+        distribute_rewards_in_range(&mut deps.as_mut(), &env, 100, 101).unwrap();
+
+        // Test 2: No votes - should not panic
+        deps.querier
+            .bank
+            .update_balance(env.contract.address.clone(), vec![coin(1000, "TOKEN")]);
+        distribute_rewards_in_range(&mut deps.as_mut(), &env, 100, 101).unwrap();
+
+        // Should complete without errors
+        let total_pending = TOTAL_PENDING_REWARDS.load(&deps.storage).unwrap();
+        assert_eq!(total_pending, Uint128::zero());
     }
 }
