@@ -244,8 +244,7 @@ fn handle_end_block(
 
     // On a reward distribution boundary, send rewards for distribution to Babylon Genesis
     if env.block.height > 0 && env.block.height % cfg.reward_interval == 0 {
-        let start_height = env.block.height.saturating_sub(cfg.reward_interval);
-        distribute_rewards_in_range(deps, &env, start_height, env.block.height)?;
+        distribute_rewards_in_range(deps, &env)?;
 
         // Then send the accumulated rewards to Babylon Genesis via IBC
         let rewards = TOTAL_PENDING_REWARDS.load(deps.storage)?;
@@ -589,22 +588,17 @@ pub(crate) mod tests {
             .bank
             .update_balance(env.contract.address.clone(), vec![coin(1000, "TOKEN")]);
 
-        // Setup: 2 FPs with different participation
-        use crate::state::finality::{FP_POWER_TABLE, SIGNATURES};
+        // Setup: Direct accumulated voting weights (simulating FPs having voted)
+        use crate::state::finality::ACCUMULATED_VOTING_WEIGHTS;
         let fp1 = "fp1".to_string();
         let fp2 = "fp2".to_string();
 
-        // Both FPs have power at height 100
-        FP_POWER_TABLE
-            .save(&mut deps.storage, (100, &fp1), &1000)
+        // FP1 accumulated 2000 voting weight, FP2 accumulated 1000 voting weight
+        ACCUMULATED_VOTING_WEIGHTS
+            .save(&mut deps.storage, &fp1, &2000u128)
             .unwrap();
-        FP_POWER_TABLE
-            .save(&mut deps.storage, (100, &fp2), &500)
-            .unwrap();
-
-        // Only FP1 votes
-        SIGNATURES
-            .save(&mut deps.storage, (100, &fp1), &vec![1, 2, 3])
+        ACCUMULATED_VOTING_WEIGHTS
+            .save(&mut deps.storage, &fp2, &1000u128)
             .unwrap();
 
         TOTAL_PENDING_REWARDS
@@ -613,14 +607,24 @@ pub(crate) mod tests {
 
         // Test reward distribution
         use crate::finality::distribute_rewards_in_range;
-        distribute_rewards_in_range(&mut deps.as_mut(), &env, 100, 101).unwrap();
+        distribute_rewards_in_range(&mut deps.as_mut(), &env).unwrap(); // Height params are ignored now
 
-        // FP1 gets all rewards since only it voted
+        // FP1 gets 2/3 of rewards (2000/3000), FP2 gets 1/3 (1000/3000)
         let fp1_reward = REWARDS.load(&deps.storage, &fp1).unwrap();
-        let fp2_reward = REWARDS.may_load(&deps.storage, &fp2).unwrap();
+        let fp2_reward = REWARDS.load(&deps.storage, &fp2).unwrap();
 
-        assert_eq!(fp1_reward, Uint128::from(1000u128));
-        assert_eq!(fp2_reward, None);
+        assert_eq!(fp1_reward, Uint128::from(666u128)); // 1000 * 2000 / 3000 = 666
+        assert_eq!(fp2_reward, Uint128::from(333u128)); // 1000 * 1000 / 3000 = 333
+
+        // Accumulated weights should be cleared after distribution
+        let fp1_accumulated = ACCUMULATED_VOTING_WEIGHTS
+            .may_load(&deps.storage, &fp1)
+            .unwrap();
+        let fp2_accumulated = ACCUMULATED_VOTING_WEIGHTS
+            .may_load(&deps.storage, &fp2)
+            .unwrap();
+        assert_eq!(fp1_accumulated, None);
+        assert_eq!(fp2_accumulated, None);
     }
 
     #[test]
@@ -655,13 +659,13 @@ pub(crate) mod tests {
         deps.querier
             .bank
             .update_balance(env.contract.address.clone(), vec![coin(0, "TOKEN")]);
-        distribute_rewards_in_range(&mut deps.as_mut(), &env, 100, 101).unwrap();
+        distribute_rewards_in_range(&mut deps.as_mut(), &env).unwrap();
 
-        // Test 2: No votes - should not panic
+        // Test 2: No accumulated weights - should not panic
         deps.querier
             .bank
             .update_balance(env.contract.address.clone(), vec![coin(1000, "TOKEN")]);
-        distribute_rewards_in_range(&mut deps.as_mut(), &env, 100, 101).unwrap();
+        distribute_rewards_in_range(&mut deps.as_mut(), &env).unwrap();
 
         // Should complete without errors
         let total_pending = TOTAL_PENDING_REWARDS.load(&deps.storage).unwrap();

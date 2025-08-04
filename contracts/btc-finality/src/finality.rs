@@ -2,8 +2,9 @@ use crate::contract::encode_smart_query;
 use crate::error::ContractError;
 use crate::state::config::{Config, ADMIN, CONFIG};
 use crate::state::finality::{
-    ensure_fp_has_power, get_power_table_at_height, BLOCKS, EVIDENCES, FP_BLOCK_SIGNER,
-    FP_POWER_TABLE, FP_START_HEIGHT, JAIL, NEXT_HEIGHT, REWARDS, SIGNATURES, TOTAL_PENDING_REWARDS,
+    ensure_fp_has_power, get_power_table_at_height, ACCUMULATED_VOTING_WEIGHTS, BLOCKS, EVIDENCES,
+    FP_BLOCK_SIGNER, FP_POWER_TABLE, FP_START_HEIGHT, JAIL, NEXT_HEIGHT, REWARDS, SIGNATURES,
+    TOTAL_PENDING_REWARDS,
 };
 use crate::state::public_randomness::{
     get_last_finalized_height, get_last_pub_rand_commit,
@@ -487,6 +488,14 @@ pub fn handle_finality_signature(
     // Store the block height this finality provider has signed
     FP_BLOCK_SIGNER.save(deps.storage, &fp_btc_pk_hex, &height)?;
 
+    // Accumulate voting weight for this FP for reward distribution
+    let power_table = get_power_table_at_height(deps.storage, height)?;
+    if let Some(voting_power) = power_table.get(&fp_btc_pk_hex) {
+        ACCUMULATED_VOTING_WEIGHTS.update(deps.storage, &fp_btc_pk_hex, |existing| {
+            Ok::<u128, ContractError>(existing.unwrap_or(0) + (*voting_power as u128))
+        })?;
+    }
+
     // If this finality provider has signed the canonical block before, slash it via extracting its
     // secret key, and emit an event
     if let Some(mut evidence) = EVIDENCES.may_load(deps.storage, (&fp_btc_pk_hex, height))? {
@@ -894,15 +903,10 @@ pub fn query_fps_by_total_active_sats(
     Ok(res.fps)
 }
 
-/// Distributes rewards in a given height range based on vote participation weighted by voting power.
-/// This approach counts the total votes each FP made across the specified range, weights them by
-/// the FP's voting power at each height they voted, and distributes rewards proportionally.
-pub fn distribute_rewards_in_range(
-    deps: &mut DepsMut,
-    env: &Env,
-    start_height: u64,
-    end_height: u64,
-) -> Result<(), ContractError> {
+/// Distributes rewards based on accumulated voting weights from the current reward interval.
+/// This approach uses pre-accumulated voting weights that are collected as FPs submit signatures,
+/// making the distribution O(n) instead of O(m*n) for much better gas efficiency.
+pub fn distribute_rewards_in_range(deps: &mut DepsMut, env: &Env) -> Result<(), ContractError> {
     let cfg = CONFIG.load(deps.storage)?;
 
     // Get current balance of the finality contract (total rewards to distribute)
@@ -915,53 +919,35 @@ pub fn distribute_rewards_in_range(
         return Ok(()); // No rewards to distribute
     }
 
-    // Track weighted votes for each FP across the height range
-    let mut fp_weighted_votes: HashMap<String, u128> = HashMap::new();
+    // Read all accumulated voting weights from storage
+    let accumulated_weights: Vec<(String, u128)> = ACCUMULATED_VOTING_WEIGHTS
+        .range(deps.storage, None, None, cosmwasm_std::Order::Ascending)
+        .collect::<Result<Vec<_>, _>>()?;
 
-    // Iterate through each height in the specified range
-    for height in start_height..end_height {
-        // Get FPs who voted at this height
-        let voted_fps: Vec<String> = SIGNATURES
-            .prefix(height)
-            .keys(deps.storage, None, None, cosmwasm_std::Order::Ascending)
-            .collect::<Result<Vec<_>, _>>()?;
-
-        // Get the power table for this height
-        let power_table = get_power_table_at_height(deps.storage, height)?;
-
-        // For each FP that voted, add their weighted vote
-        for fp_btc_pk_hex in voted_fps {
-            if let Some(power) = power_table.get(&fp_btc_pk_hex) {
-                // Add this FP's voting power to their weighted vote total
-                *fp_weighted_votes.entry(fp_btc_pk_hex).or_insert(0) += *power as u128;
-            }
-        }
+    if accumulated_weights.is_empty() {
+        return Ok(()); // No accumulated voting weights
     }
 
-    if fp_weighted_votes.is_empty() {
-        return Ok(()); // No votes in this range
-    }
-
-    // Calculate total weighted votes across all FPs
-    let total_weighted_votes: u128 = fp_weighted_votes.values().sum();
-    if total_weighted_votes == 0 {
+    // Calculate total accumulated voting weight
+    let total_accumulated_weight: u128 = accumulated_weights.iter().map(|(_, weight)| weight).sum();
+    if total_accumulated_weight == 0 {
         return Ok(());
     }
 
-    // Distribute rewards proportionally based on weighted votes
-    for (fp_btc_pk_hex, weighted_votes) in fp_weighted_votes {
-        if weighted_votes > 0 {
+    // Distribute rewards proportionally based on accumulated voting weights
+    for (fp_btc_pk_hex, accumulated_weight) in &accumulated_weights {
+        if *accumulated_weight > 0 {
             // Use checked multiplication to prevent overflow
             let numerator = current_balance
                 .u128()
-                .checked_mul(weighted_votes)
+                .checked_mul(*accumulated_weight)
                 .ok_or(ContractError::CalculationOverflow)?;
-            let reward = numerator / total_weighted_votes;
+            let reward = numerator / total_accumulated_weight;
             let reward = Uint128::from(reward);
 
             if !reward.is_zero() {
                 // Add reward to FP's pending rewards
-                REWARDS.update(deps.storage, &fp_btc_pk_hex, |existing| {
+                REWARDS.update(deps.storage, fp_btc_pk_hex, |existing| {
                     Ok::<Uint128, ContractError>(existing.unwrap_or_default() + reward)
                 })?;
 
@@ -971,6 +957,11 @@ pub fn distribute_rewards_in_range(
                 })?;
             }
         }
+    }
+
+    // Clear accumulated voting weights for the next reward interval
+    for (fp_btc_pk_hex, _) in accumulated_weights {
+        ACCUMULATED_VOTING_WEIGHTS.remove(deps.storage, &fp_btc_pk_hex);
     }
 
     Ok(())
