@@ -99,7 +99,7 @@ pub enum QueryMsg {
     #[returns(VotesResponse)]
     Votes { height: u64 },
     /// Returns the signing info of a finality provider if any.
-    #[returns(Option<SigningInfoRepsonse>)]
+    #[returns(Option<SigningInfoResponse>)]
     SigningInfo { btc_pk_hex: String },
 }
 
@@ -146,7 +146,7 @@ pub struct VotesResponse {
 }
 
 #[cw_serde]
-pub struct SigningInfoRepsonse {
+pub struct SigningInfoResponse {
     pub fp_btc_pk_hex: String,
     pub start_height: u64,
     pub last_signed_height: u64,
