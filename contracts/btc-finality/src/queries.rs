@@ -2,9 +2,12 @@ use crate::error::ContractError;
 use crate::msg::{
     ActiveFinalityProvidersResponse, BlocksResponse, EvidenceResponse,
     FinalityProviderPowerResponse, FinalitySignatureResponse, JailedFinalityProvider,
-    JailedFinalityProvidersResponse, VotesResponse,
+    JailedFinalityProvidersResponse, SigningInfoRepsonse, VotesResponse,
 };
-use crate::state::finality::{get_power_table_at_height, BLOCKS, EVIDENCES, JAIL, SIGNATURES};
+use crate::state::finality::{
+    get_last_signed_height, get_power_table_at_height, BLOCKS, EVIDENCES, FP_START_HEIGHT, JAIL,
+    SIGNATURES,
+};
 use babylon_apis::finality_api::IndexedBlock;
 use cosmwasm_std::Order::{Ascending, Descending};
 use cosmwasm_std::{Deps, StdResult};
@@ -122,6 +125,21 @@ pub fn votes(deps: Deps, height: u64) -> Result<VotesResponse, ContractError> {
     Ok(VotesResponse { btc_pks })
 }
 
-pub fn signing_info(deps: Deps, btc_pk_hex: String) -> Result<SigningInfoRepsonse, ContractError> {
-    todo!()
+pub fn signing_info(
+    deps: Deps,
+    fp_btc_pk_hex: String,
+) -> Result<Option<SigningInfoRepsonse>, ContractError> {
+    let Some(start_height) = FP_START_HEIGHT.may_load(deps.storage, &fp_btc_pk_hex)? else {
+        // Can not find the FP entry for the given fp_btc_pk_hex.
+        return Ok(None);
+    };
+    let last_signed_height = get_last_signed_height(deps.storage, &fp_btc_pk_hex)?
+        .expect("Must be Some as start_height exists");
+    let jailed_until = JAIL.may_load(deps.storage, &fp_btc_pk_hex)?;
+    Ok(Some(SigningInfoRepsonse {
+        fp_btc_pk_hex,
+        start_height,
+        last_signed_height,
+        jailed_until,
+    }))
 }

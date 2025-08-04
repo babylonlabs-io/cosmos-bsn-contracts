@@ -121,6 +121,9 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> Result<QueryResponse, Cont
             &queries::finality_provider_power(deps, btc_pk_hex, height)?,
         )?),
         QueryMsg::Votes { height } => Ok(to_json_binary(&queries::votes(deps, height)?)?),
+        QueryMsg::SigningInfo { btc_pk_hex } => {
+            Ok(to_json_binary(&queries::signing_info(deps, btc_pk_hex)?)?)
+        }
     }
 }
 

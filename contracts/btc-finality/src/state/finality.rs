@@ -66,3 +66,16 @@ pub fn ensure_fp_has_power(
     }
     Ok(())
 }
+
+pub fn get_last_signed_height(
+    storage: &dyn Storage,
+    fp_btc_pk_hex: &str,
+) -> cosmwasm_std::StdResult<Option<u64>> {
+    let mut last_sign_height = FP_BLOCK_SIGNER.may_load(storage, fp_btc_pk_hex)?;
+    if last_sign_height.is_none() {
+        // Not a block signer yet, check their start height instead
+        last_sign_height = FP_START_HEIGHT.may_load(storage, fp_btc_pk_hex)?;
+    }
+
+    Ok(last_sign_height)
+}
