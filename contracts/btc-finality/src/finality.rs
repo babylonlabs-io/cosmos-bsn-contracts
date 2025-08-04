@@ -921,7 +921,7 @@ pub fn distribute_rewards_in_range(
     // Iterate through each height in the specified range
     for height in start_height..end_height {
         // Get FPs who voted at this height
-        let voting_fps: Vec<String> = SIGNATURES
+        let voted_fps: Vec<String> = SIGNATURES
             .prefix(height)
             .keys(deps.storage, None, None, cosmwasm_std::Order::Ascending)
             .collect::<Result<Vec<_>, _>>()?;
@@ -930,7 +930,7 @@ pub fn distribute_rewards_in_range(
         let power_table = get_power_table_at_height(deps.storage, height)?;
 
         // For each FP that voted, add their weighted vote
-        for fp_btc_pk_hex in voting_fps {
+        for fp_btc_pk_hex in voted_fps {
             if let Some(power) = power_table.get(&fp_btc_pk_hex) {
                 // Add this FP's voting power to their weighted vote total
                 *fp_weighted_votes.entry(fp_btc_pk_hex).or_insert(0) += *power as u128;
@@ -951,7 +951,12 @@ pub fn distribute_rewards_in_range(
     // Distribute rewards proportionally based on weighted votes
     for (fp_btc_pk_hex, weighted_votes) in fp_weighted_votes {
         if weighted_votes > 0 {
-            let reward = (current_balance.u128() * weighted_votes) / total_weighted_votes;
+            // Use checked multiplication to prevent overflow
+            let numerator = current_balance
+                .u128()
+                .checked_mul(weighted_votes)
+                .ok_or(ContractError::CalculationOverflow)?;
+            let reward = numerator / total_weighted_votes;
             let reward = Uint128::from(reward);
 
             if !reward.is_zero() {

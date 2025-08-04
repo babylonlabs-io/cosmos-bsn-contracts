@@ -5,7 +5,7 @@ use thiserror::Error;
 use bitcoin::hashes::FromSliceError;
 use bitcoin::hex::HexToArrayError;
 
-use cosmwasm_std::StdError;
+use cosmwasm_std::{OverflowError, StdError};
 use cw_controllers::AdminError;
 use cw_utils::PaymentError;
 
@@ -67,6 +67,8 @@ pub enum ContractError {
     #[error(transparent)]
     Std(#[from] StdError),
     #[error(transparent)]
+    Overflow(#[from] OverflowError),
+    #[error(transparent)]
     Payment(#[from] PaymentError),
     #[error("error converting from hex to array: {0}")]
     HexArrayError(#[from] HexToArrayError),
@@ -82,4 +84,6 @@ pub enum ContractError {
     HexError(#[from] FromHexError),
     #[error("EOTS error: {0}")]
     EotsError(#[from] eots::Error),
+    #[error("Arithmetic calculation overflow")]
+    CalculationOverflow,
 }

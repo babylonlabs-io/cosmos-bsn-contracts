@@ -244,7 +244,7 @@ fn handle_end_block(
 
     // On a reward distribution boundary, send rewards for distribution to Babylon Genesis
     if env.block.height > 0 && env.block.height % cfg.reward_interval == 0 {
-        let start_height = env.block.height - cfg.reward_interval;
+        let start_height = env.block.height.saturating_sub(cfg.reward_interval);
         distribute_rewards_in_range(deps, &env, start_height, env.block.height)?;
 
         // Then send the accumulated rewards to Babylon Genesis via IBC
