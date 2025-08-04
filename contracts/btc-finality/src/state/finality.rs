@@ -39,9 +39,6 @@ pub const EVIDENCES: Map<(&str, u64), Evidence> = Map::new("evidences");
 /// Map of pending finality provider rewards
 pub const REWARDS: Map<&str, Uint128> = Map::new("rewards");
 
-/// Total pending rewards
-pub const TOTAL_PENDING_REWARDS: Item<Uint128> = Item::new("pending_rewards");
-
 /// Accumulated voting weights for each FP since last reward distribution
 /// Maps FP btc_pk_hex to their accumulated voting power across the current reward interval
 pub const ACCUMULATED_VOTING_WEIGHTS: Map<&str, u128> = Map::new("accumulated_voting_weights");

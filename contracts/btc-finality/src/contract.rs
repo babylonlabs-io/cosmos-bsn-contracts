@@ -8,7 +8,7 @@ use crate::state::config::{
     Config, ADMIN, CONFIG, DEFAULT_JAIL_DURATION, DEFAULT_MAX_ACTIVE_FINALITY_PROVIDERS,
     DEFAULT_MIN_PUB_RAND, DEFAULT_MISSED_BLOCKS_WINDOW, DEFAULT_REWARD_INTERVAL,
 };
-use crate::state::finality::{REWARDS, TOTAL_PENDING_REWARDS};
+use crate::state::finality::REWARDS;
 use crate::{finality, queries, state};
 use babylon_apis::finality_api::SudoMsg;
 use babylon_contract::msg::contract::RewardInfo;
@@ -56,7 +56,6 @@ pub fn instantiate(
     ADMIN.set(deps.branch(), maybe_addr(api, msg.admin.clone())?)?;
 
     // initialize storage, so no issue when reading for the first time
-    TOTAL_PENDING_REWARDS.save(deps.storage, &Uint128::zero())?;
 
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
     Ok(Response::new().add_attribute("action", "instantiate"))
@@ -251,16 +250,13 @@ fn handle_end_block(
         distribute_rewards_in_range(deps, &env)?;
 
         // Then send the accumulated rewards to Babylon Genesis via IBC
-        let rewards = TOTAL_PENDING_REWARDS.load(deps.storage)?;
-        if rewards.u128() > 0 {
-            let (fp_rewards, wasm_msg) = send_rewards_msg(deps, rewards.u128(), &cfg)?;
+        let (fp_rewards, wasm_msg) = send_rewards_msg(deps, &cfg)?;
+        if !fp_rewards.is_empty() {
             res = res.add_message(wasm_msg);
             // Zero out individual rewards
             for reward in fp_rewards {
                 REWARDS.remove(deps.storage, &reward.fp_pubkey_hex);
             }
-            // Zero out total pending rewards
-            TOTAL_PENDING_REWARDS.save(deps.storage, &Uint128::zero())?;
         }
     }
     Ok(res)
@@ -269,7 +265,6 @@ fn handle_end_block(
 // Sends rewards to the babylon contract to send it via IBC to Babylon Genesis
 fn send_rewards_msg(
     deps: &mut DepsMut,
-    rewards: u128,
     cfg: &Config,
 ) -> Result<(Vec<RewardInfo>, WasmMsg), ContractError> {
     // Get the pending rewards distribution
@@ -290,6 +285,10 @@ fn send_rewards_msg(
             })
         })
         .collect::<StdResult<Vec<_>>>()?;
+
+    // Calculate total rewards from individual rewards
+    let total_rewards: u128 = fp_rewards.iter().map(|r| r.reward.u128()).sum();
+
     // The rewards are sent to the babylon contract for IBC distribution to Babylon Genesis
     let msg = babylon_contract::msg::contract::ExecuteMsg::RewardsDistribution {
         fp_distribution: fp_rewards.clone(),
@@ -297,7 +296,7 @@ fn send_rewards_msg(
     let wasm_msg = WasmMsg::Execute {
         contract_addr: cfg.babylon.to_string(),
         msg: to_json_binary(&msg)?,
-        funds: coins(rewards, cfg.denom.as_str()),
+        funds: coins(total_rewards, cfg.denom.as_str()),
     };
     Ok((fp_rewards, wasm_msg))
 }
@@ -413,12 +412,9 @@ pub(crate) mod tests {
         REWARDS
             .save(&mut deps.storage, &fp2, &Uint128::from(200u128))
             .unwrap();
-        TOTAL_PENDING_REWARDS
-            .save(&mut deps.storage, &Uint128::from(300u128))
-            .unwrap();
 
         // Test send_rewards_msg
-        let (fp_rewards, wasm_msg) = send_rewards_msg(&mut deps.as_mut(), 300, &config).unwrap();
+        let (fp_rewards, wasm_msg) = send_rewards_msg(&mut deps.as_mut(), &config).unwrap();
 
         // Verify the rewards are correct
         assert_eq!(fp_rewards.len(), 2);
@@ -475,13 +471,10 @@ pub(crate) mod tests {
         };
         CONFIG.save(&mut deps.storage, &config).unwrap();
 
-        // No rewards in storage
-        TOTAL_PENDING_REWARDS
-            .save(&mut deps.storage, &Uint128::zero())
-            .unwrap();
+        // No rewards in storage - REWARDS map is empty by default
 
         // Test send_rewards_msg with no rewards
-        let (fp_rewards, wasm_msg) = send_rewards_msg(&mut deps.as_mut(), 0, &config).unwrap();
+        let (fp_rewards, wasm_msg) = send_rewards_msg(&mut deps.as_mut(), &config).unwrap();
 
         // Verify no rewards are returned
         assert_eq!(fp_rewards.len(), 0);
@@ -605,10 +598,6 @@ pub(crate) mod tests {
             .save(&mut deps.storage, &fp2, &1000u128)
             .unwrap();
 
-        TOTAL_PENDING_REWARDS
-            .save(&mut deps.storage, &Uint128::zero())
-            .unwrap();
-
         // Test reward distribution
         use crate::finality::distribute_rewards_in_range;
         distribute_rewards_in_range(&mut deps.as_mut(), &env).unwrap(); // Height params are ignored now
@@ -653,10 +642,6 @@ pub(crate) mod tests {
             )
             .unwrap();
 
-        TOTAL_PENDING_REWARDS
-            .save(&mut deps.storage, &Uint128::zero())
-            .unwrap();
-
         use crate::finality::distribute_rewards_in_range;
 
         // Test 1: No balance - should not panic
@@ -672,7 +657,6 @@ pub(crate) mod tests {
         distribute_rewards_in_range(&mut deps.as_mut(), &env).unwrap();
 
         // Should complete without errors
-        let total_pending = TOTAL_PENDING_REWARDS.load(&deps.storage).unwrap();
-        assert_eq!(total_pending, Uint128::zero());
+        // No need to check TOTAL_PENDING_REWARDS since it's been removed
     }
 }

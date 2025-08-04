@@ -1,10 +1,10 @@
 use crate::contract::encode_smart_query;
 use crate::error::ContractError;
-use crate::state::config::{Config, ADMIN, CONFIG};
+use crate::state::config::{ADMIN, CONFIG};
 use crate::state::finality::{
     ensure_fp_has_power, get_last_signed_height, get_power_table_at_height,
     ACCUMULATED_VOTING_WEIGHTS, BLOCKS, EVIDENCES, FP_BLOCK_SIGNER, FP_POWER_TABLE,
-    FP_START_HEIGHT, JAIL, NEXT_HEIGHT, REWARDS, SIGNATURES, TOTAL_PENDING_REWARDS,
+    FP_START_HEIGHT, JAIL, NEXT_HEIGHT, REWARDS, SIGNATURES,
 };
 use crate::state::public_randomness::{
     get_last_finalized_height, get_last_pub_rand_commit,
@@ -945,11 +945,6 @@ pub fn distribute_rewards_in_range(deps: &mut DepsMut, env: &Env) -> Result<(), 
                 // Add reward to FP's pending rewards
                 REWARDS.update(deps.storage, fp_btc_pk_hex, |existing| {
                     Ok::<Uint128, ContractError>(existing.unwrap_or_default() + reward)
-                })?;
-
-                // Add to total pending rewards for Babylon transfer
-                TOTAL_PENDING_REWARDS.update(deps.storage, |total| {
-                    Ok::<Uint128, ContractError>(total + reward)
                 })?;
             }
         }
