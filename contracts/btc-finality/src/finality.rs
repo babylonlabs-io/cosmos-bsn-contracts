@@ -56,6 +56,16 @@ pub enum PubRandCommitError {
     OverflowInBlockHeight(u64, u64),
     #[error("Empty signature")]
     EmptySignature,
+    #[error("Ecdsa error: {0}")]
+    Ecdsa(String),
+    #[error(transparent)]
+    Hex(#[from] hex::FromHexError),
+}
+
+impl From<k256::ecdsa::Error> for PubRandCommitError {
+    fn from(e: k256::ecdsa::Error) -> Self {
+        Self::Ecdsa(e.to_string())
+    }
 }
 
 // https://github.com/babylonlabs-io/babylon/blob/49972e2d3e35caf0a685c37e1f745c47b75bfc69/x/finality/types/tx.pb.go#L36
@@ -97,7 +107,7 @@ impl MsgCommitPubRand {
         Ok(())
     }
 
-    fn verify_sig(&self, signing_context: String) -> Result<(), ContractError> {
+    fn verify_sig(&self, signing_context: String) -> Result<(), PubRandCommitError> {
         let Self {
             fp_btc_pk_hex,
             start_height,
@@ -108,28 +118,19 @@ impl MsgCommitPubRand {
 
         // get BTC public key for verification
         let btc_pk_raw = hex::decode(fp_btc_pk_hex)?;
-        let btc_pk = VerifyingKey::from_bytes(&btc_pk_raw)
-            .map_err(|e| ContractError::SecP256K1Error(e.to_string()))?;
+        let btc_pk = VerifyingKey::from_bytes(&btc_pk_raw)?;
 
-        // get signature
-        if signature.is_empty() {
-            return Err(ContractError::EmptySignature);
-        }
-
-        let schnorr_sig = Signature::try_from(signature.as_slice())
-            .map_err(|e| ContractError::SecP256K1Error(e.to_string()))?;
+        let schnorr_sig = Signature::try_from(signature.as_slice())?;
 
         // get signed message
         let mut msg: Vec<u8> = vec![];
-        msg.extend_from_slice(signing_context.as_bytes());
-        msg.extend_from_slice(&start_height.to_be_bytes());
-        msg.extend_from_slice(&num_pub_rand.to_be_bytes());
+        msg.extend(signing_context.into_bytes());
+        msg.extend(start_height.to_be_bytes());
+        msg.extend(num_pub_rand.to_be_bytes());
         msg.extend_from_slice(commitment);
 
         // Verify the signature
-        btc_pk
-            .verify(&msg, &schnorr_sig)
-            .map_err(|e| ContractError::SecP256K1Error(e.to_string()))?;
+        btc_pk.verify(&msg, &schnorr_sig)?;
 
         Ok(())
     }
@@ -202,18 +203,22 @@ pub fn handle_public_randomness_commit(
     }
 
     // All good, store the given public randomness commitment
+    let MsgCommitPubRand {
+        fp_btc_pk_hex,
+        start_height,
+        num_pub_rand,
+        commitment,
+        ..
+    } = pub_rand_commit;
+
     let pr_commit = PubRandCommit {
-        start_height: pub_rand_commit.start_height,
-        num_pub_rand: pub_rand_commit.num_pub_rand,
+        start_height,
+        num_pub_rand,
         height: env.block.height,
-        commitment: pub_rand_commit.commitment.clone(),
+        commitment,
     };
 
-    PUB_RAND_COMMITS.save(
-        deps.storage,
-        (&pub_rand_commit.fp_btc_pk_hex, pr_commit.start_height),
-        &pr_commit,
-    )?;
+    PUB_RAND_COMMITS.save(deps.storage, (&fp_btc_pk_hex, start_height), &pr_commit)?;
 
     // TODO: Add events (#124)
     Ok(Response::new())
@@ -340,7 +345,7 @@ impl MsgAddFinalitySig {
         let msg_hash = Sha256::digest(msg);
 
         if !pubkey.verify_hash(&self.pub_rand, msg_hash.into(), &self.signature)? {
-            return Err(ContractError::FailedSignatureVerification("EOTS".into()));
+            return Err(ContractError::FailedToVerifyEots);
         }
 
         Ok(())
