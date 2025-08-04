@@ -352,12 +352,57 @@ impl MsgAddFinalitySig {
     }
 }
 
+/// Determines whether the finality signature should be accepted for a given block height.
+///
+/// Babylon Genesis and BSN use different rules for accepting signatures based on how
+/// their Bitcoin timestamping protocols operate:
+///
+/// - **Babylon Genesis** timestamps *epochs*, and each epoch includes a fixed number of blocks.
+///   Therefore, each `pub_rand` commit is tagged by an *epoch number*, and is considered timestamped
+///   if the corresponding epoch has been timestamped on Bitcoin.
+///
+/// - **BSN**, on the other hand, timestamps *individual blocks*. It relies on Babylon Genesis
+///   to perform the actual Bitcoin timestamping by submitting BSN headers to Babylon via IBC.
+///   As a result, each `pub_rand` commit is tagged with a *BSN block height*, and is considered
+///   timestamped if the highest Bitcoin-finalized BSN height is greater than or equal to that value.
+///
+/// This difference leads to separate implementations of `should_accept_sig_for_height` in both systems.
+///
+/// https://github.com/babylonlabs-io/babylon/blob/49972e2d3e35caf0a685c37e1f745c47b75bfc69/x/finality/keeper/msg_server.go#L245
+fn should_accept_sig_for_height(
+    storage: &dyn Storage,
+    indexed_block: &IndexedBlock,
+) -> cosmwasm_std::StdResult<bool> {
+    let Some(next_height) = NEXT_HEIGHT.may_load(storage)? else {
+        // Accept finality sig if there is no any finalized block yet.
+        return Ok(true);
+    };
+
+    let last_finalized_height = next_height.saturating_sub(1);
+
+    let timestamped = last_finalized_height >= indexed_block.height;
+
+    let should = !(indexed_block.finalized && timestamped);
+
+    Ok(should)
+}
+
 pub fn handle_finality_signature(
     mut deps: DepsMut,
     env: Env,
     add_finality_sig: MsgAddFinalitySig,
 ) -> Result<Response, ContractError> {
     add_finality_sig.validate_basic()?;
+
+    let indexed_block = BLOCKS
+        .load(deps.storage, add_finality_sig.height)
+        .map_err(|err| ContractError::BlockNotFound(add_finality_sig.height, err.to_string()))?;
+
+    if !should_accept_sig_for_height(deps.storage, &indexed_block)? {
+        return Err(ContractError::AlreadyFinalizedByTimestamping(
+            add_finality_sig.height,
+        ));
+    }
 
     // Ensure the finality provider exists
     let staking_addr = CONFIG.load(deps.storage)?.staking;
@@ -439,12 +484,9 @@ pub fn handle_finality_signature(
     // The public randomness value is good, save it.
     PUB_RAND_VALUES.save(deps.storage, (&fp_btc_pk_hex, height), &pub_rand)?;
 
-    // Verify whether the voted block is a fork or not
-    let indexed_block = BLOCKS
-        .load(deps.storage, height)
-        .map_err(|err| ContractError::BlockNotFound(height, err.to_string()))?;
-
     let mut res = Response::new();
+
+    // Verify whether the voted block is a fork or not
     if indexed_block.app_hash != block_app_hash {
         // The finality provider votes for a fork!
 

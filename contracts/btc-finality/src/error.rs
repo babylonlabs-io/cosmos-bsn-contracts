@@ -48,6 +48,8 @@ pub enum ContractError {
     FinalisedBlockWithoutFinalityProviderSet(u64),
     #[error("Block {0} is not found: {1}")]
     BlockNotFound(u64, String),
+    #[error("Block {0} is already finalized by BTC-timestamping protocol")]
+    AlreadyFinalizedByTimestamping(u64),
     #[error("The finality provider {0} has already been slashed")]
     FinalityProviderAlreadySlashed(String),
     #[error("Failed to extract secret key: {0}")]
