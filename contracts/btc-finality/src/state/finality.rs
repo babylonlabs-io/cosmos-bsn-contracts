@@ -18,31 +18,6 @@ pub const NEXT_HEIGHT: Item<u64> = Item::new("next_height");
 /// `FP_POWER_TABLE` is the map of finality providers to their total active sats at a given height
 pub const FP_POWER_TABLE: Map<(u64, &str), u64> = Map::new("fp_power_table");
 
-pub fn get_power_table_at_height(
-    storage: &dyn Storage,
-    height: u64,
-) -> StdResult<HashMap<String, u64>> {
-    FP_POWER_TABLE
-        .prefix(height)
-        .range(storage, None, None, Ascending)
-        .collect::<StdResult<HashMap<String, u64>>>()
-}
-
-pub fn ensure_fp_has_power(
-    storage: &mut dyn Storage,
-    height: u64,
-    fp_btc_pk_hex: &str,
-) -> Result<(), ContractError> {
-    let power = FP_POWER_TABLE.may_load(storage, (height, fp_btc_pk_hex))?;
-    if power.is_none() {
-        return Err(ContractError::NoVotingPower(
-            fp_btc_pk_hex.to_string(),
-            height,
-        ));
-    }
-    Ok(())
-}
-
 /// Map of finality providers to block height they initially entered the active set.
 /// If an FP isn't in this map, he was not in the active finality provider set,
 /// since forever, or since its latest unjailing.
@@ -70,3 +45,41 @@ pub const TOTAL_PENDING_REWARDS: Item<Uint128> = Item::new("pending_rewards");
 /// Accumulated voting weights for each FP since last reward distribution
 /// Maps FP btc_pk_hex to their accumulated voting power across the current reward interval
 pub const ACCUMULATED_VOTING_WEIGHTS: Map<&str, u128> = Map::new("accumulated_voting_weights");
+
+pub fn get_power_table_at_height(
+    storage: &dyn Storage,
+    height: u64,
+) -> StdResult<HashMap<String, u64>> {
+    FP_POWER_TABLE
+        .prefix(height)
+        .range(storage, None, None, Ascending)
+        .collect::<StdResult<HashMap<String, u64>>>()
+}
+
+pub fn ensure_fp_has_power(
+    storage: &mut dyn Storage,
+    height: u64,
+    fp_btc_pk_hex: &str,
+) -> Result<(), ContractError> {
+    let power = FP_POWER_TABLE.may_load(storage, (height, fp_btc_pk_hex))?;
+    if power.is_none() {
+        return Err(ContractError::NoVotingPower(
+            fp_btc_pk_hex.to_string(),
+            height,
+        ));
+    }
+    Ok(())
+}
+
+pub fn get_last_signed_height(
+    storage: &dyn Storage,
+    fp_btc_pk_hex: &str,
+) -> cosmwasm_std::StdResult<Option<u64>> {
+    match FP_BLOCK_SIGNER.may_load(storage, fp_btc_pk_hex)? {
+        Some(v) => Ok(Some(v)),
+        None => {
+            // Not a block signer yet, check their start height instead
+            FP_START_HEIGHT.may_load(storage, fp_btc_pk_hex)
+        }
+    }
+}
