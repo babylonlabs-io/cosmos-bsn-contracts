@@ -1,6 +1,6 @@
 use crate::error::ContractError;
 use crate::finality::{
-    compute_active_finality_providers, distribute_rewards_fps, handle_finality_signature,
+    compute_active_finality_providers, distribute_rewards_in_range, handle_finality_signature,
     handle_public_randomness_commit, handle_unjail,
 };
 use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
@@ -214,9 +214,6 @@ fn handle_update_staking(
 }
 
 fn handle_begin_block(deps: &mut DepsMut, env: Env) -> Result<Response, ContractError> {
-    // Distribute rewards to finality providers
-    distribute_rewards_fps(deps, &env)?;
-
     // Compute active finality provider set
     let max_active_fps = CONFIG.load(deps.storage)?.max_active_finality_providers as usize;
     compute_active_finality_providers(deps, &env, max_active_fps)?;
@@ -245,8 +242,12 @@ fn handle_end_block(
         res = res.add_events(events);
     }
 
-    // On an epoch boundary, send rewards for distribution to Babylon Genesis
+    // On a reward distribution boundary, send rewards for distribution to Babylon Genesis
     if env.block.height > 0 && env.block.height % cfg.reward_interval == 0 {
+        let start_height = env.block.height - cfg.reward_interval;
+        distribute_rewards_in_range(deps, &env, start_height, env.block.height)?;
+
+        // Then send the accumulated rewards to Babylon Genesis via IBC
         let rewards = TOTAL_PENDING_REWARDS.load(deps.storage)?;
         if rewards.u128() > 0 {
             let (fp_rewards, wasm_msg) = send_rewards_msg(deps, rewards.u128(), &cfg)?;
