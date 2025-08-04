@@ -44,6 +44,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Improvements
 
+- [#288](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/288) finality: add `should_accepet_sig_for_height()` check
 - [#287](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/285) refactor: simplify finality Error type
 - [#286](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/286) fix: ICS-20 transfer memo format
 - [#285](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/285) finality: return error on the duplicated finality vote
