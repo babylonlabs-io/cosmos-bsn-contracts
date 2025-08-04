@@ -373,16 +373,17 @@ fn should_accept_sig_for_height(
     storage: &dyn Storage,
     indexed_block: &IndexedBlock,
 ) -> cosmwasm_std::StdResult<bool> {
+    // TODO: https://github.com/babylonlabs-io/cosmos-bsn-contracts/issues/289
     let Some(next_height) = NEXT_HEIGHT.may_load(storage)? else {
         // Accept finality sig if there is no any finalized block yet.
         return Ok(true);
     };
 
-    let last_finalized_height = next_height.saturating_sub(1);
+    let last_btc_staking_finalized_height = next_height.saturating_sub(1);
 
-    let timestamped = last_finalized_height >= indexed_block.height;
+    let staking_finalized = last_btc_staking_finalized_height >= indexed_block.height;
 
-    let should = !(indexed_block.finalized && timestamped);
+    let should = !(indexed_block.finalized && staking_finalized);
 
     Ok(should)
 }
@@ -1105,3 +1106,4 @@ mod tests {
         }
     }
 }
+
