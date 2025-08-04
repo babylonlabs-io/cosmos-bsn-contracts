@@ -2,8 +2,9 @@ use crate::contract::encode_smart_query;
 use crate::error::ContractError;
 use crate::state::config::{ADMIN, CONFIG};
 use crate::state::finality::{
-    ensure_fp_has_power, get_power_table_at_height, BLOCKS, EVIDENCES, FP_BLOCK_SIGNER,
-    FP_POWER_TABLE, FP_START_HEIGHT, JAIL, NEXT_HEIGHT, REWARDS, SIGNATURES, TOTAL_PENDING_REWARDS,
+    ensure_fp_has_power, get_last_signed_height, get_power_table_at_height, BLOCKS, EVIDENCES,
+    FP_BLOCK_SIGNER, FP_POWER_TABLE, FP_START_HEIGHT, JAIL, NEXT_HEIGHT, REWARDS, SIGNATURES,
+    TOTAL_PENDING_REWARDS,
 };
 use crate::state::public_randomness::{
     get_last_finalized_height, get_last_pub_rand_commit,
@@ -847,11 +848,7 @@ pub fn compute_active_finality_providers(
 
     // Check for inactive finality providers, and jail them
     fp_power_table.iter().try_for_each(|(fp_btc_pk_hex, _)| {
-        let mut last_sign_height = FP_BLOCK_SIGNER.may_load(deps.storage, fp_btc_pk_hex)?;
-        if last_sign_height.is_none() {
-            // Not a block signer yet, check their start height instead
-            last_sign_height = FP_START_HEIGHT.may_load(deps.storage, fp_btc_pk_hex)?;
-        }
+        let last_sign_height = get_last_signed_height(deps.storage, fp_btc_pk_hex)?;
         match last_sign_height {
             Some(h) if h > env.block.height.saturating_sub(cfg.missed_blocks_window) => {
                 Ok::<_, ContractError>(())
