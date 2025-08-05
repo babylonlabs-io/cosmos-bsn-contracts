@@ -1,6 +1,6 @@
 use babylon_apis::btc_staking_api::{
     ActiveBtcDelegation, BtcUndelegationInfo, CovenantAdaptorSignatures, DelegatorUnbondingInfo,
-    FinalityProviderDescription, NewFinalityProvider, ProofOfPossessionBtc,
+    NewFinalityProvider, ProofOfPossessionBtc,
 };
 use babylon_apis::finality_api::PubRandCommit;
 use babylon_proto::babylon::btclightclient::v1::{BtcHeaderInfo, QueryMainChainResponse};
@@ -10,7 +10,7 @@ use babylon_proto::babylon::zoneconcierge::v1::BtcTimestamp;
 use bitcoin::block::Header as BlockHeader;
 use bitcoin::consensus::deserialize;
 use bitcoin::BlockHash;
-use cosmwasm_std::{Binary, Decimal, Uint256};
+use cosmwasm_std::{Binary, Uint256};
 use hex::ToHex;
 use k256::schnorr::{Signature, SigningKey};
 use prost::{bytes::Bytes, Message};
@@ -235,14 +235,6 @@ pub fn get_add_finality_sig_2() -> MsgAddFinalitySig {
 pub fn new_finality_provider(fp: FinalityProvider) -> NewFinalityProvider {
     NewFinalityProvider {
         addr: fp.addr,
-        description: fp.description.map(|desc| FinalityProviderDescription {
-            moniker: desc.moniker,
-            identity: desc.identity,
-            website: desc.website,
-            security_contact: desc.security_contact,
-            details: desc.details,
-        }),
-        commission: Decimal::from_str(&fp.commission).unwrap(),
         btc_pk_hex: fp.btc_pk.encode_hex(),
         pop: match fp.pop {
             Some(pop) => Some(ProofOfPossessionBtc {

@@ -266,7 +266,6 @@ pub enum QueryMsg {
     /// Returns the evidence for a given FP and block height.
     #[returns(EvidenceResponse)]
     Evidence { btc_pk_hex: String, height: u64 },
-
     /// Returns the list of jailed finality providers
     #[returns(JailedFinalityProvidersResponse)]
     JailedFinalityProviders {
@@ -279,6 +278,9 @@ pub enum QueryMsg {
     /// Returns the voting power of a given finality provider at a given height
     #[returns(FinalityProviderPowerResponse)]
     FinalityProviderPower { btc_pk_hex: String, height: u64 },
+    /// Returns the activated height of the BTC staking protocol
+    #[returns(ActivatedHeightResponse)]
+    ActivatedHeight {},
     /// Returns the finality providers who have signed the block at given height.
     #[returns(VotesResponse)]
     Votes { height: u64 },
@@ -337,3 +339,7 @@ pub struct SigningInfoResponse {
     pub jailed_until: Option<u64>,
 }
 
+#[cw_serde]
+pub struct ActivatedHeightResponse {
+    pub height: u64,
+}

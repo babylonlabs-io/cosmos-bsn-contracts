@@ -1,17 +1,9 @@
-use bitcoin::absolute::LockTime;
-use bitcoin::consensus::deserialize;
-use bitcoin::hashes::Hash;
-use bitcoin::{Transaction, Txid};
-use cosmwasm_std::{DepsMut, Env, Event, MessageInfo, Order, Response, StdResult, Storage};
-use cw_storage_plus::Bound;
-
 use crate::error::ContractError;
 use crate::state::config::{ADMIN, CONFIG};
 use crate::state::delegations::delegations;
 use crate::state::staking::{
     get_fp_state_map, BtcDelegation, DelegatorUnbondingInfo, FinalityProviderState,
-    ACTIVATED_HEIGHT, BTC_DELEGATIONS, BTC_DELEGATION_EXPIRY_INDEX, DELEGATION_FPS, FPS,
-    FP_DELEGATIONS,
+    BTC_DELEGATIONS, BTC_DELEGATION_EXPIRY_INDEX, DELEGATION_FPS, FPS, FP_DELEGATIONS,
 };
 use crate::validation::{
     verify_active_delegation, verify_new_fp, verify_slashed_delegation, verify_undelegation,
@@ -21,7 +13,13 @@ use babylon_apis::btc_staking_api::{
     UnbondedBtcDelegation, HASH_SIZE,
 };
 use babylon_apis::{to_canonical_addr, Validate};
+use bitcoin::absolute::LockTime;
+use bitcoin::consensus::deserialize;
+use bitcoin::hashes::Hash;
+use bitcoin::{Transaction, Txid};
 use btc_light_client::msg::btc_header::BtcHeaderResponse;
+use cosmwasm_std::{DepsMut, Env, Event, MessageInfo, Order, Response, StdResult, Storage};
+use cw_storage_plus::Bound;
 use std::str::FromStr;
 
 /// Handles the BTC staking operations.
@@ -207,11 +205,6 @@ fn handle_active_delegation(
     let delegation = BtcDelegation::from(active_delegation);
     BTC_DELEGATIONS.save(storage, staking_tx_hash.as_ref(), &delegation)?;
 
-    // Store activated height, if first delegation
-    if ACTIVATED_HEIGHT.may_load(storage)?.is_none() {
-        ACTIVATED_HEIGHT.save(storage, &(height + 1))?; // Active from the next block onwards
-    }
-
     // Index the delegation by its end height
     BTC_DELEGATION_EXPIRY_INDEX.update(
         storage,
@@ -266,7 +259,7 @@ fn handle_undelegation(
     Ok(unbonding_event)
 }
 
-/// Handles undelegation due to slashing from an active delegation.
+/// Handles slashed BTC delegation due to slashing from an active delegation.
 fn handle_slashed_delegation(
     storage: &mut dyn Storage,
     height: u64,
@@ -459,6 +452,7 @@ fn btc_undelegate(
 
 /// Slashes a finality provider with the given PK.
 /// A slashed finality provider will not have voting power
+/// following https://github.com/babylonlabs-io/babylon/blob/4aa85a8d9bf85771d448cd3026e99962fe0dab8e/x/btcstaking/keeper/finality_providers.go#L133-L172
 fn slash_finality_provider(
     deps: DepsMut,
     env: Env,
@@ -491,7 +485,6 @@ fn slash_finality_provider(
     // Save the finality provider back
     FPS.save(deps.storage, fp_btc_pk_hex, &fp)?;
 
-    // TODO: Add events (#124)
     Ok(Response::new())
 }
 
@@ -632,7 +625,12 @@ pub(crate) mod tests {
             .clone_from(&active_delegation.fp_btc_pk_list[0]);
 
         // Check that the finality provider has no power yet
-        let res = queries::finality_provider_info(deps.as_ref(), new_fp.btc_pk_hex.clone(), None);
+        let res = queries::finality_provider_info(
+            deps.as_ref(),
+            &mock_env(),
+            new_fp.btc_pk_hex.clone(),
+            None,
+        );
         assert!(matches!(
             res,
             Err(ContractError::FinalityProviderNotFound(pk)) if pk == new_fp.btc_pk_hex
@@ -665,8 +663,13 @@ pub(crate) mod tests {
         assert_eq!(query_res, delegation);
 
         // Check that the finality provider power has been updated
-        let fp = queries::finality_provider_info(deps.as_ref(), new_fp.btc_pk_hex.clone(), None)
-            .unwrap();
+        let fp = queries::finality_provider_info(
+            deps.as_ref(),
+            &mock_env(),
+            new_fp.btc_pk_hex.clone(),
+            None,
+        )
+        .unwrap();
         assert_eq!(fp.total_active_sats, active_delegation.total_sat);
     }
 
@@ -760,8 +763,13 @@ pub(crate) mod tests {
         );
 
         // Check the finality provider power has been updated
-        let fp = queries::finality_provider_info(deps.as_ref(), new_fp.btc_pk_hex.clone(), None)
-            .unwrap();
+        let fp = queries::finality_provider_info(
+            deps.as_ref(),
+            &mock_env(),
+            new_fp.btc_pk_hex.clone(),
+            None,
+        )
+        .unwrap();
         assert_eq!(fp.total_active_sats, 0);
     }
 
@@ -804,8 +812,13 @@ pub(crate) mod tests {
         assert!(!btc_del.slashed);
 
         // Check the finality provider has power
-        let fp = queries::finality_provider_info(deps.as_ref(), new_fp.btc_pk_hex.clone(), None)
-            .unwrap();
+        let fp = queries::finality_provider_info(
+            deps.as_ref(),
+            &mock_env(),
+            new_fp.btc_pk_hex.clone(),
+            None,
+        )
+        .unwrap();
         assert_eq!(fp.total_active_sats, btc_del.total_sat);
 
         // Now send the slashed delegation message
@@ -844,8 +857,13 @@ pub(crate) mod tests {
 
         // Check the finality provider power remains (it has only this delegation that was
         // slashed)
-        let fp = queries::finality_provider_info(deps.as_ref(), new_fp.btc_pk_hex.clone(), None)
-            .unwrap();
+        let fp = queries::finality_provider_info(
+            deps.as_ref(),
+            &mock_env(),
+            new_fp.btc_pk_hex.clone(),
+            None,
+        )
+        .unwrap();
         assert_eq!(fp.total_active_sats, 0);
     }
 
@@ -906,8 +924,13 @@ pub(crate) mod tests {
         execute(deps.as_mut(), env.clone(), info.clone(), msg).unwrap();
 
         // Check that the finality provider has power before slashing
-        let fp = queries::finality_provider_info(deps.as_ref(), new_fp.btc_pk_hex.clone(), None)
-            .unwrap();
+        let fp = queries::finality_provider_info(
+            deps.as_ref(),
+            &mock_env(),
+            new_fp.btc_pk_hex.clone(),
+            None,
+        )
+        .unwrap();
         assert_eq!(fp.total_active_sats, active_delegation.total_sat);
         assert!(!fp.slashed);
 
@@ -915,8 +938,13 @@ pub(crate) mod tests {
         slash_finality_provider(deps.as_mut(), env.clone(), &new_fp.btc_pk_hex).unwrap();
 
         // Check that the finality provider is now slashed
-        let fp = queries::finality_provider_info(deps.as_ref(), new_fp.btc_pk_hex.clone(), None)
-            .unwrap();
+        let fp = queries::finality_provider_info(
+            deps.as_ref(),
+            &mock_env(),
+            new_fp.btc_pk_hex.clone(),
+            None,
+        )
+        .unwrap();
         assert!(fp.slashed);
         assert_eq!(fp.total_active_sats, active_delegation.total_sat);
 

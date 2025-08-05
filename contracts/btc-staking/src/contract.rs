@@ -46,7 +46,7 @@ pub fn reply(_deps: DepsMut, _env: Env, _reply: Reply) -> StdResult<Response> {
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> Result<QueryResponse, ContractError> {
+pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> Result<QueryResponse, ContractError> {
     match msg {
         QueryMsg::Config {} => Ok(to_json_binary(&CONFIG.load(deps.storage)?)?),
         QueryMsg::Admin {} => to_json_binary(&ADMIN.query_admin(deps)?).map_err(Into::into),
@@ -76,12 +76,11 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> Result<QueryResponse, Cont
             &queries::delegations_by_fp(deps, btc_pk_hex)?,
         )?),
         QueryMsg::FinalityProviderInfo { btc_pk_hex, height } => Ok(to_json_binary(
-            &queries::finality_provider_info(deps, btc_pk_hex, height)?,
+            &queries::finality_provider_info(deps, &env, btc_pk_hex, height)?,
         )?),
         QueryMsg::FinalityProvidersByTotalActiveSats { start_after, limit } => Ok(to_json_binary(
-            &queries::finality_providers_by_total_active_sats(deps, start_after, limit)?,
+            &queries::finality_providers_by_total_active_sats(deps, &env, start_after, limit)?,
         )?),
-        QueryMsg::ActivatedHeight {} => Ok(to_json_binary(&queries::activated_height(deps)?)?),
     }
 }
 

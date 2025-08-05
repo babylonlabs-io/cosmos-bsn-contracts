@@ -1,10 +1,8 @@
-use std::str::FromStr;
-
 /// BTC staking messages / API
 /// The definitions here follow the same structure as the equivalent IBC protobuf message types,
 /// defined in `packages/proto/src/gen/babylon.btcstaking.v1.rs`
 use cosmwasm_schema::cw_serde;
-use cosmwasm_std::{Binary, Decimal};
+use cosmwasm_std::Binary;
 
 /// Hash size in bytes
 pub const HASH_SIZE: usize = 32;
@@ -36,10 +34,6 @@ pub enum ExecuteMsg {
 
 #[cw_serde]
 pub struct NewFinalityProvider {
-    /// Description terms for the finality provider.
-    pub description: Option<FinalityProviderDescription>,
-    /// Commission rate of the finality provider.
-    pub commission: Decimal,
     /// Bech32 address identifier of the finality provider.
     pub addr: String,
     /// Bitcoin secp256k1 PK of this finality provider
@@ -58,18 +52,6 @@ impl TryFrom<&babylon_proto::babylon::btcstaking::v1::NewFinalityProvider> for N
         fp: &babylon_proto::babylon::btcstaking::v1::NewFinalityProvider,
     ) -> Result<Self, Self::Error> {
         Ok(NewFinalityProvider {
-            description: fp
-                .description
-                .as_ref()
-                .map(|d| FinalityProviderDescription {
-                    moniker: d.moniker.clone(),
-                    identity: d.identity.clone(),
-                    website: d.website.clone(),
-                    security_contact: d.security_contact.clone(),
-                    details: d.details.clone(),
-                }),
-            commission: Decimal::from_str(&fp.commission)
-                .map_err(|e| format!("Failed to parse commission: {e}"))?,
             addr: fp.addr.clone(),
             btc_pk_hex: fp.btc_pk_hex.clone(),
             pop: fp.pop.as_ref().map(|pop| ProofOfPossessionBtc {
@@ -83,10 +65,6 @@ impl TryFrom<&babylon_proto::babylon::btcstaking::v1::NewFinalityProvider> for N
 
 #[cw_serde]
 pub struct FinalityProvider {
-    /// Description terms for the finality provider.
-    pub description: Option<FinalityProviderDescription>,
-    /// Commission rate of the finality provider.
-    pub commission: Decimal,
     /// Bech32 address identifier of the finality provider.
     pub addr: String,
     /// Bitcoin secp256k1 PK of this finality provider
@@ -111,8 +89,6 @@ impl FinalityProvider {
 impl From<&NewFinalityProvider> for FinalityProvider {
     fn from(new_fp: &NewFinalityProvider) -> Self {
         FinalityProvider {
-            description: new_fp.description.clone(),
-            commission: new_fp.commission,
             addr: new_fp.addr.clone(),
             btc_pk_hex: new_fp.btc_pk_hex.clone(),
             pop: new_fp.pop.clone(),
@@ -121,29 +97,6 @@ impl From<&NewFinalityProvider> for FinalityProvider {
             consumer_id: new_fp.consumer_id.clone(),
         }
     }
-}
-
-#[cw_serde]
-pub struct FinalityProviderDescription {
-    /// Name of the finality provider.
-    pub moniker: String,
-    /// Identity of the finality provider.
-    pub identity: String,
-    /// Website of the finality provider.
-    pub website: String,
-    /// Security contact of the finality provider.
-    pub security_contact: String,
-    /// Details of the finality provider.
-    pub details: String,
-}
-
-impl FinalityProviderDescription {
-    /// Description field lengths
-    pub const MAX_MONIKER_LENGTH: usize = 70;
-    pub const MAX_IDENTITY_LENGTH: usize = 3000;
-    pub const MAX_WEBSITE_LENGTH: usize = 140;
-    pub const MAX_SECURITY_CONTACT_LENGTH: usize = 140;
-    pub const MAX_DETAILS_LENGTH: usize = 280;
 }
 
 /// Indicates the type of btc_sig in a pop

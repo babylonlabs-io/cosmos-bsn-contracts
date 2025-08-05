@@ -168,12 +168,13 @@ func (s *BabylonSDKTestSuite) Test3MockConsumerFpDelegation() {
 	s.NoError(err)
 	s.NotEmpty(consumerDels)
 
-	// ensure the BTC staking is activated
-	resp, err := s.ConsumerCli.Query(s.ConsumerContract.BTCStaking, types.Query{"activated_height": {}})
-	s.NoError(err)
-	parsedActivatedHeight := resp["height"].(float64)
-	currentHeight := s.ConsumerChain.GetContext().BlockHeight()
-	s.Equal(uint64(parsedActivatedHeight), uint64(currentHeight))
+	// BTC staking won't be activated because there is no timestamped pub rand
+	_, err = s.ConsumerCli.Query(s.ConsumerContract.BTCFinality, types.Query{"activated_height": {}})
+	s.Error(err)
+
+	// TODO: find a way to timestamp pub rand to activate BTC staking
+	// this requires a new handler for adding BTC timestamps to the Babylon contract
+	// but extra security measures are needed to prevent abuse
 }
 
 func (s *BabylonSDKTestSuite) Test4BeginBlock() {
@@ -190,40 +191,13 @@ func (s *BabylonSDKTestSuite) Test5NextBlock() {
 	// get current height
 	height := s.ConsumerChain.GetContext().BlockHeight()
 
-	// check the current block indexing status
-	resp, err := s.ConsumerCli.Query(s.ConsumerContract.BTCFinality, types.Query{
+	// the block should not be indexed because the BTC staking is not activated
+	_, err := s.ConsumerCli.Query(s.ConsumerContract.BTCFinality, types.Query{
 		"block": {
 			"height": uint64(height),
 		},
 	})
-	s.NoError(err)
-
-	// Check that the block exists but may not be fully indexed (app_hash is empty)
-	s.NotNil(resp)
-	s.Equal(float64(height), resp["height"])
-	appHash, ok := resp["app_hash"].([]interface{})
-	s.True(ok, "app_hash should be present")
-	s.Empty(appHash, "app_hash should be empty before NextBlock")
-
-	// this triggers BeginBlock and EndBlock
-	s.ConsumerChain.NextBlock()
-
-	// ensure the current block is fully indexed (app_hash should be populated)
-	resp, err = s.ConsumerCli.Query(s.ConsumerContract.BTCFinality, types.Query{
-		"block": {
-			"height": uint64(height),
-		},
-	})
-	s.NoError(err)
-
-	// Verify the block is fully indexed with app_hash populated
-	s.NotNil(resp)
-	s.Equal(float64(height), resp["height"])
-
-	// Check that app_hash is populated (indicating full indexing)
-	appHash, ok = resp["app_hash"].([]interface{})
-	s.True(ok, "app_hash should be present")
-	s.NotEmpty(appHash, "app_hash should be populated after NextBlock")
+	s.Error(err)
 }
 
 // TearDownSuite runs once after all the suite's tests have been run
