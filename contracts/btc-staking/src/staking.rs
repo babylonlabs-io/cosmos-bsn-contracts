@@ -10,8 +10,7 @@ use crate::state::config::{ADMIN, CONFIG};
 use crate::state::delegations::delegations;
 use crate::state::staking::{
     get_fp_state_map, BtcDelegation, DelegatorUnbondingInfo, FinalityProviderState,
-    ACTIVATED_HEIGHT, BTC_DELEGATIONS, BTC_DELEGATION_EXPIRY_INDEX, DELEGATION_FPS, FPS,
-    FP_DELEGATIONS,
+    BTC_DELEGATIONS, BTC_DELEGATION_EXPIRY_INDEX, DELEGATION_FPS, FPS, FP_DELEGATIONS,
 };
 use crate::validation::{
     verify_active_delegation, verify_new_fp, verify_slashed_delegation, verify_undelegation,
@@ -206,11 +205,6 @@ fn handle_active_delegation(
     // Add this BTC delegation
     let delegation = BtcDelegation::from(active_delegation);
     BTC_DELEGATIONS.save(storage, staking_tx_hash.as_ref(), &delegation)?;
-
-    // Store activated height, if first delegation
-    if ACTIVATED_HEIGHT.may_load(storage)?.is_none() {
-        ACTIVATED_HEIGHT.save(storage, &(height + 1))?; // Active from the next block onwards
-    }
 
     // Index the delegation by its end height
     BTC_DELEGATION_EXPIRY_INDEX.update(

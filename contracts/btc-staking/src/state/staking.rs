@@ -1,11 +1,10 @@
-use cosmwasm_schema::cw_serde;
-use cw_storage_plus::{IndexedSnapshotMap, Item, Map, MultiIndex, Strategy};
-use k256::schnorr::SigningKey;
-
 use crate::error::ContractError;
 use crate::state::fp_index::FinalityProviderIndexes;
 use babylon_apis::btc_staking_api::{BTCDelegationStatus, FinalityProvider, HASH_SIZE};
 use babylon_apis::{btc_staking_api, Bytes};
+use cosmwasm_schema::cw_serde;
+use cw_storage_plus::{IndexedSnapshotMap, Map, MultiIndex, Strategy};
+use k256::schnorr::SigningKey;
 
 /// Finality providers by their BTC public key
 pub(crate) const FPS: Map<&str, FinalityProvider> = Map::new("fps");
@@ -36,9 +35,6 @@ pub const FP_STATE_KEY: &str = "fp_state";
 const FP_STATE_CHECKPOINTS: &str = "fp_state__checkpoints";
 const FP_STATE_CHANGELOG: &str = "fp_state__changelog";
 pub const FP_POWER_KEY: &str = "fp_state__power";
-
-/// The height at which the contract gets its first delegation
-pub const ACTIVATED_HEIGHT: Item<u64> = Item::new("activated_height");
 
 /// Indexed snapshot map for finality providers.
 ///

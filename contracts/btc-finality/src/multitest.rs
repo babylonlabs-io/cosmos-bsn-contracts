@@ -102,19 +102,11 @@ mod finality {
 
         suite.register_finality_providers(&[new_fp]).unwrap();
 
-        // Activated height is not set
-        let res = suite.get_activated_height();
-        assert_eq!(res.height, 0);
-
         // Add a delegation, so that the finality provider has some power
         let mut del1 = get_derived_btc_delegation(1, &[1]);
         del1.fp_btc_pk_list = vec![pk_hex.clone()];
 
         suite.add_delegations(&[del1]).unwrap();
-
-        // Activated height is now set
-        let res = suite.get_activated_height();
-        assert_eq!(res.height, initial_height + 1);
 
         suite
             .commit_public_randomness(&pk_hex, &pub_rand, &pubrand_signature)

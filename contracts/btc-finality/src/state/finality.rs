@@ -42,6 +42,19 @@ pub const REWARDS: Map<&str, Uint128> = Map::new("rewards");
 /// Total pending rewards
 pub const TOTAL_PENDING_REWARDS: Item<Uint128> = Item::new("pending_rewards");
 
+/// Returns (true, height) if the BTC staking protocol is activated,
+/// Returns (false, 0) if the BTC staking protocol is not activated
+pub fn get_btc_staking_activated_height(storage: &dyn Storage) -> (bool, u64) {
+    let mut iter = FP_POWER_TABLE.range(storage, None, None, Ascending);
+    match iter.next() {
+        Some(result) => {
+            let ((height, _), _) = result.expect("shouldn't fail unless the storage is corrupted");
+            (true, height)
+        }
+        None => (false, 0),
+    }
+}
+
 pub fn get_power_table_at_height(
     storage: &dyn Storage,
     height: u64,

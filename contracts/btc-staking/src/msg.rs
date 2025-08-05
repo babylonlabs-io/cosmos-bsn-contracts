@@ -74,9 +74,6 @@ pub enum QueryMsg {
         start_after: Option<FinalityProviderInfo>,
         limit: Option<u32>,
     },
-    /// Returns the height at which the contract gets its first delegation, if any.
-    #[returns(ActivatedHeightResponse)]
-    ActivatedHeight {},
 }
 
 #[cw_serde]
