@@ -933,21 +933,19 @@ pub fn update_rewards_dist_for_interval(
 
     // Distribute rewards proportionally based on accumulated voting weights
     for (fp_btc_pk_hex, accumulated_weight) in &accumulated_weights {
-        if *accumulated_weight > 0 {
-            // Use checked multiplication to prevent overflow
-            let numerator = current_balance
-                .u128()
-                .checked_mul(*accumulated_weight)
-                .ok_or(ContractError::CalculationOverflow)?;
-            let reward = numerator / total_accumulated_weight;
-            let reward = Uint128::from(reward);
+        // Use checked multiplication to prevent overflow
+        let numerator = current_balance
+            .u128()
+            .checked_mul(*accumulated_weight)
+            .ok_or(ContractError::CalculationOverflow)?;
+        let reward = numerator / total_accumulated_weight;
+        let reward = Uint128::from(reward);
 
-            if !reward.is_zero() {
-                // Add reward to FP's pending rewards
-                REWARDS.update(deps.storage, fp_btc_pk_hex, |existing| {
-                    Ok::<Uint128, ContractError>(existing.unwrap_or_default() + reward)
-                })?;
-            }
+        if !reward.is_zero() {
+            // Add reward to FP's pending rewards
+            REWARDS.update(deps.storage, fp_btc_pk_hex, |existing| {
+                Ok::<Uint128, ContractError>(existing.unwrap_or_default() + reward)
+            })?;
         }
     }
 
