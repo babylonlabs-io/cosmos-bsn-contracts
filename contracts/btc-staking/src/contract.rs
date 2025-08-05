@@ -76,10 +76,10 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> Result<QueryResponse, Cont
             &queries::delegations_by_fp(deps, btc_pk_hex)?,
         )?),
         QueryMsg::FinalityProviderInfo { btc_pk_hex, height } => Ok(to_json_binary(
-            &queries::finality_provider_info(deps, btc_pk_hex, height)?,
+            &queries::finality_provider_info(deps, &_env, btc_pk_hex, height)?,
         )?),
         QueryMsg::FinalityProvidersByTotalActiveSats { start_after, limit } => Ok(to_json_binary(
-            &queries::finality_providers_by_total_active_sats(deps, start_after, limit)?,
+            &queries::finality_providers_by_total_active_sats(deps, &_env, start_after, limit)?,
         )?),
         QueryMsg::ActivatedHeight {} => Ok(to_json_binary(&queries::activated_height(deps)?)?),
     }

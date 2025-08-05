@@ -731,6 +731,7 @@
         "type": "object",
         "required": [
           "btc_pk_hex",
+          "height",
           "slashed",
           "total_active_sats"
         ],
@@ -738,6 +739,12 @@
           "btc_pk_hex": {
             "description": "Bitcoin secp256k1 PK of this finality provider. The PK follows encoding in BIP-340 spec in hex format",
             "type": "string"
+          },
+          "height": {
+            "description": "Height that other info is indexed by",
+            "type": "integer",
+            "format": "uint64",
+            "minimum": 0.0
           },
           "slashed": {
             "description": "Whether this finality provider is slashed",
@@ -1447,6 +1454,7 @@
       "type": "object",
       "required": [
         "btc_pk_hex",
+        "height",
         "slashed",
         "total_active_sats"
       ],
@@ -1454,6 +1462,12 @@
         "btc_pk_hex": {
           "description": "Bitcoin secp256k1 PK of this finality provider. The PK follows encoding in BIP-340 spec in hex format",
           "type": "string"
+        },
+        "height": {
+          "description": "Height that other info is indexed by",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
         },
         "slashed": {
           "description": "Whether this finality provider is slashed",
@@ -1584,6 +1598,7 @@
           "type": "object",
           "required": [
             "btc_pk_hex",
+            "height",
             "slashed",
             "total_active_sats"
           ],
@@ -1591,6 +1606,12 @@
             "btc_pk_hex": {
               "description": "Bitcoin secp256k1 PK of this finality provider. The PK follows encoding in BIP-340 spec in hex format",
               "type": "string"
+            },
+            "height": {
+              "description": "Height that other info is indexed by",
+              "type": "integer",
+              "format": "uint64",
+              "minimum": 0.0
             },
             "slashed": {
               "description": "Whether this finality provider is slashed",

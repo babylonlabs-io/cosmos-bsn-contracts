@@ -129,6 +129,7 @@ pub fn active_delegations_by_fp(
 
 pub fn finality_provider_info(
     deps: Deps,
+    env: &cosmwasm_std::Env,
     btc_pk_hex: String,
     height: Option<u64>,
 ) -> Result<FinalityProviderInfo, ContractError> {
@@ -142,11 +143,13 @@ pub fn finality_provider_info(
         btc_pk_hex,
         total_active_sats: fp_state.total_active_sats,
         slashed: fp_state.slashed,
+        height: height.unwrap_or(env.block.height),
     })
 }
 
 pub fn finality_providers_by_total_active_sats(
     deps: Deps,
+    env: &cosmwasm_std::Env,
     start_after: Option<FinalityProviderInfo>,
     limit: Option<u32>,
 ) -> StdResult<FinalityProvidersByTotalActiveSatsResponse> {
@@ -170,6 +173,7 @@ pub fn finality_providers_by_total_active_sats(
                 btc_pk_hex,
                 total_active_sats,
                 slashed,
+                height: env.block.height,
             })
         })
         .collect::<StdResult<Vec<_>>>()?;
@@ -609,8 +613,13 @@ mod tests {
         execute(deps.as_mut(), mock_env_height(11), info.clone(), msg).unwrap();
 
         // Query finality provider info
-        let fp =
-            crate::queries::finality_provider_info(deps.as_ref(), fp1_pk.clone(), None).unwrap();
+        let fp = crate::queries::finality_provider_info(
+            deps.as_ref(),
+            &mock_env_height(11),
+            fp1_pk.clone(),
+            None,
+        )
+        .unwrap();
         assert_eq!(
             fp,
             FinalityProviderInfo {
@@ -621,14 +630,20 @@ mod tests {
         );
 
         // Query finality provider info with same height as execute call
-        let fp = crate::queries::finality_provider_info(deps.as_ref(), fp1_pk.clone(), Some(11))
-            .unwrap();
+        let fp = crate::queries::finality_provider_info(
+            deps.as_ref(),
+            &mock_env_height(11),
+            fp1_pk.clone(),
+            Some(11),
+        )
+        .unwrap();
         assert_eq!(
             fp,
             FinalityProviderInfo {
                 btc_pk_hex: fp1_pk.clone(),
                 total_active_sats: 0, // Historical data is not checkpoint yet
                 slashed: false,
+                height: 11,
             }
         );
 
@@ -785,6 +800,7 @@ mod tests {
             btc_pk_hex: fp1_pk.clone(),
             total_active_sats: 100,
             slashed: false,
+            height: 11,
         };
         let fp3_info = FinalityProviderInfo {
             btc_pk_hex: fp3_pk.clone(),

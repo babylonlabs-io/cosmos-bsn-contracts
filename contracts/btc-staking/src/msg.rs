@@ -108,6 +108,8 @@ pub struct FinalityProviderInfo {
     pub total_active_sats: u64,
     /// Whether this finality provider is slashed
     pub slashed: bool,
+    /// Height that other info is indexed by
+    pub height: u64,
 }
 
 #[cw_serde]
