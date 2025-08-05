@@ -10,7 +10,7 @@ use babylon_apis::btc_staking_api::FinalityProvider;
 use bitcoin::hashes::Hash;
 use bitcoin::Txid;
 use cosmwasm_std::Order::Descending;
-use cosmwasm_std::{Deps, Order, StdResult};
+use cosmwasm_std::{Deps, Env, Order, StdResult};
 use cw_storage_plus::Bound;
 use std::str::FromStr;
 
@@ -128,7 +128,7 @@ pub fn active_delegations_by_fp(
 
 pub fn finality_provider_info(
     deps: Deps,
-    env: &cosmwasm_std::Env,
+    env: &Env,
     btc_pk_hex: String,
     height: Option<u64>,
 ) -> Result<FinalityProviderInfo, ContractError> {
@@ -148,7 +148,7 @@ pub fn finality_provider_info(
 
 pub fn finality_providers_by_total_active_sats(
     deps: Deps,
-    env: &cosmwasm_std::Env,
+    env: &Env,
     start_after: Option<FinalityProviderInfo>,
     limit: Option<u32>,
 ) -> StdResult<FinalityProvidersByTotalActiveSatsResponse> {
