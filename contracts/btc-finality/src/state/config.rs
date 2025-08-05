@@ -30,3 +30,19 @@ pub struct Config {
     /// of being automatically jailed because of offline detection).
     pub jail_duration: u64,
 }
+
+impl Config {
+    #[cfg(test)]
+    pub fn new_test(babylon: Addr, staking: Addr) -> Self {
+        Self {
+            denom: "TOKEN".to_string(),
+            babylon,
+            staking,
+            max_active_finality_providers: DEFAULT_MAX_ACTIVE_FINALITY_PROVIDERS,
+            min_pub_rand: DEFAULT_MIN_PUB_RAND,
+            reward_interval: DEFAULT_REWARD_INTERVAL,
+            missed_blocks_window: DEFAULT_MISSED_BLOCKS_WINDOW,
+            jail_duration: DEFAULT_JAIL_DURATION,
+        }
+    }
+}

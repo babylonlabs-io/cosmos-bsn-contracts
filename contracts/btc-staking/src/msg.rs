@@ -74,9 +74,6 @@ pub enum QueryMsg {
         start_after: Option<FinalityProviderInfo>,
         limit: Option<u32>,
     },
-    /// Returns the height at which the contract gets its first delegation, if any.
-    #[returns(ActivatedHeightResponse)]
-    ActivatedHeight {},
 }
 
 #[cw_serde]
@@ -109,10 +106,5 @@ pub struct FinalityProviderInfo {
     /// Whether this finality provider is slashed
     pub slashed: bool,
     /// Height that other info is indexed by
-    pub height: u64,
-}
-
-#[cw_serde]
-pub struct ActivatedHeightResponse {
     pub height: u64,
 }

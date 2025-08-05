@@ -5,7 +5,7 @@ use thiserror::Error;
 use bitcoin::hashes::FromSliceError;
 use bitcoin::hex::HexToArrayError;
 
-use cosmwasm_std::StdError;
+use cosmwasm_std::{OverflowError, StdError};
 use cw_controllers::AdminError;
 use cw_utils::PaymentError;
 
@@ -20,6 +20,8 @@ pub enum ContractError {
     Unauthorized,
     #[error("Finality provider not found: {0}")]
     FinalityProviderNotFound(String),
+    #[error("The BTC staking protocol is not activated yet")]
+    BTCStakingNotActivated,
     #[error("The finality provider {0} does not have voting power at height {1}")]
     NoVotingPower(String, u64),
     #[error("The chain has not reached the given height yet")]
@@ -67,6 +69,8 @@ pub enum ContractError {
     #[error(transparent)]
     Std(#[from] StdError),
     #[error(transparent)]
+    Overflow(#[from] OverflowError),
+    #[error(transparent)]
     Payment(#[from] PaymentError),
     #[error("error converting from hex to array: {0}")]
     HexArrayError(#[from] HexToArrayError),
@@ -82,4 +86,6 @@ pub enum ContractError {
     HexError(#[from] FromHexError),
     #[error("EOTS error: {0}")]
     EotsError(#[from] eots::Error),
+    #[error("Arithmetic calculation overflow")]
+    CalculationOverflow,
 }

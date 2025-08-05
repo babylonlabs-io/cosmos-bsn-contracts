@@ -1,11 +1,10 @@
 use crate::error::ContractError;
 use crate::msg::{
-    ActivatedHeightResponse, BtcDelegationsResponse, DelegationsByFPResponse, FinalityProviderInfo,
+    BtcDelegationsResponse, DelegationsByFPResponse, FinalityProviderInfo,
     FinalityProvidersByTotalActiveSatsResponse, FinalityProvidersResponse,
 };
 use crate::state::staking::{
-    get_fp_state_map, BtcDelegation, FinalityProviderState, ACTIVATED_HEIGHT, BTC_DELEGATIONS, FPS,
-    FP_DELEGATIONS,
+    get_fp_state_map, BtcDelegation, FinalityProviderState, BTC_DELEGATIONS, FPS, FP_DELEGATIONS,
 };
 use babylon_apis::btc_staking_api::FinalityProvider;
 use bitcoin::hashes::Hash;
@@ -179,13 +178,6 @@ pub fn finality_providers_by_total_active_sats(
         .collect::<StdResult<Vec<_>>>()?;
 
     Ok(FinalityProvidersByTotalActiveSatsResponse { fps })
-}
-
-pub fn activated_height(deps: Deps) -> Result<ActivatedHeightResponse, ContractError> {
-    let activated_height = ACTIVATED_HEIGHT.may_load(deps.storage)?.unwrap_or_default();
-    Ok(ActivatedHeightResponse {
-        height: activated_height,
-    })
 }
 
 #[cfg(test)]
