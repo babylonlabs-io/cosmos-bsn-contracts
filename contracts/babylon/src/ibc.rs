@@ -20,7 +20,7 @@ use cosmwasm_std::{
 use cw_storage_plus::Item;
 use prost::Message;
 
-/// IBC custom channel settings
+/// Zone Concierge IBC channel settings
 pub const IBC_VERSION: &str = "zoneconcierge-1";
 pub const IBC_ORDERING: IbcOrder = IbcOrder::Ordered;
 
@@ -87,21 +87,11 @@ pub fn ibc_channel_connect(
     // Store the channel
     IBC_ZC_CHANNEL.save(deps.storage, &channel.endpoint.channel_id)?;
 
-    // Load the config
-    let cfg = CONFIG.load(deps.storage)?;
-
-    let chan_id = &channel.endpoint.channel_id;
-    let mut response = IbcBasicResponse::new()
+    let channel_id = &channel.endpoint.channel_id;
+    let response = IbcBasicResponse::new()
         .add_attribute("action", "ibc_connect")
-        .add_attribute("channel_id", chan_id)
+        .add_attribute("channel_id", channel_id)
         .add_event(Event::new("ibc").add_attribute("channel", "connect"));
-
-    // If the consumer name and description are set, emit an event
-    if let (Some(name), Some(description)) = (&cfg.consumer_name, &cfg.consumer_description) {
-        response = response
-            .add_attribute("consumer_name", name)
-            .add_attribute("consumer_description", description);
-    }
 
     Ok(response)
 }
@@ -120,8 +110,6 @@ pub fn ibc_channel_close(
     Ok(IbcBasicResponse::new()
         .add_attribute("action", "ibc_close")
         .add_attribute("channel_id", channel_id))
-
-    // TODO: erase all contract state upon closing the channel (#134.1)
 }
 
 /// Invoked when an IBC packet is received.
@@ -134,7 +122,6 @@ pub fn ibc_packet_receive(
 ) -> Result<IbcReceiveResponse, Never> {
     (|| {
         let packet = msg.packet;
-        let caller = packet.dest.channel_id;
         let packet_data = OutboundPacket::decode(packet.data.as_slice())
             .map_err(|e| StdError::generic_err(format!("failed to decode OutboundPacket: {e}")))?;
         let outbound_packet = packet_data
@@ -142,13 +129,13 @@ pub fn ibc_packet_receive(
             .ok_or(StdError::generic_err("empty IBC packet"))?;
         match outbound_packet {
             OutboundPacketType::BtcTimestamp(btc_ts) => {
-                ibc_packet::handle_btc_timestamp(deps, caller, &btc_ts)
+                ibc_packet::handle_btc_timestamp(deps, &btc_ts)
             }
             OutboundPacketType::BtcStaking(btc_staking) => {
-                ibc_packet::handle_btc_staking(deps, caller, &btc_staking)
+                ibc_packet::handle_btc_staking(deps, &btc_staking)
             }
             OutboundPacketType::BtcHeaders(btc_headers) => {
-                ibc_packet::handle_btc_headers(deps, caller, &btc_headers)
+                ibc_packet::handle_btc_headers(deps, &btc_headers)
             }
         }
     })()
@@ -162,24 +149,21 @@ pub fn ibc_packet_receive(
 
 // Methods to handle PacketMsg variants
 pub(crate) mod ibc_packet {
-    use cosmwasm_std::Deps;
-
     use super::*;
+    use cosmwasm_std::Deps;
 
     pub fn handle_btc_timestamp(
         deps: &mut DepsMut,
-        _caller: String,
         btc_ts: &BtcTimestamp,
     ) -> StdResult<IbcReceiveResponse> {
         // handle the BTC timestamp, i.e., verify the BTC timestamp and update the contract state
         let wasm_msg = crate::state::handle_btc_timestamp(deps, btc_ts)?;
 
         // construct response
-        let mut resp: IbcReceiveResponse = IbcReceiveResponse::new(StdAck::success(vec![])); // TODO: design response format (#134.2)
-                                                                                             // add attribute to response
-        resp = resp.add_attribute("action", "receive_btc_timestamp");
+        let mut resp: IbcReceiveResponse = IbcReceiveResponse::new(StdAck::success(vec![]))
+            .add_attribute("action", "receive_btc_timestamp");
 
-        // add wasm message to response if it exists
+        // add wasm message for BTC headers to response if it exists
         if let Some(wasm_msg) = wasm_msg {
             resp = resp.add_message(wasm_msg);
         }
@@ -189,7 +173,6 @@ pub(crate) mod ibc_packet {
 
     pub fn handle_btc_staking(
         deps: &mut DepsMut,
-        _caller: String,
         btc_staking: &BtcStakingIbcPacket,
     ) -> StdResult<IbcReceiveResponse> {
         let cfg = CONFIG.load(deps.storage)?;
@@ -236,18 +219,15 @@ pub(crate) mod ibc_packet {
         };
 
         // construct response
-        let mut resp: IbcReceiveResponse = IbcReceiveResponse::new(StdAck::success(vec![])); // TODO: design response format (#134.2)
-                                                                                             // add wasm message to response
-        resp = resp.add_message(wasm_msg);
-        // add attribute to response
-        resp = resp.add_attribute("action", "receive_btc_staking");
+        let resp: IbcReceiveResponse = IbcReceiveResponse::new(StdAck::success(vec![]))
+            .add_message(wasm_msg)
+            .add_attribute("action", "receive_btc_staking");
 
         Ok(resp)
     }
 
     pub fn handle_btc_headers(
         deps: &mut DepsMut,
-        _caller: String,
         btc_headers: &BtcHeaders,
     ) -> StdResult<IbcReceiveResponse> {
         // Submit headers to BTC light client
@@ -261,14 +241,14 @@ pub(crate) mod ibc_packet {
             StdError::generic_err(err)
         })?;
 
-        let mut resp: IbcReceiveResponse = IbcReceiveResponse::new(StdAck::success(vec![])); // TODO: design response format (#134.2)
-        resp = resp.add_message(msg);
-        resp = resp.add_attribute("action", "receive_btc_headers");
+        let resp: IbcReceiveResponse = IbcReceiveResponse::new(StdAck::success(vec![]))
+            .add_message(msg)
+            .add_attribute("action", "receive_btc_headers");
 
         Ok(resp)
     }
 
-    pub fn slashing_msg(
+    pub(crate) fn get_slashing_msg(
         deps: &Deps,
         env: &Env,
         channel_id: &str,
@@ -306,15 +286,21 @@ pub fn ibc_packet_ack(
 }
 
 pub fn ibc_packet_timeout(
-    _deps: DepsMut,
+    deps: DepsMut,
     _env: Env,
     msg: IbcPacketTimeoutMsg,
 ) -> Result<IbcBasicResponse, ContractError> {
-    // TODO: handle the timeout / error (#134.3)
-    Err(ContractError::IbcTimeout(
-        msg.packet.dest.channel_id,
-        msg.packet.dest.port_id,
-    ))
+    deps.api.debug(&format!(
+        "Cosmos BSN contracts: ibc_packet_timeout: packet timed out on channel {} port {}",
+        msg.packet.src.channel_id, msg.packet.src.port_id
+    ));
+
+    let response = IbcBasicResponse::new()
+        .add_attribute("action", "ibc_packet_timeout")
+        .add_attribute("channel_id", &msg.packet.src.channel_id)
+        .add_attribute("port_id", &msg.packet.src.port_id);
+
+    Ok(response)
 }
 
 #[cfg(test)]
