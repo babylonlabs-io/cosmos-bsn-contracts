@@ -269,19 +269,21 @@ pub fn execute(
     match msg {
         ExecuteMsg::Slashing { evidence } => {
             // This is an internal routing message from the `btc_finality` contract
+            // following https://github.com/babylonlabs-io/babylon/blob/4aa85a8d9bf85771d448cd3026e99962fe0dab8e/x/finality/keeper/msg_server.go#L384-L413 without the logic for propagating the slashing event to other BSNs
+
             let cfg = CONFIG.load(deps.storage)?;
-            // Check sender
+
+            // Ensure the sender is the finality contract
             let btc_finality = cfg
                 .btc_finality
                 .ok_or(ContractError::BtcFinalityNotSet {})?;
             if info.sender != btc_finality {
                 return Err(ContractError::Unauthorized {});
             }
-            // Send to the staking contract for processing
+
+            // Send to the BTC staking contract for processing
             let mut res = Response::new();
             let btc_staking = cfg.btc_staking.ok_or(ContractError::BtcStakingNotSet {})?;
-            // Slashes this finality provider, i.e., sets its slashing height to the block height
-            // and its power to zero
             let msg = btc_staking_api::ExecuteMsg::Slash {
                 fp_btc_pk_hex: hex::encode(evidence.fp_btc_pk.clone()),
             };
@@ -292,10 +294,10 @@ pub fn execute(
             };
             res = res.add_message(wasm_msg);
 
-            // Send over IBC to the Provider (Babylon)
+            // Send the slashing event to Babylon
             let channel_id = IBC_ZC_CHANNEL.load(deps.storage)?;
-            let ibc_msg = ibc_packet::slashing_msg(&deps.as_ref(), &env, &channel_id, &evidence)?;
-            // Send packet only if we are IBC enabled
+            let ibc_msg =
+                ibc_packet::get_slashing_msg(&deps.as_ref(), &env, &channel_id, &evidence)?;
             // TODO: send in test code when multi-test can handle it
             #[cfg(not(any(test, feature = "library")))]
             {
@@ -306,7 +308,6 @@ pub fn execute(
                 let _ = ibc_msg;
             }
 
-            // TODO: Add events (#124)
             Ok(res)
         }
         ExecuteMsg::RewardsDistribution { fp_distribution } => {

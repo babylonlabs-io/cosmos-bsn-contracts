@@ -3,8 +3,8 @@ use crate::error::ContractError;
 use crate::state::config::{ADMIN, CONFIG};
 use crate::state::finality::{
     collect_accumulated_voting_weights, get_fp_power, get_last_signed_height,
-    get_power_table_at_height, ACCUMULATED_VOTING_WEIGHTS, BLOCKS, EVIDENCES, FP_BLOCK_SIGNER,
-    FP_POWER_TABLE, FP_START_HEIGHT, JAIL, NEXT_HEIGHT, SIGNATURES,
+    get_power_table_at_height, set_voting_power_table, ACCUMULATED_VOTING_WEIGHTS, BLOCKS,
+    EVIDENCES, FP_BLOCK_SIGNER, FP_START_HEIGHT, JAIL, NEXT_HEIGHT, SIGNATURES,
 };
 use crate::state::public_randomness::{
     get_last_finalized_height, get_last_pub_rand_commit,
@@ -456,6 +456,7 @@ pub fn handle_finality_signature(
     let mut res = Response::new();
     if indexed_block.app_hash != block_app_hash {
         // The finality provider votes for a fork!
+        // following https://github.com/babylonlabs-io/babylon/blob/4aa85a8d9bf85771d448cd3026e99962fe0dab8e/x/finality/keeper/msg_server.go#L150-L192
 
         // Construct evidence
         let mut evidence = Evidence {
@@ -480,7 +481,6 @@ pub fn handle_finality_signature(
             res = res.add_message(msg);
             res = res.add_event(ev);
         }
-        // TODO?: Also slash if this finality provider has signed another fork before
 
         // Save evidence
         EVIDENCES.save(deps.storage, (&fp_btc_pk_hex, height), &evidence)?;
@@ -498,6 +498,7 @@ pub fn handle_finality_signature(
 
     // If this finality provider has signed the canonical block before, slash it via extracting its
     // secret key, and emit an event
+    // following https://github.com/babylonlabs-io/babylon/blob/4aa85a8d9bf85771d448cd3026e99962fe0dab8e/x/finality/keeper/msg_server.go#L204-L236
     if let Some(mut evidence) = EVIDENCES.may_load(deps.storage, (&fp_btc_pk_hex, height))? {
         // The finality provider has voted for a fork before!
         // This evidence is at the same height as this signature, slash this finality provider
@@ -580,38 +581,13 @@ pub fn handle_unjail(
 }
 
 /// `slash_finality_provider` slashes a finality provider with the given evidence including setting
-/// its voting power to zero, extracting its BTC SK, and emitting an event
+/// its voting power to zero and emitting an event
+/// following https://github.com/babylonlabs-io/babylon/blob/4aa85a8d9bf85771d448cd3026e99962fe0dab8e/x/finality/keeper/msg_server.go#L384-L412 without the logic for propagating the slashing event to other BSNs
 fn slash_finality_provider(
     deps: &mut DepsMut,
     fp_btc_pk_hex: &str,
     evidence: &Evidence,
 ) -> Result<(WasmMsg, Event), ContractError> {
-    let pk = eots::PublicKey::from_hex(fp_btc_pk_hex)?;
-
-    let canonical_msg_to_sign = msg_to_sign_for_vote(
-        &evidence.signing_context,
-        evidence.block_height,
-        &evidence.canonical_app_hash,
-    );
-    let canonical_msg_to_sign_hash = Sha256::digest(&canonical_msg_to_sign);
-
-    let fork_msg_to_sign = msg_to_sign_for_vote(
-        &evidence.signing_context,
-        evidence.block_height,
-        &evidence.fork_app_hash,
-    );
-    let fork_msg_to_sign_hash = Sha256::digest(&fork_msg_to_sign);
-
-    let btc_sk = pk
-        .extract_from_hashes(
-            &evidence.pub_rand,
-            canonical_msg_to_sign_hash.into(),
-            &evidence.canonical_finality_sig,
-            fork_msg_to_sign_hash.into(),
-            &evidence.fork_finality_sig,
-        )
-        .map_err(|err| ContractError::SecretKeyExtractionError(err.to_string()))?;
-
     // Emit slashing event.
     // Raises slashing event to babylon over IBC.
     // Send to babylon-contract for forwarding
@@ -643,8 +619,8 @@ fn slash_finality_provider(
         .add_attribute(
             "fork_finality_sig",
             hex::encode(&evidence.fork_finality_sig),
-        )
-        .add_attribute("secret_key", hex::encode(btc_sk.to_bytes()));
+        );
+
     Ok((wasm_msg, ev))
 }
 
@@ -861,6 +837,7 @@ pub fn compute_active_finality_providers(
     }
 
     // Check for inactive finality providers, and jail them
+    // Note that this takes effect only after the next block is processed
     fp_power_table.iter().try_for_each(|(fp_btc_pk_hex, _)| {
         let last_sign_height = get_last_signed_height(deps.storage, fp_btc_pk_hex)?;
         match last_sign_height {
@@ -879,13 +856,7 @@ pub fn compute_active_finality_providers(
     })?;
 
     // Save the new set of active finality providers
-    for (fp_btc_pk_hex, power) in fp_power_table {
-        FP_POWER_TABLE.save(
-            deps.storage,
-            (env.block.height, fp_btc_pk_hex.as_str()),
-            &power,
-        )?;
-    }
+    set_voting_power_table(deps.storage, env.block.height, fp_power_table)?;
 
     Ok(())
 }

@@ -35,6 +35,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### State breaking
 
+- [#295](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/295) finality: move activated height from BTC staking contract to BTC finality contract
 - [#291](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/291) Improve rewards distribution by counting vote contribution
 - [#283](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/283) babylon: remove unused fields in config and instantiation msg for Babylon contract
 - [#274](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/274) Send rewards to Babylon for distribution
@@ -45,6 +46,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Improvements
 
+- [#294](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/294) slashing: align the slashing implementation with Babylon
+- [#293](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/293) ibc: clean up IBC handshake process
 - [#290](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/290) finality: add missing queries
 - [#287](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/285) refactor: simplify finality Error type
 - [#286](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/286) fix: ICS-20 transfer memo format

@@ -81,7 +81,6 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> Result<QueryResponse, Cont
         QueryMsg::FinalityProvidersByTotalActiveSats { start_after, limit } => Ok(to_json_binary(
             &queries::finality_providers_by_total_active_sats(deps, start_after, limit)?,
         )?),
-        QueryMsg::ActivatedHeight {} => Ok(to_json_binary(&queries::activated_height(deps)?)?),
     }
 }
 
