@@ -626,6 +626,7 @@ mod tests {
                 btc_pk_hex: fp1_pk.clone(),
                 total_active_sats: 250,
                 slashed: false,
+                height: 11,
             }
         );
 
@@ -648,33 +649,49 @@ mod tests {
         );
 
         // Query finality provider info with past height as execute call
-        let fp = crate::queries::finality_provider_info(deps.as_ref(), fp1_pk.clone(), Some(12))
-            .unwrap();
+        let fp = crate::queries::finality_provider_info(
+            deps.as_ref(),
+            &mock_env_height(11),
+            fp1_pk.clone(),
+            Some(12),
+        )
+        .unwrap();
         assert_eq!(
             fp,
             FinalityProviderInfo {
                 btc_pk_hex: fp1_pk.clone(),
                 total_active_sats: 250,
                 slashed: false,
+                height: 12,
             }
         );
 
         // Query finality provider info with some larger height
-        let fp = crate::queries::finality_provider_info(deps.as_ref(), fp1_pk.clone(), Some(1000))
-            .unwrap();
+        let fp = crate::queries::finality_provider_info(
+            deps.as_ref(),
+            &mock_env_height(11),
+            fp1_pk.clone(),
+            Some(1000),
+        )
+        .unwrap();
         assert_eq!(
             fp,
             FinalityProviderInfo {
                 btc_pk_hex: fp1_pk.clone(),
                 total_active_sats: 250,
                 slashed: false,
+                height: 1000,
             }
         );
 
         // Query finality provider info for a non-existent FP
         let non_existent_fp = "010203040506".to_string();
-        let result =
-            crate::queries::finality_provider_info(deps.as_ref(), non_existent_fp.clone(), None);
+        let result = crate::queries::finality_provider_info(
+            deps.as_ref(),
+            &mock_env_height(11),
+            non_existent_fp.clone(),
+            None,
+        );
 
         // Assert that the result is a FinalityProviderNotFound error
         assert!(matches!(
@@ -783,16 +800,21 @@ mod tests {
         execute(deps.as_mut(), mock_env(), info.clone(), msg).unwrap();
 
         // Query finality providers by total active sats
-        let fps =
-            crate::queries::finality_providers_by_total_active_sats(deps.as_ref(), None, None)
-                .unwrap()
-                .fps;
+        let fps = crate::queries::finality_providers_by_total_active_sats(
+            deps.as_ref(),
+            &mock_env(),
+            None,
+            None,
+        )
+        .unwrap()
+        .fps;
         assert_eq!(fps.len(), 3);
         assert_eq!(fps[0], {
             FinalityProviderInfo {
                 btc_pk_hex: fp2_pk.clone(),
                 total_active_sats: 225,
                 slashed: false,
+                height: mock_env().block.height,
             }
         });
         // fp1 and fp3 can be in arbitrary order
@@ -800,12 +822,13 @@ mod tests {
             btc_pk_hex: fp1_pk.clone(),
             total_active_sats: 100,
             slashed: false,
-            height: 11,
+            height: mock_env().block.height,
         };
         let fp3_info = FinalityProviderInfo {
             btc_pk_hex: fp3_pk.clone(),
             total_active_sats: 100,
             slashed: false,
+            height: mock_env().block.height,
         };
         assert!(
             (fps[1] == fp1_info && fps[2] == fp3_info)
@@ -813,16 +836,21 @@ mod tests {
         );
 
         // Query finality providers power with limit
-        let fps =
-            crate::queries::finality_providers_by_total_active_sats(deps.as_ref(), None, Some(2))
-                .unwrap()
-                .fps;
+        let fps = crate::queries::finality_providers_by_total_active_sats(
+            deps.as_ref(),
+            &mock_env(),
+            None,
+            Some(2),
+        )
+        .unwrap()
+        .fps;
         assert_eq!(fps.len(), 2);
         assert_eq!(fps[0], {
             FinalityProviderInfo {
                 btc_pk_hex: fp2_pk.clone(),
                 total_active_sats: 225,
                 slashed: false,
+                height: mock_env().block.height,
             }
         });
         assert!(fps[1] == fp1_info || fps[1] == fp3_info);
@@ -830,6 +858,7 @@ mod tests {
         // Query finality providers power with start_after
         let fps = crate::queries::finality_providers_by_total_active_sats(
             deps.as_ref(),
+            &mock_env(),
             Some(fps[1].clone()),
             None,
         )
