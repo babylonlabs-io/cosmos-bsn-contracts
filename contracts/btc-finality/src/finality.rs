@@ -934,15 +934,15 @@ pub fn update_rewards_dist_for_interval(
         return Ok(());
     }
 
+    // Convert total_accumulated_weight to Uint128 for safer arithmetic
+    let total_accumulated_weight = Uint128::from(total_accumulated_weight);
+
     // Distribute rewards proportionally based on accumulated voting weights
     for (fp_btc_pk_hex, accumulated_weight) in &accumulated_weights {
-        // Use checked multiplication to prevent overflow
-        let numerator = current_balance
-            .u128()
-            .checked_mul(*accumulated_weight)
-            .ok_or(ContractError::CalculationOverflow)?;
-        let reward = numerator / total_accumulated_weight;
-        let reward = Uint128::from(reward);
+        // Use Uint128 arithmetic for safe multiplication and division with floor division
+        let accumulated_weight = Uint128::from(*accumulated_weight);
+        let numerator = current_balance.checked_mul(accumulated_weight)?;
+        let reward = numerator.div_floor((total_accumulated_weight, Uint128::one()));
 
         if !reward.is_zero() {
             // Add reward to FP's pending rewards
