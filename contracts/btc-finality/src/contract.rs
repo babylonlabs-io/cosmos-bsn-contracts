@@ -3,22 +3,20 @@ use crate::finality::{
     compute_active_finality_providers, distribute_rewards_fps, handle_finality_signature,
     handle_public_randomness_commit, handle_unjail,
 };
-use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
+use crate::msg::{ActivatedHeightResponse, ExecuteMsg, InstantiateMsg, QueryMsg};
 use crate::state::config::{
     Config, ADMIN, CONFIG, DEFAULT_JAIL_DURATION, DEFAULT_MAX_ACTIVE_FINALITY_PROVIDERS,
     DEFAULT_MIN_PUB_RAND, DEFAULT_MISSED_BLOCKS_WINDOW, DEFAULT_REWARD_INTERVAL,
 };
-use crate::state::finality::{REWARDS, TOTAL_PENDING_REWARDS};
+use crate::state::finality::{get_btc_staking_activated_height, REWARDS, TOTAL_PENDING_REWARDS};
 use crate::{finality, queries, state};
 use babylon_apis::finality_api::SudoMsg;
 use babylon_contract::msg::contract::RewardInfo;
-use btc_staking::msg::ActivatedHeightResponse;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
     attr, coins, to_json_binary, Addr, CustomQuery, Deps, DepsMut, Empty, Env, MessageInfo, Order,
-    QuerierWrapper, QueryRequest, QueryResponse, Reply, Response, StdResult, Uint128, WasmMsg,
-    WasmQuery,
+    QueryRequest, QueryResponse, Reply, Response, StdResult, Uint128, WasmMsg, WasmQuery,
 };
 use cw2::set_contract_version;
 use cw_utils::{maybe_addr, nonpayable};
@@ -123,6 +121,14 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> Result<QueryResponse, Cont
         QueryMsg::Votes { height } => Ok(to_json_binary(&queries::votes(deps, height)?)?),
         QueryMsg::SigningInfo { btc_pk_hex } => {
             Ok(to_json_binary(&queries::signing_info(deps, btc_pk_hex)?)?)
+        }
+        QueryMsg::ActivatedHeight {} => {
+            let activated_height = get_btc_staking_activated_height(deps.storage);
+            if let Some(height) = activated_height {
+                Ok(to_json_binary(&ActivatedHeightResponse { height })?)
+            } else {
+                Err(ContractError::BTCStakingNotActivated)
+            }
         }
     }
 }
@@ -239,17 +245,25 @@ fn handle_end_block(
     // finality provider has voting power, start indexing and tallying blocks
     let cfg = CONFIG.load(deps.storage)?;
     let mut res = Response::new();
-    let activated_height = get_activated_height(&cfg.staking, &deps.querier)?;
-    if activated_height > 0 {
-        // Index the current block
-        let ev = finality::index_block(deps, env.block.height, &hex::decode(app_hash_hex)?)?;
-        res = res.add_event(ev);
-        // Tally all non-finalised blocks
-        let events = finality::tally_blocks(deps, &env, activated_height)?;
-        res = res.add_events(events);
+
+    let activated_height = get_btc_staking_activated_height(deps.storage);
+
+    // If the BTC staking protocol is not activated, do nothing
+    if activated_height.is_none() {
+        return Ok(res);
     }
 
-    // On an epoch boundary, send rewards for distribution to Babylon Genesis
+    let activated_height = activated_height.unwrap();
+
+    // Index the current block
+    let ev = finality::index_block(deps, env.block.height, &hex::decode(app_hash_hex)?)?;
+    res = res.add_event(ev);
+
+    // Tally all non-finalised blocks
+    let events = finality::tally_blocks(deps, &env, activated_height)?;
+    res = res.add_events(events);
+
+    // On an reward interval boundary, send rewards for distribution to Babylon Genesis
     if env.block.height > 0 && env.block.height % cfg.reward_interval == 0 {
         let rewards = TOTAL_PENDING_REWARDS.load(deps.storage)?;
         if rewards.u128() > 0 {
@@ -263,6 +277,7 @@ fn handle_end_block(
             TOTAL_PENDING_REWARDS.save(deps.storage, &Uint128::zero())?;
         }
     }
+
     Ok(res)
 }
 
@@ -300,16 +315,6 @@ fn send_rewards_msg(
         funds: coins(rewards, cfg.denom.as_str()),
     };
     Ok((fp_rewards, wasm_msg))
-}
-
-pub fn get_activated_height(staking_addr: &Addr, querier: &QuerierWrapper) -> StdResult<u64> {
-    // TODO: Use a raw query (#41)
-    let query = encode_smart_query(
-        staking_addr,
-        &btc_staking::msg::QueryMsg::ActivatedHeight {},
-    )?;
-    let res: ActivatedHeightResponse = querier.query(&query)?;
-    Ok(res.height)
 }
 
 pub(crate) fn encode_smart_query<Q: CustomQuery>(
