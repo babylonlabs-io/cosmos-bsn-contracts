@@ -1,11 +1,27 @@
+use crate::error::ContractError;
+use crate::finality::{FinalitySigError, PubRandCommitError};
 use babylon_apis::finality_api::{Evidence, IndexedBlock};
+use babylon_merkle::Proof;
 use cosmwasm_schema::{cw_serde, QueryResponses};
+use k256::schnorr::{signature::Verifier, Signature, VerifyingKey};
+use k256::sha2::{Digest, Sha256};
 use std::collections::HashMap;
 #[cfg(not(target_arch = "wasm32"))]
 use {
     crate::state::config::Config, babylon_apis::finality_api::PubRandCommit,
     cw_controllers::AdminResponse,
 };
+
+pub const COMMITMENT_LENGTH_BYTES: usize = 32;
+
+// BIP340 public key length
+pub const BIP340_PUB_KEY_LEN: usize = 32;
+// Schnorr public randomness length
+pub const SCHNORR_PUB_RAND_LEN: usize = 32;
+// Schnorr EOTS signature length
+pub const SCHNORR_EOTS_SIG_LEN: usize = 32;
+// Tendermint hash size (SHA256)
+pub const TMHASH_SIZE: usize = 32;
 
 #[cw_serde]
 #[derive(Default)]
@@ -19,6 +35,175 @@ pub struct InstantiateMsg {
 }
 
 pub type ExecuteMsg = babylon_apis::finality_api::ExecuteMsg;
+
+// https://github.com/babylonlabs-io/babylon/blob/49972e2d3e35caf0a685c37e1f745c47b75bfc69/x/finality/types/tx.pb.go#L36
+pub struct MsgCommitPubRand {
+    pub fp_btc_pk_hex: String,
+    pub start_height: u64,
+    pub num_pub_rand: u64,
+    pub commitment: Vec<u8>,
+    pub sig: Vec<u8>,
+}
+
+impl MsgCommitPubRand {
+    // https://github.com/babylonlabs-io/babylon/blob/49972e2d3e35caf0a685c37e1f745c47b75bfc69/x/finality/types/msg.go#L161
+    pub(crate) fn validate_basic(&self) -> Result<(), PubRandCommitError> {
+        if self.fp_btc_pk_hex.is_empty() {
+            return Err(PubRandCommitError::EmptyFpBtcPubKey);
+        }
+
+        // Checks if the commitment is exactly 32 bytes
+        if self.commitment.len() != COMMITMENT_LENGTH_BYTES {
+            return Err(PubRandCommitError::BadCommitmentLength(
+                self.commitment.len(),
+            ));
+        }
+
+        // To avoid public randomness reset,
+        // check for overflow when doing (StartHeight + NumPubRand)
+        if self.start_height >= (self.start_height + self.num_pub_rand) {
+            return Err(PubRandCommitError::OverflowInBlockHeight(
+                self.start_height,
+                self.start_height + self.num_pub_rand,
+            ));
+        }
+
+        if self.sig.is_empty() {
+            return Err(PubRandCommitError::EmptySignature);
+        }
+
+        Ok(())
+    }
+
+    pub(crate) fn verify_sig(&self, signing_context: String) -> Result<(), PubRandCommitError> {
+        let Self {
+            fp_btc_pk_hex,
+            start_height,
+            num_pub_rand,
+            commitment,
+            sig: signature,
+        } = self;
+
+        // get BTC public key for verification
+        let btc_pk_raw = hex::decode(fp_btc_pk_hex)?;
+        let btc_pk = VerifyingKey::from_bytes(&btc_pk_raw)?;
+
+        let schnorr_sig = Signature::try_from(signature.as_slice())?;
+
+        // get signed message
+        let mut msg: Vec<u8> = vec![];
+        msg.extend(signing_context.into_bytes());
+        msg.extend(start_height.to_be_bytes());
+        msg.extend(num_pub_rand.to_be_bytes());
+        msg.extend_from_slice(commitment);
+
+        // Verify the signature
+        btc_pk.verify(&msg, &schnorr_sig)?;
+
+        Ok(())
+    }
+}
+
+// https://github.com/babylonlabs-io/babylon/blob/49972e2d3e35caf0a685c37e1f745c47b75bfc69/x/finality/types/tx.pb.go#L154
+pub struct MsgAddFinalitySig {
+    pub fp_btc_pk_hex: String,
+    pub height: u64,
+    pub pub_rand: Vec<u8>,
+    pub proof: Proof,
+    pub block_app_hash: Vec<u8>,
+    pub signature: Vec<u8>,
+}
+
+impl MsgAddFinalitySig {
+    // https://github.com/babylonlabs-io/babylon/blob/49972e2d3e35caf0a685c37e1f745c47b75bfc69/x/finality/types/msg.go#L40
+    pub(crate) fn validate_basic(&self) -> Result<(), FinalitySigError> {
+        // Validate FP BTC PubKey
+        if self.fp_btc_pk_hex.is_empty() {
+            return Err(FinalitySigError::EmptyFpBtcPk);
+        }
+
+        // Validate FP BTC PubKey length
+        let fp_btc_pk = hex::decode(&self.fp_btc_pk_hex)?;
+        if fp_btc_pk.len() != BIP340_PUB_KEY_LEN {
+            return Err(FinalitySigError::InvalidFpBtcPkLength {
+                actual: fp_btc_pk.len(),
+                expected: BIP340_PUB_KEY_LEN,
+            });
+        }
+
+        // Validate Public Randomness length
+        if self.pub_rand.len() != SCHNORR_PUB_RAND_LEN {
+            return Err(FinalitySigError::InvalidPubRandLength {
+                actual: self.pub_rand.len(),
+                expected: SCHNORR_PUB_RAND_LEN,
+            });
+        }
+
+        // `self.proof` is not an Option, thus it must not be empty.
+
+        // Validate finality signature length
+        if self.signature.len() != SCHNORR_EOTS_SIG_LEN {
+            return Err(FinalitySigError::InvalidFinalitySigLength {
+                actual: self.signature.len(),
+                expected: SCHNORR_EOTS_SIG_LEN,
+            });
+        }
+
+        // Validate block app hash length
+        if self.block_app_hash.len() != TMHASH_SIZE {
+            return Err(FinalitySigError::InvalidBlockAppHashLength {
+                actual: self.block_app_hash.len(),
+                expected: TMHASH_SIZE,
+            });
+        }
+
+        Ok(())
+    }
+
+    /// Verifies the finality signature message w.r.t. the public randomness commitment:
+    /// - Public randomness inclusion proof.
+    pub(crate) fn verify_finality_signature(
+        &self,
+        pr_commit: &PubRandCommit,
+        signing_context: &str,
+    ) -> Result<(), ContractError> {
+        let proof_height = pr_commit.start_height + self.proof.index;
+        if self.height != proof_height {
+            return Err(ContractError::InvalidFinalitySigHeight(
+                proof_height,
+                self.height,
+            ));
+        }
+        // Verify the total amount of randomness is the same as in the commitment
+        if self.proof.total != pr_commit.num_pub_rand {
+            return Err(ContractError::InvalidFinalitySigAmount(
+                self.proof.total,
+                pr_commit.num_pub_rand,
+            ));
+        }
+        // Verify the proof of inclusion for this public randomness
+        self.proof.validate_basic()?;
+        self.proof.verify(&pr_commit.commitment, &self.pub_rand)?;
+
+        // Public randomness is good, verify finality signature
+        let pubkey = eots::PublicKey::from_hex(&self.fp_btc_pk_hex)?;
+
+        // The EOTS signature on a block will be (signing_context || block_height || block_app_hash)
+        let msg = crate::finality::msg_to_sign_for_vote(
+            signing_context,
+            self.height,
+            &self.block_app_hash,
+        );
+
+        let msg_hash = Sha256::digest(msg);
+
+        if !pubkey.verify_hash(&self.pub_rand, msg_hash.into(), &self.signature)? {
+            return Err(ContractError::FailedToVerifyEots);
+        }
+
+        Ok(())
+    }
+}
 
 #[cw_serde]
 #[derive(QueryResponses)]

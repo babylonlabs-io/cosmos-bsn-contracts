@@ -1,6 +1,7 @@
-use crate::finality::{
-    FinalitySigError, MsgAddFinalitySig, MsgCommitPubRand, PubRandCommitError, BIP340_PUB_KEY_LEN,
-    COMMITMENT_LENGTH_BYTES, SCHNORR_EOTS_SIG_LEN, SCHNORR_PUB_RAND_LEN, TMHASH_SIZE,
+use crate::finality::{FinalitySigError, PubRandCommitError};
+use crate::msg::{
+    MsgAddFinalitySig, MsgCommitPubRand, BIP340_PUB_KEY_LEN, COMMITMENT_LENGTH_BYTES,
+    SCHNORR_EOTS_SIG_LEN, SCHNORR_PUB_RAND_LEN, TMHASH_SIZE,
 };
 use babylon_merkle::Proof;
 use rand::rngs::StdRng;
