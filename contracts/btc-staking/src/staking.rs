@@ -265,7 +265,7 @@ fn handle_undelegation(
     Ok(unbonding_event)
 }
 
-/// Handles undelegation due to slashing from an active delegation.
+/// Handles slashed BTC delegation due to slashing from an active delegation.
 fn handle_slashed_delegation(
     storage: &mut dyn Storage,
     height: u64,
@@ -458,6 +458,7 @@ fn btc_undelegate(
 
 /// Slashes a finality provider with the given PK.
 /// A slashed finality provider will not have voting power
+/// following https://github.com/babylonlabs-io/babylon/blob/4aa85a8d9bf85771d448cd3026e99962fe0dab8e/x/btcstaking/keeper/finality_providers.go#L133-L172
 fn slash_finality_provider(
     deps: DepsMut,
     env: Env,

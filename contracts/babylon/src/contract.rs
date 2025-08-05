@@ -269,6 +269,8 @@ pub fn execute(
     match msg {
         ExecuteMsg::Slashing { evidence } => {
             // This is an internal routing message from the `btc_finality` contract
+            // following https://github.com/babylonlabs-io/babylon/blob/4aa85a8d9bf85771d448cd3026e99962fe0dab8e/x/finality/keeper/msg_server.go#L384-L413 without the logic for propagating the slashing event to other BSNs
+
             let cfg = CONFIG.load(deps.storage)?;
 
             // Ensure the sender is the finality contract
@@ -292,11 +294,10 @@ pub fn execute(
             };
             res = res.add_message(wasm_msg);
 
-            // Send over IBC to the Provider (Babylon)
+            // Send the slashing event to Babylon
             let channel_id = IBC_ZC_CHANNEL.load(deps.storage)?;
             let ibc_msg =
                 ibc_packet::get_slashing_msg(&deps.as_ref(), &env, &channel_id, &evidence)?;
-            // Send packet only if we are IBC enabled
             // TODO: send in test code when multi-test can handle it
             #[cfg(not(any(test, feature = "library")))]
             {
