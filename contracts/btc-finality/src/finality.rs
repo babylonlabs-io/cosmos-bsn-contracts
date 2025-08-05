@@ -958,11 +958,14 @@ mod tests {
         (sk, pk)
     }
 
-    struct MsgCommitPubRandTestCase {
+    struct MsgTestCase<Msg, MsgErr> {
         name: &'static str,
-        msg_modifier: fn(&mut MsgCommitPubRand),
-        expected: Result<(), PubRandCommitError>,
+        msg_modifier: fn(&mut Msg),
+        expected: Result<(), MsgErr>,
     }
+
+    type MsgCommitPubRandTestCase = MsgTestCase<MsgCommitPubRand, PubRandCommitError>;
+    type MsgAddFinalitySigTestCase = MsgTestCase<MsgAddFinalitySig, FinalitySigError>;
 
     // Helper function to generate random message
     fn gen_random_msg_commit_pub_rand(
@@ -1055,25 +1058,19 @@ mod tests {
     fn test_msg_add_finality_sig_validate_basic() {
         let mut rng = StdRng::seed_from_u64(1);
 
-        struct TestCase {
-            name: &'static str,
-            msg_modifier: fn(&mut MsgAddFinalitySig),
-            expected: Result<(), FinalitySigError>,
-        }
-
         let test_cases = vec![
-            TestCase {
+            MsgAddFinalitySigTestCase {
                 name: "valid message",
                 // No modification needed for valid message
                 msg_modifier: |_| {},
                 expected: Ok(()),
             },
-            TestCase {
+            MsgAddFinalitySigTestCase {
                 name: "empty FP BTC PubKey",
                 msg_modifier: |msg| msg.fp_btc_pk_hex.clear(),
                 expected: Err(FinalitySigError::EmptyFpBtcPk),
             },
-            TestCase {
+            MsgAddFinalitySigTestCase {
                 name: "invalid FP BTC PubKey length",
                 msg_modifier: |msg| {
                     msg.fp_btc_pk_hex = hex::encode(vec![0u8; 16]); // Too short
@@ -1083,7 +1080,7 @@ mod tests {
                     expected: 32,
                 }),
             },
-            TestCase {
+            MsgAddFinalitySigTestCase {
                 name: "empty Public Randomness",
                 msg_modifier: |msg| msg.pub_rand.clear(),
                 expected: Err(FinalitySigError::InvalidPubRandLength {
@@ -1091,7 +1088,7 @@ mod tests {
                     expected: 32,
                 }),
             },
-            TestCase {
+            MsgAddFinalitySigTestCase {
                 name: "invalid Public Randomness length",
                 msg_modifier: |msg| {
                     msg.pub_rand = vec![0u8; 16]; // Too short
@@ -1101,7 +1098,7 @@ mod tests {
                     expected: 32,
                 }),
             },
-            TestCase {
+            MsgAddFinalitySigTestCase {
                 name: "empty finality signature",
                 msg_modifier: |msg| msg.signature.clear(),
                 expected: Err(FinalitySigError::InvalidFinalitySigLength {
@@ -1109,7 +1106,7 @@ mod tests {
                     expected: 32,
                 }),
             },
-            TestCase {
+            MsgAddFinalitySigTestCase {
                 name: "invalid finality signature length",
                 msg_modifier: |msg| {
                     msg.signature = vec![0u8; 16]; // Too short
@@ -1119,7 +1116,7 @@ mod tests {
                     expected: 32,
                 }),
             },
-            TestCase {
+            MsgAddFinalitySigTestCase {
                 name: "invalid block app hash length",
                 msg_modifier: |msg| {
                     msg.block_app_hash = vec![0u8; 16]; // Too short
@@ -1131,7 +1128,7 @@ mod tests {
             },
         ];
 
-        for TestCase {
+        for MsgAddFinalitySigTestCase {
             name,
             msg_modifier,
             expected,
