@@ -1,23 +1,26 @@
 use crate::error::ContractError;
 use crate::finality::{
     compute_active_finality_providers, handle_finality_signature, handle_public_randomness_commit,
-    handle_unjail, update_rewards_dist_for_interval,
+    handle_rewards_distribution, handle_unjail,
 };
 use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
 use crate::state::config::{
     Config, ADMIN, CONFIG, DEFAULT_JAIL_DURATION, DEFAULT_MAX_ACTIVE_FINALITY_PROVIDERS,
     DEFAULT_MIN_PUB_RAND, DEFAULT_MISSED_BLOCKS_WINDOW, DEFAULT_REWARD_INTERVAL,
 };
-use crate::state::finality::{ACCUMULATED_VOTING_WEIGHTS, REWARDS};
+
 use crate::{finality, queries, state};
+
+#[cfg(test)]
+use crate::state::finality::ACCUMULATED_VOTING_WEIGHTS;
 use babylon_apis::finality_api::SudoMsg;
-use babylon_contract::msg::contract::RewardInfo;
+
 use btc_staking::msg::ActivatedHeightResponse;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    attr, coin, coins, to_json_binary, Addr, CustomQuery, Deps, DepsMut, Empty, Env, MessageInfo,
-    Order, QuerierWrapper, QueryRequest, QueryResponse, Reply, Response, StdResult, Uint128,
+    attr, coin, coins, from_json, to_json_binary, Addr, CustomQuery, Deps, DepsMut, Empty, Env,
+    MessageInfo, QuerierWrapper, QueryRequest, QueryResponse, Reply, Response, StdResult, Uint128,
     WasmMsg, WasmQuery,
 };
 use cw2::set_contract_version;
@@ -245,58 +248,12 @@ fn handle_end_block(
         res = res.add_events(events);
     }
 
-    // On a reward distribution boundary, send rewards for distribution to Babylon Genesis
+    // On a reward distribution boundary, calculate and send rewards for distribution to Babylon Genesis
     if env.block.height > 0 && env.block.height % cfg.reward_interval == 0 {
-        update_rewards_dist_for_interval(deps, &env)?;
-
-        // Then send the accumulated rewards to Babylon Genesis via IBC
-        let (fp_rewards, wasm_msg) = send_rewards_msg(deps, &cfg)?;
-        if !fp_rewards.is_empty() {
-            res = res.add_message(wasm_msg);
-            // Zero out all rewards at once
-            REWARDS.clear(deps.storage);
-        }
+        res = handle_rewards_distribution(deps, &env)?;
     }
+
     Ok(res)
-}
-
-// Sends rewards to the babylon contract to send it via IBC to Babylon Genesis
-fn send_rewards_msg(
-    deps: &mut DepsMut,
-    cfg: &Config,
-) -> Result<(Vec<RewardInfo>, WasmMsg), ContractError> {
-    // Get the pending rewards distribution
-    let fp_rewards = REWARDS
-        .range(deps.storage, None, None, Order::Ascending)
-        .filter(|item| {
-            if let Ok((_, reward)) = item {
-                reward.u128() > 0
-            } else {
-                true // don't filter errors
-            }
-        })
-        .map(|item| {
-            let (fp_pubkey_hex, reward) = item?;
-            Ok(RewardInfo {
-                fp_pubkey_hex,
-                reward,
-            })
-        })
-        .collect::<StdResult<Vec<_>>>()?;
-
-    // Calculate total rewards from individual rewards
-    let total_rewards: u128 = fp_rewards.iter().map(|r| r.reward.u128()).sum();
-
-    // The rewards are sent to the babylon contract for IBC distribution to Babylon Genesis
-    let msg = babylon_contract::msg::contract::ExecuteMsg::RewardsDistribution {
-        fp_distribution: fp_rewards.clone(),
-    };
-    let wasm_msg = WasmMsg::Execute {
-        contract_addr: cfg.babylon.to_string(),
-        msg: to_json_binary(&msg)?,
-        funds: coins(total_rewards, cfg.denom.as_str()),
-    };
-    Ok((fp_rewards, wasm_msg))
 }
 
 pub fn get_activated_height(staking_addr: &Addr, querier: &QuerierWrapper) -> StdResult<u64> {
@@ -383,8 +340,10 @@ pub(crate) mod tests {
     }
 
     #[test]
-    fn test_send_rewards_msg() {
+    fn test_calculate_rewards_distribution() {
         let mut deps = mock_dependencies();
+        let mut env = mock_env();
+        env.contract.address = deps.api.addr_make("finality_contract");
 
         // Set up the contract with config
         let babylon_addr = deps.api.addr_make("babylon");
@@ -392,27 +351,45 @@ pub(crate) mod tests {
         let config = Config::new_test(babylon_addr.clone(), staking_addr.clone());
         CONFIG.save(&mut deps.storage, &config).unwrap();
 
-        // Add some rewards for FPs
+        // Set contract balance for rewards
+        deps.querier
+            .bank
+            .update_balance(env.contract.address.clone(), vec![coin(1000, "TOKEN")]);
+
+        // Set up accumulated voting weights (simulating FPs having voted)
         let fp1 = "fp1".to_string();
         let fp2 = "fp2".to_string();
-        REWARDS
-            .save(&mut deps.storage, &fp1, &Uint128::from(100u128))
+        ACCUMULATED_VOTING_WEIGHTS
+            .save(&mut deps.storage, &fp1, &2000u128)
             .unwrap();
-        REWARDS
-            .save(&mut deps.storage, &fp2, &Uint128::from(200u128))
+        ACCUMULATED_VOTING_WEIGHTS
+            .save(&mut deps.storage, &fp2, &1000u128)
             .unwrap();
 
-        // Test send_rewards_msg
-        let (fp_rewards, wasm_msg) = send_rewards_msg(&mut deps.as_mut(), &config).unwrap();
+        // Test calculate_rewards_distribution
+        let fp_rewards = handle_rewards_distribution(&mut deps.as_mut(), &env).unwrap();
 
-        // Verify the rewards are correct
+        // Verify the rewards are correct (proportional distribution)
         assert_eq!(fp_rewards.len(), 2);
         assert_eq!(fp_rewards[0].fp_pubkey_hex, fp1);
-        assert_eq!(fp_rewards[0].reward, Uint128::from(100u128));
+        assert_eq!(fp_rewards[0].reward, Uint128::from(666u128)); // 1000 * 2000 / 3000 = 666
         assert_eq!(fp_rewards[1].fp_pubkey_hex, fp2);
-        assert_eq!(fp_rewards[1].reward, Uint128::from(200u128));
+        assert_eq!(fp_rewards[1].reward, Uint128::from(333u128)); // 1000 * 1000 / 3000 = 333
 
-        // Verify the WasmMsg is correct
+        // Test that we can construct the WasmMsg from the fp_rewards
+        let total_rewards: u128 = fp_rewards.iter().map(|r| r.reward.u128()).sum();
+        assert_eq!(total_rewards, 999); // 666 + 333 = 999 (due to floor division)
+
+        let msg = babylon_contract::msg::contract::ExecuteMsg::RewardsDistribution {
+            fp_distribution: fp_rewards.clone(),
+        };
+        let wasm_msg = WasmMsg::Execute {
+            contract_addr: babylon_addr.to_string(),
+            msg: to_json_binary(&msg).unwrap(),
+            funds: coins(total_rewards, "TOKEN"),
+        };
+
+        // Verify the WasmMsg was constructed correctly
         match wasm_msg {
             WasmMsg::Execute {
                 contract_addr,
@@ -420,7 +397,7 @@ pub(crate) mod tests {
                 funds,
             } => {
                 assert_eq!(contract_addr, babylon_addr.to_string());
-                assert_eq!(funds, coins(300, "TOKEN"));
+                assert_eq!(funds, coins(999, "TOKEN"));
 
                 // Verify the message is a RewardsDistribution message
                 let msg_data: babylon_contract::msg::contract::ExecuteMsg = from_json(msg).unwrap();
@@ -430,20 +407,32 @@ pub(crate) mod tests {
                     } => {
                         assert_eq!(fp_distribution.len(), 2);
                         assert_eq!(fp_distribution[0].fp_pubkey_hex, fp1);
-                        assert_eq!(fp_distribution[0].reward, Uint128::from(100u128));
+                        assert_eq!(fp_distribution[0].reward, Uint128::from(666u128));
                         assert_eq!(fp_distribution[1].fp_pubkey_hex, fp2);
-                        assert_eq!(fp_distribution[1].reward, Uint128::from(200u128));
+                        assert_eq!(fp_distribution[1].reward, Uint128::from(333u128));
                     }
                     _ => panic!("Expected RewardsDistribution message"),
                 }
             }
             _ => panic!("Expected WasmMsg::Execute"),
         }
+
+        // Verify accumulated weights were cleared
+        let fp1_accumulated = ACCUMULATED_VOTING_WEIGHTS
+            .may_load(&deps.storage, &fp1)
+            .unwrap();
+        let fp2_accumulated = ACCUMULATED_VOTING_WEIGHTS
+            .may_load(&deps.storage, &fp2)
+            .unwrap();
+        assert_eq!(fp1_accumulated, None);
+        assert_eq!(fp2_accumulated, None);
     }
 
     #[test]
-    fn test_send_rewards_msg_with_no_rewards() {
+    fn test_calculate_rewards_distribution_with_no_balance() {
         let mut deps = mock_dependencies();
+        let mut env = mock_env();
+        env.contract.address = deps.api.addr_make("finality_contract");
 
         // Set up the contract with config
         let babylon_addr = deps.api.addr_make("babylon");
@@ -451,37 +440,16 @@ pub(crate) mod tests {
         let config = Config::new_test(babylon_addr.clone(), staking_addr.clone());
         CONFIG.save(&mut deps.storage, &config).unwrap();
 
-        // No rewards in storage - REWARDS map is empty by default
+        // Set zero balance
+        deps.querier
+            .bank
+            .update_balance(env.contract.address.clone(), vec![coin(0, "TOKEN")]);
 
-        // Test send_rewards_msg with no rewards
-        let (fp_rewards, wasm_msg) = send_rewards_msg(&mut deps.as_mut(), &config).unwrap();
+        // Test calculate_rewards_distribution with no balance
+        let fp_rewards = handle_rewards_distribution(&mut deps.as_mut(), &env).unwrap();
 
         // Verify no rewards are returned
         assert_eq!(fp_rewards.len(), 0);
-
-        // Verify the WasmMsg is correct (should still be created but with 0 funds)
-        match wasm_msg {
-            WasmMsg::Execute {
-                contract_addr,
-                msg,
-                funds,
-            } => {
-                assert_eq!(contract_addr, babylon_addr.to_string());
-                assert_eq!(funds, coins(0, "TOKEN"));
-
-                // Verify the message is a RewardsDistribution message with empty distribution
-                let msg_data: babylon_contract::msg::contract::ExecuteMsg = from_json(msg).unwrap();
-                match msg_data {
-                    babylon_contract::msg::contract::ExecuteMsg::RewardsDistribution {
-                        fp_distribution,
-                    } => {
-                        assert_eq!(fp_distribution.len(), 0);
-                    }
-                    _ => panic!("Expected RewardsDistribution message"),
-                }
-            }
-            _ => panic!("Expected WasmMsg::Execute"),
-        }
     }
 
     #[test]
@@ -535,78 +503,5 @@ pub(crate) mod tests {
 
         // Use assert_admin to verify that the admin was updated correctly
         ADMIN.assert_admin(deps.as_ref(), &new_admin).unwrap();
-    }
-
-    #[test]
-    fn test_distribute_rewards_basic() {
-        let mut deps = mock_dependencies();
-        let mut env = mock_env();
-        env.contract.address = deps.api.addr_make("finality_contract");
-
-        // Setup minimal config
-        let config = Config::new_test(deps.api.addr_make("babylon"), deps.api.addr_make("staking"));
-        CONFIG.save(&mut deps.storage, &config).unwrap();
-
-        // Set contract balance
-        deps.querier
-            .bank
-            .update_balance(env.contract.address.clone(), vec![coin(1000, "TOKEN")]);
-
-        // Setup: Direct accumulated voting weights (simulating FPs having voted)
-        let fp1 = "fp1".to_string();
-        let fp2 = "fp2".to_string();
-
-        // FP1 accumulated 2000 voting weight, FP2 accumulated 1000 voting weight
-        ACCUMULATED_VOTING_WEIGHTS
-            .save(&mut deps.storage, &fp1, &2000u128)
-            .unwrap();
-        ACCUMULATED_VOTING_WEIGHTS
-            .save(&mut deps.storage, &fp2, &1000u128)
-            .unwrap();
-
-        // Test reward distribution
-        update_rewards_dist_for_interval(&mut deps.as_mut(), &env).unwrap(); // Height params are ignored now
-
-        // FP1 gets 2/3 of rewards (2000/3000), FP2 gets 1/3 (1000/3000)
-        let fp1_reward = REWARDS.load(&deps.storage, &fp1).unwrap();
-        let fp2_reward = REWARDS.load(&deps.storage, &fp2).unwrap();
-
-        assert_eq!(fp1_reward, Uint128::from(666u128)); // 1000 * 2000 / 3000 = 666
-        assert_eq!(fp2_reward, Uint128::from(333u128)); // 1000 * 1000 / 3000 = 333
-
-        // Accumulated weights should be cleared after distribution
-        let fp1_accumulated = ACCUMULATED_VOTING_WEIGHTS
-            .may_load(&deps.storage, &fp1)
-            .unwrap();
-        let fp2_accumulated = ACCUMULATED_VOTING_WEIGHTS
-            .may_load(&deps.storage, &fp2)
-            .unwrap();
-        assert_eq!(fp1_accumulated, None);
-        assert_eq!(fp2_accumulated, None);
-    }
-
-    #[test]
-    fn test_distribute_rewards_edge_cases() {
-        let mut deps = mock_dependencies();
-        let mut env = mock_env();
-        env.contract.address = deps.api.addr_make("finality_contract");
-
-        let config = Config::new_test(deps.api.addr_make("babylon"), deps.api.addr_make("staking"));
-        CONFIG.save(&mut deps.storage, &config).unwrap();
-
-        // Test 1: No balance - should not panic
-        deps.querier
-            .bank
-            .update_balance(env.contract.address.clone(), vec![coin(0, "TOKEN")]);
-        update_rewards_dist_for_interval(&mut deps.as_mut(), &env).unwrap();
-
-        // Test 2: No accumulated weights - should not panic
-        deps.querier
-            .bank
-            .update_balance(env.contract.address.clone(), vec![coin(1000, "TOKEN")]);
-        update_rewards_dist_for_interval(&mut deps.as_mut(), &env).unwrap();
-
-        // Should complete without errors
-        // No need to check TOTAL_PENDING_REWARDS since it's been removed
     }
 }

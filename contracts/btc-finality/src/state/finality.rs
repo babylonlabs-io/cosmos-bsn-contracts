@@ -1,7 +1,6 @@
 use crate::error::ContractError;
 use babylon_apis::finality_api::{Evidence, IndexedBlock};
 use cosmwasm_std::Order::Ascending;
-use cosmwasm_std::Uint128;
 use cosmwasm_std::{StdResult, Storage};
 use cw_storage_plus::{Item, Map};
 use std::collections::HashMap;
@@ -35,9 +34,6 @@ pub const JAIL: Map<&str, u64> = Map::new("jail");
 
 /// Map of double signing evidence by FP and block height
 pub const EVIDENCES: Map<(&str, u64), Evidence> = Map::new("evidences");
-
-/// Map of pending finality provider rewards
-pub const REWARDS: Map<&str, Uint128> = Map::new("rewards");
 
 /// Accumulated voting weights for each FP since last reward distribution
 /// Maps FP btc_pk_hex to their accumulated voting power across the current reward interval
@@ -73,4 +69,22 @@ pub fn get_last_signed_height(
             FP_START_HEIGHT.may_load(storage, fp_btc_pk_hex)
         }
     }
+}
+
+/// Collects all accumulated voting weights and calculates the total in a single iteration
+pub fn collect_accumulated_voting_weights(
+    storage: &dyn Storage,
+) -> cosmwasm_std::StdResult<(Vec<(String, u128)>, u128)> {
+    let mut total_accumulated_weight = 0u128;
+    let mut fp_entries = Vec::new();
+
+    for item in
+        ACCUMULATED_VOTING_WEIGHTS.range(storage, None, None, cosmwasm_std::Order::Ascending)
+    {
+        let (fp_btc_pk_hex, weight) = item?;
+        total_accumulated_weight += weight;
+        fp_entries.push((fp_btc_pk_hex, weight));
+    }
+
+    Ok((fp_entries, total_accumulated_weight))
 }

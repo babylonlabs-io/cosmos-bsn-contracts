@@ -2,9 +2,9 @@ use crate::contract::encode_smart_query;
 use crate::error::ContractError;
 use crate::state::config::{ADMIN, CONFIG};
 use crate::state::finality::{
-    get_fp_power, get_last_signed_height, get_power_table_at_height, ACCUMULATED_VOTING_WEIGHTS,
-    BLOCKS, EVIDENCES, FP_BLOCK_SIGNER, FP_POWER_TABLE, FP_START_HEIGHT, JAIL, NEXT_HEIGHT,
-    REWARDS, SIGNATURES,
+    collect_accumulated_voting_weights, get_fp_power, get_last_signed_height,
+    get_power_table_at_height, ACCUMULATED_VOTING_WEIGHTS, BLOCKS, EVIDENCES, FP_BLOCK_SIGNER,
+    FP_POWER_TABLE, FP_START_HEIGHT, JAIL, NEXT_HEIGHT, SIGNATURES,
 };
 use crate::state::public_randomness::{
     get_last_finalized_height, get_last_pub_rand_commit,
@@ -14,6 +14,8 @@ use crate::state::public_randomness::{
 use babylon_apis::btc_staking_api::FinalityProvider;
 use babylon_apis::finality_api::{Evidence, IndexedBlock, PubRandCommit};
 use babylon_apis::to_canonical_addr;
+use babylon_contract::msg::contract::{ExecuteMsg::RewardsDistribution, RewardInfo};
+use babylon_contract::ExecuteMsg;
 use babylon_merkle::Proof;
 use btc_staking::msg::{FinalityProviderInfo, FinalityProvidersByTotalActiveSatsResponse};
 use cosmwasm_std::Order::Ascending;
@@ -612,7 +614,7 @@ fn slash_finality_provider(
     // Emit slashing event.
     // Raises slashing event to babylon over IBC.
     // Send to babylon-contract for forwarding
-    let msg = babylon_contract::ExecuteMsg::Slashing {
+    let msg = ExecuteMsg::Slashing {
         evidence: evidence.clone(),
     };
 
@@ -902,44 +904,41 @@ pub fn query_fps_by_total_active_sats(
     Ok(res.fps)
 }
 
-/// Distributes rewards based on accumulated voting weights from the current reward interval.
-pub fn update_rewards_dist_for_interval(
+/// Calculates and returns reward distribution directly without storing in REWARDS.
+/// Returns only the reward info vector - caller constructs WasmMsg as needed.
+pub fn handle_rewards_distribution(
     deps: &mut DepsMut,
     env: &Env,
-) -> Result<(), ContractError> {
+) -> Result<Response, ContractError> {
     let cfg = CONFIG.load(deps.storage)?;
 
     // Get current balance of the finality contract (total rewards to distribute)
     let current_balance = deps
         .querier
-        .query_balance(env.contract.address.clone(), cfg.denom)?
+        .query_balance(env.contract.address.clone(), cfg.denom.clone())?
         .amount;
 
     if current_balance.is_zero() {
-        return Ok(()); // No rewards to distribute
+        // No rewards to distribute, return empty response
+        return Ok(Response::new());
     }
 
-    // Single iteration: calculate total weight and distribute rewards
-    let mut total_accumulated_weight = 0u128;
-    let mut fp_entries = Vec::new();
-
-    // First pass: collect entries and calculate total
-    for item in
-        ACCUMULATED_VOTING_WEIGHTS.range(deps.storage, None, None, cosmwasm_std::Order::Ascending)
-    {
-        let (fp_btc_pk_hex, weight) = item?;
-        total_accumulated_weight += weight;
-        fp_entries.push((fp_btc_pk_hex, weight));
-    }
+    // Collect all accumulated voting weights and calculate total in one pass
+    let (fp_entries, total_accumulated_weight) = collect_accumulated_voting_weights(deps.storage)?;
 
     if fp_entries.is_empty() || total_accumulated_weight == 0 {
-        return Ok(()); // No accumulated voting weights or zero total
+        // No accumulated voting weights, clear them and return empty response
+        ACCUMULATED_VOTING_WEIGHTS.clear(deps.storage);
+        return Ok(Response::new());
     }
 
     // Convert total_accumulated_weight to Uint128 for safer arithmetic
     let total_accumulated_weight = Uint128::from(total_accumulated_weight);
 
-    // Distribute rewards proportionally based on accumulated voting weights
+    // Calculate rewards proportionally and build reward info directly
+    let mut fp_rewards = Vec::new();
+    let mut total_rewards = 0u128;
+
     for (fp_btc_pk_hex, accumulated_weight) in fp_entries {
         // Use Uint128 arithmetic for safe multiplication and division with floor division
         let accumulated_weight = Uint128::from(accumulated_weight);
@@ -947,17 +946,32 @@ pub fn update_rewards_dist_for_interval(
         let reward = numerator.div_floor((total_accumulated_weight, Uint128::one()));
 
         if !reward.is_zero() {
-            // Add reward to FP's pending rewards
-            REWARDS.update(deps.storage, &fp_btc_pk_hex, |existing| {
-                Ok::<Uint128, ContractError>(existing.unwrap_or_default() + reward)
-            })?;
+            fp_rewards.push(RewardInfo {
+                fp_pubkey_hex: fp_btc_pk_hex,
+                reward,
+            });
+            total_rewards += reward.u128();
         }
     }
 
     // Clear all accumulated voting weights for the next reward interval
     ACCUMULATED_VOTING_WEIGHTS.clear(deps.storage);
 
-    Ok(())
+    // If there are rewards to distribute, create and add the message
+    let mut res = Response::new();
+    if !fp_rewards.is_empty() {
+        let msg = RewardsDistribution {
+            fp_distribution: fp_rewards,
+        };
+        let wasm_msg = WasmMsg::Execute {
+            contract_addr: cfg.babylon.to_string(),
+            msg: cosmwasm_std::to_json_binary(&msg)?,
+            funds: cosmwasm_std::coins(total_rewards, cfg.denom.as_str()),
+        };
+        res = res.add_message(wasm_msg);
+    }
+
+    Ok(res)
 }
 
 #[cfg(test)]
