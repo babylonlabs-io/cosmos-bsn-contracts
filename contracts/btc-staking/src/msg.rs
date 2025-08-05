@@ -106,8 +106,3 @@ pub struct FinalityProviderInfo {
     /// Whether this finality provider is slashed
     pub slashed: bool,
 }
-
-#[cw_serde]
-pub struct ActivatedHeightResponse {
-    pub height: u64,
-}

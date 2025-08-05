@@ -3,7 +3,7 @@ use crate::finality::{
     compute_active_finality_providers, distribute_rewards_fps, handle_finality_signature,
     handle_public_randomness_commit, handle_unjail,
 };
-use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
+use crate::msg::{ActivatedHeightResponse, ExecuteMsg, InstantiateMsg, QueryMsg};
 use crate::state::config::{
     Config, ADMIN, CONFIG, DEFAULT_JAIL_DURATION, DEFAULT_MAX_ACTIVE_FINALITY_PROVIDERS,
     DEFAULT_MIN_PUB_RAND, DEFAULT_MISSED_BLOCKS_WINDOW, DEFAULT_REWARD_INTERVAL,
@@ -121,6 +121,16 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> Result<QueryResponse, Cont
         QueryMsg::Votes { height } => Ok(to_json_binary(&queries::votes(deps, height)?)?),
         QueryMsg::SigningInfo { btc_pk_hex } => {
             Ok(to_json_binary(&queries::signing_info(deps, btc_pk_hex)?)?)
+        }
+        QueryMsg::ActivatedHeight {} => {
+            let (activated, activated_height) = get_btc_staking_activated_height(deps.storage);
+            if activated {
+                Ok(to_json_binary(&ActivatedHeightResponse {
+                    height: activated_height,
+                })?)
+            } else {
+                Err(ContractError::BTCStakingNotActivated)
+            }
         }
     }
 }
