@@ -919,43 +919,43 @@ pub fn update_rewards_dist_for_interval(
         return Ok(()); // No rewards to distribute
     }
 
-    // Read all accumulated voting weights from storage
-    let accumulated_weights: Vec<(String, u128)> = ACCUMULATED_VOTING_WEIGHTS
-        .range(deps.storage, None, None, cosmwasm_std::Order::Ascending)
-        .collect::<Result<Vec<_>, _>>()?;
+    // Single iteration: calculate total weight and distribute rewards
+    let mut total_accumulated_weight = 0u128;
+    let mut fp_entries = Vec::new();
 
-    if accumulated_weights.is_empty() {
-        return Ok(()); // No accumulated voting weights
+    // First pass: collect entries and calculate total
+    for item in
+        ACCUMULATED_VOTING_WEIGHTS.range(deps.storage, None, None, cosmwasm_std::Order::Ascending)
+    {
+        let (fp_btc_pk_hex, weight) = item?;
+        total_accumulated_weight += weight;
+        fp_entries.push((fp_btc_pk_hex, weight));
     }
 
-    // Calculate total accumulated voting weight
-    let total_accumulated_weight: u128 = accumulated_weights.iter().map(|(_, weight)| weight).sum();
-    if total_accumulated_weight == 0 {
-        return Ok(());
+    if fp_entries.is_empty() || total_accumulated_weight == 0 {
+        return Ok(()); // No accumulated voting weights or zero total
     }
 
     // Convert total_accumulated_weight to Uint128 for safer arithmetic
     let total_accumulated_weight = Uint128::from(total_accumulated_weight);
 
     // Distribute rewards proportionally based on accumulated voting weights
-    for (fp_btc_pk_hex, accumulated_weight) in &accumulated_weights {
+    for (fp_btc_pk_hex, accumulated_weight) in fp_entries {
         // Use Uint128 arithmetic for safe multiplication and division with floor division
-        let accumulated_weight = Uint128::from(*accumulated_weight);
+        let accumulated_weight = Uint128::from(accumulated_weight);
         let numerator = current_balance.checked_mul(accumulated_weight)?;
         let reward = numerator.div_floor((total_accumulated_weight, Uint128::one()));
 
         if !reward.is_zero() {
             // Add reward to FP's pending rewards
-            REWARDS.update(deps.storage, fp_btc_pk_hex, |existing| {
+            REWARDS.update(deps.storage, &fp_btc_pk_hex, |existing| {
                 Ok::<Uint128, ContractError>(existing.unwrap_or_default() + reward)
             })?;
         }
     }
 
-    // Clear accumulated voting weights for the next reward interval
-    for (fp_btc_pk_hex, _) in accumulated_weights {
-        ACCUMULATED_VOTING_WEIGHTS.remove(deps.storage, &fp_btc_pk_hex);
-    }
+    // Clear all accumulated voting weights for the next reward interval
+    ACCUMULATED_VOTING_WEIGHTS.clear(deps.storage);
 
     Ok(())
 }
