@@ -270,18 +270,18 @@ pub fn execute(
         ExecuteMsg::Slashing { evidence } => {
             // This is an internal routing message from the `btc_finality` contract
             let cfg = CONFIG.load(deps.storage)?;
-            // Check sender
+
+            // Ensure the sender is the finality contract
             let btc_finality = cfg
                 .btc_finality
                 .ok_or(ContractError::BtcFinalityNotSet {})?;
             if info.sender != btc_finality {
                 return Err(ContractError::Unauthorized {});
             }
-            // Send to the staking contract for processing
+
+            // Send to the BTC staking contract for processing
             let mut res = Response::new();
             let btc_staking = cfg.btc_staking.ok_or(ContractError::BtcStakingNotSet {})?;
-            // Slashes this finality provider, i.e., sets its slashing height to the block height
-            // and its power to zero
             let msg = btc_staking_api::ExecuteMsg::Slash {
                 fp_btc_pk_hex: hex::encode(evidence.fp_btc_pk.clone()),
             };
@@ -306,7 +306,6 @@ pub fn execute(
                 let _ = ibc_msg;
             }
 
-            // TODO: Add events (#124)
             Ok(res)
         }
         ExecuteMsg::RewardsDistribution { fp_distribution } => {
