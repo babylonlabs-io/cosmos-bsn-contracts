@@ -472,7 +472,6 @@ pub fn handle_finality_signature(
             res = res.add_message(msg);
             res = res.add_event(ev);
         }
-        // TODO?: Also slash if this finality provider has signed another fork before
 
         // Save evidence
         EVIDENCES.save(deps.storage, (&fp_btc_pk_hex, height), &evidence)?;
@@ -572,32 +571,6 @@ fn slash_finality_provider(
     fp_btc_pk_hex: &str,
     evidence: &Evidence,
 ) -> Result<(WasmMsg, Event), ContractError> {
-    let pk = eots::PublicKey::from_hex(fp_btc_pk_hex)?;
-
-    let canonical_msg_to_sign = msg_to_sign_for_vote(
-        &evidence.signing_context,
-        evidence.block_height,
-        &evidence.canonical_app_hash,
-    );
-    let canonical_msg_to_sign_hash = Sha256::digest(&canonical_msg_to_sign);
-
-    let fork_msg_to_sign = msg_to_sign_for_vote(
-        &evidence.signing_context,
-        evidence.block_height,
-        &evidence.fork_app_hash,
-    );
-    let fork_msg_to_sign_hash = Sha256::digest(&fork_msg_to_sign);
-
-    let btc_sk = pk
-        .extract_from_hashes(
-            &evidence.pub_rand,
-            canonical_msg_to_sign_hash.into(),
-            &evidence.canonical_finality_sig,
-            fork_msg_to_sign_hash.into(),
-            &evidence.fork_finality_sig,
-        )
-        .map_err(|err| ContractError::SecretKeyExtractionError(err.to_string()))?;
-
     // Emit slashing event.
     // Raises slashing event to babylon over IBC.
     // Send to babylon-contract for forwarding
@@ -629,8 +602,8 @@ fn slash_finality_provider(
         .add_attribute(
             "fork_finality_sig",
             hex::encode(&evidence.fork_finality_sig),
-        )
-        .add_attribute("secret_key", hex::encode(btc_sk.to_bytes()));
+        );
+
     Ok((wasm_msg, ev))
 }
 
