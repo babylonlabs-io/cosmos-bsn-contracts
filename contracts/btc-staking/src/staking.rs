@@ -1,10 +1,3 @@
-use bitcoin::absolute::LockTime;
-use bitcoin::consensus::deserialize;
-use bitcoin::hashes::Hash;
-use bitcoin::{Transaction, Txid};
-use cosmwasm_std::{DepsMut, Env, Event, MessageInfo, Order, Response, StdResult, Storage};
-use cw_storage_plus::Bound;
-
 use crate::error::ContractError;
 use crate::state::config::{ADMIN, CONFIG};
 use crate::state::delegations::delegations;
@@ -21,7 +14,13 @@ use babylon_apis::btc_staking_api::{
     UnbondedBtcDelegation, HASH_SIZE,
 };
 use babylon_apis::{to_canonical_addr, Validate};
+use bitcoin::absolute::LockTime;
+use bitcoin::consensus::deserialize;
+use bitcoin::hashes::Hash;
+use bitcoin::{Transaction, Txid};
 use btc_light_client::msg::btc_header::BtcHeaderResponse;
+use cosmwasm_std::{DepsMut, Env, Event, MessageInfo, Order, Response, StdResult, Storage};
+use cw_storage_plus::Bound;
 use std::str::FromStr;
 
 /// Handles the BTC staking operations.
@@ -266,7 +265,7 @@ fn handle_undelegation(
     Ok(unbonding_event)
 }
 
-/// Handles undelegation due to slashing from an active delegation.
+/// Handles slashed BTC delegation due to slashing from an active delegation.
 fn handle_slashed_delegation(
     storage: &mut dyn Storage,
     height: u64,
@@ -459,6 +458,7 @@ fn btc_undelegate(
 
 /// Slashes a finality provider with the given PK.
 /// A slashed finality provider will not have voting power
+/// following https://github.com/babylonlabs-io/babylon/blob/4aa85a8d9bf85771d448cd3026e99962fe0dab8e/x/btcstaking/keeper/finality_providers.go#L133-L172
 fn slash_finality_provider(
     deps: DepsMut,
     env: Env,
@@ -491,7 +491,6 @@ fn slash_finality_provider(
     // Save the finality provider back
     FPS.save(deps.storage, fp_btc_pk_hex, &fp)?;
 
-    // TODO: Add events (#124)
     Ok(Response::new())
 }
 
