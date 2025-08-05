@@ -494,11 +494,6 @@ pub fn handle_finality_signature(
     // Store the block height this finality provider has signed
     FP_BLOCK_SIGNER.save(deps.storage, &fp_btc_pk_hex, &height)?;
 
-    // Accumulate voting weight for this FP for reward distribution
-    ACCUMULATED_VOTING_WEIGHTS.update(deps.storage, &fp_btc_pk_hex, |existing| {
-        Ok::<u128, ContractError>(existing.unwrap_or(0) + (voting_power as u128))
-    })?;
-
     // If this finality provider has signed the canonical block before, slash it via extracting its
     // secret key, and emit an event
     if let Some(mut evidence) = EVIDENCES.may_load(deps.storage, (&fp_btc_pk_hex, height))? {
@@ -514,6 +509,11 @@ pub fn handle_finality_signature(
         let (msg, ev) = slash_finality_provider(&mut deps, &fp_btc_pk_hex, &evidence)?;
         res = res.add_message(msg);
         res = res.add_event(ev);
+    } else {
+        // Accumulate voting weight for this FP for reward distribution
+        ACCUMULATED_VOTING_WEIGHTS.update(deps.storage, &fp_btc_pk_hex, |existing| {
+            Ok::<u128, ContractError>(existing.unwrap_or(0) + (voting_power as u128))
+        })?;
     }
 
     Ok(res)
