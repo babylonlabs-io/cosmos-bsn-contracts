@@ -253,10 +253,8 @@ fn handle_end_block(
         let (fp_rewards, wasm_msg) = send_rewards_msg(deps, &cfg)?;
         if !fp_rewards.is_empty() {
             res = res.add_message(wasm_msg);
-            // Zero out individual rewards
-            for reward in fp_rewards {
-                REWARDS.remove(deps.storage, &reward.fp_pubkey_hex);
-            }
+            // Zero out all rewards at once
+            REWARDS.clear(deps.storage);
         }
     }
     Ok(res)
