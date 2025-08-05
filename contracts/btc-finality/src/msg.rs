@@ -1,4 +1,5 @@
 use crate::error::{ContractError, FinalitySigError, PubRandCommitError};
+use babylon_apis::finality_api::PubRandCommit;
 use babylon_apis::finality_api::{Evidence, IndexedBlock};
 use babylon_merkle::Proof;
 use cosmwasm_schema::{cw_serde, QueryResponses};
@@ -6,10 +7,7 @@ use k256::schnorr::{signature::Verifier, Signature, VerifyingKey};
 use k256::sha2::{Digest, Sha256};
 use std::collections::HashMap;
 #[cfg(not(target_arch = "wasm32"))]
-use {
-    crate::state::config::Config, babylon_apis::finality_api::PubRandCommit,
-    cw_controllers::AdminResponse,
-};
+use {crate::state::config::Config, cw_controllers::AdminResponse};
 
 pub const COMMITMENT_LENGTH_BYTES: usize = 32;
 
@@ -338,3 +336,4 @@ pub struct SigningInfoResponse {
     pub last_signed_height: u64,
     pub jailed_until: Option<u64>,
 }
+
