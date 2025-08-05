@@ -53,19 +53,13 @@ pub fn get_power_table_at_height(
         .collect::<StdResult<HashMap<String, u64>>>()
 }
 
-pub fn ensure_fp_has_power(
-    storage: &mut dyn Storage,
+pub fn get_fp_power(
+    storage: &dyn Storage,
     height: u64,
     fp_btc_pk_hex: &str,
-) -> Result<(), ContractError> {
+) -> Result<u64, ContractError> {
     let power = FP_POWER_TABLE.may_load(storage, (height, fp_btc_pk_hex))?;
-    if power.is_none() {
-        return Err(ContractError::NoVotingPower(
-            fp_btc_pk_hex.to_string(),
-            height,
-        ));
-    }
-    Ok(())
+    power.ok_or_else(|| ContractError::NoVotingPower(fp_btc_pk_hex.to_string(), height))
 }
 
 pub fn get_last_signed_height(

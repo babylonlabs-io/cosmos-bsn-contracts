@@ -2,9 +2,9 @@ use crate::contract::encode_smart_query;
 use crate::error::ContractError;
 use crate::state::config::{ADMIN, CONFIG};
 use crate::state::finality::{
-    ensure_fp_has_power, get_last_signed_height, get_power_table_at_height,
-    ACCUMULATED_VOTING_WEIGHTS, BLOCKS, EVIDENCES, FP_BLOCK_SIGNER, FP_POWER_TABLE,
-    FP_START_HEIGHT, JAIL, NEXT_HEIGHT, REWARDS, SIGNATURES,
+    get_fp_power, get_last_signed_height, get_power_table_at_height, ACCUMULATED_VOTING_WEIGHTS,
+    BLOCKS, EVIDENCES, FP_BLOCK_SIGNER, FP_POWER_TABLE, FP_START_HEIGHT, JAIL, NEXT_HEIGHT,
+    REWARDS, SIGNATURES,
 };
 use crate::state::public_randomness::{
     get_last_finalized_height, get_last_pub_rand_commit,
@@ -396,8 +396,14 @@ pub fn handle_finality_signature(
     let fp_btc_pk_hex = &add_finality_sig.fp_btc_pk_hex;
     let height = add_finality_sig.height;
 
-    // Ensure the finality provider has voting power at this height
-    ensure_fp_has_power(deps.storage, height, fp_btc_pk_hex)?;
+    // Get the finality provider's voting power at this height (also ensures they have power)
+    let voting_power = get_fp_power(deps.storage, height, fp_btc_pk_hex)?;
+    if voting_power == 0 {
+        return Err(ContractError::NoVotingPower(
+            fp_btc_pk_hex.to_string(),
+            height,
+        ));
+    }
 
     // Ensure the height is proper
     if env.block.height < height {
@@ -489,12 +495,9 @@ pub fn handle_finality_signature(
     FP_BLOCK_SIGNER.save(deps.storage, &fp_btc_pk_hex, &height)?;
 
     // Accumulate voting weight for this FP for reward distribution
-    let power_table = get_power_table_at_height(deps.storage, height)?;
-    if let Some(voting_power) = power_table.get(&fp_btc_pk_hex) {
-        ACCUMULATED_VOTING_WEIGHTS.update(deps.storage, &fp_btc_pk_hex, |existing| {
-            Ok::<u128, ContractError>(existing.unwrap_or(0) + (*voting_power as u128))
-        })?;
-    }
+    ACCUMULATED_VOTING_WEIGHTS.update(deps.storage, &fp_btc_pk_hex, |existing| {
+        Ok::<u128, ContractError>(existing.unwrap_or(0) + (voting_power as u128))
+    })?;
 
     // If this finality provider has signed the canonical block before, slash it via extracting its
     // secret key, and emit an event
