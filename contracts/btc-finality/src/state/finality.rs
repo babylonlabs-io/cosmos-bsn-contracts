@@ -92,3 +92,76 @@ pub fn get_last_signed_height(
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use cosmwasm_std::testing::mock_dependencies;
+
+    #[test]
+    fn test_btc_staking_activated_height() {
+        let mut deps = mock_dependencies();
+
+        // Not activated initially
+        let (activated, height) = get_btc_staking_activated_height(deps.as_ref().storage);
+        assert!(!activated);
+        assert_eq!(height, 0);
+
+        // Add finality providers at different heights
+        FP_POWER_TABLE
+            .save(deps.as_mut().storage, (100, "fp1"), &1000)
+            .unwrap();
+        FP_POWER_TABLE
+            .save(deps.as_mut().storage, (50, "fp2"), &500)
+            .unwrap();
+
+        // Should return earliest height
+        let (activated, height) = get_btc_staking_activated_height(deps.as_ref().storage);
+        assert!(activated);
+        assert_eq!(height, 50);
+    }
+
+    #[test]
+    fn test_power_table_at_height() {
+        let mut deps = mock_dependencies();
+        let height = 100;
+
+        // Empty initially
+        let power_table = get_power_table_at_height(deps.as_ref().storage, height).unwrap();
+        assert!(power_table.is_empty());
+
+        // Add data at target height and other heights
+        FP_POWER_TABLE
+            .save(deps.as_mut().storage, (height, "fp1"), &1000)
+            .unwrap();
+        FP_POWER_TABLE
+            .save(deps.as_mut().storage, (height, "fp2"), &2000)
+            .unwrap();
+        FP_POWER_TABLE
+            .save(deps.as_mut().storage, (99, "fp3"), &500)
+            .unwrap(); // Different height
+
+        let power_table = get_power_table_at_height(deps.as_ref().storage, height).unwrap();
+        assert_eq!(power_table.len(), 2);
+        assert_eq!(power_table.get("fp1"), Some(&1000));
+        assert_eq!(power_table.get("fp2"), Some(&2000));
+    }
+
+    #[test]
+    fn test_ensure_fp_has_power() {
+        let mut deps = mock_dependencies();
+        let height = 100;
+        let fp_pk = "test_fp";
+
+        // No power - should fail
+        let result = ensure_fp_has_power(deps.as_mut().storage, height, fp_pk);
+        assert!(matches!(result, Err(ContractError::NoVotingPower(_, _))));
+
+        // Add power - should succeed
+        FP_POWER_TABLE
+            .save(deps.as_mut().storage, (height, fp_pk), &1000)
+            .unwrap();
+        let result = ensure_fp_has_power(deps.as_mut().storage, height, fp_pk);
+        assert!(result.is_ok());
+    }
+}
