@@ -1,8 +1,7 @@
 use crate::error::ContractError;
 use babylon_apis::finality_api::{Evidence, IndexedBlock};
 use cosmwasm_std::Order::Ascending;
-use cosmwasm_std::Uint128;
-use cosmwasm_std::{StdResult, Storage};
+use cosmwasm_std::{StdResult, Storage, Uint128};
 use cw_storage_plus::{Item, Map};
 use std::collections::HashMap;
 
@@ -36,11 +35,9 @@ pub const JAIL: Map<&str, u64> = Map::new("jail");
 /// Map of double signing evidence by FP and block height
 pub const EVIDENCES: Map<(&str, u64), Evidence> = Map::new("evidences");
 
-/// Map of pending finality provider rewards
-pub const REWARDS: Map<&str, Uint128> = Map::new("rewards");
-
-/// Total pending rewards
-pub const TOTAL_PENDING_REWARDS: Item<Uint128> = Item::new("pending_rewards");
+/// Accumulated voting weights for each FP since last reward distribution
+/// Maps FP btc_pk_hex to their accumulated voting power across the current reward interval
+pub const ACCUMULATED_VOTING_WEIGHTS: Map<&str, u128> = Map::new("accumulated_voting_weights");
 
 /// Returns the activated height, i.e., the first height in which there exists >=1 finality
 /// provider with voting power, or None if no finality provider has voting power
@@ -80,6 +77,15 @@ pub fn ensure_fp_has_power(
     Ok(())
 }
 
+pub fn get_fp_power(
+    storage: &dyn Storage,
+    height: u64,
+    fp_btc_pk_hex: &str,
+) -> Result<u64, ContractError> {
+    let power = FP_POWER_TABLE.may_load(storage, (height, fp_btc_pk_hex))?;
+    power.ok_or_else(|| ContractError::NoVotingPower(fp_btc_pk_hex.to_string(), height))
+}
+
 /// Sets the voting power table for a given height
 /// Note that if fp_power_table is empty, there won't be any record at this height.
 pub fn set_voting_power_table(
@@ -105,6 +111,29 @@ pub fn get_last_signed_height(
             FP_START_HEIGHT.may_load(storage, fp_btc_pk_hex)
         }
     }
+}
+
+/// Collects all accumulated voting weights for reward distribution calculation.
+///
+/// This function efficiently reads all finality provider voting weights that have been
+/// accumulated since the last reward distribution. Voting weights are accumulated each time
+/// a finality provider signs a block (based on their voting power at that height).
+pub fn collect_accumulated_voting_weights(
+    storage: &dyn Storage,
+) -> cosmwasm_std::StdResult<(Vec<(String, Uint128)>, Uint128)> {
+    let mut total_accumulated_weight = Uint128::zero();
+    let mut fp_entries = Vec::new();
+
+    for item in
+        ACCUMULATED_VOTING_WEIGHTS.range(storage, None, None, cosmwasm_std::Order::Ascending)
+    {
+        let (fp_btc_pk_hex, weight) = item?;
+        let weight_uint128 = Uint128::from(weight);
+        total_accumulated_weight = total_accumulated_weight.checked_add(weight_uint128)?;
+        fp_entries.push((fp_btc_pk_hex, weight_uint128));
+    }
+
+    Ok((fp_entries, total_accumulated_weight))
 }
 
 #[cfg(test)]

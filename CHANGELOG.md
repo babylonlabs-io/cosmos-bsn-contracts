@@ -36,6 +36,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ### State breaking
 
 - [#295](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/295) finality: move activated height from BTC staking contract to BTC finality contract
+- [#291](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/291) Improve rewards distribution by counting vote contribution
 - [#283](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/283) babylon: remove unused fields in config and instantiation msg for Babylon contract
 - [#274](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/274) Send rewards to Babylon for distribution
 - [#279](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/279) chore: clean up BTC finality contract parameters and merge them into Config
