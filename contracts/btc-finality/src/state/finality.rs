@@ -42,16 +42,16 @@ pub const REWARDS: Map<&str, Uint128> = Map::new("rewards");
 /// Total pending rewards
 pub const TOTAL_PENDING_REWARDS: Item<Uint128> = Item::new("pending_rewards");
 
-/// Returns (true, height) if the BTC staking protocol is activated,
-/// Returns (false, 0) if the BTC staking protocol is not activated
-pub fn get_btc_staking_activated_height(storage: &dyn Storage) -> (bool, u64) {
+/// Returns the activated height, i.e., the first height in which there exists >=1 finality
+/// provider with voting power, or None if no finality provider has voting power
+pub fn get_btc_staking_activated_height(storage: &dyn Storage) -> Option<u64> {
     let mut iter = FP_POWER_TABLE.range(storage, None, None, Ascending);
     match iter.next() {
         Some(result) => {
             let ((height, _), _) = result.expect("shouldn't fail unless the storage is corrupted");
-            (true, height)
+            Some(height)
         }
-        None => (false, 0),
+        None => None,
     }
 }
 
@@ -117,9 +117,8 @@ mod tests {
         let mut deps = mock_dependencies();
 
         // Not activated initially
-        let (activated, height) = get_btc_staking_activated_height(deps.as_ref().storage);
-        assert!(!activated);
-        assert_eq!(height, 0);
+        let activated_height = get_btc_staking_activated_height(deps.as_ref().storage);
+        assert!(activated_height.is_none());
 
         // Add finality providers at different heights
         FP_POWER_TABLE
@@ -130,9 +129,8 @@ mod tests {
             .unwrap();
 
         // Should return earliest height
-        let (activated, height) = get_btc_staking_activated_height(deps.as_ref().storage);
-        assert!(activated);
-        assert_eq!(height, 50);
+        let activated_height = get_btc_staking_activated_height(deps.as_ref().storage);
+        assert_eq!(activated_height.unwrap(), 50);
     }
 
     #[test]

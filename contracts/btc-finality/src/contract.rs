@@ -123,11 +123,9 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> Result<QueryResponse, Cont
             Ok(to_json_binary(&queries::signing_info(deps, btc_pk_hex)?)?)
         }
         QueryMsg::ActivatedHeight {} => {
-            let (activated, activated_height) = get_btc_staking_activated_height(deps.storage);
-            if activated {
-                Ok(to_json_binary(&ActivatedHeightResponse {
-                    height: activated_height,
-                })?)
+            let activated_height = get_btc_staking_activated_height(deps.storage);
+            if let Some(height) = activated_height {
+                Ok(to_json_binary(&ActivatedHeightResponse { height })?)
             } else {
                 Err(ContractError::BTCStakingNotActivated)
             }
@@ -248,12 +246,14 @@ fn handle_end_block(
     let cfg = CONFIG.load(deps.storage)?;
     let mut res = Response::new();
 
-    let (activated, activated_height) = get_btc_staking_activated_height(deps.storage);
+    let activated_height = get_btc_staking_activated_height(deps.storage);
 
     // If the BTC staking protocol is not activated, do nothing
-    if !activated {
+    if activated_height.is_none() {
         return Ok(res);
     }
+
+    let activated_height = activated_height.unwrap();
 
     // Index the current block
     let ev = finality::index_block(deps, env.block.height, &hex::decode(app_hash_hex)?)?;
