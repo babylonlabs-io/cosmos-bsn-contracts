@@ -215,9 +215,9 @@ func (p *TestConsumerClient) deployContracts() (*ConsumerContract, error) {
 	ics20ChannelID := "channel-1"
 
 	// Create init messages for other contracts
-	btcLightClientInitMsg := NewBTCLightClientInitMsg(admin, network, kValue, wValue)
-	btcStakingInitMsg := NewBTCStakingInitMsg(admin)
-	btcFinalityInitMsg := NewBTCFinalityInitMsg(admin)
+	btcLightClientInitMsg := []byte{}
+	btcStakingInitMsg := []byte{}
+	btcFinalityInitMsg := []byte{}
 
 	// Build the Babylon contract instantiation message
 	babylonInitMsg := NewBabylonInitMsg(

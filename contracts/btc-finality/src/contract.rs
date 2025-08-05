@@ -17,8 +17,8 @@ use babylon_apis::finality_api::SudoMsg;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    attr, coin, to_json_binary, Addr, CustomQuery, Deps, DepsMut, Empty, Env, MessageInfo,
-    QueryRequest, QueryResponse, Reply, Response, StdResult, Uint128, WasmMsg, WasmQuery,
+    attr, to_json_binary, Addr, CustomQuery, Deps, DepsMut, Empty, Env, MessageInfo, QueryRequest,
+    QueryResponse, Reply, Response, StdResult, WasmQuery,
 };
 use cw2::set_contract_version;
 use cw_utils::{maybe_addr, nonpayable};
@@ -287,8 +287,9 @@ pub(crate) mod tests {
     use super::*;
 
     use cosmwasm_std::{
-        coins, from_json,
+        coin, coins, from_json,
         testing::{message_info, mock_dependencies, mock_env},
+        Uint128, WasmMsg,
     };
     use cw_controllers::AdminResponse;
     pub(crate) const CREATOR: &str = "creator";

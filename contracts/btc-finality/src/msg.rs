@@ -7,17 +7,7 @@ use {
     cw_controllers::AdminResponse,
 };
 
-#[cw_serde]
-#[derive(Default)]
-pub struct InstantiateMsg {
-    pub admin: Option<String>,
-    pub max_active_finality_providers: Option<u32>,
-    pub min_pub_rand: Option<u64>,
-    pub reward_interval: Option<u64>,
-    pub missed_blocks_window: Option<u64>,
-    pub jail_duration: Option<u64>,
-}
-
+pub type InstantiateMsg = babylon_apis::finality_api::InstantiateMsg;
 pub type ExecuteMsg = babylon_apis::finality_api::ExecuteMsg;
 
 #[cw_serde]
