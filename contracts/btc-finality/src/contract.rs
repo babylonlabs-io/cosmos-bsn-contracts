@@ -250,7 +250,8 @@ fn handle_end_block(
 
     // On a reward distribution boundary, calculate and send rewards for distribution to Babylon Genesis
     if env.block.height > 0 && env.block.height % cfg.reward_interval == 0 {
-        res = handle_rewards_distribution(deps, &env)?;
+        let rewards_res = handle_rewards_distribution(deps, &env)?;
+        res = res.add_submessages(rewards_res.messages);
     }
 
     Ok(res)
@@ -366,38 +367,21 @@ pub(crate) mod tests {
             .save(&mut deps.storage, &fp2, &1000u128)
             .unwrap();
 
-        // Test calculate_rewards_distribution
-        let fp_rewards = handle_rewards_distribution(&mut deps.as_mut(), &env).unwrap();
+        // Test handle_rewards_distribution
+        let response = handle_rewards_distribution(&mut deps.as_mut(), &env).unwrap();
 
-        // Verify the rewards are correct (proportional distribution)
-        assert_eq!(fp_rewards.len(), 2);
-        assert_eq!(fp_rewards[0].fp_pubkey_hex, fp1);
-        assert_eq!(fp_rewards[0].reward, Uint128::from(666u128)); // 1000 * 2000 / 3000 = 666
-        assert_eq!(fp_rewards[1].fp_pubkey_hex, fp2);
-        assert_eq!(fp_rewards[1].reward, Uint128::from(333u128)); // 1000 * 1000 / 3000 = 333
+        // Verify that a message was created (indicates rewards were distributed)
+        assert_eq!(response.messages.len(), 1);
 
-        // Test that we can construct the WasmMsg from the fp_rewards
-        let total_rewards: u128 = fp_rewards.iter().map(|r| r.reward.u128()).sum();
-        assert_eq!(total_rewards, 999); // 666 + 333 = 999 (due to floor division)
-
-        let msg = babylon_contract::msg::contract::ExecuteMsg::RewardsDistribution {
-            fp_distribution: fp_rewards.clone(),
-        };
-        let wasm_msg = WasmMsg::Execute {
-            contract_addr: babylon_addr.to_string(),
-            msg: to_json_binary(&msg).unwrap(),
-            funds: coins(total_rewards, "TOKEN"),
-        };
-
-        // Verify the WasmMsg was constructed correctly
-        match wasm_msg {
-            WasmMsg::Execute {
+        // Extract and verify the WasmMsg
+        match &response.messages[0].msg {
+            cosmwasm_std::CosmosMsg::Wasm(WasmMsg::Execute {
                 contract_addr,
                 msg,
                 funds,
-            } => {
-                assert_eq!(contract_addr, babylon_addr.to_string());
-                assert_eq!(funds, coins(999, "TOKEN"));
+            }) => {
+                assert_eq!(contract_addr, &babylon_addr.to_string());
+                assert_eq!(funds, &coins(999, "TOKEN")); // 666 + 333 = 999 (due to floor division)
 
                 // Verify the message is a RewardsDistribution message
                 let msg_data: babylon_contract::msg::contract::ExecuteMsg = from_json(msg).unwrap();
@@ -445,11 +429,11 @@ pub(crate) mod tests {
             .bank
             .update_balance(env.contract.address.clone(), vec![coin(0, "TOKEN")]);
 
-        // Test calculate_rewards_distribution with no balance
-        let fp_rewards = handle_rewards_distribution(&mut deps.as_mut(), &env).unwrap();
+        // Test handle_rewards_distribution with no balance
+        let response = handle_rewards_distribution(&mut deps.as_mut(), &env).unwrap();
 
-        // Verify no rewards are returned
-        assert_eq!(fp_rewards.len(), 0);
+        // Verify no messages are returned (no rewards to distribute)
+        assert_eq!(response.messages.len(), 0);
     }
 
     #[test]
