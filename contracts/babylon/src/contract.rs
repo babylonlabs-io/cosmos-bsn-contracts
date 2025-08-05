@@ -294,7 +294,8 @@ pub fn execute(
 
             // Send over IBC to the Provider (Babylon)
             let channel_id = IBC_ZC_CHANNEL.load(deps.storage)?;
-            let ibc_msg = ibc_packet::slashing_msg(&deps.as_ref(), &env, &channel_id, &evidence)?;
+            let ibc_msg =
+                ibc_packet::get_slashing_msg(&deps.as_ref(), &env, &channel_id, &evidence)?;
             // Send packet only if we are IBC enabled
             // TODO: send in test code when multi-test can handle it
             #[cfg(not(any(test, feature = "library")))]
@@ -306,7 +307,6 @@ pub fn execute(
                 let _ = ibc_msg;
             }
 
-            // TODO: Add events (#124)
             Ok(res)
         }
         ExecuteMsg::RewardsDistribution { fp_distribution } => {

@@ -39,8 +39,6 @@ pub enum ContractError {
     IbcInvalidCounterPartyVersion { version: String },
     #[error("IBC method is not supported")]
     IbcUnsupportedMethod {},
-    #[error("IBC send timed out: dest: channel {0}, port {1}")]
-    IbcTimeout(String, String),
     #[error("Unauthorized")]
     Unauthorized {},
     #[error("The BTC staking contract is not set")]
