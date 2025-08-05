@@ -567,7 +567,7 @@ pub fn handle_unjail(
 }
 
 /// `slash_finality_provider` slashes a finality provider with the given evidence including setting
-/// its voting power to zero, extracting its BTC SK, and emitting an event
+/// its voting power to zero and emitting an event
 /// following https://github.com/babylonlabs-io/babylon/blob/4aa85a8d9bf85771d448cd3026e99962fe0dab8e/x/finality/keeper/msg_server.go#L384-L412 without the logic for propagating the slashing event to other BSNs
 fn slash_finality_provider(
     deps: &mut DepsMut,
