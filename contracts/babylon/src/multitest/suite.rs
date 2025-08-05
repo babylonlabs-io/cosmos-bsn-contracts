@@ -124,21 +124,17 @@ impl SuiteBuilder {
         let checkpoint_finalization_timeout = self.checkpoint_finalization_timeout.unwrap_or(1);
 
         let light_client_msg = match &self.light_client_msg {
-            Some(msg) => Binary::from(msg.as_bytes()),
-            None => {
-                let btc_lc_init_msg = BtcLightClientInstantiateMsg {
-                    network: BitcoinNetwork::Testnet,
-                    btc_confirmation_depth: 1,
-                    checkpoint_finalization_timeout,
-                    admin: None,
-                };
-
-                to_json_binary(&btc_lc_init_msg).unwrap()
-            }
+            Some(msg) => Some(Binary::from(msg.as_bytes())),
+            None => None,
         };
-
-        let staking_msg = self.staking_msg.map(|msg| Binary::from(msg.as_bytes()));
-        let finality_msg = self.finality_msg.map(|msg| Binary::from(msg.as_bytes()));
+        let staking_msg = match &self.staking_msg {
+            Some(msg) => Some(Binary::from(msg.as_bytes())),
+            None => None,
+        };
+        let finality_msg = match &self.finality_msg {
+            Some(msg) => Some(Binary::from(msg.as_bytes())),
+            None => None,
+        };
         let contract = app
             .instantiate_contract(
                 contract_code_id,
@@ -148,7 +144,7 @@ impl SuiteBuilder {
                     btc_confirmation_depth: 1,
                     checkpoint_finalization_timeout,
                     btc_light_client_code_id: Some(btc_light_client_code_id),
-                    btc_light_client_msg: Some(light_client_msg),
+                    btc_light_client_msg: light_client_msg,
                     btc_staking_code_id: Some(btc_staking_code_id),
                     btc_staking_msg: staking_msg,
                     btc_finality_code_id: Some(btc_finality_code_id),
