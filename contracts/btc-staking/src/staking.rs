@@ -625,7 +625,12 @@ pub(crate) mod tests {
             .clone_from(&active_delegation.fp_btc_pk_list[0]);
 
         // Check that the finality provider has no power yet
-        let res = queries::finality_provider_info(deps.as_ref(), new_fp.btc_pk_hex.clone(), None);
+        let res = queries::finality_provider_info(
+            deps.as_ref(),
+            &mock_env(),
+            new_fp.btc_pk_hex.clone(),
+            None,
+        );
         assert!(matches!(
             res,
             Err(ContractError::FinalityProviderNotFound(pk)) if pk == new_fp.btc_pk_hex
@@ -658,8 +663,13 @@ pub(crate) mod tests {
         assert_eq!(query_res, delegation);
 
         // Check that the finality provider power has been updated
-        let fp = queries::finality_provider_info(deps.as_ref(), new_fp.btc_pk_hex.clone(), None)
-            .unwrap();
+        let fp = queries::finality_provider_info(
+            deps.as_ref(),
+            &mock_env(),
+            new_fp.btc_pk_hex.clone(),
+            None,
+        )
+        .unwrap();
         assert_eq!(fp.total_active_sats, active_delegation.total_sat);
     }
 
@@ -753,8 +763,13 @@ pub(crate) mod tests {
         );
 
         // Check the finality provider power has been updated
-        let fp = queries::finality_provider_info(deps.as_ref(), new_fp.btc_pk_hex.clone(), None)
-            .unwrap();
+        let fp = queries::finality_provider_info(
+            deps.as_ref(),
+            &mock_env(),
+            new_fp.btc_pk_hex.clone(),
+            None,
+        )
+        .unwrap();
         assert_eq!(fp.total_active_sats, 0);
     }
 
@@ -797,8 +812,13 @@ pub(crate) mod tests {
         assert!(!btc_del.slashed);
 
         // Check the finality provider has power
-        let fp = queries::finality_provider_info(deps.as_ref(), new_fp.btc_pk_hex.clone(), None)
-            .unwrap();
+        let fp = queries::finality_provider_info(
+            deps.as_ref(),
+            &mock_env(),
+            new_fp.btc_pk_hex.clone(),
+            None,
+        )
+        .unwrap();
         assert_eq!(fp.total_active_sats, btc_del.total_sat);
 
         // Now send the slashed delegation message
@@ -837,8 +857,13 @@ pub(crate) mod tests {
 
         // Check the finality provider power remains (it has only this delegation that was
         // slashed)
-        let fp = queries::finality_provider_info(deps.as_ref(), new_fp.btc_pk_hex.clone(), None)
-            .unwrap();
+        let fp = queries::finality_provider_info(
+            deps.as_ref(),
+            &mock_env(),
+            new_fp.btc_pk_hex.clone(),
+            None,
+        )
+        .unwrap();
         assert_eq!(fp.total_active_sats, 0);
     }
 
@@ -899,8 +924,13 @@ pub(crate) mod tests {
         execute(deps.as_mut(), env.clone(), info.clone(), msg).unwrap();
 
         // Check that the finality provider has power before slashing
-        let fp = queries::finality_provider_info(deps.as_ref(), new_fp.btc_pk_hex.clone(), None)
-            .unwrap();
+        let fp = queries::finality_provider_info(
+            deps.as_ref(),
+            &mock_env(),
+            new_fp.btc_pk_hex.clone(),
+            None,
+        )
+        .unwrap();
         assert_eq!(fp.total_active_sats, active_delegation.total_sat);
         assert!(!fp.slashed);
 
@@ -908,8 +938,13 @@ pub(crate) mod tests {
         slash_finality_provider(deps.as_mut(), env.clone(), &new_fp.btc_pk_hex).unwrap();
 
         // Check that the finality provider is now slashed
-        let fp = queries::finality_provider_info(deps.as_ref(), new_fp.btc_pk_hex.clone(), None)
-            .unwrap();
+        let fp = queries::finality_provider_info(
+            deps.as_ref(),
+            &mock_env(),
+            new_fp.btc_pk_hex.clone(),
+            None,
+        )
+        .unwrap();
         assert!(fp.slashed);
         assert_eq!(fp.total_active_sats, active_delegation.total_sat);
 
