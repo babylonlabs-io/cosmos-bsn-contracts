@@ -8,6 +8,7 @@ use crate::state::config::{
     Config, ADMIN, CONFIG, DEFAULT_JAIL_DURATION, DEFAULT_MAX_ACTIVE_FINALITY_PROVIDERS,
     DEFAULT_MIN_PUB_RAND, DEFAULT_MISSED_BLOCKS_WINDOW, DEFAULT_REWARD_INTERVAL,
 };
+use crate::state::finality::ACCUMULATED_VOTING_WEIGHTS;
 use crate::state::finality::REWARDS;
 use crate::{finality, queries, state};
 use babylon_apis::finality_api::SudoMsg;
@@ -586,7 +587,6 @@ pub(crate) mod tests {
             .update_balance(env.contract.address.clone(), vec![coin(1000, "TOKEN")]);
 
         // Setup: Direct accumulated voting weights (simulating FPs having voted)
-        use crate::state::finality::ACCUMULATED_VOTING_WEIGHTS;
         let fp1 = "fp1".to_string();
         let fp2 = "fp2".to_string();
 
@@ -599,7 +599,6 @@ pub(crate) mod tests {
             .unwrap();
 
         // Test reward distribution
-        use crate::finality::distribute_rewards_in_range;
         distribute_rewards_in_range(&mut deps.as_mut(), &env).unwrap(); // Height params are ignored now
 
         // FP1 gets 2/3 of rewards (2000/3000), FP2 gets 1/3 (1000/3000)
@@ -641,8 +640,6 @@ pub(crate) mod tests {
                 },
             )
             .unwrap();
-
-        use crate::finality::distribute_rewards_in_range;
 
         // Test 1: No balance - should not panic
         deps.querier
