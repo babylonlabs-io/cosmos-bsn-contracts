@@ -327,10 +327,6 @@
       },
       "additionalProperties": false
     },
-    "Decimal": {
-      "description": "A fixed-point decimal value with 18 fractional digits, i.e. Decimal(1_000_000_000_000_000_000) == 1.0\n\nThe greatest possible value that can be represented is 340282366920938463463.374607431768211455 (which is (2^128 - 1) / 10^18)",
-      "type": "string"
-    },
     "DelegatorUnbondingInfo": {
       "type": "object",
       "required": [
@@ -343,45 +339,11 @@
       },
       "additionalProperties": false
     },
-    "FinalityProviderDescription": {
-      "type": "object",
-      "required": [
-        "details",
-        "identity",
-        "moniker",
-        "security_contact",
-        "website"
-      ],
-      "properties": {
-        "details": {
-          "description": "Details of the finality provider.",
-          "type": "string"
-        },
-        "identity": {
-          "description": "Identity of the finality provider.",
-          "type": "string"
-        },
-        "moniker": {
-          "description": "Name of the finality provider.",
-          "type": "string"
-        },
-        "security_contact": {
-          "description": "Security contact of the finality provider.",
-          "type": "string"
-        },
-        "website": {
-          "description": "Website of the finality provider.",
-          "type": "string"
-        }
-      },
-      "additionalProperties": false
-    },
     "NewFinalityProvider": {
       "type": "object",
       "required": [
         "addr",
         "btc_pk_hex",
-        "commission",
         "consumer_id"
       ],
       "properties": {
@@ -393,28 +355,9 @@
           "description": "Bitcoin secp256k1 PK of this finality provider the PK follows encoding in BIP-340 spec in hex format",
           "type": "string"
         },
-        "commission": {
-          "description": "Commission rate of the finality provider.",
-          "allOf": [
-            {
-              "$ref": "#/definitions/Decimal"
-            }
-          ]
-        },
         "consumer_id": {
           "description": "ID of the consumer that the finality provider is operating on.",
           "type": "string"
-        },
-        "description": {
-          "description": "Description terms for the finality provider.",
-          "anyOf": [
-            {
-              "$ref": "#/definitions/FinalityProviderDescription"
-            },
-            {
-              "type": "null"
-            }
-          ]
         },
         "pop": {
           "description": "Proof of possession of the babylon_pk and btc_pk",

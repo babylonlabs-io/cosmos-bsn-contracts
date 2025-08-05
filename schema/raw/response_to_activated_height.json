@@ -1,13 +1,12 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "FinalityProviderInfo",
+  "title": "ActivatedHeightResponse",
   "type": "object",
   "required": [
-    "power"
+    "height"
   ],
   "properties": {
-    "power": {
-      "description": "Finality provider power, in satoshis",
+    "height": {
       "type": "integer",
       "format": "uint64",
       "minimum": 0.0

@@ -1,0 +1,239 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ActiveBtcDelegation",
+  "description": "Message sent when a BTC delegation newly receives covenant signatures and thus becomes active.",
+  "type": "object",
+  "required": [
+    "btc_pk_hex",
+    "covenant_sigs",
+    "delegator_slashing_sig",
+    "end_height",
+    "fp_btc_pk_list",
+    "params_version",
+    "slashing_tx",
+    "staker_addr",
+    "staking_output_idx",
+    "staking_tx",
+    "start_height",
+    "total_sat",
+    "unbonding_time",
+    "undelegation_info"
+  ],
+  "properties": {
+    "btc_pk_hex": {
+      "description": "Bitcoin secp256k1 PK of the BTC delegator. The PK follows encoding in BIP-340 spec in hex format",
+      "type": "string"
+    },
+    "covenant_sigs": {
+      "description": "List of adaptor signatures on the slashing tx by each covenant member. It will be a part of the witness for the staking tx output.",
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/CovenantAdaptorSignatures"
+      }
+    },
+    "delegator_slashing_sig": {
+      "description": "Signature on the slashing tx by the delegator (i.e. SK corresponding to btc_pk) as string hex. It will be a part of the witness for the staking tx output.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/Binary"
+        }
+      ]
+    },
+    "end_height": {
+      "description": "End height of the BTC delegation. It is the end BTC height of the time-lock - w",
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0.0
+    },
+    "fp_btc_pk_list": {
+      "description": "List of BIP-340 PKs of the finality providers that this BTC delegation delegates to",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "params_version": {
+      "description": "Params version used to validate the delegation",
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0.0
+    },
+    "slashing_tx": {
+      "description": "Slashing tx.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/Binary"
+        }
+      ]
+    },
+    "staker_addr": {
+      "description": "Address to receive rewards from BTC delegation.",
+      "type": "string"
+    },
+    "staking_output_idx": {
+      "description": "Index of the staking output in the staking tx",
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0.0
+    },
+    "staking_tx": {
+      "description": "Staking tx.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/Binary"
+        }
+      ]
+    },
+    "start_height": {
+      "description": "Start BTC height of the BTC delegation. It is the start BTC height of the time-lock",
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0.0
+    },
+    "total_sat": {
+      "description": "Total BTC stakes in this delegation, quantified in satoshi",
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0.0
+    },
+    "unbonding_time": {
+      "description": "Used in unbonding output time-lock path and in slashing transactions change outputs",
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0.0
+    },
+    "undelegation_info": {
+      "description": "Undelegation info of this delegation.",
+      "allOf": [
+        {
+          "$ref": "#/definitions/BtcUndelegationInfo"
+        }
+      ]
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "Binary": {
+      "description": "Binary is a wrapper around Vec<u8> to add base64 de/serialization with serde. It also adds some helper methods to help encode inline.\n\nThis is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>. See also <https://github.com/CosmWasm/cosmwasm/blob/main/docs/MESSAGE_TYPES.md>.",
+      "type": "string"
+    },
+    "BtcUndelegationInfo": {
+      "description": "Provides all necessary info about the undelegation.",
+      "type": "object",
+      "required": [
+        "covenant_slashing_sigs",
+        "covenant_unbonding_sig_list",
+        "delegator_slashing_sig",
+        "slashing_tx",
+        "unbonding_tx"
+      ],
+      "properties": {
+        "covenant_slashing_sigs": {
+          "description": "List of adaptor signatures on the unbonding slashing tx by each covenant member It will be a part of the witness for the staking tx output.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/CovenantAdaptorSignatures"
+          }
+        },
+        "covenant_unbonding_sig_list": {
+          "description": "List of signatures on the unbonding tx by covenant members",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/SignatureInfo"
+          }
+        },
+        "delegator_slashing_sig": {
+          "description": "Signature on the slashing tx by the delegator (i.e. SK corresponding to btc_pk). It will be a part of the witness for the unbonding tx output.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Binary"
+            }
+          ]
+        },
+        "delegator_unbonding_info": {
+          "description": "Information about transaction which spent the staking output",
+          "anyOf": [
+            {
+              "$ref": "#/definitions/DelegatorUnbondingInfo"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "slashing_tx": {
+          "description": "Unbonding slashing tx",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Binary"
+            }
+          ]
+        },
+        "unbonding_tx": {
+          "description": "Transaction which will transfer the funds from staking output to unbonding output. Unbonding output will usually have lower timelock than staking output.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Binary"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "CovenantAdaptorSignatures": {
+      "description": "Represents a list adaptor signatures signed by the covenant with different finality provider's public keys as encryption keys",
+      "type": "object",
+      "required": [
+        "adaptor_sigs",
+        "cov_pk"
+      ],
+      "properties": {
+        "adaptor_sigs": {
+          "description": "List of adaptor signatures, each encrypted by a restaked BTC finality provider's public key",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Binary"
+          }
+        },
+        "cov_pk": {
+          "description": "Public key of the covenant emulator, used as the public key of the adaptor signature",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Binary"
+            }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "DelegatorUnbondingInfo": {
+      "type": "object",
+      "required": [
+        "spend_stake_tx"
+      ],
+      "properties": {
+        "spend_stake_tx": {
+          "$ref": "#/definitions/Binary"
+        }
+      },
+      "additionalProperties": false
+    },
+    "SignatureInfo": {
+      "description": "A BIP-340 signature together with its signer's BIP-340 PK.",
+      "type": "object",
+      "required": [
+        "pk",
+        "sig"
+      ],
+      "properties": {
+        "pk": {
+          "$ref": "#/definitions/Binary"
+        },
+        "sig": {
+          "$ref": "#/definitions/Binary"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

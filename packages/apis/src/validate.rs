@@ -1,11 +1,10 @@
 use crate::btc_staking_api::{
-    ActiveBtcDelegation, FinalityProviderDescription, NewFinalityProvider, ProofOfPossessionBtc,
-    SlashedBtcDelegation, UnbondedBtcDelegation, HASH_SIZE,
+    ActiveBtcDelegation, NewFinalityProvider, ProofOfPossessionBtc, SlashedBtcDelegation,
+    UnbondedBtcDelegation, HASH_SIZE,
 };
 use crate::error::StakingApiError;
 use bitcoin::consensus::deserialize;
 use bitcoin::Transaction;
-use cosmwasm_std::StdError;
 
 /// Trait for validating the API structs / input.
 pub trait Validate {
@@ -14,11 +13,6 @@ pub trait Validate {
 
 impl Validate for NewFinalityProvider {
     fn validate(&self) -> Result<(), StakingApiError> {
-        self.description
-            .as_ref()
-            .map(FinalityProviderDescription::validate)
-            .transpose()?;
-
         if self.btc_pk_hex.is_empty() {
             return Err(StakingApiError::EmptyBtcPk);
         }
@@ -32,55 +26,6 @@ impl Validate for NewFinalityProvider {
         // Validate consumer_id
         if self.consumer_id.is_empty() {
             return Err(StakingApiError::EmptyChainId);
-        }
-
-        Ok(())
-    }
-}
-
-impl Validate for FinalityProviderDescription {
-    fn validate(&self) -> Result<(), StakingApiError> {
-        if self.moniker.is_empty() {
-            return Err(StakingApiError::description_err("Moniker cannot be empty"));
-        }
-        if self.moniker.len() > FinalityProviderDescription::MAX_MONIKER_LENGTH {
-            return Err(StakingApiError::description_err(format!(
-                "Invalid moniker length; got: {}, max: {}",
-                self.moniker.len(),
-                FinalityProviderDescription::MAX_MONIKER_LENGTH
-            )));
-        }
-
-        if self.identity.len() > FinalityProviderDescription::MAX_IDENTITY_LENGTH {
-            return Err(StakingApiError::from(StdError::generic_err(format!(
-                "Invalid identity length; got: {}, max: {}",
-                self.identity.len(),
-                FinalityProviderDescription::MAX_IDENTITY_LENGTH
-            ))));
-        }
-
-        if self.website.len() > FinalityProviderDescription::MAX_WEBSITE_LENGTH {
-            return Err(StakingApiError::from(StdError::generic_err(format!(
-                "Invalid website length; got: {}, max: {}",
-                self.website.len(),
-                FinalityProviderDescription::MAX_WEBSITE_LENGTH
-            ))));
-        }
-
-        if self.security_contact.len() > FinalityProviderDescription::MAX_SECURITY_CONTACT_LENGTH {
-            return Err(StakingApiError::from(StdError::generic_err(format!(
-                "Invalid security contact length; got: {}, max: {}",
-                self.security_contact.len(),
-                FinalityProviderDescription::MAX_SECURITY_CONTACT_LENGTH
-            ))));
-        }
-
-        if self.details.len() > FinalityProviderDescription::MAX_DETAILS_LENGTH {
-            return Err(StakingApiError::from(StdError::generic_err(format!(
-                "Invalid details length; got: {}, max: {}",
-                self.details.len(),
-                FinalityProviderDescription::MAX_DETAILS_LENGTH
-            ))));
         }
 
         Ok(())
