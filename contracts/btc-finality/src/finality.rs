@@ -511,12 +511,13 @@ pub fn handle_finality_signature(
         let (msg, ev) = slash_finality_provider(&mut deps, &fp_btc_pk_hex, &evidence)?;
         res = res.add_message(msg);
         res = res.add_event(ev);
-    } else {
-        // Accumulate voting weight for this FP for reward distribution
-        ACCUMULATED_VOTING_WEIGHTS.update(deps.storage, &fp_btc_pk_hex, |existing| {
-            Ok::<u128, ContractError>(existing.unwrap_or(0) + (voting_power as u128))
-        })?;
+        return Ok(res);
     }
+
+    // Accumulate voting weight for this FP for reward distribution
+    ACCUMULATED_VOTING_WEIGHTS.update(deps.storage, &fp_btc_pk_hex, |existing| {
+        Ok::<u128, ContractError>(existing.unwrap_or(0) + (voting_power as u128))
+    })?;
 
     Ok(res)
 }
