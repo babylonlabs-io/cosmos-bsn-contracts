@@ -1,9 +1,8 @@
 use crate::msg::ibc::TransferInfoResponse;
 use anyhow::Result as AnyResult;
 use babylon_bindings_test::BabylonApp;
-use btc_light_client::msg::InstantiateMsg as BtcLightClientInstantiateMsg;
 use btc_light_client::BitcoinNetwork;
-use cosmwasm_std::{to_json_binary, Addr, Binary, Empty};
+use cosmwasm_std::{Addr, Binary, Empty};
 use cw_multi_test::{AppResponse, Contract, ContractWrapper, Executor};
 use derivative::Derivative;
 
@@ -104,8 +103,13 @@ impl SuiteBuilder {
     pub fn build(self) -> Suite {
         let _funds = self.funds;
 
-        let owner = Addr::unchecked("owner");
+        // Create a BabylonApp first to get access to the API
+        let app = BabylonApp::new("temp");
 
+        // Use the app's API to generate a proper bech32 address
+        let owner = app.api().addr_make("owner");
+
+        // Now recreate the app with the proper owner
         let mut app = BabylonApp::new(owner.as_str());
 
         let _block_info = app.block_info();

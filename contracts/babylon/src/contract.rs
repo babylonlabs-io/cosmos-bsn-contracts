@@ -529,12 +529,22 @@ mod tests {
         let res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
         assert_eq!(1, res.messages.len());
         assert_eq!(REPLY_ID_INSTANTIATE_FINALITY, res.messages[0].id);
+        // Create the expected finality message with default values
+        let expected_finality_msg = finality_api::InstantiateMsg {
+            admin: None,
+            max_active_finality_providers: None,
+            min_pub_rand: None,
+            reward_interval: None,
+            missed_blocks_window: None,
+            jail_duration: None,
+        };
+
         assert_eq!(
             res.messages[0].msg,
             WasmMsg::Instantiate {
                 admin: None,
                 code_id: 2,
-                msg: Binary::from(b"{}"),
+                msg: to_json_binary(&expected_finality_msg).unwrap(),
                 funds: vec![],
                 label: "BTC Finality".into(),
             }
