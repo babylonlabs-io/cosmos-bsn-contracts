@@ -81,6 +81,7 @@ pub fn ensure_fp_has_power(
 }
 
 /// Sets the voting power table for a given height
+/// Note that if fp_power_table is empty, there won't be any record at this height.
 pub fn set_voting_power_table(
     storage: &mut dyn Storage,
     height: u64,
