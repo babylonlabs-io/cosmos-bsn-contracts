@@ -836,25 +836,6 @@ pub fn compute_active_finality_providers(
         })?;
     }
 
-    // Check for inactive finality providers, and jail them
-    // Note that this takes effect only after the next block is processed
-    fp_power_table.iter().try_for_each(|(fp_btc_pk_hex, _)| {
-        let last_sign_height = get_last_signed_height(deps.storage, fp_btc_pk_hex)?;
-        match last_sign_height {
-            Some(h) if h > env.block.height.saturating_sub(cfg.missed_blocks_window) => {
-                Ok::<_, ContractError>(())
-            }
-            _ => {
-                // FP is inactive for at least missed_blocks_window, jail! (if not already jailed)
-                JAIL.update(deps.storage, fp_btc_pk_hex, |jailed| match jailed {
-                    Some(jail_time) => Ok::<_, ContractError>(jail_time),
-                    None => Ok(env.block.time.seconds() + cfg.jail_duration),
-                })?;
-                Ok(())
-            }
-        }
-    })?;
-
     // Save the new set of active finality providers
     set_voting_power_table(deps.storage, env.block.height, fp_power_table)?;
 

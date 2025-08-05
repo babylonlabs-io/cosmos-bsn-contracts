@@ -6,5 +6,6 @@ pub mod msg;
 pub mod queries;
 pub mod state;
 
+mod liveness;
 #[cfg(test)]
 mod multitest;
