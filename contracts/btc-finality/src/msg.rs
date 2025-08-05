@@ -1,5 +1,4 @@
-use crate::error::ContractError;
-use crate::finality::{FinalitySigError, PubRandCommitError};
+use crate::error::{ContractError, FinalitySigError, PubRandCommitError};
 use babylon_apis::finality_api::{Evidence, IndexedBlock};
 use babylon_merkle::Proof;
 use cosmwasm_schema::{cw_serde, QueryResponses};

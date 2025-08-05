@@ -1,4 +1,4 @@
-use crate::finality::{FinalitySigError, PubRandCommitError};
+use crate::error::{FinalitySigError, PubRandCommitError};
 use crate::msg::{
     MsgAddFinalitySig, MsgCommitPubRand, BIP340_PUB_KEY_LEN, COMMITMENT_LENGTH_BYTES,
     SCHNORR_EOTS_SIG_LEN, SCHNORR_PUB_RAND_LEN, TMHASH_SIZE,

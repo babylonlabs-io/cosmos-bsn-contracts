@@ -1,6 +1,6 @@
 use crate::contract::encode_smart_query;
-use crate::error::ContractError;
-use crate::msg::{MsgAddFinalitySig, MsgCommitPubRand, COMMITMENT_LENGTH_BYTES};
+use crate::error::{ContractError, FinalitySigError};
+use crate::msg::{MsgAddFinalitySig, MsgCommitPubRand};
 use crate::state::config::{ADMIN, CONFIG};
 use crate::state::finality::{
     ensure_fp_has_power, get_last_signed_height, get_power_table_at_height, BLOCKS, EVIDENCES,
@@ -34,28 +34,6 @@ const MAX_PUB_RAND_COMMIT_OFFSET: u64 = 160_000;
 const QUERY_LIMIT: Option<u32> = Some(30);
 
 pub const JAIL_FOREVER: u64 = 0;
-
-#[derive(thiserror::Error, Debug, PartialEq)]
-pub enum PubRandCommitError {
-    #[error("Empty FP BTC PubKey")]
-    EmptyFpBtcPubKey,
-    #[error("Commitment must be {COMMITMENT_LENGTH_BYTES} bytes, got {0}")]
-    BadCommitmentLength(usize),
-    #[error("public rand commit start block height: {0} is equal or higher than start_height + num_pub_rand ({1})")]
-    OverflowInBlockHeight(u64, u64),
-    #[error("Empty signature")]
-    EmptySignature,
-    #[error("Ecdsa error: {0}")]
-    Ecdsa(String),
-    #[error(transparent)]
-    Hex(#[from] hex::FromHexError),
-}
-
-impl From<k256::ecdsa::Error> for PubRandCommitError {
-    fn from(e: k256::ecdsa::Error) -> Self {
-        Self::Ecdsa(e.to_string())
-    }
-}
 
 pub fn handle_public_randomness_commit(
     deps: DepsMut,
@@ -153,27 +131,6 @@ pub(crate) fn msg_to_sign_for_vote(context: &str, block_height: u64, block_hash:
     msg.extend_from_slice(&block_height.to_be_bytes());
     msg.extend_from_slice(block_hash);
     msg
-}
-
-/// Finality signature error types.
-#[derive(thiserror::Error, Debug, PartialEq)]
-pub enum FinalitySigError {
-    #[error("empty Finality Provider BTC PubKey")]
-    EmptyFpBtcPk,
-    #[error("invalid finality provider BTC public key length: got {actual}, want {expected}")]
-    InvalidFpBtcPkLength { actual: usize, expected: usize },
-    #[error("invalid public randomness length: got {actual}, want {expected}")]
-    InvalidPubRandLength { actual: usize, expected: usize },
-    #[error("empty inclusion proof")]
-    EmptyProof,
-    #[error("invalid finality signature length: got {actual}, want {expected}")]
-    InvalidFinalitySigLength { actual: usize, expected: usize },
-    #[error("invalid block app hash length: got {actual}, want {expected}")]
-    InvalidBlockAppHashLength { actual: usize, expected: usize },
-    #[error("duplicated finality vote")]
-    DuplicatedFinalitySig,
-    #[error(transparent)]
-    Hex(#[from] hex::FromHexError),
 }
 
 pub fn handle_finality_signature(
