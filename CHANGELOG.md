@@ -46,6 +46,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Improvements
 
+- [#300](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/300) jailing: move jailing to end blocker
 - [#297](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/297) btc-staking: refactor queries
 - [#294](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/294) slashing: align the slashing implementation with Babylon
 - [#293](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/293) ibc: clean up IBC handshake process
