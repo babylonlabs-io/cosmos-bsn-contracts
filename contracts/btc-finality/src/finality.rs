@@ -927,14 +927,11 @@ pub fn handle_rewards_distribution(
     // Collect all accumulated voting weights and calculate total in one pass
     let (fp_entries, total_accumulated_weight) = collect_accumulated_voting_weights(deps.storage)?;
 
-    if fp_entries.is_empty() || total_accumulated_weight == 0 {
+    if fp_entries.is_empty() || total_accumulated_weight.is_zero() {
         // No accumulated voting weights, clear them and return empty response
         ACCUMULATED_VOTING_WEIGHTS.clear(deps.storage);
         return Ok(Response::new());
     }
-
-    // Convert total_accumulated_weight to Uint128 for safer arithmetic
-    let total_accumulated_weight = Uint128::from(total_accumulated_weight);
 
     // Calculate rewards proportionally and build reward info directly
     let mut fp_rewards = Vec::new();
@@ -942,7 +939,6 @@ pub fn handle_rewards_distribution(
 
     for (fp_btc_pk_hex, accumulated_weight) in fp_entries {
         // Use Uint128 arithmetic for safe multiplication and division with floor division
-        let accumulated_weight = Uint128::from(accumulated_weight);
         let numerator = current_balance.checked_mul(accumulated_weight)?;
         let reward = numerator.div_floor((total_accumulated_weight, Uint128::one()));
 

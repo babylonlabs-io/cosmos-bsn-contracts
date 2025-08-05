@@ -1,7 +1,7 @@
 use crate::error::ContractError;
 use babylon_apis::finality_api::{Evidence, IndexedBlock};
 use cosmwasm_std::Order::Ascending;
-use cosmwasm_std::{StdResult, Storage};
+use cosmwasm_std::{StdResult, Storage, Uint128};
 use cw_storage_plus::{Item, Map};
 use std::collections::HashMap;
 
@@ -74,16 +74,17 @@ pub fn get_last_signed_height(
 /// Collects all accumulated voting weights and calculates the total in a single iteration
 pub fn collect_accumulated_voting_weights(
     storage: &dyn Storage,
-) -> cosmwasm_std::StdResult<(Vec<(String, u128)>, u128)> {
-    let mut total_accumulated_weight = 0u128;
+) -> cosmwasm_std::StdResult<(Vec<(String, Uint128)>, Uint128)> {
+    let mut total_accumulated_weight = Uint128::zero();
     let mut fp_entries = Vec::new();
 
     for item in
         ACCUMULATED_VOTING_WEIGHTS.range(storage, None, None, cosmwasm_std::Order::Ascending)
     {
         let (fp_btc_pk_hex, weight) = item?;
-        total_accumulated_weight += weight;
-        fp_entries.push((fp_btc_pk_hex, weight));
+        let weight_uint128 = Uint128::from(weight);
+        total_accumulated_weight = total_accumulated_weight.checked_add(weight_uint128)?;
+        fp_entries.push((fp_btc_pk_hex, weight_uint128));
     }
 
     Ok((fp_entries, total_accumulated_weight))
