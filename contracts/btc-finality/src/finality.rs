@@ -905,8 +905,12 @@ pub fn query_fps_by_total_active_sats(
     Ok(res.fps)
 }
 
-/// Calculates and returns reward distribution directly without storing in REWARDS.
-/// Returns only the reward info vector - caller constructs WasmMsg as needed.
+/// Handles finality provider reward distribution based on accumulated voting weights.
+///
+/// This function is called periodically (based on `reward_interval` configuration) to distribute
+/// rewards to finality providers proportionally based on their accumulated voting power since the
+/// last distribution. The function calculates rewards from the contract's current balance and
+/// creates a message to send rewards to the Babylon contract for distribution.
 pub fn handle_rewards_distribution(
     deps: &mut DepsMut,
     env: &Env,

@@ -71,7 +71,11 @@ pub fn get_last_signed_height(
     }
 }
 
-/// Collects all accumulated voting weights and calculates the total in a single iteration
+/// Collects all accumulated voting weights for reward distribution calculation.
+///
+/// This function efficiently reads all finality provider voting weights that have been
+/// accumulated since the last reward distribution. Voting weights are accumulated each time
+/// a finality provider signs a block (based on their voting power at that height).
 pub fn collect_accumulated_voting_weights(
     storage: &dyn Storage,
 ) -> cosmwasm_std::StdResult<(Vec<(String, Uint128)>, Uint128)> {
