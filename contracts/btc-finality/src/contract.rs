@@ -8,8 +8,7 @@ use crate::state::config::{
     Config, ADMIN, CONFIG, DEFAULT_JAIL_DURATION, DEFAULT_MAX_ACTIVE_FINALITY_PROVIDERS,
     DEFAULT_MIN_PUB_RAND, DEFAULT_MISSED_BLOCKS_WINDOW, DEFAULT_REWARD_INTERVAL,
 };
-use crate::state::finality::ACCUMULATED_VOTING_WEIGHTS;
-use crate::state::finality::REWARDS;
+use crate::state::finality::{ACCUMULATED_VOTING_WEIGHTS, REWARDS};
 use crate::{finality, queries, state};
 use babylon_apis::finality_api::SudoMsg;
 use babylon_contract::msg::contract::RewardInfo;
@@ -392,16 +391,7 @@ pub(crate) mod tests {
         // Set up the contract with config
         let babylon_addr = deps.api.addr_make("babylon");
         let staking_addr = deps.api.addr_make("staking");
-        let config = Config {
-            denom: "TOKEN".to_string(),
-            babylon: babylon_addr.clone(),
-            staking: staking_addr.clone(),
-            max_active_finality_providers: DEFAULT_MAX_ACTIVE_FINALITY_PROVIDERS,
-            min_pub_rand: DEFAULT_MIN_PUB_RAND,
-            reward_interval: DEFAULT_REWARD_INTERVAL,
-            missed_blocks_window: DEFAULT_MISSED_BLOCKS_WINDOW,
-            jail_duration: DEFAULT_JAIL_DURATION,
-        };
+        let config = Config::new_test(babylon_addr.clone(), staking_addr.clone());
         CONFIG.save(&mut deps.storage, &config).unwrap();
 
         // Add some rewards for FPs
@@ -460,16 +450,7 @@ pub(crate) mod tests {
         // Set up the contract with config
         let babylon_addr = deps.api.addr_make("babylon");
         let staking_addr = deps.api.addr_make("staking");
-        let config = Config {
-            denom: "TOKEN".to_string(),
-            babylon: babylon_addr.clone(),
-            staking: staking_addr.clone(),
-            max_active_finality_providers: DEFAULT_MAX_ACTIVE_FINALITY_PROVIDERS,
-            min_pub_rand: DEFAULT_MIN_PUB_RAND,
-            reward_interval: DEFAULT_REWARD_INTERVAL,
-            missed_blocks_window: DEFAULT_MISSED_BLOCKS_WINDOW,
-            jail_duration: DEFAULT_JAIL_DURATION,
-        };
+        let config = Config::new_test(babylon_addr.clone(), staking_addr.clone());
         CONFIG.save(&mut deps.storage, &config).unwrap();
 
         // No rewards in storage - REWARDS map is empty by default
@@ -565,21 +546,8 @@ pub(crate) mod tests {
         env.contract.address = deps.api.addr_make("finality_contract");
 
         // Setup minimal config
-        CONFIG
-            .save(
-                &mut deps.storage,
-                &Config {
-                    denom: "TOKEN".to_string(),
-                    babylon: deps.api.addr_make("babylon"),
-                    staking: deps.api.addr_make("staking"),
-                    max_active_finality_providers: 100,
-                    min_pub_rand: 1,
-                    reward_interval: 50,
-                    missed_blocks_window: 250,
-                    jail_duration: 86400,
-                },
-            )
-            .unwrap();
+        let config = Config::new_test(deps.api.addr_make("babylon"), deps.api.addr_make("staking"));
+        CONFIG.save(&mut deps.storage, &config).unwrap();
 
         // Set contract balance
         deps.querier
@@ -625,21 +593,8 @@ pub(crate) mod tests {
         let mut env = mock_env();
         env.contract.address = deps.api.addr_make("finality_contract");
 
-        CONFIG
-            .save(
-                &mut deps.storage,
-                &Config {
-                    denom: "TOKEN".to_string(),
-                    babylon: deps.api.addr_make("babylon"),
-                    staking: deps.api.addr_make("staking"),
-                    max_active_finality_providers: 100,
-                    min_pub_rand: 1,
-                    reward_interval: 50,
-                    missed_blocks_window: 250,
-                    jail_duration: 86400,
-                },
-            )
-            .unwrap();
+        let config = Config::new_test(deps.api.addr_make("babylon"), deps.api.addr_make("staking"));
+        CONFIG.save(&mut deps.storage, &config).unwrap();
 
         // Test 1: No balance - should not panic
         deps.querier
