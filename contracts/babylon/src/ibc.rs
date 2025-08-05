@@ -122,7 +122,6 @@ pub fn ibc_packet_receive(
 ) -> Result<IbcReceiveResponse, Never> {
     (|| {
         let packet = msg.packet;
-        let caller = packet.dest.channel_id;
         let packet_data = OutboundPacket::decode(packet.data.as_slice())
             .map_err(|e| StdError::generic_err(format!("failed to decode OutboundPacket: {e}")))?;
         let outbound_packet = packet_data
@@ -130,13 +129,13 @@ pub fn ibc_packet_receive(
             .ok_or(StdError::generic_err("empty IBC packet"))?;
         match outbound_packet {
             OutboundPacketType::BtcTimestamp(btc_ts) => {
-                ibc_packet::handle_btc_timestamp(deps, caller, &btc_ts)
+                ibc_packet::handle_btc_timestamp(deps, &btc_ts)
             }
             OutboundPacketType::BtcStaking(btc_staking) => {
-                ibc_packet::handle_btc_staking(deps, caller, &btc_staking)
+                ibc_packet::handle_btc_staking(deps, &btc_staking)
             }
             OutboundPacketType::BtcHeaders(btc_headers) => {
-                ibc_packet::handle_btc_headers(deps, caller, &btc_headers)
+                ibc_packet::handle_btc_headers(deps, &btc_headers)
             }
         }
     })()
@@ -155,7 +154,6 @@ pub(crate) mod ibc_packet {
 
     pub fn handle_btc_timestamp(
         deps: &mut DepsMut,
-        _caller: String,
         btc_ts: &BtcTimestamp,
     ) -> StdResult<IbcReceiveResponse> {
         // handle the BTC timestamp, i.e., verify the BTC timestamp and update the contract state
@@ -175,7 +173,6 @@ pub(crate) mod ibc_packet {
 
     pub fn handle_btc_staking(
         deps: &mut DepsMut,
-        _caller: String,
         btc_staking: &BtcStakingIbcPacket,
     ) -> StdResult<IbcReceiveResponse> {
         let cfg = CONFIG.load(deps.storage)?;
@@ -231,7 +228,6 @@ pub(crate) mod ibc_packet {
 
     pub fn handle_btc_headers(
         deps: &mut DepsMut,
-        _caller: String,
         btc_headers: &BtcHeaders,
     ) -> StdResult<IbcReceiveResponse> {
         // Submit headers to BTC light client
@@ -296,13 +292,13 @@ pub fn ibc_packet_timeout(
 ) -> Result<IbcBasicResponse, ContractError> {
     deps.api.debug(&format!(
         "Cosmos BSN contracts: ibc_packet_timeout: packet timed out on channel {} port {}",
-        msg.packet.dest.channel_id, msg.packet.dest.port_id
+        msg.packet.src.channel_id, msg.packet.src.port_id
     ));
 
     let response = IbcBasicResponse::new()
         .add_attribute("action", "ibc_packet_timeout")
-        .add_attribute("channel_id", &msg.packet.dest.channel_id)
-        .add_attribute("port_id", &msg.packet.dest.port_id);
+        .add_attribute("channel_id", &msg.packet.src.channel_id)
+        .add_attribute("port_id", &msg.packet.src.port_id);
 
     Ok(response)
 }
