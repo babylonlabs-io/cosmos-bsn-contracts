@@ -16,7 +16,7 @@ pub const BLOCKS: Map<u64, IndexedBlock> = Map::new("blocks");
 pub const NEXT_HEIGHT: Item<u64> = Item::new("next_height");
 
 /// `FP_POWER_TABLE` is the map of finality providers to their total active sats at a given height
-pub const FP_POWER_TABLE: Map<(u64, &str), u64> = Map::new("fp_power_table");
+const FP_POWER_TABLE: Map<(u64, &str), u64> = Map::new("fp_power_table");
 
 /// Map of finality providers to block height they initially entered the active set.
 /// If an FP isn't in this map, he was not in the active finality provider set,
@@ -76,6 +76,19 @@ pub fn ensure_fp_has_power(
             fp_btc_pk_hex.to_string(),
             height,
         ));
+    }
+    Ok(())
+}
+
+/// Sets the voting power table for a given height
+pub fn set_voting_power_table(
+    storage: &mut dyn Storage,
+    height: u64,
+    fp_power_table: HashMap<String, u64>,
+) -> Result<(), ContractError> {
+    // Save the new set of active finality providers
+    for (fp_btc_pk_hex, power) in fp_power_table {
+        FP_POWER_TABLE.save(storage, (height, fp_btc_pk_hex.as_str()), &power)?;
     }
     Ok(())
 }

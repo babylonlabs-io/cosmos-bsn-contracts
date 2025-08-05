@@ -2,8 +2,8 @@ use crate::contract::encode_smart_query;
 use crate::error::ContractError;
 use crate::state::config::{ADMIN, CONFIG};
 use crate::state::finality::{
-    ensure_fp_has_power, get_last_signed_height, get_power_table_at_height, BLOCKS, EVIDENCES,
-    FP_BLOCK_SIGNER, FP_POWER_TABLE, FP_START_HEIGHT, JAIL, NEXT_HEIGHT, REWARDS, SIGNATURES,
+    ensure_fp_has_power, get_last_signed_height, get_power_table_at_height, set_voting_power_table,
+    BLOCKS, EVIDENCES, FP_BLOCK_SIGNER, FP_START_HEIGHT, JAIL, NEXT_HEIGHT, REWARDS, SIGNATURES,
     TOTAL_PENDING_REWARDS,
 };
 use crate::state::public_randomness::{
@@ -847,6 +847,7 @@ pub fn compute_active_finality_providers(
     }
 
     // Check for inactive finality providers, and jail them
+    // Note that this takes effect only after the next block is processed
     fp_power_table.iter().try_for_each(|(fp_btc_pk_hex, _)| {
         let last_sign_height = get_last_signed_height(deps.storage, fp_btc_pk_hex)?;
         match last_sign_height {
@@ -865,13 +866,7 @@ pub fn compute_active_finality_providers(
     })?;
 
     // Save the new set of active finality providers
-    for (fp_btc_pk_hex, power) in fp_power_table {
-        FP_POWER_TABLE.save(
-            deps.storage,
-            (env.block.height, fp_btc_pk_hex.as_str()),
-            &power,
-        )?;
-    }
+    set_voting_power_table(deps.storage, env.block.height, fp_power_table)?;
 
     Ok(())
 }
