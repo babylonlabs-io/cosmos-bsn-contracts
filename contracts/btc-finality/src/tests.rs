@@ -1,7 +1,7 @@
 use crate::error::{FinalitySigError, PubRandCommitError};
 use crate::msg::{
-    MsgAddFinalitySig, MsgCommitPubRand, BIP340_PUB_KEY_LEN, COMMITMENT_LENGTH_BYTES,
-    SCHNORR_EOTS_SIG_LEN, SCHNORR_PUB_RAND_LEN, TMHASH_SIZE,
+    MsgAddFinalitySig, MsgCommitPubRand, BIP340_PUB_KEY_LEN, BIP340_SIGNATURE_LEN,
+    COMMITMENT_LENGTH_BYTES, SCHNORR_EOTS_SIG_LEN, SCHNORR_PUB_RAND_LEN, TMHASH_SIZE,
 };
 use babylon_merkle::Proof;
 use rand::rngs::StdRng;
@@ -13,7 +13,7 @@ fn gen_random_bytes(rng: &mut StdRng, len: usize) -> Vec<u8> {
 }
 
 // Helper function to generate random BTC key pair
-fn gen_random_btc_key_pair(rng: &mut StdRng) -> (Vec<u8>, Vec<u8>) {
+fn gen_random_btc_key_bytes(rng: &mut StdRng) -> (Vec<u8>, Vec<u8>) {
     let sk = gen_random_bytes(rng, 32);
     let pk = gen_random_bytes(rng, 32);
     (sk, pk)
@@ -34,9 +34,9 @@ fn gen_random_msg_commit_pub_rand(
     start_height: u64,
     num_pub_rand: u64,
 ) -> MsgCommitPubRand {
-    let (_, pk) = gen_random_btc_key_pair(rng);
+    let (_, pk) = gen_random_btc_key_bytes(rng);
     let commitment = gen_random_bytes(rng, COMMITMENT_LENGTH_BYTES);
-    let sig = gen_random_bytes(rng, 64); // BIP340 signature length
+    let sig = gen_random_bytes(rng, BIP340_SIGNATURE_LEN);
 
     MsgCommitPubRand {
         fp_btc_pk_hex: hex::encode(&pk),

@@ -13,13 +13,15 @@ use {
 
 pub const COMMITMENT_LENGTH_BYTES: usize = 32;
 
-// BIP340 public key length
+/// BIP340 public key length in bytes.
 pub const BIP340_PUB_KEY_LEN: usize = 32;
-// Schnorr public randomness length
+/// BIP340 signature length in bytes.
+pub const BIP340_SIGNATURE_LEN: usize = 64;
+/// Schnorr public randomness length in bytes
 pub const SCHNORR_PUB_RAND_LEN: usize = 32;
-// Schnorr EOTS signature length
+/// Schnorr EOTS signature length in bytes.
 pub const SCHNORR_EOTS_SIG_LEN: usize = 32;
-// Tendermint hash size (SHA256)
+/// Tendermint hash size (SHA256) in bytes.
 pub const TMHASH_SIZE: usize = 32;
 
 #[cw_serde]
