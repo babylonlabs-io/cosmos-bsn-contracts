@@ -20,8 +20,8 @@ use babylon_merkle::Proof;
 use btc_staking::msg::{FinalityProviderInfo, FinalityProvidersByTotalActiveSatsResponse};
 use cosmwasm_std::Order::Ascending;
 use cosmwasm_std::{
-    to_json_binary, Addr, DepsMut, Env, Event, MessageInfo, QuerierWrapper, Response, StdResult,
-    Storage, Uint128, WasmMsg,
+    coins, to_json_binary, Addr, DepsMut, Env, Event, MessageInfo, QuerierWrapper, Response,
+    StdResult, Storage, Uint128, WasmMsg,
 };
 use k256::schnorr::{signature::Verifier, Signature, VerifyingKey};
 use k256::sha2::{Digest, Sha256};
@@ -935,7 +935,7 @@ pub fn handle_rewards_distribution(
 
     // Calculate rewards proportionally and build reward info directly
     let mut fp_rewards = Vec::new();
-    let mut total_rewards = 0u128;
+    let mut total_rewards = Uint128::zero();
 
     for (fp_btc_pk_hex, accumulated_weight) in fp_entries {
         // Use Uint128 arithmetic for safe multiplication and division with floor division
@@ -947,7 +947,7 @@ pub fn handle_rewards_distribution(
                 fp_pubkey_hex: fp_btc_pk_hex,
                 reward,
             });
-            total_rewards += reward.u128();
+            total_rewards = total_rewards.checked_add(reward)?;
         }
     }
 
@@ -962,8 +962,8 @@ pub fn handle_rewards_distribution(
         };
         let wasm_msg = WasmMsg::Execute {
             contract_addr: cfg.babylon.to_string(),
-            msg: cosmwasm_std::to_json_binary(&msg)?,
-            funds: cosmwasm_std::coins(total_rewards, cfg.denom.as_str()),
+            msg: to_json_binary(&msg)?,
+            funds: coins(total_rewards.u128(), cfg.denom.as_str()),
         };
         res = res.add_message(wasm_msg);
     }
