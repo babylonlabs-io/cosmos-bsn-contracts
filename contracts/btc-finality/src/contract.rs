@@ -1,7 +1,7 @@
 use crate::error::ContractError;
 use crate::finality::{
-    compute_active_finality_providers, distribute_rewards_in_range, handle_finality_signature,
-    handle_public_randomness_commit, handle_unjail,
+    compute_active_finality_providers, handle_finality_signature, handle_public_randomness_commit,
+    handle_unjail, update_rewards_dist_for_interval,
 };
 use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
 use crate::state::config::{
@@ -247,7 +247,7 @@ fn handle_end_block(
 
     // On a reward distribution boundary, send rewards for distribution to Babylon Genesis
     if env.block.height > 0 && env.block.height % cfg.reward_interval == 0 {
-        distribute_rewards_in_range(deps, &env)?;
+        update_rewards_dist_for_interval(deps, &env)?;
 
         // Then send the accumulated rewards to Babylon Genesis via IBC
         let (fp_rewards, wasm_msg) = send_rewards_msg(deps, &cfg)?;
@@ -567,7 +567,7 @@ pub(crate) mod tests {
             .unwrap();
 
         // Test reward distribution
-        distribute_rewards_in_range(&mut deps.as_mut(), &env).unwrap(); // Height params are ignored now
+        update_rewards_dist_for_interval(&mut deps.as_mut(), &env).unwrap(); // Height params are ignored now
 
         // FP1 gets 2/3 of rewards (2000/3000), FP2 gets 1/3 (1000/3000)
         let fp1_reward = REWARDS.load(&deps.storage, &fp1).unwrap();
@@ -600,13 +600,13 @@ pub(crate) mod tests {
         deps.querier
             .bank
             .update_balance(env.contract.address.clone(), vec![coin(0, "TOKEN")]);
-        distribute_rewards_in_range(&mut deps.as_mut(), &env).unwrap();
+        update_rewards_dist_for_interval(&mut deps.as_mut(), &env).unwrap();
 
         // Test 2: No accumulated weights - should not panic
         deps.querier
             .bank
             .update_balance(env.contract.address.clone(), vec![coin(1000, "TOKEN")]);
-        distribute_rewards_in_range(&mut deps.as_mut(), &env).unwrap();
+        update_rewards_dist_for_interval(&mut deps.as_mut(), &env).unwrap();
 
         // Should complete without errors
         // No need to check TOTAL_PENDING_REWARDS since it's been removed

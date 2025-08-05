@@ -900,9 +900,10 @@ pub fn query_fps_by_total_active_sats(
 }
 
 /// Distributes rewards based on accumulated voting weights from the current reward interval.
-/// This approach uses pre-accumulated voting weights that are collected as FPs submit signatures,
-/// making the distribution O(n) instead of O(m*n) for much better gas efficiency.
-pub fn distribute_rewards_in_range(deps: &mut DepsMut, env: &Env) -> Result<(), ContractError> {
+pub fn update_rewards_dist_for_interval(
+    deps: &mut DepsMut,
+    env: &Env,
+) -> Result<(), ContractError> {
     let cfg = CONFIG.load(deps.storage)?;
 
     // Get current balance of the finality contract (total rewards to distribute)
