@@ -19,9 +19,9 @@ use btc_staking::msg::ActivatedHeightResponse;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    attr, coin, coins, from_json, to_json_binary, Addr, CustomQuery, Deps, DepsMut, Empty, Env,
-    MessageInfo, QuerierWrapper, QueryRequest, QueryResponse, Reply, Response, StdResult, Uint128,
-    WasmMsg, WasmQuery,
+    attr, coin, to_json_binary, Addr, CustomQuery, Deps, DepsMut, Empty, Env, MessageInfo,
+    QuerierWrapper, QueryRequest, QueryResponse, Reply, Response, StdResult, Uint128, WasmMsg,
+    WasmQuery,
 };
 use cw2::set_contract_version;
 use cw_utils::{maybe_addr, nonpayable};
@@ -250,8 +250,9 @@ fn handle_end_block(
 
     // On a reward distribution boundary, calculate and send rewards for distribution to Babylon Genesis
     if env.block.height > 0 && env.block.height % cfg.reward_interval == 0 {
-        let rewards_res = handle_rewards_distribution(deps, &env)?;
-        res = res.add_submessages(rewards_res.messages);
+        if let Some(rewards_msg) = handle_rewards_distribution(deps, &env)? {
+            res = res.add_message(rewards_msg);
+        }
     }
 
     Ok(res)
@@ -368,18 +369,18 @@ pub(crate) mod tests {
             .unwrap();
 
         // Test handle_rewards_distribution
-        let response = handle_rewards_distribution(&mut deps.as_mut(), &env).unwrap();
+        let rewards_msg = handle_rewards_distribution(&mut deps.as_mut(), &env).unwrap();
 
         // Verify that a message was created (indicates rewards were distributed)
-        assert_eq!(response.messages.len(), 1);
+        assert!(rewards_msg.is_some());
 
         // Extract and verify the WasmMsg
-        match &response.messages[0].msg {
-            cosmwasm_std::CosmosMsg::Wasm(WasmMsg::Execute {
+        match &rewards_msg.unwrap() {
+            WasmMsg::Execute {
                 contract_addr,
                 msg,
                 funds,
-            }) => {
+            } => {
                 assert_eq!(contract_addr, &babylon_addr.to_string());
                 assert_eq!(funds, &coins(999, "TOKEN")); // 666 + 333 = 999 (due to floor division)
 
@@ -430,10 +431,10 @@ pub(crate) mod tests {
             .update_balance(env.contract.address.clone(), vec![coin(0, "TOKEN")]);
 
         // Test handle_rewards_distribution with no balance
-        let response = handle_rewards_distribution(&mut deps.as_mut(), &env).unwrap();
+        let rewards_msg = handle_rewards_distribution(&mut deps.as_mut(), &env).unwrap();
 
-        // Verify no messages are returned (no rewards to distribute)
-        assert_eq!(response.messages.len(), 0);
+        // Verify no message is returned (no rewards to distribute)
+        assert!(rewards_msg.is_none());
     }
 
     #[test]

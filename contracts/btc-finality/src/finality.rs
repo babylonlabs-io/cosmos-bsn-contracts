@@ -910,7 +910,7 @@ pub fn query_fps_by_total_active_sats(
 pub fn handle_rewards_distribution(
     deps: &mut DepsMut,
     env: &Env,
-) -> Result<Response, ContractError> {
+) -> Result<Option<WasmMsg>, ContractError> {
     let cfg = CONFIG.load(deps.storage)?;
 
     // Get current balance of the finality contract (total rewards to distribute)
@@ -920,17 +920,17 @@ pub fn handle_rewards_distribution(
         .amount;
 
     if current_balance.is_zero() {
-        // No rewards to distribute, return empty response
-        return Ok(Response::new());
+        // No rewards to distribute, return None
+        return Ok(None);
     }
 
     // Collect all accumulated voting weights and calculate total in one pass
     let (fp_entries, total_accumulated_weight) = collect_accumulated_voting_weights(deps.storage)?;
 
     if fp_entries.is_empty() || total_accumulated_weight.is_zero() {
-        // No accumulated voting weights, clear them and return empty response
+        // No accumulated voting weights, clear them and return None
         ACCUMULATED_VOTING_WEIGHTS.clear(deps.storage);
-        return Ok(Response::new());
+        return Ok(None);
     }
 
     // Calculate rewards proportionally and build reward info directly
@@ -954,21 +954,21 @@ pub fn handle_rewards_distribution(
     // Clear all accumulated voting weights for the next reward interval
     ACCUMULATED_VOTING_WEIGHTS.clear(deps.storage);
 
-    // If there are rewards to distribute, create and add the message
-    let mut res = Response::new();
-    if !fp_rewards.is_empty() {
-        let msg = RewardsDistribution {
-            fp_distribution: fp_rewards,
-        };
-        let wasm_msg = WasmMsg::Execute {
-            contract_addr: cfg.babylon.to_string(),
-            msg: to_json_binary(&msg)?,
-            funds: coins(total_rewards.u128(), cfg.denom.as_str()),
-        };
-        res = res.add_message(wasm_msg);
+    // If there are rewards to distribute, create and return the message
+    if fp_rewards.is_empty() {
+        return Ok(None);
     }
 
-    Ok(res)
+    let msg = RewardsDistribution {
+        fp_distribution: fp_rewards,
+    };
+    let wasm_msg = WasmMsg::Execute {
+        contract_addr: cfg.babylon.to_string(),
+        msg: to_json_binary(&msg)?,
+        funds: coins(total_rewards.u128(), cfg.denom.as_str()),
+    };
+
+    Ok(Some(wasm_msg))
 }
 
 #[cfg(test)]
