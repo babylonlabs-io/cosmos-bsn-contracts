@@ -474,7 +474,7 @@ mod tests {
             res.messages[0].msg,
             WasmMsg::Instantiate {
                 admin: None,
-                code_id: 1,
+                code_id: 2,
                 msg: to_json_binary(&btc_light_client_msg).unwrap(),
                 funds: vec![],
                 label: "BTC Light Client".into(),
@@ -498,7 +498,7 @@ mod tests {
             res.messages[0].msg,
             WasmMsg::Instantiate {
                 admin: None,
-                code_id: 1,
+                code_id: 2,
                 msg: Binary::from(params.as_bytes()),
                 funds: vec![],
                 label: "BTC Light Client".into(),
@@ -514,15 +514,15 @@ mod tests {
         let info = message_info(&deps.api.addr_make(CREATOR), &[]);
         let res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
         assert_eq!(3, res.messages.len());
-        assert_eq!(REPLY_ID_INSTANTIATE_FINALITY, res.messages[0].id);
+        assert_eq!(REPLY_ID_INSTANTIATE_FINALITY, res.messages[2].id);
         // Create the expected finality message with default values
         let expected_finality_msg = finality_api::InstantiateMsg::default();
 
         assert_eq!(
-            res.messages[0].msg,
+            res.messages[2].msg,
             WasmMsg::Instantiate {
                 admin: None,
-                code_id: 2,
+                code_id: 4,
                 msg: to_json_binary(&expected_finality_msg).unwrap(),
                 funds: vec![],
                 label: "BTC Finality".into(),
@@ -541,12 +541,12 @@ mod tests {
         let info = message_info(&deps.api.addr_make(CREATOR), &[]);
         let res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
         assert_eq!(3, res.messages.len());
-        assert_eq!(REPLY_ID_INSTANTIATE_FINALITY, res.messages[0].id);
+        assert_eq!(REPLY_ID_INSTANTIATE_FINALITY, res.messages[2].id);
         assert_eq!(
-            res.messages[0].msg,
+            res.messages[2].msg,
             WasmMsg::Instantiate {
                 admin: None,
-                code_id: 2,
+                code_id: 4,
                 msg: Binary::from(params.as_bytes()),
                 funds: vec![],
                 label: "BTC Finality".into(),

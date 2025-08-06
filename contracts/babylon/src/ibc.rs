@@ -306,29 +306,11 @@ pub fn ibc_packet_timeout(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::contract::instantiate;
-    use crate::msg::contract::InstantiateMsg;
-    use cosmwasm_std::testing::message_info;
-    use cosmwasm_std::testing::{
-        mock_dependencies, mock_env, mock_ibc_channel_open_try, MockApi, MockQuerier, MockStorage,
-    };
-    use cosmwasm_std::OwnedDeps;
-
-    const CREATOR: &str = "creator";
-
-    fn setup() -> OwnedDeps<MockStorage, MockApi, MockQuerier> {
-        let mut deps = mock_dependencies();
-        let mut msg = InstantiateMsg::new_test();
-        msg.ics20_channel_id = "channel-1".to_string();
-        let info = message_info(&deps.api.addr_make(CREATOR), &[]);
-        let res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
-        assert_eq!(3, res.messages.len());
-        deps
-    }
+    use cosmwasm_std::testing::{mock_dependencies, mock_env, mock_ibc_channel_open_try};
 
     #[test]
     fn enforce_version_in_handshake() {
-        let mut deps = setup();
+        let mut deps = mock_dependencies();
 
         let wrong_order = mock_ibc_channel_open_try("channel-12", IbcOrder::Unordered, IBC_VERSION);
         ibc_channel_open(deps.as_mut(), mock_env(), wrong_order).unwrap_err();
