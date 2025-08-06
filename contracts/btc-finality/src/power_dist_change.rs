@@ -1,5 +1,6 @@
 use crate::contract::encode_smart_query;
 use crate::error::ContractError;
+use crate::events::{new_finality_provider_status_change_event, FinalityProviderStatus};
 use crate::state::config::CONFIG;
 use crate::state::finality::{
     get_power_table_at_height, set_voting_power_table, FP_START_HEIGHT, JAIL,
@@ -8,7 +9,7 @@ use crate::state::public_randomness::{
     get_last_finalized_height, has_timestamped_pub_rand_commit_for_height,
 };
 use btc_staking::msg::{FinalityProviderInfo, FinalityProvidersByTotalActiveSatsResponse};
-use cosmwasm_std::{Addr, DepsMut, Env, Event, QuerierWrapper, Response, StdResult};
+use cosmwasm_std::{Addr, DepsMut, Env, QuerierWrapper, Response, StdResult};
 use std::collections::{HashMap, HashSet};
 
 const QUERY_LIMIT: Option<u32> = Some(30);
@@ -121,17 +122,17 @@ fn handle_power_table_change(
         })?;
 
         // Emit new active finality provider event
-        let event = Event::new("finality_provider_status_change")
-            .add_attribute("btc_pk", fp.as_str())
-            .add_attribute("new_state", "FINALITY_PROVIDER_STATUS_ACTIVE");
+        let event =
+            new_finality_provider_status_change_event(fp.as_str(), FinalityProviderStatus::Active);
         response = response.add_event(event);
     }
 
     for fp in new_inactive_fps {
         // Emit new inactive finality provider event
-        let event = Event::new("finality_provider_status_change")
-            .add_attribute("btc_pk", fp.as_str())
-            .add_attribute("new_state", "FINALITY_PROVIDER_STATUS_INACTIVE");
+        let event = new_finality_provider_status_change_event(
+            fp.as_str(),
+            FinalityProviderStatus::Inactive,
+        );
         response = response.add_event(event);
     }
 
