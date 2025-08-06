@@ -1,11 +1,11 @@
 use crate::error::ContractError;
 use crate::finality::{
-    handle_finality_signature, handle_public_randomness_commit,
-    handle_rewards_distribution, handle_unjail,
+    handle_finality_signature, handle_public_randomness_commit, handle_rewards_distribution,
+    handle_unjail,
 };
-use crate::power_dist_change::compute_active_finality_providers;
 use crate::liveness::handle_liveness;
 use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
+use crate::power_dist_change::compute_active_finality_providers;
 use crate::state::config::{
     Config, ADMIN, CONFIG, DEFAULT_JAIL_DURATION, DEFAULT_MAX_ACTIVE_FINALITY_PROVIDERS,
     DEFAULT_MIN_PUB_RAND, DEFAULT_MISSED_BLOCKS_WINDOW, DEFAULT_REWARD_INTERVAL,
@@ -264,7 +264,8 @@ fn handle_end_block(
 
     // Examine liveness of finality providers and jail them if they are inactive for a certain
     // duration.
-    handle_liveness(deps, &env, &cfg)?;
+    let liveness_events = handle_liveness(deps, &env, &cfg)?;
+    res = res.add_events(liveness_events);
 
     // On an reward interval boundary, send rewards for distribution to Babylon Genesis
     if env.block.height > 0 && env.block.height % cfg.reward_interval == 0 {
