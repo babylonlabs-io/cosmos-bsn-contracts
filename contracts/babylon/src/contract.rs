@@ -1,7 +1,7 @@
 use crate::error::ContractError;
 use crate::ibc::{get_ibc_packet_timeout, ibc_packet, IBC_TRANSFER_CHANNEL, IBC_ZC_CHANNEL};
 use crate::msg::contract::{ExecuteMsg, InstantiateMsg, QueryMsg};
-use crate::msg::ibc::{BsnRewards, CallbackInfo, CallbackMemo, FpRatio};
+use crate::msg::ibc::{CallbackMemo, FpRatio};
 use crate::queries;
 use crate::state::config::{Config, CONFIG, DEFAULT_IBC_PACKET_TIMEOUT_DAYS};
 use crate::state::consumer_header_chain::CONSUMER_HEIGHT_LAST;
