@@ -82,22 +82,42 @@ pub fn compute_active_finality_providers(
         batch = query_fps_by_total_active_sats(&cfg.staking, &deps.querier, last, QUERY_LIMIT)?;
     }
 
-    // Online FPs verification
-    // Store starting heights of fps entering the active set
+    // Handle power table changes (track new FPs)
     let old_power_table = get_power_table_at_height(deps.storage, env.block.height - 1)?;
-    let old_fps = old_power_table.keys().collect();
-    let cur_fps: HashSet<_> = fp_power_table.keys().collect();
-    let new_fps = cur_fps.difference(&old_fps);
-    for fp in new_fps {
-        // Active since the next block. Only save if not already set
-        FP_START_HEIGHT.update(deps.storage, fp, |h| match h {
-            Some(h) => Ok::<_, ContractError>(h),
-            None => Ok(env.block.height + 1),
-        })?;
-    }
+    handle_power_table_change(deps.storage, env.block.height, &old_power_table, &fp_power_table)?;
 
     // Save the new set of active finality providers
     set_voting_power_table(deps.storage, env.block.height, fp_power_table)?;
+
+    Ok(())
+}
+
+/// Handles power table changes by tracking new finality providers entering the active set.
+/// Sets start heights for newly active FPs.
+fn handle_power_table_change(
+    storage: &mut dyn cosmwasm_std::Storage,
+    current_height: u64,
+    old_power_table: &HashMap<String, u64>,
+    new_power_table: &HashMap<String, u64>,
+) -> Result<(), ContractError> {
+    let old_fps = old_power_table.keys().collect();
+    let cur_fps: HashSet<_> = new_power_table.keys().collect();
+    let new_active_fps = cur_fps.difference(&old_fps);
+    let new_inactive_fps = old_fps.difference(&cur_fps);
+
+    for fp in new_active_fps {
+        // Active since the next block. Only save if not already set
+        FP_START_HEIGHT.update(storage, fp, |h| match h {
+            Some(h) => Ok::<_, ContractError>(h),
+            None => Ok(current_height + 1),
+        })?;
+
+        // TODO: emit new active finality provider event
+    }
+
+    for fp in new_inactive_fps {
+        // TODO: emit new inactive finality provider event
+    }
 
     Ok(())
 }
