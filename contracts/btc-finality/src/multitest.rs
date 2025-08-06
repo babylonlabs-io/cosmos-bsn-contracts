@@ -126,7 +126,6 @@ mod finality {
             res.events[1],
             Event::new("wasm-finality_provider_status_change")
                 .add_attribute("_contract_address", BTC_FINALITY_CONTRACT_ADDR)
-                .add_attribute("module", "finality")
                 .add_attribute("btc_pk", &pk_hex)
                 .add_attribute("new_state", "FINALITY_PROVIDER_STATUS_ACTIVE")
         );

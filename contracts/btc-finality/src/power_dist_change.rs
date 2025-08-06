@@ -82,7 +82,7 @@ pub fn compute_active_finality_providers(
         batch = query_fps_by_total_active_sats(&cfg.staking, &deps.querier, last, QUERY_LIMIT)?;
     }
 
-    // Handle power table changes (track new FPs)
+    // Handle power table changes
     let old_power_table = get_power_table_at_height(deps.storage, env.block.height - 1)?;
     let response = handle_power_table_change(
         deps.storage,
@@ -99,6 +99,7 @@ pub fn compute_active_finality_providers(
 
 /// Handles power table changes by tracking new finality providers entering and leaving the active set.
 /// Sets start heights for newly active FPs and returns a Response with status change events.
+/// ref https://github.com/babylonlabs-io/babylon/blob/3d58d818e2f4f93b9e3dd1cad74fe76748db15a9/x/finality/keeper/power_dist_change.go#L94
 fn handle_power_table_change(
     storage: &mut dyn cosmwasm_std::Storage,
     current_height: u64,
@@ -121,7 +122,6 @@ fn handle_power_table_change(
 
         // Emit new active finality provider event
         let event = Event::new("finality_provider_status_change")
-            .add_attribute("module", "finality")
             .add_attribute("btc_pk", fp.as_str())
             .add_attribute("new_state", "FINALITY_PROVIDER_STATUS_ACTIVE");
         response = response.add_event(event);
@@ -130,7 +130,6 @@ fn handle_power_table_change(
     for fp in new_inactive_fps {
         // Emit new inactive finality provider event
         let event = Event::new("finality_provider_status_change")
-            .add_attribute("module", "finality")
             .add_attribute("btc_pk", fp.as_str())
             .add_attribute("new_state", "FINALITY_PROVIDER_STATUS_INACTIVE");
         response = response.add_event(event);
