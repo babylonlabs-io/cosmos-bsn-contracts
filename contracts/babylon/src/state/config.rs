@@ -18,9 +18,9 @@ pub struct Config {
     /// If set, this stores a BTC finality contract used for BTC finality on the Consumer
     pub btc_finality: Option<Addr>,
     /// Consumer name
-    pub consumer_name: Option<String>,
+    pub consumer_name: String,
     /// Consumer description
-    pub consumer_description: Option<String>,
+    pub consumer_description: String,
     pub denom: String,
     /// IBC packet timeout in days
     pub ibc_packet_timeout_days: u64,

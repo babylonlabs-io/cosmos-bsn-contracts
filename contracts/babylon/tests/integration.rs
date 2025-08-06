@@ -39,7 +39,7 @@ fn setup() -> Instance<MockApi, MockStorage, MockQuerier> {
     );
     let info = message_info(&Addr::unchecked(CREATOR), &[]);
     let res: Response = instantiate(&mut deps, mock_env(), info, msg).unwrap();
-    assert_eq!(0, res.messages.len());
+    assert_eq!(3, res.messages.len());
     deps
 }
 
@@ -62,7 +62,7 @@ fn instantiate_works() {
     let info = message_info(&Addr::unchecked(CREATOR), &[]);
     let res: ContractResult<Response> = instantiate(&mut deps, mock_env(), info, msg);
     let msgs = res.unwrap().messages;
-    assert_eq!(0, msgs.len());
+    assert_eq!(3, msgs.len());
 }
 
 #[test]
