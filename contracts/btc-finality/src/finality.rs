@@ -3,9 +3,9 @@ use crate::error::{ContractError, FinalitySigError};
 use crate::msg::{MsgAddFinalitySig, MsgCommitPubRand};
 use crate::state::config::{ADMIN, CONFIG};
 use crate::state::finality::{
-    collect_accumulated_voting_weights, get_fp_power, get_last_signed_height,
-    get_power_table_at_height, set_voting_power_table, ACCUMULATED_VOTING_WEIGHTS, BLOCKS,
-    EVIDENCES, FP_BLOCK_SIGNER, FP_START_HEIGHT, JAIL, NEXT_HEIGHT, SIGNATURES,
+    collect_accumulated_voting_weights, get_fp_power, get_power_table_at_height,
+    set_voting_power_table, ACCUMULATED_VOTING_WEIGHTS, BLOCKS, EVIDENCES, FP_BLOCK_SIGNER,
+    FP_START_HEIGHT, JAIL, NEXT_HEIGHT, SIGNATURES,
 };
 use crate::state::public_randomness::{
     get_last_finalized_height, get_last_pub_rand_commit,
