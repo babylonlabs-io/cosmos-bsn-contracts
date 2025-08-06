@@ -2,7 +2,7 @@ use cosmwasm_std::Event;
 
 /// FinalityProviderStatus represents the status of a finality provider,
 /// following the same enum values as defined in babylon/proto/babylon/btcstaking/v1/events.proto
-/// ref: https://github.com/babylonlabs-io/babylon/blob/e01948b4919f04bae51e8910a93769132382ed13/proto/babylon/btcstaking/v1/events.proto#L129
+/// ref https://github.com/babylonlabs-io/babylon/blob/e01948b4919f04bae51e8910a93769132382ed13/proto/babylon/btcstaking/v1/events.proto#L129
 #[derive(Debug, Clone, PartialEq)]
 #[allow(dead_code)] // Some variants are not used yet but defined for completeness
 pub enum FinalityProviderStatus {
