@@ -1,8 +1,9 @@
 use crate::error::ContractError;
 use crate::finality::{
-    compute_active_finality_providers, handle_finality_signature, handle_public_randomness_commit,
+    handle_finality_signature, handle_public_randomness_commit,
     handle_rewards_distribution, handle_unjail,
 };
+use crate::power_dist_change::compute_active_finality_providers;
 use crate::liveness::handle_liveness;
 use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
 use crate::state::config::{
