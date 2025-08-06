@@ -84,14 +84,11 @@ pub fn compute_active_finality_providers(
 
     // Handle power table changes (track new FPs)
     let old_power_table = get_power_table_at_height(deps.storage, env.block.height - 1)?;
-    let mut response = Response::new();
-    
-    handle_power_table_change(
+    let response = handle_power_table_change(
         deps.storage,
         env.block.height,
         &old_power_table,
         &fp_power_table,
-        &mut response,
     )?;
 
     // Save the new set of active finality providers
@@ -101,18 +98,19 @@ pub fn compute_active_finality_providers(
 }
 
 /// Handles power table changes by tracking new finality providers entering and leaving the active set.
-/// Sets start heights for newly active FPs and emits status change events directly to the response.
+/// Sets start heights for newly active FPs and returns a Response with status change events.
 fn handle_power_table_change(
     storage: &mut dyn cosmwasm_std::Storage,
     current_height: u64,
     old_power_table: &HashMap<String, u64>,
     new_power_table: &HashMap<String, u64>,
-    response: &mut Response,
-) -> Result<(), ContractError> {
+) -> Result<Response, ContractError> {
     let old_fps = old_power_table.keys().collect();
     let cur_fps: HashSet<_> = new_power_table.keys().collect();
     let new_active_fps = cur_fps.difference(&old_fps);
     let new_inactive_fps = old_fps.difference(&cur_fps);
+
+    let mut response = Response::new();
 
     for fp in new_active_fps {
         // Active since the next block. Only save if not already set
@@ -126,7 +124,7 @@ fn handle_power_table_change(
             .add_attribute("module", "finality")
             .add_attribute("btc_pk", fp.as_str())
             .add_attribute("new_state", "FINALITY_PROVIDER_STATUS_ACTIVE");
-        *response = response.clone().add_event(event);
+        response = response.add_event(event);
     }
 
     for fp in new_inactive_fps {
@@ -135,10 +133,10 @@ fn handle_power_table_change(
             .add_attribute("module", "finality")
             .add_attribute("btc_pk", fp.as_str())
             .add_attribute("new_state", "FINALITY_PROVIDER_STATUS_INACTIVE");
-        *response = response.clone().add_event(event);
+        response = response.add_event(event);
     }
 
-    Ok(())
+    Ok(response)
 }
 
 /// Queries the BTC staking contract for finality providers ordered by total active sats.
