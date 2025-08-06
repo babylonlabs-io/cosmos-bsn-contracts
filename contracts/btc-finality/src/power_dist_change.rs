@@ -8,19 +8,19 @@ use crate::state::public_randomness::{
     get_last_finalized_height, has_timestamped_pub_rand_commit_for_height,
 };
 use btc_staking::msg::{FinalityProviderInfo, FinalityProvidersByTotalActiveSatsResponse};
-use cosmwasm_std::{Addr, DepsMut, Env, QuerierWrapper, StdResult};
+use cosmwasm_std::{Addr, DepsMut, Env, Event, QuerierWrapper, Response, StdResult};
 use std::collections::{HashMap, HashSet};
 
 const QUERY_LIMIT: Option<u32> = Some(30);
 pub const JAIL_FOREVER: u64 = 0;
 
 /// Sorts all finality providers, counts the total voting power of top finality providers, and records them
-/// in the contract state.
+/// in the contract state. Returns a Response with events for finality provider status changes.
 pub fn compute_active_finality_providers(
     deps: &mut DepsMut,
     env: &Env,
     max_active_fps: usize,
-) -> Result<(), ContractError> {
+) -> Result<Response, ContractError> {
     let cfg = CONFIG.load(deps.storage)?;
     // Get last finalized height (for timestamped public randomness checks)
     let last_finalized_height = get_last_finalized_height(&deps.as_ref())?;
@@ -84,21 +84,30 @@ pub fn compute_active_finality_providers(
 
     // Handle power table changes (track new FPs)
     let old_power_table = get_power_table_at_height(deps.storage, env.block.height - 1)?;
-    handle_power_table_change(deps.storage, env.block.height, &old_power_table, &fp_power_table)?;
+    let mut response = Response::new();
+    
+    handle_power_table_change(
+        deps.storage,
+        env.block.height,
+        &old_power_table,
+        &fp_power_table,
+        &mut response,
+    )?;
 
     // Save the new set of active finality providers
     set_voting_power_table(deps.storage, env.block.height, fp_power_table)?;
 
-    Ok(())
+    Ok(response)
 }
 
-/// Handles power table changes by tracking new finality providers entering the active set.
-/// Sets start heights for newly active FPs.
+/// Handles power table changes by tracking new finality providers entering and leaving the active set.
+/// Sets start heights for newly active FPs and emits status change events directly to the response.
 fn handle_power_table_change(
     storage: &mut dyn cosmwasm_std::Storage,
     current_height: u64,
     old_power_table: &HashMap<String, u64>,
     new_power_table: &HashMap<String, u64>,
+    response: &mut Response,
 ) -> Result<(), ContractError> {
     let old_fps = old_power_table.keys().collect();
     let cur_fps: HashSet<_> = new_power_table.keys().collect();
@@ -112,11 +121,21 @@ fn handle_power_table_change(
             None => Ok(current_height + 1),
         })?;
 
-        // TODO: emit new active finality provider event
+        // Emit new active finality provider event
+        let event = Event::new("finality_provider_status_change")
+            .add_attribute("module", "finality")
+            .add_attribute("btc_pk", fp.as_str())
+            .add_attribute("new_state", "FINALITY_PROVIDER_STATUS_ACTIVE");
+        *response = response.clone().add_event(event);
     }
 
     for fp in new_inactive_fps {
-        // TODO: emit new inactive finality provider event
+        // Emit new inactive finality provider event
+        let event = Event::new("finality_provider_status_change")
+            .add_attribute("module", "finality")
+            .add_attribute("btc_pk", fp.as_str())
+            .add_attribute("new_state", "FINALITY_PROVIDER_STATUS_INACTIVE");
+        *response = response.clone().add_event(event);
     }
 
     Ok(())

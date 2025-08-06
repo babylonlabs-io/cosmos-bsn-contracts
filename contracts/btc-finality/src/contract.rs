@@ -229,9 +229,9 @@ fn handle_update_staking(
 fn handle_begin_block(deps: &mut DepsMut, env: Env) -> Result<Response, ContractError> {
     // Compute active finality provider set
     let max_active_fps = CONFIG.load(deps.storage)?.max_active_finality_providers as usize;
-    compute_active_finality_providers(deps, &env, max_active_fps)?;
+    let response = compute_active_finality_providers(deps, &env, max_active_fps)?;
 
-    Ok(Response::new())
+    Ok(response)
 }
 
 fn handle_end_block(
