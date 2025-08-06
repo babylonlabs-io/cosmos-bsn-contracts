@@ -3,6 +3,7 @@ use crate::finality::{
     compute_active_finality_providers, handle_finality_signature, handle_public_randomness_commit,
     handle_rewards_distribution, handle_unjail,
 };
+use crate::liveness::handle_liveness;
 use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
 use crate::state::config::{
     Config, ADMIN, CONFIG, DEFAULT_JAIL_DURATION, DEFAULT_MAX_ACTIVE_FINALITY_PROVIDERS,
@@ -229,7 +230,6 @@ fn handle_begin_block(deps: &mut DepsMut, env: Env) -> Result<Response, Contract
     let max_active_fps = CONFIG.load(deps.storage)?.max_active_finality_providers as usize;
     compute_active_finality_providers(deps, &env, max_active_fps)?;
 
-    // TODO: Add events (#124)
     Ok(Response::new())
 }
 
@@ -260,6 +260,10 @@ fn handle_end_block(
     // Tally all non-finalised blocks
     let events = finality::tally_blocks(deps, &env, activated_height)?;
     res = res.add_events(events);
+
+    // Examine liveness of finality providers and jail them if they are inactive for a certain
+    // duration.
+    handle_liveness(deps, &env, &cfg)?;
 
     // On an reward interval boundary, send rewards for distribution to Babylon Genesis
     if env.block.height > 0 && env.block.height % cfg.reward_interval == 0 {
