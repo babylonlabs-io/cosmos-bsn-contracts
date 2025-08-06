@@ -53,85 +53,81 @@ pub fn instantiate(
 
     // instantiate btc light client contract first
     // It has to be before btc staking and finality contracts which depend on it
-    if let Some(btc_light_client_code_id) = msg.btc_light_client_code_id {
-        let init_btc_lc_msg = if let Some(btc_light_client_msg) = msg.btc_light_client_msg {
-            // If the message is provided, use it
-            btc_light_client_msg
-        } else {
-            // If the message is not provided, use the values in the babylon contract
-            to_json_binary(&btc_light_client::msg::InstantiateMsg {
-                network: msg.network,
-                btc_confirmation_depth: msg.btc_confirmation_depth,
-                checkpoint_finalization_timeout: msg.checkpoint_finalization_timeout,
-                admin: msg.admin.clone(),
-            })?
-        };
-        let init_msg = WasmMsg::Instantiate {
+    let init_btc_lc_msg = if let Some(btc_light_client_msg) = msg.btc_light_client_msg {
+        // If the message is provided, use it
+        btc_light_client_msg
+    } else {
+        // If the message is not provided, use the values in the babylon contract
+        to_json_binary(&btc_light_client::msg::InstantiateMsg {
+            network: msg.network,
+            btc_confirmation_depth: msg.btc_confirmation_depth,
+            checkpoint_finalization_timeout: msg.checkpoint_finalization_timeout,
             admin: msg.admin.clone(),
-            code_id: btc_light_client_code_id,
-            msg: init_btc_lc_msg,
-            funds: vec![],
-            label: "BTC Light Client".into(),
-        };
-        let init_msg = SubMsg::reply_on_success(init_msg, REPLY_ID_INSTANTIATE_LIGHT_CLIENT);
-        res = res.add_submessage(init_msg);
-    }
+        })?
+    };
+    // Instantiate BTC light client contract
+    let init_msg = WasmMsg::Instantiate {
+        admin: msg.admin.clone(),
+        code_id: msg.btc_light_client_code_id,
+        msg: init_btc_lc_msg,
+        funds: vec![],
+        label: "BTC Light Client".into(),
+    };
+    let init_msg = SubMsg::reply_on_success(init_msg, REPLY_ID_INSTANTIATE_LIGHT_CLIENT);
+    res = res.add_submessage(init_msg);
 
-    if let Some(btc_staking_code_id) = msg.btc_staking_code_id {
-        let init_btc_staking_msg = if let Some(btc_staking_msg) = msg.btc_staking_msg {
-            // If the message is provided, use it
-            btc_staking_msg
-        } else {
-            // If the message is not provided, use the values in the babylon contract
-            to_json_binary(&btc_staking_api::InstantiateMsg {
-                admin: msg.admin.clone(),
-            })?
-        };
-        // Instantiate BTC staking contract
-        let init_msg = WasmMsg::Instantiate {
+    // instantiate btc staking contract
+    let init_btc_staking_msg = if let Some(btc_staking_msg) = msg.btc_staking_msg {
+        // If the message is provided, use it
+        btc_staking_msg
+    } else {
+        // If the message is not provided, use the values in the babylon contract
+        to_json_binary(&btc_staking_api::InstantiateMsg {
             admin: msg.admin.clone(),
-            code_id: btc_staking_code_id,
-            msg: init_btc_staking_msg,
-            funds: vec![],
-            label: "BTC Staking".into(),
-        };
-        let init_msg = SubMsg::reply_on_success(init_msg, REPLY_ID_INSTANTIATE_STAKING);
+        })?
+    };
+    // Instantiate BTC staking contract
+    let init_msg = WasmMsg::Instantiate {
+        admin: msg.admin.clone(),
+        code_id: msg.btc_staking_code_id,
+        msg: init_btc_staking_msg,
+        funds: vec![],
+        label: "BTC Staking".into(),
+    };
+    let init_msg = SubMsg::reply_on_success(init_msg, REPLY_ID_INSTANTIATE_STAKING);
+    res = res.add_submessage(init_msg);
 
-        // Test code sets a channel, so that we can better approximate IBC in test code
-        #[cfg(any(test, all(feature = "library", not(target_arch = "wasm32"))))]
-        {
-            IBC_ZC_CHANNEL.save(deps.storage, &"channel-123".to_string())?;
-        }
-        res = res.add_submessage(init_msg);
-    }
-
-    if let Some(btc_finality_code_id) = msg.btc_finality_code_id {
-        let init_btc_finality_msg = if let Some(btc_finality_msg) = msg.btc_finality_msg {
-            // If the message is provided, use it
-            btc_finality_msg
-        } else {
-            // If the message is not provided, use the values in the babylon contract
-            // and default values for the finality contract
-            to_json_binary(&finality_api::InstantiateMsg {
-                admin: msg.admin.clone(),
-                ..Default::default()
-            })?
-        };
-        // Instantiate BTC finality contract
-        let init_msg = WasmMsg::Instantiate {
-            admin: msg.admin,
-            code_id: btc_finality_code_id,
-            msg: init_btc_finality_msg,
-            funds: vec![],
-            label: "BTC Finality".into(),
-        };
-        let init_msg = SubMsg::reply_on_success(init_msg, REPLY_ID_INSTANTIATE_FINALITY);
-
-        res = res.add_submessage(init_msg);
-    }
+    // instantiate btc finality contract
+    let init_btc_finality_msg = if let Some(btc_finality_msg) = msg.btc_finality_msg {
+        // If the message is provided, use it
+        btc_finality_msg
+    } else {
+        // If the message is not provided, use the values in the babylon contract
+        // and default values for the finality contract
+        to_json_binary(&finality_api::InstantiateMsg {
+            admin: msg.admin.clone(),
+            ..Default::default()
+        })?
+    };
+    // Instantiate BTC finality contract
+    let init_msg = WasmMsg::Instantiate {
+        admin: msg.admin,
+        code_id: msg.btc_finality_code_id,
+        msg: init_btc_finality_msg,
+        funds: vec![],
+        label: "BTC Finality".into(),
+    };
+    let init_msg = SubMsg::reply_on_success(init_msg, REPLY_ID_INSTANTIATE_FINALITY);
+    res = res.add_submessage(init_msg);
 
     // Save the config after potentially updating it
     CONFIG.save(deps.storage, &cfg)?;
+
+    // Test code sets a channel, so that we can better approximate IBC in test code
+    #[cfg(any(test, all(feature = "library", not(target_arch = "wasm32"))))]
+    {
+        IBC_ZC_CHANNEL.save(deps.storage, &"channel-123".to_string())?;
+    }
 
     // Save the IBC transfer info
     IBC_TRANSFER_CHANNEL.save(deps.storage, &msg.ics20_channel_id)?;
@@ -363,9 +359,7 @@ pub fn execute(
             }
 
             // Get consumer name for bsn_consumer_id
-            let bsn_consumer_id = cfg
-                .consumer_name
-                .ok_or(ContractError::ConsumerNameNotSet {})?;
+            let bsn_consumer_id = cfg.consumer_name;
 
             // Get the ICS20 transfer channel ID
             let channel_id = IBC_TRANSFER_CHANNEL.load(deps.storage)?;
@@ -454,15 +448,13 @@ mod tests {
         let msg = InstantiateMsg::new_test();
         let info = message_info(&deps.api.addr_make(CREATOR), &[]);
         let res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
-        assert_eq!(0, res.messages.len());
+        assert_eq!(3, res.messages.len());
     }
 
     #[test]
     fn instantiate_light_client_works() {
         let mut deps = mock_dependencies();
         let mut msg = InstantiateMsg::new_test();
-
-        msg.btc_light_client_code_id.replace(1);
 
         let btc_light_client_msg = BtcLightClientInstantiateMsg {
             network: btc_light_client::BitcoinNetwork::Regtest,
@@ -476,7 +468,7 @@ mod tests {
 
         let info = message_info(&deps.api.addr_make(CREATOR), &[]);
         let res = instantiate(deps.as_mut(), mock_env(), info, msg.clone()).unwrap();
-        assert_eq!(1, res.messages.len());
+        assert_eq!(3, res.messages.len());
         assert_eq!(REPLY_ID_INSTANTIATE_LIGHT_CLIENT, res.messages[0].id);
         assert_eq!(
             res.messages[0].msg,
@@ -496,12 +488,11 @@ mod tests {
         let mut deps = mock_dependencies();
         let params = r#"{"network":"testnet","btc_confirmation_depth":6,"checkpoint_finalization_timeout":100}"#;
         let mut msg = InstantiateMsg::new_test();
-        msg.btc_light_client_code_id.replace(1);
         msg.btc_light_client_msg
             .replace(Binary::from(params.as_bytes()));
         let info = message_info(&deps.api.addr_make(CREATOR), &[]);
         let res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
-        assert_eq!(1, res.messages.len());
+        assert_eq!(3, res.messages.len());
         assert_eq!(REPLY_ID_INSTANTIATE_LIGHT_CLIENT, res.messages[0].id);
         assert_eq!(
             res.messages[0].msg,
@@ -519,11 +510,10 @@ mod tests {
     #[test]
     fn instantiate_finality_works() {
         let mut deps = mock_dependencies();
-        let mut msg = InstantiateMsg::new_test();
-        msg.btc_finality_code_id.replace(2);
+        let msg = InstantiateMsg::new_test();
         let info = message_info(&deps.api.addr_make(CREATOR), &[]);
         let res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
-        assert_eq!(1, res.messages.len());
+        assert_eq!(3, res.messages.len());
         assert_eq!(REPLY_ID_INSTANTIATE_FINALITY, res.messages[0].id);
         // Create the expected finality message with default values
         let expected_finality_msg = finality_api::InstantiateMsg::default();
@@ -546,12 +536,11 @@ mod tests {
         let mut deps = mock_dependencies();
         let params = r#"{"params": {"reward_interval": 10}}"#;
         let mut msg = InstantiateMsg::new_test();
-        msg.btc_finality_code_id.replace(2);
         msg.btc_finality_msg
             .replace(Binary::from(params.as_bytes()));
         let info = message_info(&deps.api.addr_make(CREATOR), &[]);
         let res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
-        assert_eq!(1, res.messages.len());
+        assert_eq!(3, res.messages.len());
         assert_eq!(REPLY_ID_INSTANTIATE_FINALITY, res.messages[0].id);
         assert_eq!(
             res.messages[0].msg,
@@ -579,8 +568,8 @@ mod tests {
             btc_light_client: None,
             btc_staking: None,
             btc_finality: Some(finality_addr.clone()),
-            consumer_name: Some("TestConsumer".to_string()),
-            consumer_description: Some("Test Consumer Description".to_string()),
+            consumer_name: "TestConsumer".to_string(),
+            consumer_description: "Test Consumer Description".to_string(),
             denom: "stake".to_string(),
             ibc_packet_timeout_days: 1,
             destination_module: "btcstaking".to_string(),
@@ -623,8 +612,8 @@ mod tests {
             btc_light_client: None,
             btc_staking: None,
             btc_finality: Some(finality_addr.clone()),
-            consumer_name: Some("TestConsumer".to_string()),
-            consumer_description: Some("Test Consumer Description".to_string()),
+            consumer_name: "TestConsumer".to_string(),
+            consumer_description: "Test Consumer Description".to_string(),
             denom: "stake".to_string(),
             ibc_packet_timeout_days: 1,
             destination_module: "btcstaking".to_string(),
@@ -700,8 +689,8 @@ mod tests {
             btc_light_client: None,
             btc_staking: None,
             btc_finality: Some(finality_addr.clone()),
-            consumer_name: Some("TestConsumer".to_string()),
-            consumer_description: Some("Test Consumer Description".to_string()),
+            consumer_name: "TestConsumer".to_string(),
+            consumer_description: "Test Consumer Description".to_string(),
             denom: "stake".to_string(),
             ibc_packet_timeout_days: 1,
             destination_module: "btcstaking".to_string(),

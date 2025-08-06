@@ -131,13 +131,13 @@ impl SuiteBuilder {
                     network: BitcoinNetwork::Testnet,
                     btc_confirmation_depth: 1,
                     checkpoint_finalization_timeout: 1,
-                    btc_light_client_code_id: Some(btc_light_client_code_id),
+                    btc_light_client_code_id: btc_light_client_code_id,
                     btc_light_client_msg: Some(btc_light_client_msg),
-                    btc_staking_code_id: Some(btc_staking_code_id),
+                    btc_staking_code_id: btc_staking_code_id,
                     btc_staking_msg: Some(
                         to_json_binary(&btc_staking::msg::InstantiateMsg { admin: None }).unwrap(),
                     ),
-                    btc_finality_code_id: Some(btc_finality_code_id),
+                    btc_finality_code_id: btc_finality_code_id,
                     btc_finality_msg: Some(
                         to_json_binary(&InstantiateMsg {
                             admin: Some(owner.to_string()),
@@ -146,8 +146,8 @@ impl SuiteBuilder {
                         .unwrap(),
                     ),
                     admin: Some(owner.to_string()),
-                    consumer_name: Some("TestConsumer".to_string()),
-                    consumer_description: Some("Test Consumer Description".to_string()),
+                    consumer_name: "TestConsumer".to_string(),
+                    consumer_description: "Test Consumer Description".to_string(),
                     ics20_channel_id: "channel-0".to_string(),
                     ibc_packet_timeout_days: None,
                     destination_module: "btcstaking".to_string(),

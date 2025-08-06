@@ -322,7 +322,7 @@ mod tests {
         msg.ics20_channel_id = "channel-1".to_string();
         let info = message_info(&deps.api.addr_make(CREATOR), &[]);
         let res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
-        assert_eq!(0, res.messages.len());
+        assert_eq!(3, res.messages.len());
         deps
     }
 

@@ -14,19 +14,19 @@ pub struct InstantiateMsg {
     pub btc_confirmation_depth: u32,
     pub checkpoint_finalization_timeout: u32,
     /// If set, this will instantiate a BTC light client contract
-    pub btc_light_client_code_id: Option<u64>,
+    pub btc_light_client_code_id: u64,
     /// If set, this will define the instantiation message for the BTC light client contract.
     /// This message is opaque to the Babylon contract, and depends on the specific light client
     /// being instantiated
     pub btc_light_client_msg: Option<Binary>,
     /// If set, this will instantiate a BTC staking contract for BTC re-staking
-    pub btc_staking_code_id: Option<u64>,
+    pub btc_staking_code_id: u64,
     /// If set, this will define the instantiation message for the BTC staking contract.
     /// This message is opaque to the Babylon contract, and depends on the specific staking contract
     /// being instantiated
     pub btc_staking_msg: Option<Binary>,
     /// If set, this will instantiate a BTC finality contract
-    pub btc_finality_code_id: Option<u64>,
+    pub btc_finality_code_id: u64,
     /// If set, this will define the instantiation message for the BTC finality contract.
     /// This message is opaque to the Babylon contract, and depends on the specific finality contract
     /// being instantiated
@@ -35,9 +35,9 @@ pub struct InstantiateMsg {
     /// BTC finality contract
     pub admin: Option<String>,
     /// Name of the consumer
-    pub consumer_name: Option<String>,
+    pub consumer_name: String,
     /// Description of the consumer
-    pub consumer_description: Option<String>,
+    pub consumer_description: String,
     /// IBC information for ICS-020 rewards transfer.
     /// Required for rewards distribution on Babylon Genesis
     pub ics20_channel_id: String,
@@ -55,15 +55,15 @@ impl InstantiateMsg {
             network: btc_light_client::BitcoinNetwork::Regtest,
             btc_confirmation_depth: 1,
             checkpoint_finalization_timeout: 1,
-            btc_light_client_code_id: None,
+            btc_light_client_code_id: 2,
             btc_light_client_msg: None,
-            btc_staking_code_id: None,
+            btc_staking_code_id: 3,
             btc_staking_msg: None,
-            btc_finality_code_id: None,
+            btc_finality_code_id: 4,
             btc_finality_msg: None,
             admin: None,
-            consumer_name: None,
-            consumer_description: None,
+            consumer_name: "default-consumer".to_string(),
+            consumer_description: "default-consumer-description".to_string(),
             ics20_channel_id: "channel-0".to_string(),
             ibc_packet_timeout_days: None,
             destination_module: "btcstaking".to_string(),
@@ -73,23 +73,14 @@ impl InstantiateMsg {
 
 impl InstantiateMsg {
     pub fn validate(&self) -> StdResult<()> {
-        if self.btc_staking_code_id.is_some() {
-            if let (Some(consumer_name), Some(consumer_description)) =
-                (&self.consumer_name, &self.consumer_description)
-            {
-                if consumer_name.trim().is_empty() {
-                    return Err(StdError::generic_err("Consumer name cannot be empty"));
-                }
-                if consumer_description.trim().is_empty() {
-                    return Err(StdError::generic_err(
-                        "Consumer description cannot be empty",
-                    ));
-                }
-            } else {
-                return Err(StdError::generic_err(
-                    "Consumer name and description are required when btc_staking_code_id is set",
-                ));
-            }
+        if self.consumer_name.trim().is_empty() {
+            return Err(StdError::generic_err("Consumer name cannot be empty"));
+        }
+
+        if self.consumer_description.trim().is_empty() {
+            return Err(StdError::generic_err(
+                "Consumer description cannot be empty",
+            ));
         }
 
         // Validate that ICS-020 channel ID is not empty
