@@ -7,11 +7,7 @@ use {
     cw_controllers::AdminResponse,
 };
 
-#[cw_serde]
-#[derive(Default)]
-pub struct InstantiateMsg {
-    pub admin: Option<String>,
-}
+pub type InstantiateMsg = babylon_apis::btc_staking_api::InstantiateMsg;
 
 pub type ExecuteMsg = babylon_apis::btc_staking_api::ExecuteMsg;
 

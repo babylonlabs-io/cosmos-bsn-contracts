@@ -46,6 +46,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Improvements
 
+- [#299](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/299) chore: have default values for instantiation messages
 - [#298](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/293) chore: add `test_msg_commit_pub_rand_validate_basic` and minor refactorings
 - [#297](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/297) btc-staking: refactor queries
 - [#294](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/294) slashing: align the slashing implementation with Babylon

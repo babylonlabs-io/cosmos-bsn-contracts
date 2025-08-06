@@ -9,6 +9,17 @@ use babylon_merkle::Proof;
 use crate::Bytes;
 
 #[cw_serde]
+#[derive(Default)]
+pub struct InstantiateMsg {
+    pub admin: Option<String>,
+    pub max_active_finality_providers: Option<u32>,
+    pub min_pub_rand: Option<u64>,
+    pub reward_interval: Option<u64>,
+    pub missed_blocks_window: Option<u64>,
+    pub jail_duration: Option<u64>,
+}
+
+#[cw_serde]
 /// babylon_finality execution handlers
 pub enum ExecuteMsg {
     /// Change the admin

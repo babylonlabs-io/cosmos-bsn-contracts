@@ -22,17 +22,7 @@ pub const SCHNORR_EOTS_SIG_LEN: usize = 32;
 /// Tendermint hash size (SHA256) in bytes.
 pub const TMHASH_SIZE: usize = 32;
 
-#[cw_serde]
-#[derive(Default)]
-pub struct InstantiateMsg {
-    pub admin: Option<String>,
-    pub max_active_finality_providers: Option<u32>,
-    pub min_pub_rand: Option<u64>,
-    pub reward_interval: Option<u64>,
-    pub missed_blocks_window: Option<u64>,
-    pub jail_duration: Option<u64>,
-}
-
+pub type InstantiateMsg = babylon_apis::finality_api::InstantiateMsg;
 pub type ExecuteMsg = babylon_apis::finality_api::ExecuteMsg;
 
 // https://github.com/babylonlabs-io/babylon/blob/49972e2d3e35caf0a685c37e1f745c47b75bfc69/x/finality/types/tx.pb.go#L36

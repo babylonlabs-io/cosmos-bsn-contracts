@@ -7,7 +7,7 @@ use crate::state::config::{Config, CONFIG, DEFAULT_IBC_PACKET_TIMEOUT_DAYS};
 use crate::state::consumer_header_chain::CONSUMER_HEIGHT_LAST;
 use babylon_apis::{btc_staking_api, finality_api, to_bech32_addr, to_module_canonical_addr};
 use cosmwasm_std::{
-    to_json_binary, to_json_string, Addr, Binary, Decimal, Deps, DepsMut, Empty, Env, MessageInfo,
+    to_json_binary, to_json_string, Addr, Decimal, Deps, DepsMut, Empty, Env, MessageInfo,
     QueryResponse, Reply, Response, SubMsg, SubMsgResponse, WasmMsg,
 };
 use cw2::set_contract_version;
@@ -33,15 +33,15 @@ pub fn instantiate(
 
     // Initialize config with None values for consumer fields
     let denom = deps.querier.query_bonded_denom()?;
-    let mut cfg = Config {
+    let cfg = Config {
         network: msg.network,
         btc_confirmation_depth: msg.btc_confirmation_depth,
         checkpoint_finalization_timeout: msg.checkpoint_finalization_timeout,
         btc_light_client: None, // Will be set in `reply` if `btc_light_client_code_id` is provided
         btc_staking: None,      // Will be set in `reply` if `btc_staking_code_id` is provided
         btc_finality: None,     // Will be set in `reply` if `btc_finality_code_id` is provided
-        consumer_name: None,
-        consumer_description: None,
+        consumer_name: msg.consumer_name,
+        consumer_description: msg.consumer_description,
         denom,
         ibc_packet_timeout_days: msg
             .ibc_packet_timeout_days
@@ -54,13 +54,22 @@ pub fn instantiate(
     // instantiate btc light client contract first
     // It has to be before btc staking and finality contracts which depend on it
     if let Some(btc_light_client_code_id) = msg.btc_light_client_code_id {
-        let init_msg = msg
-            .btc_light_client_msg
-            .ok_or(ContractError::MissingBtcLightClientInitMsg)?;
+        let init_btc_lc_msg = if let Some(btc_light_client_msg) = msg.btc_light_client_msg {
+            // If the message is provided, use it
+            btc_light_client_msg
+        } else {
+            // If the message is not provided, use the values in the babylon contract
+            to_json_binary(&btc_light_client::msg::InstantiateMsg {
+                network: msg.network,
+                btc_confirmation_depth: msg.btc_confirmation_depth,
+                checkpoint_finalization_timeout: msg.checkpoint_finalization_timeout,
+                admin: msg.admin.clone(),
+            })?
+        };
         let init_msg = WasmMsg::Instantiate {
             admin: msg.admin.clone(),
             code_id: btc_light_client_code_id,
-            msg: init_msg,
+            msg: init_btc_lc_msg,
             funds: vec![],
             label: "BTC Light Client".into(),
         };
@@ -69,15 +78,20 @@ pub fn instantiate(
     }
 
     if let Some(btc_staking_code_id) = msg.btc_staking_code_id {
-        // Update config with consumer information
-        cfg.consumer_name = msg.consumer_name;
-        cfg.consumer_description = msg.consumer_description;
-
+        let init_btc_staking_msg = if let Some(btc_staking_msg) = msg.btc_staking_msg {
+            // If the message is provided, use it
+            btc_staking_msg
+        } else {
+            // If the message is not provided, use the values in the babylon contract
+            to_json_binary(&btc_staking_api::InstantiateMsg {
+                admin: msg.admin.clone(),
+            })?
+        };
         // Instantiate BTC staking contract
         let init_msg = WasmMsg::Instantiate {
             admin: msg.admin.clone(),
             code_id: btc_staking_code_id,
-            msg: msg.btc_staking_msg.unwrap_or(Binary::from(b"{}")),
+            msg: init_btc_staking_msg,
             funds: vec![],
             label: "BTC Staking".into(),
         };
@@ -92,11 +106,22 @@ pub fn instantiate(
     }
 
     if let Some(btc_finality_code_id) = msg.btc_finality_code_id {
+        let init_btc_finality_msg = if let Some(btc_finality_msg) = msg.btc_finality_msg {
+            // If the message is provided, use it
+            btc_finality_msg
+        } else {
+            // If the message is not provided, use the values in the babylon contract
+            // and default values for the finality contract
+            to_json_binary(&finality_api::InstantiateMsg {
+                admin: msg.admin.clone(),
+                ..Default::default()
+            })?
+        };
         // Instantiate BTC finality contract
         let init_msg = WasmMsg::Instantiate {
             admin: msg.admin,
             code_id: btc_finality_code_id,
-            msg: msg.btc_finality_msg.unwrap_or(Binary::from(b"{}")),
+            msg: init_btc_finality_msg,
             funds: vec![],
             label: "BTC Finality".into(),
         };
@@ -405,15 +430,13 @@ pub fn execute(
 #[cfg(test)]
 mod tests {
     use super::*;
-
+    use crate::msg::contract::RewardInfo;
     use bitcoin::block::Header as BlockHeader;
     use btc_light_client::msg::InstantiateMsg as BtcLightClientInstantiateMsg;
-
     use cosmwasm_std::testing::message_info;
     use cosmwasm_std::testing::{mock_dependencies, mock_env};
+    use cosmwasm_std::Binary;
     use cosmwasm_std::Uint128;
-
-    use crate::msg::contract::RewardInfo;
 
     const CREATOR: &str = "creator";
 
@@ -502,12 +525,15 @@ mod tests {
         let res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
         assert_eq!(1, res.messages.len());
         assert_eq!(REPLY_ID_INSTANTIATE_FINALITY, res.messages[0].id);
+        // Create the expected finality message with default values
+        let expected_finality_msg = finality_api::InstantiateMsg::default();
+
         assert_eq!(
             res.messages[0].msg,
             WasmMsg::Instantiate {
                 admin: None,
                 code_id: 2,
-                msg: Binary::from(b"{}"),
+                msg: to_json_binary(&expected_finality_msg).unwrap(),
                 funds: vec![],
                 label: "BTC Finality".into(),
             }
