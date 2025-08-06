@@ -26,6 +26,7 @@ pub type InstantiateMsg = babylon_apis::finality_api::InstantiateMsg;
 pub type ExecuteMsg = babylon_apis::finality_api::ExecuteMsg;
 
 // https://github.com/babylonlabs-io/babylon/blob/49972e2d3e35caf0a685c37e1f745c47b75bfc69/x/finality/types/tx.pb.go#L36
+#[derive(Debug)]
 pub struct MsgCommitPubRand {
     pub fp_btc_pk_hex: String,
     pub start_height: u64,
@@ -50,10 +51,10 @@ impl MsgCommitPubRand {
 
         // To avoid public randomness reset,
         // check for overflow when doing (StartHeight + NumPubRand)
-        if self.start_height >= (self.start_height + self.num_pub_rand) {
+        if self.start_height.checked_add(self.num_pub_rand).is_none() {
             return Err(PubRandCommitError::OverflowInBlockHeight(
                 self.start_height,
-                self.start_height + self.num_pub_rand,
+                self.num_pub_rand,
             ));
         }
 

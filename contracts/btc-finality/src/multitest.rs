@@ -1,6 +1,6 @@
 mod suite;
 
-use crate::error::ContractError;
+use crate::error::{ContractError, PubRandCommitError};
 use crate::msg::FinalitySignatureResponse;
 use crate::msg::JailedFinalityProvider;
 use babylon_apis::finality_api::IndexedBlock;
@@ -13,6 +13,9 @@ use babylon_test_utils::{
     get_derived_btc_delegation, get_pub_rand_value, get_public_randomness_commitment,
 };
 use cosmwasm_std::{coin, Addr, Event};
+use rand::seq::SliceRandom;
+use rand::thread_rng;
+use rand::Rng;
 use suite::SuiteBuilder;
 
 #[test]
@@ -49,9 +52,12 @@ fn instantiate_works() {
     );
 }
 
+// https://github.com/babylonlabs-io/babylon/blob/49972e2d3e35caf0a685c37e1f745c47b75bfc69/x/finality/keeper/msg_server_test.go#L45
 #[test]
 fn commit_public_randomness_works() {
-    let mut suite = SuiteBuilder::new().build();
+    let mut suite = SuiteBuilder::new().with_min_pub_rand(3).build();
+
+    let mut rng = thread_rng();
 
     // Read public randomness commitment test data
     let (pk_hex, pub_rand, pubrand_signature) = get_public_randomness_commitment();
@@ -64,10 +70,96 @@ fn commit_public_randomness_works() {
 
     suite.register_finality_providers(&[new_fp]).unwrap();
 
-    // Now commit the public randomness for it
-    suite
+    let bad_pk_hex: String = {
+        let mut chars: Vec<char> = pk_hex.chars().collect();
+        chars.shuffle(&mut rng);
+        chars.into_iter().collect()
+    };
+
+    // Case 1: fail if the finality provider is not registered.
+    assert_eq!(
+        suite
+            .commit_public_randomness(&bad_pk_hex, &pub_rand, &pubrand_signature)
+            .unwrap_err()
+            .downcast::<ContractError>()
+            .unwrap(),
+        ContractError::FinalityProviderNotFound(bad_pk_hex)
+    );
+
+    // Case 2: commit a list of <minPubRand pubrand and it should fail
+    let mut bad_pub_rand_commit = pub_rand.clone();
+    bad_pub_rand_commit.num_pub_rand = 1;
+    assert_eq!(
+        suite
+            .commit_public_randomness(&pk_hex, &bad_pub_rand_commit, &pubrand_signature)
+            .unwrap_err()
+            .downcast::<ContractError>()
+            .unwrap(),
+        ContractError::TooFewPubRand(3, 1)
+    );
+
+    // Case 3: when the finality provider commits pubrand list and it should succeed
+    assert!(suite
         .commit_public_randomness(&pk_hex, &pub_rand, &pubrand_signature)
-        .unwrap();
+        .is_ok());
+
+    let last_pub_rand = suite.get_last_pub_rand_commit(pk_hex.clone());
+
+    assert_eq!(last_pub_rand, pub_rand);
+
+    // Case 4: commit a pubrand list with overlap of the existing pubrand in KVStore and it should fail
+    let overlapped_start_height = pub_rand.end_height() - rng.gen_range(0..5);
+    let mut bad_pub_rand_commit = pub_rand.clone();
+    bad_pub_rand_commit.start_height = overlapped_start_height;
+    assert_eq!(
+        suite
+            .commit_public_randomness(&pk_hex, &bad_pub_rand_commit, &pubrand_signature)
+            .unwrap_err()
+            .downcast::<ContractError>()
+            .unwrap(),
+        ContractError::InvalidPubRandHeight(
+            bad_pub_rand_commit.start_height,
+            last_pub_rand.end_height(),
+        )
+    );
+
+    // Case 5: commit a pubrand list that has no overlap with existing pubrand and it should succeed
+    let overlapped_start_height =
+        pub_rand.start_height + pub_rand.num_pub_rand + rng.gen_range(0..5);
+    let mut bad_pub_rand_commit = pub_rand.clone();
+    bad_pub_rand_commit.start_height = overlapped_start_height;
+    assert!(suite
+        .commit_public_randomness(&pk_hex, &bad_pub_rand_commit, &pubrand_signature)
+        .is_ok());
+
+    // Case 6: commit a pubrand list that overflows when adding startHeight + numPubRand
+    let overflow_start_height = u64::MAX;
+    let mut bad_pub_rand_commit = pub_rand.clone();
+    bad_pub_rand_commit.start_height = overflow_start_height;
+    assert_eq!(
+        suite
+            .commit_public_randomness(&pk_hex, &bad_pub_rand_commit, &pubrand_signature)
+            .unwrap_err()
+            .downcast::<ContractError>()
+            .unwrap(),
+        PubRandCommitError::OverflowInBlockHeight(
+            bad_pub_rand_commit.start_height,
+            bad_pub_rand_commit.num_pub_rand,
+        )
+        .into()
+    );
+
+    // Case 7: commit a pubrand list with startHeight too far into the future
+    let mut bad_pub_rand_commit = pub_rand.clone();
+    bad_pub_rand_commit.start_height = 500_000;
+    assert!(matches!(
+        suite
+            .commit_public_randomness(&pk_hex, &bad_pub_rand_commit, &pubrand_signature)
+            .unwrap_err()
+            .downcast::<ContractError>()
+            .unwrap(),
+        ContractError::FuturePubRandStartHeight { .. }
+    ));
 }
 
 #[test]

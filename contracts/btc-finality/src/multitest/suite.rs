@@ -69,6 +69,7 @@ pub struct SuiteBuilder {
     height: Option<u64>,
     init_funds: Vec<Coin>,
     missed_blocks_window: Option<u64>,
+    min_pub_rand: Option<u64>,
 }
 
 impl SuiteBuilder {
@@ -84,6 +85,11 @@ impl SuiteBuilder {
 
     pub fn with_missed_blocks(mut self, missed_blocks: u64) -> Self {
         self.missed_blocks_window = Some(missed_blocks);
+        self
+    }
+
+    pub fn with_min_pub_rand(mut self, min_pub_rand: u64) -> Self {
+        self.min_pub_rand.replace(min_pub_rand);
         self
     }
 
@@ -141,6 +147,7 @@ impl SuiteBuilder {
                     btc_finality_msg: Some(
                         to_json_binary(&InstantiateMsg {
                             admin: Some(owner.to_string()),
+                            min_pub_rand: self.min_pub_rand,
                             ..Default::default()
                         })
                         .unwrap(),
@@ -497,6 +504,17 @@ impl Suite {
             )
             .unwrap()
             .jailed_finality_providers
+    }
+
+    pub fn get_last_pub_rand_commit(&self, btc_pk_hex: String) -> PubRandCommit {
+        self.app
+            .wrap()
+            .query_wasm_smart::<Option<PubRandCommit>>(
+                self.finality.clone(),
+                &crate::msg::QueryMsg::LastPubRandCommit { btc_pk_hex },
+            )
+            .unwrap()
+            .unwrap()
     }
 
     pub fn get_active_finality_providers(&self, height: u64) -> HashMap<String, u64> {
