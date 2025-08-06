@@ -37,7 +37,6 @@ pub struct BtcTimestampResponse {
 const ADD_BSN_REWARDS_ACTION: &str = "add_bsn_rewards";
 
 // Callback memo structures for IBC transfers
-/// https://github.com/babylonlabs-io/babylon/blob/fa63f5eadc697dc17773de2ef4fc6d972a5e1618/x/btcstaking/types/ibc_callbacks.go
 #[cw_serde]
 pub struct CallbackMemo {
     pub action: String,
