@@ -89,16 +89,23 @@ func NewBabylonInitMsg(
 		"btc_confirmation_depth":          k,
 		"checkpoint_finalization_timeout": w,
 		"btc_light_client_code_id":        btcLightClientCodeID,
-		"btc_light_client_msg":            base64.StdEncoding.EncodeToString(btcLightClientInitMsg),
 		"btc_staking_code_id":             btcStakingCodeID,
-		"btc_staking_msg":                 base64.StdEncoding.EncodeToString(btcStakingInitMsg),
 		"btc_finality_code_id":            btcFinalityCodeID,
-		"btc_finality_msg":                base64.StdEncoding.EncodeToString(btcFinalityInitMsg),
 		"admin":                           admin,
 		"consumer_name":                   consumerName,
 		"consumer_description":            consumerDescription,
 		"ics20_channel_id":                ics20ChannelID,
 		"destination_module":              "btcstaking",
+	}
+
+	if len(btcLightClientInitMsg) > 0 {
+		data["btc_light_client_msg"] = base64.StdEncoding.EncodeToString(btcLightClientInitMsg)
+	}
+	if len(btcStakingInitMsg) > 0 {
+		data["btc_staking_msg"] = base64.StdEncoding.EncodeToString(btcStakingInitMsg)
+	}
+	if len(btcFinalityInitMsg) > 0 {
+		data["btc_finality_msg"] = base64.StdEncoding.EncodeToString(btcFinalityInitMsg)
 	}
 
 	jsonBytes, err := json.Marshal(data)

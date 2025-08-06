@@ -1,5 +1,6 @@
 use crate::contract::encode_smart_query;
-use crate::error::ContractError;
+use crate::error::{ContractError, FinalitySigError};
+use crate::msg::{MsgAddFinalitySig, MsgCommitPubRand};
 use crate::state::config::{ADMIN, CONFIG};
 use crate::state::finality::{
     collect_accumulated_voting_weights, get_fp_power, get_last_signed_height,
@@ -14,16 +15,13 @@ use crate::state::public_randomness::{
 use babylon_apis::btc_staking_api::FinalityProvider;
 use babylon_apis::finality_api::{Evidence, IndexedBlock, PubRandCommit};
 use babylon_apis::to_canonical_addr;
-use babylon_contract::msg::contract::{ExecuteMsg::RewardsDistribution, RewardInfo};
-use babylon_contract::ExecuteMsg;
-use babylon_merkle::Proof;
+use babylon_contract::msg::contract::{ExecuteMsg, RewardInfo};
 use btc_staking::msg::{FinalityProviderInfo, FinalityProvidersByTotalActiveSatsResponse};
 use cosmwasm_std::Order::Ascending;
 use cosmwasm_std::{
     coins, to_json_binary, Addr, DepsMut, Env, Event, MessageInfo, QuerierWrapper, Response,
     StdResult, Storage, Uint128, WasmMsg,
 };
-use k256::schnorr::{signature::Verifier, Signature, VerifyingKey};
 use k256::sha2::{Digest, Sha256};
 use std::cmp::max;
 use std::collections::{HashMap, HashSet};
@@ -34,110 +32,9 @@ use std::collections::{HashMap, HashSet};
 // or performance degradation caused by excessive future commitments.
 const MAX_PUB_RAND_COMMIT_OFFSET: u64 = 160_000;
 
-const COMMITMENT_LENGTH_BYTES: usize = 32;
-
-// BIP340 public key length
-const BIP340_PUB_KEY_LEN: usize = 32;
-// Schnorr public randomness length
-const SCHNORR_PUB_RAND_LEN: usize = 32;
-// Schnorr EOTS signature length
-const SCHNORR_EOTS_SIG_LEN: usize = 32;
-// Tendermint hash size (SHA256)
-const TMHASH_SIZE: usize = 32;
-
 const QUERY_LIMIT: Option<u32> = Some(30);
 
 pub const JAIL_FOREVER: u64 = 0;
-
-#[derive(thiserror::Error, Debug, PartialEq)]
-pub enum PubRandCommitError {
-    #[error("Empty FP BTC PubKey")]
-    EmptyFpBtcPubKey,
-    #[error("Commitment must be {COMMITMENT_LENGTH_BYTES} bytes, got {0}")]
-    BadCommitmentLength(usize),
-    #[error("public rand commit start block height: {0} is equal or higher than start_height + num_pub_rand ({1})")]
-    OverflowInBlockHeight(u64, u64),
-    #[error("Empty signature")]
-    EmptySignature,
-    #[error("Ecdsa error: {0}")]
-    Ecdsa(String),
-    #[error(transparent)]
-    Hex(#[from] hex::FromHexError),
-}
-
-impl From<k256::ecdsa::Error> for PubRandCommitError {
-    fn from(e: k256::ecdsa::Error) -> Self {
-        Self::Ecdsa(e.to_string())
-    }
-}
-
-// https://github.com/babylonlabs-io/babylon/blob/49972e2d3e35caf0a685c37e1f745c47b75bfc69/x/finality/types/tx.pb.go#L36
-pub struct MsgCommitPubRand {
-    pub fp_btc_pk_hex: String,
-    pub start_height: u64,
-    pub num_pub_rand: u64,
-    pub commitment: Vec<u8>,
-    pub sig: Vec<u8>,
-}
-
-impl MsgCommitPubRand {
-    // https://github.com/babylonlabs-io/babylon/blob/49972e2d3e35caf0a685c37e1f745c47b75bfc69/x/finality/types/msg.go#L161
-    fn validate_basic(&self) -> Result<(), PubRandCommitError> {
-        if self.fp_btc_pk_hex.is_empty() {
-            return Err(PubRandCommitError::EmptyFpBtcPubKey);
-        }
-
-        // Checks if the commitment is exactly 32 bytes
-        if self.commitment.len() != COMMITMENT_LENGTH_BYTES {
-            return Err(PubRandCommitError::BadCommitmentLength(
-                self.commitment.len(),
-            ));
-        }
-
-        // To avoid public randomness reset,
-        // check for overflow when doing (StartHeight + NumPubRand)
-        if self.start_height >= (self.start_height + self.num_pub_rand) {
-            return Err(PubRandCommitError::OverflowInBlockHeight(
-                self.start_height,
-                self.start_height + self.num_pub_rand,
-            ));
-        }
-
-        if self.sig.is_empty() {
-            return Err(PubRandCommitError::EmptySignature);
-        }
-
-        Ok(())
-    }
-
-    fn verify_sig(&self, signing_context: String) -> Result<(), PubRandCommitError> {
-        let Self {
-            fp_btc_pk_hex,
-            start_height,
-            num_pub_rand,
-            commitment,
-            sig: signature,
-        } = self;
-
-        // get BTC public key for verification
-        let btc_pk_raw = hex::decode(fp_btc_pk_hex)?;
-        let btc_pk = VerifyingKey::from_bytes(&btc_pk_raw)?;
-
-        let schnorr_sig = Signature::try_from(signature.as_slice())?;
-
-        // get signed message
-        let mut msg: Vec<u8> = vec![];
-        msg.extend(signing_context.into_bytes());
-        msg.extend(start_height.to_be_bytes());
-        msg.extend(num_pub_rand.to_be_bytes());
-        msg.extend_from_slice(commitment);
-
-        // Verify the signature
-        btc_pk.verify(&msg, &schnorr_sig)?;
-
-        Ok(())
-    }
-}
 
 pub fn handle_public_randomness_commit(
     deps: DepsMut,
@@ -229,130 +126,12 @@ pub fn handle_public_randomness_commit(
 
 /// Returns the message for an EOTS signature
 /// The EOTS signature on a block will be (context || blockHeight || blockHash)
-fn msg_to_sign_for_vote(context: &str, block_height: u64, block_hash: &[u8]) -> Vec<u8> {
+pub(crate) fn msg_to_sign_for_vote(context: &str, block_height: u64, block_hash: &[u8]) -> Vec<u8> {
     let mut msg = Vec::new();
     msg.extend_from_slice(context.as_bytes());
     msg.extend_from_slice(&block_height.to_be_bytes());
     msg.extend_from_slice(block_hash);
     msg
-}
-
-/// Finality signature error types.
-#[derive(thiserror::Error, Debug, PartialEq)]
-pub enum FinalitySigError {
-    #[error("empty Finality Provider BTC PubKey")]
-    EmptyFpBtcPk,
-    #[error("invalid finality provider BTC public key length: got {actual}, want {expected}")]
-    InvalidFpBtcPkLength { actual: usize, expected: usize },
-    #[error("invalid public randomness length: got {actual}, want {expected}")]
-    InvalidPubRandLength { actual: usize, expected: usize },
-    #[error("empty inclusion proof")]
-    EmptyProof,
-    #[error("invalid finality signature length: got {actual}, want {expected}")]
-    InvalidFinalitySigLength { actual: usize, expected: usize },
-    #[error("invalid block app hash length: got {actual}, want {expected}")]
-    InvalidBlockAppHashLength { actual: usize, expected: usize },
-    #[error("duplicated finality vote")]
-    DuplicatedFinalitySig,
-    #[error(transparent)]
-    Hex(#[from] hex::FromHexError),
-}
-
-// https://github.com/babylonlabs-io/babylon/blob/49972e2d3e35caf0a685c37e1f745c47b75bfc69/x/finality/types/tx.pb.go#L154
-pub struct MsgAddFinalitySig {
-    pub fp_btc_pk_hex: String,
-    pub height: u64,
-    pub pub_rand: Vec<u8>,
-    pub proof: Proof,
-    pub block_app_hash: Vec<u8>,
-    pub signature: Vec<u8>,
-}
-
-impl MsgAddFinalitySig {
-    // https://github.com/babylonlabs-io/babylon/blob/49972e2d3e35caf0a685c37e1f745c47b75bfc69/x/finality/types/msg.go#L40
-    fn validate_basic(&self) -> Result<(), FinalitySigError> {
-        // Validate FP BTC PubKey
-        if self.fp_btc_pk_hex.is_empty() {
-            return Err(FinalitySigError::EmptyFpBtcPk);
-        }
-
-        // Validate FP BTC PubKey length
-        let fp_btc_pk = hex::decode(&self.fp_btc_pk_hex)?;
-        if fp_btc_pk.len() != BIP340_PUB_KEY_LEN {
-            return Err(FinalitySigError::InvalidFpBtcPkLength {
-                actual: fp_btc_pk.len(),
-                expected: BIP340_PUB_KEY_LEN,
-            });
-        }
-
-        // Validate Public Randomness length
-        if self.pub_rand.len() != SCHNORR_PUB_RAND_LEN {
-            return Err(FinalitySigError::InvalidPubRandLength {
-                actual: self.pub_rand.len(),
-                expected: SCHNORR_PUB_RAND_LEN,
-            });
-        }
-
-        // `self.proof` is not an Option, thus it must not be empty.
-
-        // Validate finality signature length
-        if self.signature.len() != SCHNORR_EOTS_SIG_LEN {
-            return Err(FinalitySigError::InvalidFinalitySigLength {
-                actual: self.signature.len(),
-                expected: SCHNORR_EOTS_SIG_LEN,
-            });
-        }
-
-        // Validate block app hash length
-        if self.block_app_hash.len() != TMHASH_SIZE {
-            return Err(FinalitySigError::InvalidBlockAppHashLength {
-                actual: self.block_app_hash.len(),
-                expected: TMHASH_SIZE,
-            });
-        }
-
-        Ok(())
-    }
-
-    /// Verifies the finality signature message w.r.t. the public randomness commitment:
-    /// - Public randomness inclusion proof.
-    fn verify_finality_signature(
-        &self,
-        pr_commit: &PubRandCommit,
-        signing_context: &str,
-    ) -> Result<(), ContractError> {
-        let proof_height = pr_commit.start_height + self.proof.index;
-        if self.height != proof_height {
-            return Err(ContractError::InvalidFinalitySigHeight(
-                proof_height,
-                self.height,
-            ));
-        }
-        // Verify the total amount of randomness is the same as in the commitment
-        if self.proof.total != pr_commit.num_pub_rand {
-            return Err(ContractError::InvalidFinalitySigAmount(
-                self.proof.total,
-                pr_commit.num_pub_rand,
-            ));
-        }
-        // Verify the proof of inclusion for this public randomness
-        self.proof.validate_basic()?;
-        self.proof.verify(&pr_commit.commitment, &self.pub_rand)?;
-
-        // Public randomness is good, verify finality signature
-        let pubkey = eots::PublicKey::from_hex(&self.fp_btc_pk_hex)?;
-
-        // The EOTS signature on a block will be (signing_context || block_height || block_app_hash)
-        let msg = msg_to_sign_for_vote(signing_context, self.height, &self.block_app_hash);
-
-        let msg_hash = Sha256::digest(msg);
-
-        if !pubkey.verify_hash(&self.pub_rand, msg_hash.into(), &self.signature)? {
-            return Err(ContractError::FailedToVerifyEots);
-        }
-
-        Ok(())
-    }
 }
 
 pub fn handle_finality_signature(
@@ -915,7 +694,7 @@ pub fn handle_rewards_distribution(
         return Ok(None);
     }
 
-    let msg = RewardsDistribution {
+    let msg = ExecuteMsg::RewardsDistribution {
         fp_distribution: fp_rewards,
     };
     let wasm_msg = WasmMsg::Execute {
@@ -925,125 +704,4 @@ pub fn handle_rewards_distribution(
     };
 
     Ok(Some(wasm_msg))
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use rand::rngs::StdRng;
-    use rand::{Rng, SeedableRng};
-
-    // Helper function to generate random bytes
-    fn gen_random_bytes(rng: &mut StdRng, len: usize) -> Vec<u8> {
-        (0..len).map(|_| rng.gen()).collect()
-    }
-
-    // https://github.com/babylonlabs-io/babylon/blob/49972e2d3e35caf0a685c37e1f745c47b75bfc69/x/finality/types/msg_test.go#L167
-    #[test]
-    fn test_msg_add_finality_sig_validate_basic() {
-        let mut rng = StdRng::seed_from_u64(1);
-
-        struct TestCase {
-            name: &'static str,
-            msg_modifier: fn(&mut MsgAddFinalitySig),
-            expected: Result<(), FinalitySigError>,
-        }
-
-        let test_cases = vec![
-            TestCase {
-                name: "valid message",
-                // No modification needed for valid message
-                msg_modifier: |_| {},
-                expected: Ok(()),
-            },
-            TestCase {
-                name: "empty FP BTC PubKey",
-                msg_modifier: |msg| msg.fp_btc_pk_hex.clear(),
-                expected: Err(FinalitySigError::EmptyFpBtcPk),
-            },
-            TestCase {
-                name: "invalid FP BTC PubKey length",
-                msg_modifier: |msg| {
-                    msg.fp_btc_pk_hex = hex::encode(vec![0u8; 16]); // Too short
-                },
-                expected: Err(FinalitySigError::InvalidFpBtcPkLength {
-                    actual: 16,
-                    expected: 32,
-                }),
-            },
-            TestCase {
-                name: "empty Public Randomness",
-                msg_modifier: |msg| msg.pub_rand.clear(),
-                expected: Err(FinalitySigError::InvalidPubRandLength {
-                    actual: 0,
-                    expected: 32,
-                }),
-            },
-            TestCase {
-                name: "invalid Public Randomness length",
-                msg_modifier: |msg| {
-                    msg.pub_rand = vec![0u8; 16]; // Too short
-                },
-                expected: Err(FinalitySigError::InvalidPubRandLength {
-                    actual: 16,
-                    expected: 32,
-                }),
-            },
-            TestCase {
-                name: "empty finality signature",
-                msg_modifier: |msg| msg.signature.clear(),
-                expected: Err(FinalitySigError::InvalidFinalitySigLength {
-                    actual: 0,
-                    expected: 32,
-                }),
-            },
-            TestCase {
-                name: "invalid finality signature length",
-                msg_modifier: |msg| {
-                    msg.signature = vec![0u8; 16]; // Too short
-                },
-                expected: Err(FinalitySigError::InvalidFinalitySigLength {
-                    actual: 16,
-                    expected: 32,
-                }),
-            },
-            TestCase {
-                name: "invalid block app hash length",
-                msg_modifier: |msg| {
-                    msg.block_app_hash = vec![0u8; 16]; // Too short
-                },
-                expected: Err(FinalitySigError::InvalidBlockAppHashLength {
-                    actual: 16,
-                    expected: 32,
-                }),
-            },
-        ];
-
-        for TestCase {
-            name,
-            msg_modifier,
-            expected,
-        } in test_cases
-        {
-            // Create a valid message
-            let mut msg = MsgAddFinalitySig {
-                fp_btc_pk_hex: hex::encode(gen_random_bytes(&mut rng, BIP340_PUB_KEY_LEN)),
-                height: rng.gen_range(1..1000),
-                pub_rand: gen_random_bytes(&mut rng, SCHNORR_PUB_RAND_LEN),
-                proof: Proof {
-                    total: 0,
-                    index: 0,
-                    leaf_hash: Default::default(),
-                    aunts: Default::default(),
-                },
-                block_app_hash: gen_random_bytes(&mut rng, TMHASH_SIZE),
-                signature: gen_random_bytes(&mut rng, SCHNORR_EOTS_SIG_LEN),
-            };
-
-            // Apply the test case modifier
-            msg_modifier(&mut msg);
-
-            assert_eq!(msg.validate_basic(), expected, "Test case failed: {}", name);
-        }
-    }
 }

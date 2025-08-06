@@ -9,3 +9,5 @@ pub mod state;
 mod liveness;
 #[cfg(test)]
 mod multitest;
+#[cfg(test)]
+mod tests;

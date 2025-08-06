@@ -1,16 +1,54 @@
-use hex::FromHexError;
-use prost::DecodeError;
-use thiserror::Error;
-
+use crate::msg::COMMITMENT_LENGTH_BYTES;
+use babylon_apis::error::StakingApiError;
 use bitcoin::hashes::FromSliceError;
 use bitcoin::hex::HexToArrayError;
-
 use cosmwasm_std::{OverflowError, StdError};
 use cw_controllers::AdminError;
 use cw_utils::PaymentError;
+use thiserror::Error;
 
-use babylon_apis::error::StakingApiError;
-use babylon_merkle::MerkleError;
+#[derive(thiserror::Error, Debug, PartialEq)]
+pub enum PubRandCommitError {
+    #[error("Empty FP BTC PubKey")]
+    EmptyFpBtcPubKey,
+    #[error("Commitment must be {COMMITMENT_LENGTH_BYTES} bytes, got {0}")]
+    BadCommitmentLength(usize),
+    #[error("public rand commit start block height: {0} is equal or higher than start_height + num_pub_rand ({1})")]
+    OverflowInBlockHeight(u64, u64),
+    #[error("Empty signature")]
+    EmptySignature,
+    #[error("Ecdsa error: {0}")]
+    Ecdsa(String),
+    #[error(transparent)]
+    Hex(#[from] hex::FromHexError),
+}
+
+impl From<k256::ecdsa::Error> for PubRandCommitError {
+    fn from(e: k256::ecdsa::Error) -> Self {
+        Self::Ecdsa(e.to_string())
+    }
+}
+
+/// Finality signature error types.
+#[derive(thiserror::Error, Debug, PartialEq)]
+pub enum FinalitySigError {
+    #[error("empty Finality Provider BTC PubKey")]
+    EmptyFpBtcPk,
+    #[error("invalid finality provider BTC public key length: got {actual}, want {expected}")]
+    InvalidFpBtcPkLength { actual: usize, expected: usize },
+    #[error("invalid public randomness length: got {actual}, want {expected}")]
+    InvalidPubRandLength { actual: usize, expected: usize },
+    #[error("empty inclusion proof")]
+    EmptyProof,
+    #[error("invalid finality signature length: got {actual}, want {expected}")]
+    InvalidFinalitySigLength { actual: usize, expected: usize },
+    #[error("invalid block app hash length: got {actual}, want {expected}")]
+    InvalidBlockAppHashLength { actual: usize, expected: usize },
+    #[error("duplicated finality vote")]
+    DuplicatedFinalitySig,
+    #[error(transparent)]
+    Hex(#[from] hex::FromHexError),
+}
 
 // TODO: Consider merging `crate::finality::PubRandCommitError` and `crate::finality::FinalitySigError`
 // into `ContractError`, or alternatively, split `ContractError` into them completely.
@@ -61,9 +99,9 @@ pub enum ContractError {
     #[error("Cannot unjail FP who's been jailed forever")]
     JailedForever {},
     #[error(transparent)]
-    PubRandCommit(#[from] crate::finality::PubRandCommitError),
+    PubRandCommit(#[from] PubRandCommitError),
     #[error(transparent)]
-    FinalitySig(#[from] crate::finality::FinalitySigError),
+    FinalitySig(#[from] FinalitySigError),
     #[error(transparent)]
     Admin(#[from] AdminError),
     #[error(transparent)]
@@ -79,11 +117,11 @@ pub enum ContractError {
     #[error(transparent)]
     StakingError(#[from] StakingApiError),
     #[error(transparent)]
-    MerkleError(#[from] MerkleError),
+    MerkleError(#[from] babylon_merkle::MerkleError),
     #[error(transparent)]
-    ProtoError(#[from] DecodeError),
+    ProtoError(#[from] prost::DecodeError),
     #[error(transparent)]
-    HexError(#[from] FromHexError),
+    HexError(#[from] hex::FromHexError),
     #[error("EOTS error: {0}")]
     EotsError(#[from] eots::Error),
     #[error("Arithmetic calculation overflow")]

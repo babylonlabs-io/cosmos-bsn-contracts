@@ -8,6 +8,12 @@ use cosmwasm_std::Binary;
 pub const HASH_SIZE: usize = 32;
 
 #[cw_serde]
+#[derive(Default)]
+pub struct InstantiateMsg {
+    pub admin: Option<String>,
+}
+
+#[cw_serde]
 /// btc_staking execution handlers
 pub enum ExecuteMsg {
     /// Change the admin

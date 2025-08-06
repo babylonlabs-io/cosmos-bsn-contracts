@@ -1,9 +1,8 @@
 use crate::msg::ibc::TransferInfoResponse;
 use anyhow::Result as AnyResult;
 use babylon_bindings_test::BabylonApp;
-use btc_light_client::msg::InstantiateMsg as BtcLightClientInstantiateMsg;
 use btc_light_client::BitcoinNetwork;
-use cosmwasm_std::{to_json_binary, Addr, Binary, Empty};
+use cosmwasm_std::{Addr, Binary, Empty};
 use cw_multi_test::{AppResponse, Contract, ContractWrapper, Executor};
 use derivative::Derivative;
 
@@ -104,8 +103,13 @@ impl SuiteBuilder {
     pub fn build(self) -> Suite {
         let _funds = self.funds;
 
-        let owner = Addr::unchecked("owner");
+        // Create a BabylonApp first to get access to the API
+        let app = BabylonApp::new("temp");
 
+        // Use the app's API to generate a proper bech32 address
+        let owner = app.api().addr_make("owner");
+
+        // Now recreate the app with the proper owner
         let mut app = BabylonApp::new(owner.as_str());
 
         let _block_info = app.block_info();
@@ -123,22 +127,18 @@ impl SuiteBuilder {
 
         let checkpoint_finalization_timeout = self.checkpoint_finalization_timeout.unwrap_or(1);
 
-        let light_client_msg = match &self.light_client_msg {
-            Some(msg) => Binary::from(msg.as_bytes()),
-            None => {
-                let btc_lc_init_msg = BtcLightClientInstantiateMsg {
-                    network: BitcoinNetwork::Testnet,
-                    btc_confirmation_depth: 1,
-                    checkpoint_finalization_timeout,
-                    admin: None,
-                };
-
-                to_json_binary(&btc_lc_init_msg).unwrap()
-            }
-        };
-
-        let staking_msg = self.staking_msg.map(|msg| Binary::from(msg.as_bytes()));
-        let finality_msg = self.finality_msg.map(|msg| Binary::from(msg.as_bytes()));
+        let light_client_msg = self
+            .light_client_msg
+            .as_ref()
+            .map(|msg| Binary::from(msg.as_bytes()));
+        let staking_msg = self
+            .staking_msg
+            .as_ref()
+            .map(|msg| Binary::from(msg.as_bytes()));
+        let finality_msg = self
+            .finality_msg
+            .as_ref()
+            .map(|msg| Binary::from(msg.as_bytes()));
         let contract = app
             .instantiate_contract(
                 contract_code_id,
@@ -148,7 +148,7 @@ impl SuiteBuilder {
                     btc_confirmation_depth: 1,
                     checkpoint_finalization_timeout,
                     btc_light_client_code_id: Some(btc_light_client_code_id),
-                    btc_light_client_msg: Some(light_client_msg),
+                    btc_light_client_msg: light_client_msg,
                     btc_staking_code_id: Some(btc_staking_code_id),
                     btc_staking_msg: staking_msg,
                     btc_finality_code_id: Some(btc_finality_code_id),

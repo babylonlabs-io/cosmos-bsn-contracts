@@ -18,8 +18,8 @@ use babylon_apis::finality_api::SudoMsg;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    attr, coin, to_json_binary, Addr, CustomQuery, Deps, DepsMut, Empty, Env, MessageInfo,
-    QueryRequest, QueryResponse, Reply, Response, StdResult, Uint128, WasmMsg, WasmQuery,
+    attr, to_json_binary, Addr, CustomQuery, Deps, DepsMut, Empty, Env, MessageInfo, QueryRequest,
+    QueryResponse, Reply, Response, StdResult, WasmQuery,
 };
 use cw2::set_contract_version;
 use cw_utils::{maybe_addr, nonpayable};
@@ -164,7 +164,7 @@ pub fn execute(
         } => handle_finality_signature(
             deps,
             env,
-            crate::finality::MsgAddFinalitySig {
+            crate::msg::MsgAddFinalitySig {
                 fp_btc_pk_hex: fp_pubkey_hex,
                 height,
                 pub_rand: pub_rand.into(),
@@ -182,7 +182,7 @@ pub fn execute(
         } => handle_public_randomness_commit(
             deps,
             &env,
-            crate::finality::MsgCommitPubRand {
+            crate::msg::MsgCommitPubRand {
                 fp_btc_pk_hex: fp_pubkey_hex,
                 start_height,
                 num_pub_rand,
@@ -291,8 +291,9 @@ pub(crate) mod tests {
     use super::*;
 
     use cosmwasm_std::{
-        coins, from_json,
+        coin, coins, from_json,
         testing::{message_info, mock_dependencies, mock_env},
+        Uint128, WasmMsg,
     };
     use cw_controllers::AdminResponse;
     pub(crate) const CREATOR: &str = "creator";

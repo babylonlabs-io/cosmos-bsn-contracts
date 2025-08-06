@@ -110,6 +110,9 @@ func (s *BabylonSDKTestSuite) Test1ContractDeployment() {
 	s.NoError(err)
 	s.NotEmpty(configResp)
 	s.Equal(configResp["babylon_contract_address"], s.ConsumerContract.Babylon.String())
+	// TODO: why this is float64 even though it's u32 in rust
+	s.Equal(configResp["btc_confirmation_depth"], float64(1))
+	s.Equal(configResp["checkpoint_finalization_timeout"], float64(2))
 }
 
 func (s *BabylonSDKTestSuite) Test2InsertBTCHeaders() {
