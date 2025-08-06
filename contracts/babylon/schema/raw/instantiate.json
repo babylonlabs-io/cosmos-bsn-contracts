@@ -4,7 +4,12 @@
   "type": "object",
   "required": [
     "btc_confirmation_depth",
+    "btc_finality_code_id",
+    "btc_light_client_code_id",
+    "btc_staking_code_id",
     "checkpoint_finalization_timeout",
+    "consumer_description",
+    "consumer_name",
     "destination_module",
     "ics20_channel_id",
     "network"
@@ -24,10 +29,7 @@
     },
     "btc_finality_code_id": {
       "description": "If set, this will instantiate a BTC finality contract",
-      "type": [
-        "integer",
-        "null"
-      ],
+      "type": "integer",
       "format": "uint64",
       "minimum": 0.0
     },
@@ -44,10 +46,7 @@
     },
     "btc_light_client_code_id": {
       "description": "If set, this will instantiate a BTC light client contract",
-      "type": [
-        "integer",
-        "null"
-      ],
+      "type": "integer",
       "format": "uint64",
       "minimum": 0.0
     },
@@ -64,10 +63,7 @@
     },
     "btc_staking_code_id": {
       "description": "If set, this will instantiate a BTC staking contract for BTC re-staking",
-      "type": [
-        "integer",
-        "null"
-      ],
+      "type": "integer",
       "format": "uint64",
       "minimum": 0.0
     },
@@ -89,17 +85,11 @@
     },
     "consumer_description": {
       "description": "Description of the consumer",
-      "type": [
-        "string",
-        "null"
-      ]
+      "type": "string"
     },
     "consumer_name": {
       "description": "Name of the consumer",
-      "type": [
-        "string",
-        "null"
-      ]
+      "type": "string"
     },
     "destination_module": {
       "description": "Babylon module name for receiving ICS-20 transfers",

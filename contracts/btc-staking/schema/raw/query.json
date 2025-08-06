@@ -232,20 +232,6 @@
         }
       },
       "additionalProperties": false
-    },
-    {
-      "description": "Returns the height at which the contract gets its first delegation, if any.",
-      "type": "object",
-      "required": [
-        "activated_height"
-      ],
-      "properties": {
-        "activated_height": {
-          "type": "object",
-          "additionalProperties": false
-        }
-      },
-      "additionalProperties": false
     }
   ],
   "definitions": {
