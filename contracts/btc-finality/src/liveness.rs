@@ -1,10 +1,9 @@
-use cosmwasm_std::{DepsMut, Env};
-
 use crate::{
     error::ContractError,
     state::config::Config,
     state::finality::{get_last_signed_height, get_power_table_at_height, JAIL},
 };
+use cosmwasm_std::{DepsMut, Env};
 
 /// Check for inactive finality providers, and jail them.
 ///
@@ -23,7 +22,7 @@ pub fn handle_liveness(deps: &mut DepsMut, env: &Env, cfg: &Config) -> Result<()
             _ => true,
         };
         if inactive {
-            // Jail if not already jailed; keep the original jail time if present.
+            // Jail if not already jailed.
             JAIL.update(deps.storage, &fp_btc_pk_hex, |existing| {
                 Ok::<_, ContractError>(
                     existing.unwrap_or(env.block.time.seconds() + cfg.jail_duration),
