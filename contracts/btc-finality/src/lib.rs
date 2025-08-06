@@ -8,3 +8,5 @@ pub mod state;
 
 #[cfg(test)]
 mod multitest;
+#[cfg(test)]
+mod tests;
