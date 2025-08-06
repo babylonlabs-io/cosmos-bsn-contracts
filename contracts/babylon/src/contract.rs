@@ -54,7 +54,7 @@ pub fn instantiate(
     // instantiate btc light client contract first
     // It has to be before btc staking and finality contracts which depend on it
     if let Some(btc_light_client_code_id) = msg.btc_light_client_code_id {
-        let init_btclc_msg = if let Some(btc_light_client_msg) = msg.btc_light_client_msg {
+        let init_btc_lc_msg = if let Some(btc_light_client_msg) = msg.btc_light_client_msg {
             // If the message is provided, use it
             btc_light_client_msg
         } else {
@@ -69,7 +69,7 @@ pub fn instantiate(
         let init_msg = WasmMsg::Instantiate {
             admin: msg.admin.clone(),
             code_id: btc_light_client_code_id,
-            msg: init_btclc_msg,
+            msg: init_btc_lc_msg,
             funds: vec![],
             label: "BTC Light Client".into(),
         };
@@ -78,7 +78,7 @@ pub fn instantiate(
     }
 
     if let Some(btc_staking_code_id) = msg.btc_staking_code_id {
-        let init_btcst_msg = if let Some(btc_staking_msg) = msg.btc_staking_msg {
+        let init_btc_staking_msg = if let Some(btc_staking_msg) = msg.btc_staking_msg {
             // If the message is provided, use it
             btc_staking_msg
         } else {
@@ -91,7 +91,7 @@ pub fn instantiate(
         let init_msg = WasmMsg::Instantiate {
             admin: msg.admin.clone(),
             code_id: btc_staking_code_id,
-            msg: init_btcst_msg,
+            msg: init_btc_staking_msg,
             funds: vec![],
             label: "BTC Staking".into(),
         };
@@ -106,7 +106,7 @@ pub fn instantiate(
     }
 
     if let Some(btc_finality_code_id) = msg.btc_finality_code_id {
-        let init_btcf_msg = if let Some(btc_finality_msg) = msg.btc_finality_msg {
+        let init_btc_finality_msg = if let Some(btc_finality_msg) = msg.btc_finality_msg {
             // If the message is provided, use it
             btc_finality_msg
         } else {
@@ -114,18 +114,14 @@ pub fn instantiate(
             // and default values for the finality contract
             to_json_binary(&finality_api::InstantiateMsg {
                 admin: msg.admin.clone(),
-                max_active_finality_providers: None,
-                min_pub_rand: None,
-                reward_interval: None,
-                missed_blocks_window: None,
-                jail_duration: None,
+                ..Default::default()
             })?
         };
         // Instantiate BTC finality contract
         let init_msg = WasmMsg::Instantiate {
             admin: msg.admin,
             code_id: btc_finality_code_id,
-            msg: init_btcf_msg,
+            msg: init_btc_finality_msg,
             funds: vec![],
             label: "BTC Finality".into(),
         };
@@ -530,14 +526,7 @@ mod tests {
         assert_eq!(1, res.messages.len());
         assert_eq!(REPLY_ID_INSTANTIATE_FINALITY, res.messages[0].id);
         // Create the expected finality message with default values
-        let expected_finality_msg = finality_api::InstantiateMsg {
-            admin: None,
-            max_active_finality_providers: None,
-            min_pub_rand: None,
-            reward_interval: None,
-            missed_blocks_window: None,
-            jail_duration: None,
-        };
+        let expected_finality_msg = finality_api::InstantiateMsg::default();
 
         assert_eq!(
             res.messages[0].msg,

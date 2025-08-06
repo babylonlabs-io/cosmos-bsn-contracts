@@ -127,18 +127,18 @@ impl SuiteBuilder {
 
         let checkpoint_finalization_timeout = self.checkpoint_finalization_timeout.unwrap_or(1);
 
-        let light_client_msg = match &self.light_client_msg {
-            Some(msg) => Some(Binary::from(msg.as_bytes())),
-            None => None,
-        };
-        let staking_msg = match &self.staking_msg {
-            Some(msg) => Some(Binary::from(msg.as_bytes())),
-            None => None,
-        };
-        let finality_msg = match &self.finality_msg {
-            Some(msg) => Some(Binary::from(msg.as_bytes())),
-            None => None,
-        };
+        let light_client_msg = self
+            .light_client_msg
+            .as_ref()
+            .map(|msg| Binary::from(msg.as_bytes()));
+        let staking_msg = self
+            .staking_msg
+            .as_ref()
+            .map(|msg| Binary::from(msg.as_bytes()));
+        let finality_msg = self
+            .finality_msg
+            .as_ref()
+            .map(|msg| Binary::from(msg.as_bytes()));
         let contract = app
             .instantiate_contract(
                 contract_code_id,
