@@ -163,7 +163,7 @@ pub fn execute(
         } => handle_finality_signature(
             deps,
             env,
-            crate::finality::MsgAddFinalitySig {
+            crate::msg::MsgAddFinalitySig {
                 fp_btc_pk_hex: fp_pubkey_hex,
                 height,
                 pub_rand: pub_rand.into(),
@@ -181,7 +181,7 @@ pub fn execute(
         } => handle_public_randomness_commit(
             deps,
             &env,
-            crate::finality::MsgCommitPubRand {
+            crate::msg::MsgCommitPubRand {
                 fp_btc_pk_hex: fp_pubkey_hex,
                 start_height,
                 num_pub_rand,
