@@ -25,11 +25,8 @@ pub fn handle_liveness(
 
     for (fp_btc_pk_hex, _) in fp_power_table {
         let last_sign_height = get_last_signed_height(deps.storage, &fp_btc_pk_hex)?;
-        let inactive = match last_sign_height {
-            Some(h) if h > window_start_height => false,
-            _ => true,
-        };
-        if inactive {
+        let active = matches!(last_sign_height, Some(h) if h > window_start_height);
+        if !active {
             // Check if FP is already jailed to avoid duplicate events and unnecessary updates
             if JAIL.has(deps.storage, &fp_btc_pk_hex) {
                 // FP is already jailed, no action needed
