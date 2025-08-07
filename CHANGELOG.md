@@ -33,6 +33,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 [Full Changelog](https://github.com/babylonlabs-io/cosmos-bsn-contracts/compare/v0.14.0...HEAD)
 
+## [v0.16.0](https://github.com/babylonlabs-io/cosmos-bsn-contracts/tree/v0.16.0) (2025-08-07)
+
+[Full Changelog](https://github.com/babylonlabs-io/cosmos-bsn-contracts/compare/v0.15.2...v0.16.0)
+
 ### State breaking
 
 - [#305](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/305) finality: add finality_activation_height to params
