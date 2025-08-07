@@ -33,6 +33,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 [Full Changelog](https://github.com/babylonlabs-io/cosmos-bsn-contracts/compare/v0.16.0...HEAD)
 
+### Improvements
+
+- [#311](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/311) chore: impl `gen_random_msg_commit_pub_rand()` properly and re-enable EOTS sig check in tests
+
 ## [v0.16.0](https://github.com/babylonlabs-io/cosmos-bsn-contracts/tree/v0.16.0) (2025-08-07)
 
 [Full Changelog](https://github.com/babylonlabs-io/cosmos-bsn-contracts/compare/v0.15.2...v0.16.0)

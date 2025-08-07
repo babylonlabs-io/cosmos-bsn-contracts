@@ -60,8 +60,7 @@ pub(crate) fn gen_random_msg_commit_pub_rand(
 
     let fp_btc_pk_hex = hex::encode(&verifying_key_bytes);
 
-    let btc_pk_raw = hex::decode(&fp_btc_pk_hex).unwrap();
-    let btc_pk = VerifyingKey::from_bytes(&btc_pk_raw).unwrap();
+    let btc_pk = VerifyingKey::from_bytes(&verifying_key_bytes).unwrap();
     let sig_to_verify = Signature::try_from(sig.as_slice()).unwrap();
 
     btc_pk

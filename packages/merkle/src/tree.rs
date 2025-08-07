@@ -9,17 +9,17 @@ use sha2::{Digest, Sha256};
 ///
 /// https://github.com/cometbft/cometbft/blob/d03254d3599b973f979314e6383b89fa1802e679/crypto/merkle/tree.go#L11
 pub fn hash_from_byte_slices(items: Vec<Vec<u8>>) -> Vec<u8> {
-    hash_from_byte_slices_internal(&mut Sha256::new(), items)
+    hash_from_byte_slices_internal(&mut Sha256::new(), &items)
 }
 
-fn hash_from_byte_slices_internal(sha: &mut Sha256, items: Vec<Vec<u8>>) -> Vec<u8> {
+fn hash_from_byte_slices_internal(sha: &mut Sha256, items: &[Vec<u8>]) -> Vec<u8> {
     match items.len() {
         0 => empty_hash(),
         1 => leaf_hash_opt(sha, &items[0]),
         _ => {
             let k = get_split_point(items.len() as u64).unwrap() as usize;
-            let left = hash_from_byte_slices_internal(sha, items[..k].to_vec());
-            let right = hash_from_byte_slices_internal(sha, items[k..].to_vec());
+            let left = hash_from_byte_slices_internal(sha, &items[..k]);
+            let right = hash_from_byte_slices_internal(sha, &items[k..]);
             inner_hash_opt(sha, &left, &right)
         }
     }

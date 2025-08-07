@@ -495,7 +495,7 @@ impl PublicKey {
     }
 }
 
-/// Generate a random pair of (PrivateRand, PubRand).
+/// Generate a random pair of (PrivateRand, PubRand) for testing purpose.
 #[cfg(any(test, feature = "rand"))]
 pub fn rand_gen() -> (PrivateRand, PubRand) {
     let random_bytes: [u8; 32] = Scalar::generate_vartime(&mut rand::thread_rng())
