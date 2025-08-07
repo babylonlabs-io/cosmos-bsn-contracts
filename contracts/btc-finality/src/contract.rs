@@ -1,3 +1,5 @@
+use std::cmp::max;
+
 use crate::error::ContractError;
 use crate::finality::{
     handle_finality_signature, handle_public_randomness_commit, handle_rewards_distribution,
@@ -263,7 +265,11 @@ fn handle_end_block(
     res = res.add_event(ev);
 
     // Tally all non-finalised blocks
-    let events = finality::tally_blocks(deps, &env, activated_height.unwrap())?;
+    let events = finality::tally_blocks(
+        deps,
+        &env,
+        max(cfg.finality_activation_height, activated_height.unwrap()),
+    )?;
     res = res.add_events(events);
 
     // Examine liveness of finality providers and jail them if they are inactive for a certain
