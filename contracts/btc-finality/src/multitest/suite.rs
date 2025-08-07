@@ -182,7 +182,7 @@ impl SuiteBuilder {
 #[derivative(Debug)]
 pub struct Suite {
     #[derivative(Debug = "ignore")]
-    app: BabylonApp,
+    pub app: BabylonApp,
     /// The code id of the babylon contract
     code_id: u64,
     /// Babylon contract address

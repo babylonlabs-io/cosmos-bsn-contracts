@@ -1,11 +1,9 @@
 use crate::error::{FinalitySigError, PubRandCommitError};
 use crate::msg::{
     commit_pub_rand_signed_message, MsgAddFinalitySig, MsgCommitPubRand, BIP340_PUB_KEY_LEN,
-    BIP340_SIGNATURE_LEN, COMMITMENT_LENGTH_BYTES, SCHNORR_EOTS_SIG_LEN, SCHNORR_PUB_RAND_LEN,
-    TMHASH_SIZE,
+    SCHNORR_EOTS_SIG_LEN, SCHNORR_PUB_RAND_LEN, TMHASH_SIZE,
 };
 use babylon_merkle::Proof;
-use eots::{PrivateRand, PubRand};
 use k256::ecdsa::signature::{Signer, Verifier};
 use k256::schnorr::{Signature, SigningKey, VerifyingKey};
 use rand::rngs::StdRng;
@@ -25,14 +23,8 @@ fn gen_random_bytes(rng: &mut StdRng, len: usize) -> Vec<u8> {
     (0..len).map(|_| rng.gen()).collect()
 }
 
-struct RandListInfo {
-    eots_sks: Vec<PrivateRand>,
-    eots_pks: Vec<PubRand>,
-    commitment: Vec<u8>,
-}
-
-fn gen_random_pub_rand_list(num_pub_rand: u64) -> RandListInfo {
-    let (eots_sks, eots_pks): (Vec<_>, Vec<_>) =
+fn gen_random_pub_rand_list_and_return_commitment(num_pub_rand: u64) -> Vec<u8> {
+    let (_eots_sks, eots_pks): (Vec<_>, Vec<_>) =
         (0..num_pub_rand).map(|_| eots::rand_gen()).unzip();
 
     let commitment = babylon_merkle::hash_from_byte_slices(
@@ -43,24 +35,19 @@ fn gen_random_pub_rand_list(num_pub_rand: u64) -> RandListInfo {
             .collect::<Vec<_>>(),
     );
 
-    RandListInfo {
-        eots_sks,
-        eots_pks,
-        commitment,
-    }
+    commitment
 }
 
 // Helper function to generate random message
-fn gen_random_msg_commit_pub_rand(
-    rng: &mut StdRng,
+pub(crate) fn gen_random_msg_commit_pub_rand(
+    signing_key: &SigningKey,
     signing_context: &str,
     start_height: u64,
     num_pub_rand: u64,
 ) -> MsgCommitPubRand {
-    let signing_key = SigningKey::random(rng);
     let verifying_key_bytes = signing_key.verifying_key().to_bytes();
 
-    let commitment = gen_random_pub_rand_list(num_pub_rand).commitment;
+    let commitment = gen_random_pub_rand_list_and_return_commitment(num_pub_rand);
 
     let signed_msg = commit_pub_rand_signed_message(
         signing_context.to_string(),
@@ -88,14 +75,6 @@ fn gen_random_msg_commit_pub_rand(
         commitment,
         sig,
     }
-}
-
-#[test]
-fn test_xlc() {
-    let mut rng = StdRng::seed_from_u64(1);
-    let start_height = rng.gen_range(1..10);
-    let num_pub_rand = rng.gen_range(1..100);
-    gen_random_msg_commit_pub_rand(&mut rng, "test", start_height, num_pub_rand);
 }
 
 // https://github.com/babylonlabs-io/babylon/blob/49972e2d3e35caf0a685c37e1f745c47b75bfc69/x/finality/types/msg_test.go#L85
@@ -134,6 +113,8 @@ fn test_msg_commit_pub_rand_validate_basic() {
         },
     ];
 
+    let signing_key = SigningKey::random(&mut rng);
+
     for MsgCommitPubRandTestCase {
         name,
         msg_modifier,
@@ -142,7 +123,8 @@ fn test_msg_commit_pub_rand_validate_basic() {
     {
         let start_height = rng.gen_range(1..10);
         let num_pub_rand = rng.gen_range(1..100);
-        let mut msg = gen_random_msg_commit_pub_rand(&mut rng, "test", start_height, num_pub_rand);
+        let mut msg =
+            gen_random_msg_commit_pub_rand(&signing_key, "test", start_height, num_pub_rand);
 
         // Apply the test case modifier
         msg_modifier(&mut msg);
@@ -154,7 +136,7 @@ fn test_msg_commit_pub_rand_validate_basic() {
     // overflow in block height
     let start_height = u64::MAX;
     let num_pub_rand = rng.gen_range(1..100);
-    let msg = gen_random_msg_commit_pub_rand(&mut rng, "test", start_height, num_pub_rand);
+    let msg = gen_random_msg_commit_pub_rand(&signing_key, "test", start_height, num_pub_rand);
     assert_eq!(
         msg.validate_basic(),
         Err(PubRandCommitError::OverflowInBlockHeight(

@@ -84,6 +84,16 @@ impl MsgCommitPubRand {
 
         Ok(())
     }
+
+    #[cfg(test)]
+    pub fn as_pub_rand_commit(&self, height: u64) -> PubRandCommit {
+        PubRandCommit {
+            start_height: self.start_height,
+            num_pub_rand: self.num_pub_rand,
+            height,
+            commitment: self.commitment.clone().into(),
+        }
+    }
 }
 
 pub(crate) fn commit_pub_rand_signed_message(

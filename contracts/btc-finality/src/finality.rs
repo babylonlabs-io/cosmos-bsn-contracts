@@ -1,4 +1,4 @@
-use crate::error::{ContractError, FinalitySigError, PubRandCommitError};
+use crate::error::{ContractError, FinalitySigError};
 use crate::msg::{MsgAddFinalitySig, MsgCommitPubRand};
 use crate::power_dist_change::JAIL_FOREVER;
 use crate::state::config::{ADMIN, CONFIG};

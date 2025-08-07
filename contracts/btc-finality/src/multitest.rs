@@ -3,6 +3,7 @@ mod suite;
 use crate::error::{ContractError, PubRandCommitError};
 use crate::msg::FinalitySignatureResponse;
 use crate::msg::JailedFinalityProvider;
+use crate::tests::gen_random_msg_commit_pub_rand;
 use babylon_apis::finality_api::IndexedBlock;
 use babylon_bindings_test::{
     BABYLON_CONTRACT_ADDR, BTC_FINALITY_CONTRACT_ADDR, BTC_LIGHT_CLIENT_CONTRACT_ADDR,
@@ -13,6 +14,7 @@ use babylon_test_utils::{
     get_derived_btc_delegation, get_pub_rand_value, get_public_randomness_commitment,
 };
 use cosmwasm_std::{coin, Addr, Event};
+use k256::schnorr::SigningKey;
 use rand::seq::SliceRandom;
 use rand::thread_rng;
 use rand::Rng;
@@ -68,7 +70,9 @@ fn commit_public_randomness_works() {
     let new_fp = create_new_finality_provider(1);
     assert_eq!(new_fp.btc_pk_hex, pk_hex);
 
-    suite.register_finality_providers(&[new_fp]).unwrap();
+    suite
+        .register_finality_providers(&[new_fp.clone()])
+        .unwrap();
 
     let bad_pk_hex: String = {
         let mut chars: Vec<char> = pk_hex.chars().collect();
@@ -107,13 +111,49 @@ fn commit_public_randomness_works() {
 
     assert_eq!(last_pub_rand, pub_rand);
 
+    let block_info = suite.app.block_info();
+
+    let signing_context = babylon_apis::signing_context::fp_rand_commit_context_v0(
+        &block_info.chain_id,
+        suite.finality.as_str(),
+    );
+
+    // Generate a new FP using a random key.
+    let signing_key = SigningKey::random(&mut rng);
+    let pk_hex = hex::encode(&signing_key.verifying_key().to_bytes());
+
+    let mut fp2 = new_fp.clone();
+    fp2.btc_pk_hex = pk_hex.clone();
+    suite.register_finality_providers(&[fp2.clone()]).unwrap();
+
+    let msg_pub_rand_commit = gen_random_msg_commit_pub_rand(
+        &signing_key,
+        &signing_context,
+        pub_rand.start_height,
+        pub_rand.num_pub_rand,
+    );
+
+    let pub_rand = msg_pub_rand_commit.as_pub_rand_commit(block_info.height);
+    let pub_rand_sig = msg_pub_rand_commit.sig;
+
+    assert!(suite
+        .commit_public_randomness(&pk_hex, &pub_rand, &pub_rand_sig)
+        .is_ok());
+
     // Case 4: commit a pubrand list with overlap of the existing pubrand in KVStore and it should fail
     let overlapped_start_height = pub_rand.end_height() - rng.gen_range(0..5);
-    let mut bad_pub_rand_commit = pub_rand.clone();
-    bad_pub_rand_commit.start_height = overlapped_start_height;
+    let msg_pub_rand_commit = gen_random_msg_commit_pub_rand(
+        &signing_key,
+        &signing_context,
+        overlapped_start_height,
+        pub_rand.num_pub_rand,
+    );
+    let pk_hex = msg_pub_rand_commit.fp_btc_pk_hex.clone();
+
+    let bad_pub_rand_commit = msg_pub_rand_commit.as_pub_rand_commit(block_info.height);
     assert_eq!(
         suite
-            .commit_public_randomness(&pk_hex, &bad_pub_rand_commit, &pubrand_signature)
+            .commit_public_randomness(&pk_hex, &bad_pub_rand_commit, &msg_pub_rand_commit.sig)
             .unwrap_err()
             .downcast::<ContractError>()
             .unwrap(),
@@ -126,10 +166,16 @@ fn commit_public_randomness_works() {
     // Case 5: commit a pubrand list that has no overlap with existing pubrand and it should succeed
     let overlapped_start_height =
         pub_rand.start_height + pub_rand.num_pub_rand + rng.gen_range(0..5);
-    let mut bad_pub_rand_commit = pub_rand.clone();
-    bad_pub_rand_commit.start_height = overlapped_start_height;
+    let msg_pub_rand_commit = gen_random_msg_commit_pub_rand(
+        &signing_key,
+        &signing_context,
+        overlapped_start_height,
+        pub_rand.num_pub_rand,
+    );
+    let bad_pub_rand_commit = msg_pub_rand_commit.as_pub_rand_commit(block_info.height);
+
     assert!(suite
-        .commit_public_randomness(&pk_hex, &bad_pub_rand_commit, &pubrand_signature)
+        .commit_public_randomness(&pk_hex, &bad_pub_rand_commit, &msg_pub_rand_commit.sig)
         .is_ok());
 
     // Case 6: commit a pubrand list that overflows when adding startHeight + numPubRand
