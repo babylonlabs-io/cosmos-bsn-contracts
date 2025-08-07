@@ -163,10 +163,10 @@ impl From<btc_staking_api::ActiveBtcDelegation> for BtcDelegation {
             end_height: active_delegation.end_height,
             total_sat: active_delegation.total_sat,
             staking_tx: hex::decode(&active_delegation.staking_tx_hex)
-                .expect("valid hex")
+                .expect("invalid staking_tx_hex")
                 .into(),
             slashing_tx: hex::decode(&active_delegation.slashing_tx_hex)
-                .expect("valid hex")
+                .expect("invalid slashing_tx_hex")
                 .into(),
             delegator_slashing_sig: active_delegation.delegator_slashing_sig.to_vec(),
             covenant_sigs: active_delegation
