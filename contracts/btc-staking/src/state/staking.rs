@@ -284,7 +284,7 @@ impl From<btc_staking_api::BtcUndelegationInfo> for BtcUndelegationInfo {
             if let Some(delegator_unbonding_info) = undelegation_info.delegator_unbonding_info {
                 Some(DelegatorUnbondingInfo {
                     spend_stake_tx: hex::decode(&delegator_unbonding_info.spend_stake_tx_hex)
-                        .expect("valid hex")
+                        .expect("Failed to decode spend_stake_tx_hex as hex")
                         .into(),
                 })
             } else {
