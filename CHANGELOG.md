@@ -47,6 +47,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ### Improvements
 
 - [#302](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/302) chore: aligns IBC callback format with Babylon and avoids using consumer ID
+- [#303](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/303) feat: add finality provider status change events
 - [#301](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/301) init: make certain parameters non-optional upon instantiation
 - [#300](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/300) jailing: move jailing to end blocker
 - [#299](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/299) chore: have default values for instantiation messages
