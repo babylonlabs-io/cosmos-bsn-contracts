@@ -35,6 +35,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### State breaking
 
+- [#305](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/305) finality: add finality_activation_height to params
 - [#295](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/295) finality: move activated height from BTC staking contract to BTC finality contract
 - [#291](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/291) Improve rewards distribution by counting vote contribution
 - [#283](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/283) babylon: remove unused fields in config and instantiation msg for Babylon contract

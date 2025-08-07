@@ -11,6 +11,8 @@ pub const DEFAULT_MIN_PUB_RAND: u64 = 1;
 pub const DEFAULT_REWARD_INTERVAL: u64 = 50;
 pub const DEFAULT_MISSED_BLOCKS_WINDOW: u64 = 250;
 pub const DEFAULT_JAIL_DURATION: u64 = 86400;
+/// TODO: set this to 1 for now, but need to revisit this
+pub const DEFAULT_FINALITY_ACTIVATION_HEIGHT: u64 = 1;
 
 /// Config are Babylon-selectable BTC finality configuration
 #[cw_serde]
@@ -29,6 +31,9 @@ pub struct Config {
     /// Minimum period of time in seconds that a finality provider remains jailed (in case
     /// of being automatically jailed because of offline detection).
     pub jail_duration: u64,
+    /// Block height at which the finality module will start to accept finality voting
+    /// and the minimum allowed value for the public randomness commit start height.
+    pub finality_activation_height: u64,
 }
 
 impl Config {
@@ -43,6 +48,7 @@ impl Config {
             reward_interval: DEFAULT_REWARD_INTERVAL,
             missed_blocks_window: DEFAULT_MISSED_BLOCKS_WINDOW,
             jail_duration: DEFAULT_JAIL_DURATION,
+            finality_activation_height: DEFAULT_FINALITY_ACTIVATION_HEIGHT,
         }
     }
 }

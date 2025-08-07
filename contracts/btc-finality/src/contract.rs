@@ -7,11 +7,13 @@ use crate::liveness::handle_liveness;
 use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
 use crate::power_dist_change::compute_active_finality_providers;
 use crate::state::config::{
-    Config, ADMIN, CONFIG, DEFAULT_JAIL_DURATION, DEFAULT_MAX_ACTIVE_FINALITY_PROVIDERS,
-    DEFAULT_MIN_PUB_RAND, DEFAULT_MISSED_BLOCKS_WINDOW, DEFAULT_REWARD_INTERVAL,
+    Config, ADMIN, CONFIG, DEFAULT_FINALITY_ACTIVATION_HEIGHT, DEFAULT_JAIL_DURATION,
+    DEFAULT_MAX_ACTIVE_FINALITY_PROVIDERS, DEFAULT_MIN_PUB_RAND, DEFAULT_MISSED_BLOCKS_WINDOW,
+    DEFAULT_REWARD_INTERVAL,
 };
 use crate::state::finality::get_btc_staking_activated_height;
 use crate::{finality, queries, state};
+use std::cmp::max;
 
 #[cfg(test)]
 use crate::state::finality::ACCUMULATED_VOTING_WEIGHTS;
@@ -51,6 +53,9 @@ pub fn instantiate(
             .missed_blocks_window
             .unwrap_or(DEFAULT_MISSED_BLOCKS_WINDOW),
         jail_duration: msg.jail_duration.unwrap_or(DEFAULT_JAIL_DURATION),
+        finality_activation_height: msg
+            .finality_activation_height
+            .unwrap_or(DEFAULT_FINALITY_ACTIVATION_HEIGHT),
     };
     CONFIG.save(deps.storage, &config)?;
 
@@ -240,26 +245,30 @@ fn handle_end_block(
     _hash_hex: &str,
     app_hash_hex: &str,
 ) -> Result<Response, ContractError> {
-    // If the BTC staking protocol is activated i.e. there exists a height where at least one
-    // finality provider has voting power, start indexing and tallying blocks
-    let cfg = CONFIG.load(deps.storage)?;
     let mut res = Response::new();
+    let cfg = CONFIG.load(deps.storage)?;
 
-    let activated_height = get_btc_staking_activated_height(deps.storage);
-
-    // If the BTC staking protocol is not activated, do nothing
-    if activated_height.is_none() {
+    // Should not proceed if not reached finality activation height
+    if env.block.height < cfg.finality_activation_height {
         return Ok(res);
     }
 
-    let activated_height = activated_height.unwrap();
+    // Should not proceed if BTC staking is not activated
+    let activated_height = get_btc_staking_activated_height(deps.storage);
+    if activated_height.is_none() {
+        return Ok(res);
+    }
 
     // Index the current block
     let ev = finality::index_block(deps, env.block.height, &hex::decode(app_hash_hex)?)?;
     res = res.add_event(ev);
 
     // Tally all non-finalised blocks
-    let events = finality::tally_blocks(deps, &env, activated_height)?;
+    let events = finality::tally_blocks(
+        deps,
+        &env,
+        max(cfg.finality_activation_height, activated_height.unwrap()),
+    )?;
     res = res.add_events(events);
 
     // Examine liveness of finality providers and jail them if they are inactive for a certain

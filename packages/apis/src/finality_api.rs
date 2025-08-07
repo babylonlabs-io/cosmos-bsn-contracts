@@ -17,6 +17,7 @@ pub struct InstantiateMsg {
     pub reward_interval: Option<u64>,
     pub missed_blocks_window: Option<u64>,
     pub jail_duration: Option<u64>,
+    pub finality_activation_height: Option<u64>,
 }
 
 #[cw_serde]
