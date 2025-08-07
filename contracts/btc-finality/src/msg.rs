@@ -66,32 +66,38 @@ impl MsgCommitPubRand {
     }
 
     pub fn verify_sig(&self, signing_context: String) -> Result<(), PubRandCommitError> {
-        let Self {
-            fp_btc_pk_hex,
-            start_height,
-            num_pub_rand,
-            commitment,
-            sig: signature,
-        } = self;
-
         // get BTC public key for verification
-        let btc_pk_raw = hex::decode(fp_btc_pk_hex)?;
+        let btc_pk_raw = hex::decode(&self.fp_btc_pk_hex)?;
         let btc_pk = VerifyingKey::from_bytes(&btc_pk_raw)?;
 
-        let schnorr_sig = Signature::try_from(signature.as_slice())?;
+        let schnorr_sig = Signature::try_from(self.sig.as_slice())?;
 
-        // get signed message
-        let mut msg: Vec<u8> = vec![];
-        msg.extend(signing_context.into_bytes());
-        msg.extend(start_height.to_be_bytes());
-        msg.extend(num_pub_rand.to_be_bytes());
-        msg.extend_from_slice(commitment);
+        let signed_msg = commit_pub_rand_signed_message(
+            signing_context,
+            self.start_height,
+            self.num_pub_rand,
+            &self.commitment,
+        );
 
         // Verify the signature
-        btc_pk.verify(&msg, &schnorr_sig)?;
+        btc_pk.verify(&signed_msg, &schnorr_sig)?;
 
         Ok(())
     }
+}
+
+pub(crate) fn commit_pub_rand_signed_message(
+    signing_context: String,
+    start_height: u64,
+    num_pub_rand: u64,
+    commitment: &[u8],
+) -> Vec<u8> {
+    let mut msg: Vec<u8> = vec![];
+    msg.extend(signing_context.into_bytes());
+    msg.extend(start_height.to_be_bytes());
+    msg.extend(num_pub_rand.to_be_bytes());
+    msg.extend_from_slice(commitment);
+    msg
 }
 
 // https://github.com/babylonlabs-io/babylon/blob/49972e2d3e35caf0a685c37e1f745c47b75bfc69/x/finality/types/tx.pb.go#L154

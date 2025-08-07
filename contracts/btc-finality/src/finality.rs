@@ -86,24 +86,12 @@ pub fn handle_public_randomness_commit(
             ContractError::FinalityProviderNotFound(pub_rand_commit.fp_btc_pk_hex.clone())
         })?;
 
-    #[cfg(test)]
-    let verify_signature = || -> Result<(), PubRandCommitError> {
-        // TODO: Skip the signature verification in tests until we can generate proper MsgPubRandCommit
-        // by probably adpating `crate::tests::gen_random_msg_commit_pub_rand()`.
-        Ok(())
-    };
+    let signing_context = babylon_apis::signing_context::fp_rand_commit_context_v0(
+        &env.block.chain_id,
+        env.contract.address.as_str(),
+    );
 
-    #[cfg(not(test))]
-    let verify_signature = || -> Result<(), PubRandCommitError> {
-        let signing_context = babylon_apis::signing_context::fp_rand_commit_context_v0(
-            &env.block.chain_id,
-            env.contract.address.as_str(),
-        );
-
-        pub_rand_commit.verify_sig(signing_context)
-    };
-
-    verify_signature()?;
+    pub_rand_commit.verify_sig(signing_context)?;
 
     // Get last public randomness commitment
     // TODO: allow committing public randomness earlier than existing ones?
