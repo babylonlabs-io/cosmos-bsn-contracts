@@ -710,20 +710,6 @@
           }
         },
         "additionalProperties": false
-      },
-      {
-        "description": "Returns the height at which the contract gets its first delegation, if any.",
-        "type": "object",
-        "required": [
-          "activated_height"
-        ],
-        "properties": {
-          "activated_height": {
-            "type": "object",
-            "additionalProperties": false
-          }
-        },
-        "additionalProperties": false
       }
     ],
     "definitions": {
@@ -770,22 +756,6 @@
   },
   "sudo": null,
   "responses": {
-    "activated_height": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "ActivatedHeightResponse",
-      "type": "object",
-      "required": [
-        "height"
-      ],
-      "properties": {
-        "height": {
-          "type": "integer",
-          "format": "uint64",
-          "minimum": 0.0
-        }
-      },
-      "additionalProperties": false
-    },
     "admin": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "AdminResponse",
