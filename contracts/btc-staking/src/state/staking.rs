@@ -350,7 +350,7 @@ pub struct SignatureInfo {
 impl From<btc_staking_api::SignatureInfo> for SignatureInfo {
     fn from(sig_info: btc_staking_api::SignatureInfo) -> Self {
         SignatureInfo {
-            pk: hex::decode(&sig_info.pk_hex).expect("valid hex").into(),
+            pk: hex::decode(&sig_info.pk_hex).expect("failed to decode pk_hex as hex").into(),
             sig: sig_info.sig.to_vec(),
         }
     }
