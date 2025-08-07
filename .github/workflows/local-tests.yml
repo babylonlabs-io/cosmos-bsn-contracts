@@ -52,6 +52,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4.1.0
       - uses: bufbuild/buf-action@v1
+        with:
+          # Only install the buf CLI.
+          setup_only: true
       - name: Generate proto
         run: bash scripts/protocgen.sh
       - name: Check for schema drift
