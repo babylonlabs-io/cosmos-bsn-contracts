@@ -116,10 +116,18 @@ mod finality {
         let res = suite
             .call_begin_block(&add_finality_signature.block_app_hash, initial_height + 1)
             .unwrap();
-        assert_eq!(1, res.events.len());
+        assert_eq!(2, res.events.len());
         assert_eq!(
             res.events[0],
             Event::new("sudo").add_attribute("_contract_address", BTC_FINALITY_CONTRACT_ADDR)
+        );
+        // Check the finality provider status change event
+        assert_eq!(
+            res.events[1],
+            Event::new("wasm-finality_provider_status_change")
+                .add_attribute("_contract_address", BTC_FINALITY_CONTRACT_ADDR)
+                .add_attribute("btc_pk", &pk_hex)
+                .add_attribute("new_state", "FINALITY_PROVIDER_STATUS_ACTIVE")
         );
 
         // Call the end-block sudo handler(s), so that the block is indexed in the store
