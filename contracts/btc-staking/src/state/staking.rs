@@ -302,7 +302,7 @@ impl From<btc_staking_api::BtcUndelegationInfo> for BtcUndelegationInfo {
                 .map(|sig| sig.into())
                 .collect(),
             slashing_tx: hex::decode(&undelegation_info.slashing_tx_hex)
-                .expect("valid hex")
+                .expect("Failed to decode slashing_tx_hex as valid hex")
                 .into(),
             delegator_slashing_sig: undelegation_info.delegator_slashing_sig.to_vec(),
             covenant_slashing_sigs: undelegation_info
