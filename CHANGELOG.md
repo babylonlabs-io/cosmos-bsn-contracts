@@ -47,6 +47,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Improvements
 
+- [#307](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/307) chore: bump babylon and fix voting power query
 - [#304](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/304) chore: port `FuzzCommitPubRandList`
 - [#302](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/302) chore: aligns IBC callback format with Babylon and avoids using consumer ID
 - [#303](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/303) feat: add finality provider status change events
