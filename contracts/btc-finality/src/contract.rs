@@ -1,5 +1,3 @@
-use std::cmp::max;
-
 use crate::error::ContractError;
 use crate::finality::{
     handle_finality_signature, handle_public_randomness_commit, handle_rewards_distribution,
@@ -15,6 +13,7 @@ use crate::state::config::{
 };
 use crate::state::finality::get_btc_staking_activated_height;
 use crate::{finality, queries, state};
+use std::cmp::max;
 
 #[cfg(test)]
 use crate::state::finality::ACCUMULATED_VOTING_WEIGHTS;
