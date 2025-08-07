@@ -293,7 +293,7 @@ impl From<btc_staking_api::BtcUndelegationInfo> for BtcUndelegationInfo {
 
         BtcUndelegationInfo {
             unbonding_tx: hex::decode(&undelegation_info.unbonding_tx_hex)
-                .expect("valid hex")
+                .expect("failed to decode unbonding_tx_hex from hex")
                 .into(),
             delegator_unbonding_info,
             covenant_unbonding_sig_list: undelegation_info
