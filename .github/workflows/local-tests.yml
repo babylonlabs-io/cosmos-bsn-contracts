@@ -80,5 +80,11 @@ jobs:
       image: rust:1.86.0
     steps:
     - uses: actions/checkout@v4.1.0
-    - name: Build contracts, check formats, and run unit tests
+    - name: Install dependencies
+      run: rustup component add rustfmt clippy
+    - name: Check format
+      run: cargo fmt -- --check
+    - name: Check clippy
+      run: cargo clippy --workspace --all-features --all-targets -- -D warnings
+    - name: Run unit tests
       run: cargo test --lib
