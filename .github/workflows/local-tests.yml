@@ -51,6 +51,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4.1.0
+      - uses: bufbuild/buf-action@v1
       - name: Generate proto
         run: bash scripts/protocgen.sh
       - name: Check for schema drift
