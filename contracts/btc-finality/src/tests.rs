@@ -101,15 +101,14 @@ fn test_msg_commit_pub_rand_validate_basic() {
     }
 
     // overflow in block height
-    let start_height = rng.gen_range(1..10);
+    let start_height = u64::MAX;
     let num_pub_rand = rng.gen_range(1..100);
-    let mut msg = gen_random_msg_commit_pub_rand(&mut rng, start_height, num_pub_rand);
-    msg.num_pub_rand = 0;
+    let msg = gen_random_msg_commit_pub_rand(&mut rng, start_height, num_pub_rand);
     assert_eq!(
         msg.validate_basic(),
         Err(PubRandCommitError::OverflowInBlockHeight(
             start_height,
-            start_height
+            num_pub_rand
         ))
     );
 }
