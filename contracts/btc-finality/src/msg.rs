@@ -269,7 +269,7 @@ pub enum QueryMsg {
     #[returns(FinalityProviderPowerResponse)]
     FinalityProviderPower { btc_pk_hex: String, height: u64 },
     /// Returns the activated height of the BTC staking protocol
-    #[returns(ActivatedHeightResponse)]
+    #[returns(u64)]
     ActivatedHeight {},
     /// Returns the finality providers who have signed the block at given height.
     #[returns(VotesResponse)]
@@ -327,9 +327,4 @@ pub struct SigningInfoResponse {
     pub start_height: u64,
     pub last_signed_height: u64,
     pub jailed_until: Option<u64>,
-}
-
-#[cw_serde]
-pub struct ActivatedHeightResponse {
-    pub height: u64,
 }
