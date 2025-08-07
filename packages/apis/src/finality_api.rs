@@ -17,6 +17,10 @@ pub struct InstantiateMsg {
     pub reward_interval: Option<u64>,
     pub missed_blocks_window: Option<u64>,
     pub jail_duration: Option<u64>,
+    /// Babylon block height which the finality module will start to accept finality voting
+    /// and the minimum allowed value for the public randomness commit start height.
+    /// ref: babylon/finality/v1/params.proto FinalityActivationHeight
+    pub finality_activation_height: Option<u64>,
 }
 
 #[cw_serde]
