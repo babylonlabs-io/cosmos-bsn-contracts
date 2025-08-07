@@ -1,8 +1,7 @@
 mod suite;
 
 use crate::error::{ContractError, PubRandCommitError};
-use crate::msg::FinalitySignatureResponse;
-use crate::msg::JailedFinalityProvider;
+use crate::msg::{FinalitySignatureResponse, JailedFinalityProvider};
 use crate::tests::gen_random_msg_commit_pub_rand;
 use babylon_apis::finality_api::IndexedBlock;
 use babylon_bindings_test::{
@@ -16,8 +15,7 @@ use babylon_test_utils::{
 use cosmwasm_std::{coin, Addr, Event};
 use k256::schnorr::SigningKey;
 use rand::seq::SliceRandom;
-use rand::thread_rng;
-use rand::Rng;
+use rand::{thread_rng, Rng};
 use suite::SuiteBuilder;
 
 #[test]

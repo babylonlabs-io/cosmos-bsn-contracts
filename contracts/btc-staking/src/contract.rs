@@ -162,11 +162,8 @@ fn handle_update_contract_addresses(
 #[cfg(test)]
 pub mod tests {
     use super::*;
-
-    use cosmwasm_std::{
-        from_json,
-        testing::{message_info, mock_dependencies, mock_env},
-    };
+    use cosmwasm_std::from_json;
+    use cosmwasm_std::testing::{message_info, mock_dependencies, mock_env};
     use cw_controllers::AdminResponse;
 
     pub(crate) const CREATOR: &str = "creator";

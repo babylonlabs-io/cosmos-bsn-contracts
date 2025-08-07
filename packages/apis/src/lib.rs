@@ -1,20 +1,17 @@
-use bech32::Variant::Bech32;
-use bech32::{FromBase32, ToBase32, Variant};
-use sha2::Digest;
-
-use cosmwasm_std::{Addr, Binary, CanonicalAddr, CustomQuery, QueryRequest, WasmQuery};
-
-use error::StakingApiError;
-
 pub mod btc_staking_api;
 pub mod error;
 pub mod finality_api;
 pub mod signing_context;
 mod validate;
 
-pub type Bytes = Vec<u8>;
-
+use bech32::Variant::Bech32;
+use bech32::{FromBase32, ToBase32, Variant};
+use cosmwasm_std::{Addr, Binary, CanonicalAddr, CustomQuery, QueryRequest, WasmQuery};
+use error::StakingApiError;
+use sha2::Digest;
 pub use validate::Validate;
+
+pub type Bytes = Vec<u8>;
 
 pub fn encode_raw_query<T: Into<Binary>, Q: CustomQuery>(addr: &Addr, key: T) -> QueryRequest<Q> {
     WasmQuery::Raw {

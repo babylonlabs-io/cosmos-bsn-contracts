@@ -10,8 +10,7 @@
 use babylon_proto::babylon::btclightclient::v1::BtcHeaderInfo;
 use bitcoin::consensus::Params;
 use bitcoin::{BlockHash, Target, Work};
-use cosmwasm_std::Storage;
-use cosmwasm_std::{StdError, StdResult};
+use cosmwasm_std::{StdError, StdResult, Storage};
 
 /// Errors that can occur during BTC header verification.
 #[derive(thiserror::Error, Debug, PartialEq)]

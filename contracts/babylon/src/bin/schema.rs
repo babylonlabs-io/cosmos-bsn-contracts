@@ -1,7 +1,6 @@
+use babylon_contract::msg::contract::{ExecuteMsg, InstantiateMsg, QueryMsg};
 use cosmwasm_schema::write_api;
 use cosmwasm_std::Empty;
-
-use babylon_contract::msg::contract::{ExecuteMsg, InstantiateMsg, QueryMsg};
 
 fn main() {
     // Clear & write standard API

@@ -1,3 +1,7 @@
+use babylon_contract::ibc::IBC_VERSION;
+use babylon_contract::msg::contract::InstantiateMsg;
+use btc_light_client::msg::InstantiateMsg as BtcLightClientInstantiateMsg;
+use btc_light_client::BitcoinNetwork;
 use cosmwasm_std::testing::{message_info, mock_ibc_channel_open_try};
 use cosmwasm_std::{to_json_binary, Addr, ContractResult, IbcOrder, Response};
 use cosmwasm_vm::testing::{
@@ -5,11 +9,6 @@ use cosmwasm_vm::testing::{
     MockQuerier, MockStorage,
 };
 use cosmwasm_vm::Instance;
-
-use babylon_contract::ibc::IBC_VERSION;
-use babylon_contract::msg::contract::InstantiateMsg;
-use btc_light_client::msg::InstantiateMsg as BtcLightClientInstantiateMsg;
-use btc_light_client::BitcoinNetwork;
 
 #[cfg(clippy)]
 static BABYLON_CONTRACT_WASM: &[u8] = &[];

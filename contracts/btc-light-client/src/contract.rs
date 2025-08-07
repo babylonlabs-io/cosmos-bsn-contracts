@@ -289,8 +289,8 @@ pub(crate) mod tests {
     use crate::ExecuteMsg;
     use babylon_test_utils::{get_btc_lc_fork_headers, get_btc_lc_fork_msg, get_btc_lc_headers};
     use bitcoin::block::Header as BlockHeader;
-    use cosmwasm_std::Addr;
-    use cosmwasm_std::{from_json, testing::mock_dependencies};
+    use cosmwasm_std::testing::mock_dependencies;
+    use cosmwasm_std::{from_json, Addr};
 
     /// Initialze the contract state with given headers.
     pub(crate) fn init_contract(

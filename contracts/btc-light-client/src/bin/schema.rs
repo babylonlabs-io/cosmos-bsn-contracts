@@ -1,6 +1,5 @@
-use cosmwasm_schema::write_api;
-
 use btc_light_client::msg::contract::{ExecuteMsg, InstantiateMsg, QueryMsg};
+use cosmwasm_schema::write_api;
 
 fn main() {
     write_api! {

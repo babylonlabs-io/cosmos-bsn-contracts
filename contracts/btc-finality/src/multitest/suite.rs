@@ -1,26 +1,23 @@
 use crate::error::ContractError;
-use crate::msg::QueryMsg as FinalityQueryMsg;
 use crate::msg::{
     ActiveFinalityProvidersResponse, EvidenceResponse, FinalityProviderPowerResponse,
     FinalitySignatureResponse, InstantiateMsg, JailedFinalityProvider,
-    JailedFinalityProvidersResponse,
+    JailedFinalityProvidersResponse, QueryMsg as FinalityQueryMsg,
 };
 use anyhow::Result as AnyResult;
 use babylon_apis::btc_staking_api::{ActiveBtcDelegation, FinalityProvider, NewFinalityProvider};
 use babylon_apis::error::StakingApiError;
 use babylon_apis::finality_api::{IndexedBlock, PubRandCommit};
 use babylon_apis::{btc_staking_api, finality_api, to_bech32_addr, to_canonical_addr};
-use babylon_bindings_test::BabylonApp;
 use babylon_bindings_test::{
-    BTC_FINALITY_CONTRACT_ADDR, BTC_LIGHT_CLIENT_CONTRACT_ADDR, BTC_STAKING_CONTRACT_ADDR,
-    USER_ADDR,
+    BabylonApp, BTC_FINALITY_CONTRACT_ADDR, BTC_LIGHT_CLIENT_CONTRACT_ADDR,
+    BTC_STAKING_CONTRACT_ADDR, USER_ADDR,
 };
 use btc_light_client::msg::InstantiateMsg as BtcLightClientInstantiateMsg;
 use btc_light_client::BitcoinNetwork;
 use btc_staking::msg::FinalityProviderInfo;
 use cosmwasm_std::testing::mock_dependencies;
-use cosmwasm_std::Empty;
-use cosmwasm_std::{to_json_binary, Addr, BlockInfo, Coin, Timestamp};
+use cosmwasm_std::{to_json_binary, Addr, BlockInfo, Coin, Empty, Timestamp};
 use cw_multi_test::{next_block, AppResponse, Contract, ContractWrapper, Executor};
 use derivative::Derivative;
 use hex::ToHex;

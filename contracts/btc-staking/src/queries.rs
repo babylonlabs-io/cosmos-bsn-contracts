@@ -190,8 +190,7 @@ mod tests {
     use babylon_apis::btc_staking_api::{FinalityProvider, UnbondedBtcDelegation};
     use babylon_test_utils::{create_new_finality_provider, get_btc_del_unbonding_sig};
     use cosmwasm_std::storage_keys::namespace_with_key;
-    use cosmwasm_std::testing::message_info;
-    use cosmwasm_std::testing::{mock_dependencies, mock_env};
+    use cosmwasm_std::testing::{message_info, mock_dependencies, mock_env};
     use cosmwasm_std::StdError::NotFound;
     use cosmwasm_std::{from_json, Env, Storage};
 

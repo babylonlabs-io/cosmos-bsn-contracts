@@ -1,7 +1,6 @@
+use cosmwasm_std::StdError;
 use hex::FromHexError;
 use thiserror::Error;
-
-use cosmwasm_std::StdError;
 
 #[derive(Error, Debug, PartialEq)]
 pub enum StakingApiError {

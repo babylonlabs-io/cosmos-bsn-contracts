@@ -1,4 +1,5 @@
-//! state is the module that manages smart contract's system state
+//! This module manages contract's system state.
+
 use babylon_proto::babylon::zoneconcierge::v1::BtcTimestamp;
 use cosmwasm_std::{DepsMut, StdError, WasmMsg};
 
