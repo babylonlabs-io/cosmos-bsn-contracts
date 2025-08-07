@@ -110,7 +110,7 @@ pub mod outbound_packet {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct InboundPacket {
     /// packet is the actual message carried in the IBC packet
-    #[prost(oneof="inbound_packet::Packet", tags="1, 2")]
+    #[prost(oneof="inbound_packet::Packet", tags="1")]
     pub packet: ::core::option::Option<inbound_packet::Packet>,
 }
 /// Nested message and enum types in `InboundPacket`.
@@ -121,8 +121,6 @@ pub mod inbound_packet {
     pub enum Packet {
         #[prost(message, tag="1")]
         BsnSlashing(super::BsnSlashingIbcPacket),
-        #[prost(message, tag="2")]
-        BsnBaseBtcHeader(super::BsnBaseBtcHeaderIbcPacket),
     }
 }
 /// BTCHeaders contains BTC headers that have been verified and inserted into Babylon's BTC light client
@@ -179,14 +177,5 @@ pub struct BsnSlashingIbcPacket {
     /// / evidence is the FP slashing evidence that the BSN sends to Babylon
     #[prost(message, optional, tag="1")]
     pub evidence: ::core::option::Option<super::super::finality::v1::Evidence>,
-}
-/// BSNBaseBTCHeaderIBCPacket defines the base BTC header information that a BSN sends to Babylon's ZoneConcierge
-/// to inform Babylon about which BTC header the BSN considers as its starting point for BTC light client synchronization
-#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct BsnBaseBtcHeaderIbcPacket {
-    /// base_btc_header is the BTC header that the BSN uses as the base for its BTC light client
-    #[prost(message, optional, tag="1")]
-    pub base_btc_header: ::core::option::Option<super::super::btclightclient::v1::BtcHeaderInfo>,
 }
 // @@protoc_insertion_point(module)
