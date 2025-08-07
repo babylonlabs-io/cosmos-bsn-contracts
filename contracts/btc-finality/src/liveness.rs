@@ -31,9 +31,7 @@ pub fn handle_liveness(
         };
         if inactive {
             // Check if FP is already jailed to avoid duplicate events and unnecessary updates
-            let was_already_jailed = JAIL.has(deps.storage, &fp_btc_pk_hex);
-
-            if was_already_jailed {
+            if JAIL.has(deps.storage, &fp_btc_pk_hex) {
                 // FP is already jailed, no action needed
                 continue;
             }
