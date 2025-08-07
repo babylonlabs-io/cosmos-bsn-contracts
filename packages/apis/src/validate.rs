@@ -54,14 +54,16 @@ impl Validate for ActiveBtcDelegation {
         if self.btc_pk_hex.is_empty() {
             return Err(StakingApiError::EmptyBtcPk);
         }
-        if self.staking_tx.is_empty() {
+        if self.staking_tx_hex.is_empty() {
             return Err(StakingApiError::EmptyStakingTx);
         }
-        if self.slashing_tx.is_empty() {
+        if self.slashing_tx_hex.is_empty() {
             return Err(StakingApiError::EmptySlashingTx);
         }
-        let _: Transaction = deserialize(&self.slashing_tx)
-            .map_err(|_| StakingApiError::InvalidBtcTx(hex::encode(&self.slashing_tx)))?;
+        let slashing_tx_bytes = hex::decode(&self.slashing_tx_hex)
+            .map_err(|_| StakingApiError::InvalidBtcTx(self.slashing_tx_hex.clone()))?;
+        let _: Transaction = deserialize(&slashing_tx_bytes)
+            .map_err(|_| StakingApiError::InvalidBtcTx(self.slashing_tx_hex.clone()))?;
 
         // TODO: Verify delegator slashing Schnorr signature (#7.2)
 
@@ -83,12 +85,12 @@ impl Validate for ActiveBtcDelegation {
 
         let undelegation_info = &self.undelegation_info;
         // Check that the unbonding tx is there
-        if undelegation_info.unbonding_tx.is_empty() {
+        if undelegation_info.unbonding_tx_hex.is_empty() {
             return Err(StakingApiError::EmptyUnbondingTx);
         }
 
         // Check that the unbonding slashing tx is there
-        if undelegation_info.slashing_tx.is_empty() {
+        if undelegation_info.slashing_tx_hex.is_empty() {
             return Err(StakingApiError::EmptySlashingTx);
         }
 

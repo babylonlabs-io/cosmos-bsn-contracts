@@ -180,10 +180,10 @@ pub struct ActiveBtcDelegation {
     pub end_height: u32,
     /// Total BTC stakes in this delegation, quantified in satoshi
     pub total_sat: u64,
-    /// Staking tx.
-    pub staking_tx: Binary,
-    /// Slashing tx.
-    pub slashing_tx: Binary,
+    /// Staking tx as hex string.
+    pub staking_tx_hex: String,
+    /// Slashing tx as hex string.
+    pub slashing_tx_hex: String,
     /// Signature on the slashing tx by the delegator (i.e. SK corresponding to btc_pk) as string hex.
     /// It will be a part of the witness for the staking tx output.
     pub delegator_slashing_sig: Binary,
@@ -213,7 +213,7 @@ impl TryFrom<&babylon_proto::babylon::btcstaking::v1::ActiveBtcDelegation> for A
             .delegator_unbonding_info
         {
             Some(DelegatorUnbondingInfo {
-                spend_stake_tx: Binary::new(info.spend_stake_tx.to_vec()),
+                spend_stake_tx_hex: hex::encode(&info.spend_stake_tx),
             })
         } else {
             None
@@ -226,14 +226,14 @@ impl TryFrom<&babylon_proto::babylon::btcstaking::v1::ActiveBtcDelegation> for A
             start_height: d.start_height,
             end_height: d.end_height,
             total_sat: d.total_sat,
-            staking_tx: d.staking_tx.to_vec().into(),
-            slashing_tx: d.slashing_tx.to_vec().into(),
+            staking_tx_hex: hex::encode(&d.staking_tx),
+            slashing_tx_hex: hex::encode(&d.slashing_tx),
             delegator_slashing_sig: d.delegator_slashing_sig.to_vec().into(),
             covenant_sigs: d
                 .covenant_sigs
                 .iter()
                 .map(|s| CovenantAdaptorSignatures {
-                    cov_pk: s.cov_pk.to_vec().into(),
+                    cov_pk_hex: hex::encode(&s.cov_pk),
                     adaptor_sigs: s.adaptor_sigs.iter().map(|a| a.to_vec().into()).collect(),
                 })
                 .collect(),
@@ -243,23 +243,23 @@ impl TryFrom<&babylon_proto::babylon::btcstaking::v1::ActiveBtcDelegation> for A
                 .undelegation_info
                 .as_ref()
                 .map(|ui| BtcUndelegationInfo {
-                    unbonding_tx: ui.unbonding_tx.to_vec().into(),
+                    unbonding_tx_hex: hex::encode(&ui.unbonding_tx),
                     delegator_unbonding_info,
                     covenant_unbonding_sig_list: ui
                         .covenant_unbonding_sig_list
                         .iter()
                         .map(|s| SignatureInfo {
-                            pk: s.pk.to_vec().into(),
+                            pk_hex: hex::encode(&s.pk),
                             sig: s.sig.to_vec().into(),
                         })
                         .collect(),
-                    slashing_tx: ui.slashing_tx.to_vec().into(),
+                    slashing_tx_hex: hex::encode(&ui.slashing_tx),
                     delegator_slashing_sig: ui.delegator_slashing_sig.to_vec().into(),
                     covenant_slashing_sigs: ui
                         .covenant_slashing_sigs
                         .iter()
                         .map(|s| CovenantAdaptorSignatures {
-                            cov_pk: s.cov_pk.to_vec().into(),
+                            cov_pk_hex: hex::encode(&s.cov_pk),
                             adaptor_sigs: s
                                 .adaptor_sigs
                                 .iter()
@@ -279,7 +279,7 @@ impl TryFrom<&babylon_proto::babylon::btcstaking::v1::ActiveBtcDelegation> for A
 #[cw_serde]
 pub struct CovenantAdaptorSignatures {
     /// Public key of the covenant emulator, used as the public key of the adaptor signature
-    pub cov_pk: Binary,
+    pub cov_pk_hex: String,
     /// List of adaptor signatures, each encrypted by a restaked BTC finality provider's public key
     pub adaptor_sigs: Vec<Binary>,
 }
@@ -290,9 +290,9 @@ pub struct BtcUndelegationInfo {
     /// Transaction which will transfer the funds from staking
     /// output to unbonding output. Unbonding output will usually have lower timelock
     /// than staking output.
-    pub unbonding_tx: Binary,
-    /// Unbonding slashing tx
-    pub slashing_tx: Binary,
+    pub unbonding_tx_hex: String,
+    /// Unbonding slashing tx as hex string
+    pub slashing_tx_hex: String,
     /// Signature on the slashing tx
     /// by the delegator (i.e. SK corresponding to btc_pk).
     /// It will be a part of the witness for the unbonding tx output.
@@ -311,13 +311,13 @@ pub struct BtcUndelegationInfo {
 
 #[cw_serde]
 pub struct DelegatorUnbondingInfo {
-    pub spend_stake_tx: Binary,
+    pub spend_stake_tx_hex: String,
 }
 
 /// A BIP-340 signature together with its signer's BIP-340 PK.
 #[cw_serde]
 pub struct SignatureInfo {
-    pub pk: Binary,
+    pub pk_hex: String,
     pub sig: Binary,
 }
 

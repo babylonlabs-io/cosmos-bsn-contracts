@@ -162,8 +162,12 @@ impl From<btc_staking_api::ActiveBtcDelegation> for BtcDelegation {
             start_height: active_delegation.start_height,
             end_height: active_delegation.end_height,
             total_sat: active_delegation.total_sat,
-            staking_tx: active_delegation.staking_tx.to_vec(),
-            slashing_tx: active_delegation.slashing_tx.to_vec(),
+            staking_tx: hex::decode(&active_delegation.staking_tx_hex)
+                .expect("valid hex")
+                .into(),
+            slashing_tx: hex::decode(&active_delegation.slashing_tx_hex)
+                .expect("valid hex")
+                .into(),
             delegator_slashing_sig: active_delegation.delegator_slashing_sig.to_vec(),
             covenant_sigs: active_delegation
                 .covenant_sigs
@@ -185,6 +189,31 @@ impl From<&btc_staking_api::ActiveBtcDelegation> for BtcDelegation {
     }
 }
 
+impl Into<btc_staking_api::ActiveBtcDelegation> for BtcDelegation {
+    fn into(self) -> btc_staking_api::ActiveBtcDelegation {
+        btc_staking_api::ActiveBtcDelegation {
+            staker_addr: self.staker_addr,
+            btc_pk_hex: self.btc_pk_hex,
+            fp_btc_pk_list: self.fp_btc_pk_list,
+            start_height: self.start_height,
+            end_height: self.end_height,
+            total_sat: self.total_sat,
+            staking_tx_hex: hex::encode(&self.staking_tx),
+            slashing_tx_hex: hex::encode(&self.slashing_tx),
+            delegator_slashing_sig: self.delegator_slashing_sig.into(),
+            covenant_sigs: self
+                .covenant_sigs
+                .into_iter()
+                .map(|sig| sig.into())
+                .collect(),
+            staking_output_idx: self.staking_output_idx,
+            unbonding_time: self.unbonding_time,
+            undelegation_info: self.undelegation_info.into(),
+            params_version: self.params_version,
+        }
+    }
+}
+
 #[cw_serde]
 pub struct CovenantAdaptorSignatures {
     /// cov_pk is the public key of the covenant emulator, used as the public key of the adaptor signature
@@ -196,11 +225,26 @@ pub struct CovenantAdaptorSignatures {
 impl From<btc_staking_api::CovenantAdaptorSignatures> for CovenantAdaptorSignatures {
     fn from(cov_adaptor_sigs: btc_staking_api::CovenantAdaptorSignatures) -> Self {
         CovenantAdaptorSignatures {
-            cov_pk: cov_adaptor_sigs.cov_pk.to_vec(),
+            cov_pk: hex::decode(&cov_adaptor_sigs.cov_pk_hex)
+                .expect("valid hex")
+                .into(),
             adaptor_sigs: cov_adaptor_sigs
                 .adaptor_sigs
                 .into_iter()
                 .map(|sig| sig.to_vec())
+                .collect(),
+        }
+    }
+}
+
+impl Into<btc_staking_api::CovenantAdaptorSignatures> for CovenantAdaptorSignatures {
+    fn into(self) -> btc_staking_api::CovenantAdaptorSignatures {
+        btc_staking_api::CovenantAdaptorSignatures {
+            cov_pk_hex: hex::encode(&self.cov_pk),
+            adaptor_sigs: self
+                .adaptor_sigs
+                .into_iter()
+                .map(|sig| sig.into())
                 .collect(),
         }
     }
@@ -239,27 +283,60 @@ impl From<btc_staking_api::BtcUndelegationInfo> for BtcUndelegationInfo {
         let delegator_unbonding_info =
             if let Some(delegator_unbonding_info) = undelegation_info.delegator_unbonding_info {
                 Some(DelegatorUnbondingInfo {
-                    spend_stake_tx: delegator_unbonding_info.spend_stake_tx.to_vec(),
+                    spend_stake_tx: hex::decode(&delegator_unbonding_info.spend_stake_tx_hex)
+                        .expect("valid hex")
+                        .into(),
                 })
             } else {
                 None
             };
 
         BtcUndelegationInfo {
-            unbonding_tx: undelegation_info.unbonding_tx.to_vec(),
+            unbonding_tx: hex::decode(&undelegation_info.unbonding_tx_hex)
+                .expect("valid hex")
+                .into(),
             delegator_unbonding_info,
             covenant_unbonding_sig_list: undelegation_info
                 .covenant_unbonding_sig_list
                 .into_iter()
                 .map(|sig| sig.into())
                 .collect(),
-            slashing_tx: undelegation_info.slashing_tx.to_vec(),
+            slashing_tx: hex::decode(&undelegation_info.slashing_tx_hex)
+                .expect("valid hex")
+                .into(),
             delegator_slashing_sig: undelegation_info.delegator_slashing_sig.to_vec(),
             covenant_slashing_sigs: undelegation_info
                 .covenant_slashing_sigs
                 .into_iter()
                 .map(|sig| sig.into())
                 .collect(),
+        }
+    }
+}
+
+impl Into<btc_staking_api::BtcUndelegationInfo> for BtcUndelegationInfo {
+    fn into(self) -> btc_staking_api::BtcUndelegationInfo {
+        let delegator_unbonding_info =
+            self.delegator_unbonding_info
+                .map(|info| btc_staking_api::DelegatorUnbondingInfo {
+                    spend_stake_tx_hex: hex::encode(&info.spend_stake_tx),
+                });
+
+        btc_staking_api::BtcUndelegationInfo {
+            unbonding_tx_hex: hex::encode(&self.unbonding_tx),
+            slashing_tx_hex: hex::encode(&self.slashing_tx),
+            delegator_slashing_sig: self.delegator_slashing_sig.into(),
+            covenant_slashing_sigs: self
+                .covenant_slashing_sigs
+                .into_iter()
+                .map(|sig| sig.into())
+                .collect(),
+            covenant_unbonding_sig_list: self
+                .covenant_unbonding_sig_list
+                .into_iter()
+                .map(|sig| sig.into())
+                .collect(),
+            delegator_unbonding_info,
         }
     }
 }
@@ -273,8 +350,17 @@ pub struct SignatureInfo {
 impl From<btc_staking_api::SignatureInfo> for SignatureInfo {
     fn from(sig_info: btc_staking_api::SignatureInfo) -> Self {
         SignatureInfo {
-            pk: sig_info.pk.to_vec(),
+            pk: hex::decode(&sig_info.pk_hex).expect("valid hex").into(),
             sig: sig_info.sig.to_vec(),
+        }
+    }
+}
+
+impl Into<btc_staking_api::SignatureInfo> for SignatureInfo {
+    fn into(self) -> btc_staking_api::SignatureInfo {
+        btc_staking_api::SignatureInfo {
+            pk_hex: hex::encode(&self.pk),
+            sig: self.sig.into(),
         }
     }
 }

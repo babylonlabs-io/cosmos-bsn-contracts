@@ -110,7 +110,8 @@ fn handle_active_delegation(
     // - They have timestamped public randomness (#130)
 
     // Parse staking tx
-    let staking_tx: Transaction = deserialize(&active_delegation.staking_tx)?;
+    let staking_tx_bytes = hex::decode(&active_delegation.staking_tx_hex)?;
+    let staking_tx: Transaction = deserialize(&staking_tx_bytes)?;
     // Check staking time is at most uint16
     match staking_tx.lock_time {
         LockTime::Blocks(b) if b.to_consensus_u32() > u16::MAX as u32 => {
@@ -713,8 +714,9 @@ pub(crate) mod tests {
         assert_eq!(
             btc_undelegation,
             BtcUndelegationInfo {
-                unbonding_tx: active_delegation_undelegation.unbonding_tx.to_vec(),
-                slashing_tx: active_delegation_undelegation.slashing_tx.to_vec(),
+                unbonding_tx: hex::decode(&active_delegation_undelegation.unbonding_tx_hex)
+                    .unwrap(),
+                slashing_tx: hex::decode(&active_delegation_undelegation.slashing_tx_hex).unwrap(),
                 delegator_unbonding_info: None,
                 delegator_slashing_sig: active_delegation_undelegation
                     .delegator_slashing_sig
@@ -749,8 +751,9 @@ pub(crate) mod tests {
         assert_eq!(
             btc_undelegation,
             BtcUndelegationInfo {
-                unbonding_tx: active_delegation_undelegation.unbonding_tx.into(),
-                slashing_tx: active_delegation_undelegation.slashing_tx.into(),
+                unbonding_tx: hex::decode(&active_delegation_undelegation.unbonding_tx_hex)
+                    .unwrap(),
+                slashing_tx: hex::decode(&active_delegation_undelegation.slashing_tx_hex).unwrap(),
                 delegator_unbonding_info: Some(DelegatorUnbondingInfo {
                     spend_stake_tx: vec![0x00; 32], // TODO: avoid handling spend stake tx for now
                 }),

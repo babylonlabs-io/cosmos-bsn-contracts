@@ -252,7 +252,7 @@ pub fn new_active_btc_delegation(del: BtcDelegation) -> ActiveBtcDelegation {
     let delegator_unbonding_info =
         if let Some(delegator_unbonding_info) = btc_undelegation.delegator_unbonding_info {
             Some(DelegatorUnbondingInfo {
-                spend_stake_tx: Binary::new(delegator_unbonding_info.spend_stake_tx.to_vec()),
+                spend_stake_tx_hex: hex::encode(&delegator_unbonding_info.spend_stake_tx),
             })
         } else {
             None
@@ -269,14 +269,14 @@ pub fn new_active_btc_delegation(del: BtcDelegation) -> ActiveBtcDelegation {
         start_height: del.start_height,
         end_height: del.end_height,
         total_sat: del.total_sat,
-        staking_tx: Binary::new(del.staking_tx.to_vec()),
-        slashing_tx: Binary::new(del.slashing_tx.to_vec()),
+        staking_tx_hex: hex::encode(&del.staking_tx),
+        slashing_tx_hex: hex::encode(&del.slashing_tx),
         delegator_slashing_sig: Binary::new(del.delegator_sig.to_vec()),
         covenant_sigs: del
             .covenant_sigs
             .iter()
             .map(|cov_sig| CovenantAdaptorSignatures {
-                cov_pk: Binary::new(cov_sig.cov_pk.to_vec()),
+                cov_pk_hex: hex::encode(&cov_sig.cov_pk),
                 adaptor_sigs: cov_sig
                     .adaptor_sigs
                     .iter()
@@ -287,8 +287,8 @@ pub fn new_active_btc_delegation(del: BtcDelegation) -> ActiveBtcDelegation {
         staking_output_idx: del.staking_output_idx,
         unbonding_time: del.unbonding_time,
         undelegation_info: BtcUndelegationInfo {
-            unbonding_tx: Binary::new(btc_undelegation.unbonding_tx.to_vec()),
-            slashing_tx: Binary::new(btc_undelegation.slashing_tx.to_vec()),
+            unbonding_tx_hex: hex::encode(&btc_undelegation.unbonding_tx),
+            slashing_tx_hex: hex::encode(&btc_undelegation.slashing_tx),
             delegator_unbonding_info,
             delegator_slashing_sig: Binary::new(btc_undelegation.delegator_slashing_sig.to_vec()),
             covenant_unbonding_sig_list: vec![],
