@@ -1,7 +1,7 @@
 use crate::error::ContractError;
 use crate::ibc::{get_ibc_packet_timeout, ibc_packet, IBC_TRANSFER_CHANNEL, IBC_ZC_CHANNEL};
 use crate::msg::contract::{ExecuteMsg, InstantiateMsg, QueryMsg};
-use crate::msg::ibc::{BsnRewards, CallbackInfo, CallbackMemo, FpRatio};
+use crate::msg::ibc::{CallbackMemo, FpRatio};
 use crate::queries;
 use crate::state::config::{Config, CONFIG, DEFAULT_IBC_PACKET_TIMEOUT_DAYS};
 use crate::state::consumer_header_chain::CONSUMER_HEIGHT_LAST;
@@ -358,9 +358,6 @@ pub fn execute(
                 ));
             }
 
-            // Get consumer name for bsn_consumer_id
-            let bsn_consumer_id = cfg.consumer_name;
-
             // Get the ICS20 transfer channel ID
             let channel_id = IBC_TRANSFER_CHANNEL.load(deps.storage)?;
 
@@ -379,16 +376,10 @@ pub fn execute(
                 .collect::<Result<Vec<_>, ContractError>>()?;
 
             // Create memo with the proper Babylon structure using typed structs
-            let callback_memo = CallbackMemo {
-                action: "add_bsn_rewards".to_string(),
-                dest_callback: CallbackInfo {
-                    address: cfg.destination_module.clone(),
-                    add_bsn_rewards: BsnRewards {
-                        bsn_consumer_id,
-                        fp_ratios,
-                    },
-                },
-            };
+            let callback_memo = CallbackMemo::new_add_cosmos_bsn_rewards(
+                env.contract.address.to_string(),
+                fp_ratios,
+            );
 
             let memo = to_json_string(&callback_memo)?;
 

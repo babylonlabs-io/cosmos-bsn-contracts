@@ -131,13 +131,13 @@ impl SuiteBuilder {
                     network: BitcoinNetwork::Testnet,
                     btc_confirmation_depth: 1,
                     checkpoint_finalization_timeout: 1,
-                    btc_light_client_code_id: btc_light_client_code_id,
+                    btc_light_client_code_id,
                     btc_light_client_msg: Some(btc_light_client_msg),
-                    btc_staking_code_id: btc_staking_code_id,
+                    btc_staking_code_id,
                     btc_staking_msg: Some(
                         to_json_binary(&btc_staking::msg::InstantiateMsg { admin: None }).unwrap(),
                     ),
-                    btc_finality_code_id: btc_finality_code_id,
+                    btc_finality_code_id,
                     btc_finality_msg: Some(
                         to_json_binary(&InstantiateMsg {
                             admin: Some(owner.to_string()),

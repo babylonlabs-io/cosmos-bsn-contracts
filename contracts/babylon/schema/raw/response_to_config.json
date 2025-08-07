@@ -5,6 +5,8 @@
   "required": [
     "btc_confirmation_depth",
     "checkpoint_finalization_timeout",
+    "consumer_description",
+    "consumer_name",
     "denom",
     "destination_module",
     "ibc_packet_timeout_days",
@@ -56,17 +58,11 @@
     },
     "consumer_description": {
       "description": "Consumer description",
-      "type": [
-        "string",
-        "null"
-      ]
+      "type": "string"
     },
     "consumer_name": {
       "description": "Consumer name",
-      "type": [
-        "string",
-        "null"
-      ]
+      "type": "string"
     },
     "denom": {
       "type": "string"
