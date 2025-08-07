@@ -7,6 +7,15 @@ use babylon_merkle::Proof;
 use rand::rngs::StdRng;
 use rand::{Rng, SeedableRng};
 
+struct MsgTestCase<Msg, MsgErr> {
+    name: &'static str,
+    msg_modifier: fn(&mut Msg),
+    expected: Result<(), MsgErr>,
+}
+
+type MsgCommitPubRandTestCase = MsgTestCase<MsgCommitPubRand, PubRandCommitError>;
+type MsgAddFinalitySigTestCase = MsgTestCase<MsgAddFinalitySig, FinalitySigError>;
+
 // Helper function to generate random bytes
 fn gen_random_bytes(rng: &mut StdRng, len: usize) -> Vec<u8> {
     (0..len).map(|_| rng.gen()).collect()
@@ -18,15 +27,6 @@ fn gen_random_btc_key_bytes(rng: &mut StdRng) -> (Vec<u8>, Vec<u8>) {
     let pk = gen_random_bytes(rng, 32);
     (sk, pk)
 }
-
-struct MsgTestCase<Msg, MsgErr> {
-    name: &'static str,
-    msg_modifier: fn(&mut Msg),
-    expected: Result<(), MsgErr>,
-}
-
-type MsgCommitPubRandTestCase = MsgTestCase<MsgCommitPubRand, PubRandCommitError>;
-type MsgAddFinalitySigTestCase = MsgTestCase<MsgAddFinalitySig, FinalitySigError>;
 
 // Helper function to generate random message
 fn gen_random_msg_commit_pub_rand(
