@@ -29,6 +29,19 @@ use std::collections::{HashMap, HashSet};
 // or performance degradation caused by excessive future commitments.
 const MAX_PUB_RAND_COMMIT_OFFSET: u64 = 160_000;
 
+/// Validates that the given height is not lower than the finality activation height.
+/// Returns error if the height received is lower than the finality activation block height.
+fn validate_finality_activation(height: u64, activation_height: u64) -> Result<(), ContractError> {
+    if height < activation_height {
+        return Err(ContractError::FinalityNotActivated {
+            height,
+            activation_height,
+        });
+    }
+
+    Ok(())
+}
+
 pub fn handle_public_randomness_commit(
     deps: DepsMut,
     env: &Env,
@@ -37,6 +50,8 @@ pub fn handle_public_randomness_commit(
     pub_rand_commit.validate_basic()?;
 
     let cfg = CONFIG.load(deps.storage)?;
+
+    validate_finality_activation(pub_rand_commit.start_height, cfg.finality_activation_height)?;
 
     // Check the commit start height is not too far into the future
     if pub_rand_commit.start_height >= env.block.height + MAX_PUB_RAND_COMMIT_OFFSET {
@@ -134,8 +149,12 @@ pub fn handle_finality_signature(
 ) -> Result<Response, ContractError> {
     add_finality_sig.validate_basic()?;
 
+    let cfg = CONFIG.load(deps.storage)?;
+
+    validate_finality_activation(add_finality_sig.height, cfg.finality_activation_height)?;
+
     // Ensure the finality provider exists
-    let staking_addr = CONFIG.load(deps.storage)?.staking;
+    let staking_addr = cfg.staking;
     let fp: FinalityProvider = deps.querier.query_wasm_smart(
         staking_addr.clone(),
         &btc_staking::msg::QueryMsg::FinalityProvider {

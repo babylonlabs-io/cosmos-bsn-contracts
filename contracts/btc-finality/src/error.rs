@@ -60,6 +60,10 @@ pub enum ContractError {
     FinalityProviderNotFound(String),
     #[error("The BTC staking protocol is not activated yet")]
     BTCStakingNotActivated,
+    #[error(
+        "Finality is not activated yet. Height: {height}, activation height: {activation_height}"
+    )]
+    FinalityNotActivated { height: u64, activation_height: u64 },
     #[error("The finality provider {0} does not have voting power at height {1}")]
     NoVotingPower(String, u64),
     #[error("The chain has not reached the given height yet")]
