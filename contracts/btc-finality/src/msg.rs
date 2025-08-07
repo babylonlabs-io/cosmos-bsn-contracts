@@ -26,6 +26,7 @@ pub type InstantiateMsg = babylon_apis::finality_api::InstantiateMsg;
 pub type ExecuteMsg = babylon_apis::finality_api::ExecuteMsg;
 
 // https://github.com/babylonlabs-io/babylon/blob/49972e2d3e35caf0a685c37e1f745c47b75bfc69/x/finality/types/tx.pb.go#L36
+#[derive(Debug)]
 pub struct MsgCommitPubRand {
     pub fp_btc_pk_hex: String,
     pub start_height: u64,
@@ -50,10 +51,10 @@ impl MsgCommitPubRand {
 
         // To avoid public randomness reset,
         // check for overflow when doing (StartHeight + NumPubRand)
-        if self.start_height >= (self.start_height + self.num_pub_rand) {
+        if self.start_height.checked_add(self.num_pub_rand).is_none() {
             return Err(PubRandCommitError::OverflowInBlockHeight(
                 self.start_height,
-                self.start_height + self.num_pub_rand,
+                self.num_pub_rand,
             ));
         }
 
@@ -64,7 +65,7 @@ impl MsgCommitPubRand {
         Ok(())
     }
 
-    pub(crate) fn verify_sig(&self, signing_context: String) -> Result<(), PubRandCommitError> {
+    pub fn verify_sig(&self, signing_context: String) -> Result<(), PubRandCommitError> {
         let Self {
             fp_btc_pk_hex,
             start_height,
@@ -269,7 +270,7 @@ pub enum QueryMsg {
     #[returns(FinalityProviderPowerResponse)]
     FinalityProviderPower { btc_pk_hex: String, height: u64 },
     /// Returns the activated height of the BTC staking protocol
-    #[returns(ActivatedHeightResponse)]
+    #[returns(u64)]
     ActivatedHeight {},
     /// Returns the finality providers who have signed the block at given height.
     #[returns(VotesResponse)]
@@ -327,9 +328,4 @@ pub struct SigningInfoResponse {
     pub start_height: u64,
     pub last_signed_height: u64,
     pub jailed_until: Option<u64>,
-}
-
-#[cw_serde]
-pub struct ActivatedHeightResponse {
-    pub height: u64,
 }

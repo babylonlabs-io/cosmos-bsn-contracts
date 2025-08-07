@@ -494,6 +494,7 @@ dependencies = [
  "pbjson-types",
  "prost",
  "rand",
+ "serde",
  "tendermint-proto",
  "thiserror 1.0.69",
 ]
