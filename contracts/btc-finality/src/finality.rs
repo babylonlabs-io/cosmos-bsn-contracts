@@ -3,14 +3,13 @@ use crate::msg::{MsgAddFinalitySig, MsgCommitPubRand};
 use crate::power_dist_change::JAIL_FOREVER;
 use crate::state::config::{ADMIN, CONFIG};
 use crate::state::finality::{
-    collect_accumulated_voting_weights, get_fp_power,
-    get_power_table_at_height, ACCUMULATED_VOTING_WEIGHTS, BLOCKS,
-    EVIDENCES, FP_BLOCK_SIGNER, FP_START_HEIGHT, JAIL, NEXT_HEIGHT, SIGNATURES,
+    collect_accumulated_voting_weights, get_fp_power, get_power_table_at_height,
+    ACCUMULATED_VOTING_WEIGHTS, BLOCKS, EVIDENCES, FP_BLOCK_SIGNER, FP_START_HEIGHT, JAIL,
+    NEXT_HEIGHT, SIGNATURES,
 };
 use crate::state::public_randomness::{
-    get_last_pub_rand_commit,
-    get_timestamped_pub_rand_commit_for_height,
-    PUB_RAND_COMMITS, PUB_RAND_VALUES,
+    get_last_pub_rand_commit, get_timestamped_pub_rand_commit_for_height, PUB_RAND_COMMITS,
+    PUB_RAND_VALUES,
 };
 use babylon_apis::btc_staking_api::FinalityProvider;
 use babylon_apis::finality_api::{Evidence, IndexedBlock, PubRandCommit};
@@ -18,8 +17,8 @@ use babylon_apis::to_canonical_addr;
 use babylon_contract::msg::contract::{ExecuteMsg, RewardInfo};
 use cosmwasm_std::Order::Ascending;
 use cosmwasm_std::{
-    coins, to_json_binary, DepsMut, Env, Event, MessageInfo, Response,
-    StdResult, Storage, Uint128, WasmMsg,
+    coins, to_json_binary, DepsMut, Env, Event, MessageInfo, Response, StdResult, Storage, Uint128,
+    WasmMsg,
 };
 use std::cmp::max;
 use std::collections::{HashMap, HashSet};
@@ -29,8 +28,6 @@ use std::collections::{HashMap, HashSet};
 // the size of the commitments index, protecting against potential memory exhaustion
 // or performance degradation caused by excessive future commitments.
 const MAX_PUB_RAND_COMMIT_OFFSET: u64 = 160_000;
-
-
 
 pub fn handle_public_randomness_commit(
     deps: DepsMut,
@@ -528,8 +525,6 @@ fn finalize_block(
         .add_attribute("finalized_height", block.height.to_string());
     Ok(ev)
 }
-
-
 
 /// Handles finality provider reward distribution based on accumulated voting weights.
 ///
