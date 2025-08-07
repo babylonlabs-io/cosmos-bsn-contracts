@@ -65,7 +65,7 @@ impl MsgCommitPubRand {
         Ok(())
     }
 
-    pub(crate) fn verify_sig(&self, signing_context: String) -> Result<(), PubRandCommitError> {
+    pub fn verify_sig(&self, signing_context: String) -> Result<(), PubRandCommitError> {
         let Self {
             fp_btc_pk_hex,
             start_height,

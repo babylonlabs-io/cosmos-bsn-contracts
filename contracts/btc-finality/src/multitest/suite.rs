@@ -1,7 +1,8 @@
-use crate::msg::QueryMsg::JailedFinalityProviders;
+use crate::msg::QueryMsg as FinalityQueryMsg;
 use crate::msg::{
-    ActiveFinalityProvidersResponse, EvidenceResponse, FinalitySignatureResponse, InstantiateMsg,
-    JailedFinalityProvider, JailedFinalityProvidersResponse,
+    ActiveFinalityProvidersResponse, EvidenceResponse, FinalityProviderPowerResponse,
+    FinalitySignatureResponse, InstantiateMsg, JailedFinalityProvider,
+    JailedFinalityProvidersResponse,
 };
 use anyhow::Result as AnyResult;
 use babylon_apis::btc_staking_api::{ActiveBtcDelegation, FinalityProvider, NewFinalityProvider};
@@ -272,10 +273,7 @@ impl Suite {
 
     #[track_caller]
     pub fn get_btc_finality_config(&self) -> crate::state::config::Config {
-        self.app
-            .wrap()
-            .query_wasm_smart(self.finality.clone(), &crate::msg::QueryMsg::Config {})
-            .unwrap()
+        self.query_finality_contract(FinalityQueryMsg::Config {})
     }
 
     #[track_caller]
@@ -311,41 +309,23 @@ impl Suite {
 
     #[track_caller]
     pub fn get_finality_signature(&self, pk_hex: &str, height: u64) -> FinalitySignatureResponse {
-        self.app
-            .wrap()
-            .query_wasm_smart(
-                self.finality.clone(),
-                &crate::msg::QueryMsg::FinalitySignature {
-                    btc_pk_hex: pk_hex.to_string(),
-                    height,
-                },
-            )
-            .unwrap()
+        self.query_finality_contract(FinalityQueryMsg::FinalitySignature {
+            btc_pk_hex: pk_hex.to_string(),
+            height,
+        })
     }
 
     #[track_caller]
     pub fn get_indexed_block(&self, height: u64) -> IndexedBlock {
-        self.app
-            .wrap()
-            .query_wasm_smart(
-                self.finality.clone(),
-                &crate::msg::QueryMsg::Block { height },
-            )
-            .unwrap()
+        self.query_finality_contract(FinalityQueryMsg::Block { height })
     }
 
     #[track_caller]
     pub fn get_double_signing_evidence(&self, pk_hex: &str, height: u64) -> EvidenceResponse {
-        self.app
-            .wrap()
-            .query_wasm_smart(
-                self.finality.clone(),
-                &crate::msg::QueryMsg::Evidence {
-                    btc_pk_hex: pk_hex.to_string(),
-                    height,
-                },
-            )
-            .unwrap()
+        self.query_finality_contract::<EvidenceResponse>(crate::msg::QueryMsg::Evidence {
+            btc_pk_hex: pk_hex.to_string(),
+            height,
+        })
     }
 
     #[track_caller]
@@ -490,55 +470,49 @@ impl Suite {
         )
     }
 
+    pub fn query_finality_contract<T: serde::de::DeserializeOwned>(
+        &self,
+        query_msg: FinalityQueryMsg,
+    ) -> T {
+        self.app
+            .wrap()
+            .query_wasm_smart::<T>(self.finality.clone(), &query_msg)
+            .unwrap()
+    }
+
     #[track_caller]
     pub fn list_jailed_fps(
         &self,
         start_after: Option<String>,
         limit: Option<u32>,
     ) -> Vec<JailedFinalityProvider> {
-        self.app
-            .wrap()
-            .query_wasm_smart::<JailedFinalityProvidersResponse>(
-                self.finality.clone(),
-                &JailedFinalityProviders { start_after, limit },
-            )
-            .unwrap()
-            .jailed_finality_providers
+        self.query_finality_contract::<JailedFinalityProvidersResponse>(
+            FinalityQueryMsg::JailedFinalityProviders { start_after, limit },
+        )
+        .jailed_finality_providers
     }
 
     pub fn get_last_pub_rand_commit(&self, btc_pk_hex: String) -> PubRandCommit {
-        self.app
-            .wrap()
-            .query_wasm_smart::<Option<PubRandCommit>>(
-                self.finality.clone(),
-                &crate::msg::QueryMsg::LastPubRandCommit { btc_pk_hex },
-            )
-            .unwrap()
-            .unwrap()
+        self.query_finality_contract::<Option<PubRandCommit>>(FinalityQueryMsg::LastPubRandCommit {
+            btc_pk_hex,
+        })
+        .unwrap()
     }
 
     pub fn get_active_finality_providers(&self, height: u64) -> HashMap<String, u64> {
-        self.app
-            .wrap()
-            .query_wasm_smart::<ActiveFinalityProvidersResponse>(
-                self.finality.clone(),
-                &crate::msg::QueryMsg::ActiveFinalityProviders { height },
-            )
-            .unwrap()
-            .active_finality_providers
+        self.query_finality_contract::<ActiveFinalityProvidersResponse>(
+            FinalityQueryMsg::ActiveFinalityProviders { height },
+        )
+        .active_finality_providers
     }
 
     pub fn get_finality_provider_power(&self, btc_pk_hex: &str, height: u64) -> u64 {
-        self.app
-            .wrap()
-            .query_wasm_smart::<crate::msg::FinalityProviderPowerResponse>(
-                self.finality.clone(),
-                &crate::msg::QueryMsg::FinalityProviderPower {
-                    btc_pk_hex: btc_pk_hex.to_string(),
-                    height,
-                },
-            )
-            .unwrap()
-            .power
+        self.query_finality_contract::<FinalityProviderPowerResponse>(
+            FinalityQueryMsg::FinalityProviderPower {
+                btc_pk_hex: btc_pk_hex.to_string(),
+                height,
+            },
+        )
+        .power
     }
 }
