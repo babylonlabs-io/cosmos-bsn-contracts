@@ -20,7 +20,7 @@ use cosmwasm_std::{
     coins, to_json_binary, DepsMut, Env, Event, MessageInfo, Response, StdResult, Storage, Uint128,
     WasmMsg,
 };
-use std::cmp::max;
+use std::cmp::{max, min};
 use std::collections::{HashMap, HashSet};
 
 // The maximum number of blocks into the future
@@ -28,6 +28,12 @@ use std::collections::{HashMap, HashSet};
 // the size of the commitments index, protecting against potential memory exhaustion
 // or performance degradation caused by excessive future commitments.
 const MAX_PUB_RAND_COMMIT_OFFSET: u64 = 160_000;
+
+// Setting max amount of finalized blocks per EndBlock to 1_000 to cap processing time,
+// mirroring Babylon's `MaxFinalizedRewardedBlocksPerEndBlock`.
+// https://github.com/babylonlabs-io/babylon/blob/53d1a8e211f5c9d8b369397bde1f6cf05c7038ad/x/finality/types/constants.go#L7
+// Setting a smaller value here because the cost in CosmWasm is higher than in Go module.
+pub const MAX_FINALIZED_REWARDED_BLOCKS_PER_END_BLOCK: u64 = 1_000;
 
 /// Validates that the given height is not lower than the finality activation height.
 /// Returns error if the height received is lower than the finality activation block height.
@@ -458,11 +464,11 @@ pub fn index_block(
 pub fn tally_blocks(
     deps: &mut DepsMut,
     env: &Env,
-    activated_height: u64,
+    start_height: u64,
 ) -> Result<Vec<Event>, ContractError> {
-    // Start finalising blocks since max(activated_height, next_height)
+    // Start finalising blocks since max(start_height, next_height)
     let next_height = NEXT_HEIGHT.may_load(deps.storage)?.unwrap_or(0);
-    let start_height = max(activated_height, next_height);
+    let start_height = max(start_height, next_height);
 
     // Find all blocks that are non-finalised AND have a finality provider set since
     // max(activated_height, last_finalized_height + 1)
@@ -474,7 +480,12 @@ pub fn tally_blocks(
     // After this for loop, the blocks since the earliest activated height are either finalised or
     // non-finalisable
     let mut events = vec![];
-    for h in start_height..=env.block.height {
+    // Process at most `max_blocks` heights to cap per-block processing time
+    let end_height_inclusive = min(
+        env.block.height,
+        start_height.saturating_add(MAX_FINALIZED_REWARDED_BLOCKS_PER_END_BLOCK.saturating_sub(1)),
+    );
+    for h in start_height..=end_height_inclusive {
         let mut indexed_block = BLOCKS.load(deps.storage, h)?;
         // Get the finality provider set of this block
         let fp_power_table = get_power_table_at_height(deps.storage, h)?;

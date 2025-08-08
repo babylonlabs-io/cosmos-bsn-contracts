@@ -263,7 +263,7 @@ fn handle_end_block(
     let ev = finality::index_block(deps, env.block.height, &hex::decode(app_hash_hex)?)?;
     res = res.add_event(ev);
 
-    // Tally all non-finalised blocks
+    // Tally non-finalised blocks with a per-EndBlock cap
     let events = finality::tally_blocks(
         deps,
         &env,
