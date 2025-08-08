@@ -84,9 +84,7 @@ fn commit_public_randomness_works() {
     assert_eq!(
         suite
             .commit_public_randomness(&bad_pk_hex, &pub_rand, &pubrand_signature)
-            .unwrap_err()
-            .downcast::<ContractError>()
-            .unwrap(),
+            .unwrap_err(),
         ContractError::FinalityProviderNotFound(bad_pk_hex)
     );
 
@@ -96,9 +94,7 @@ fn commit_public_randomness_works() {
     assert_eq!(
         suite
             .commit_public_randomness(&pk_hex, &bad_pub_rand_commit, &pubrand_signature)
-            .unwrap_err()
-            .downcast::<ContractError>()
-            .unwrap(),
+            .unwrap_err(),
         ContractError::TooFewPubRand(3, 1)
     );
 
@@ -148,15 +144,11 @@ fn commit_public_randomness_works() {
         overlapped_start_height,
         pub_rand.num_pub_rand,
     );
-    let pk_hex = msg_pub_rand_commit.fp_btc_pk_hex.clone();
-
     let bad_pub_rand_commit = msg_pub_rand_commit.as_pub_rand_commit(block_info.height);
     assert_eq!(
         suite
             .commit_public_randomness(&pk_hex, &bad_pub_rand_commit, &msg_pub_rand_commit.sig)
-            .unwrap_err()
-            .downcast::<ContractError>()
-            .unwrap(),
+            .unwrap_err(),
         ContractError::InvalidPubRandHeight(
             bad_pub_rand_commit.start_height,
             last_pub_rand.end_height(),
@@ -185,9 +177,7 @@ fn commit_public_randomness_works() {
     assert_eq!(
         suite
             .commit_public_randomness(&pk_hex, &bad_pub_rand_commit, &pubrand_signature)
-            .unwrap_err()
-            .downcast::<ContractError>()
-            .unwrap(),
+            .unwrap_err(),
         PubRandCommitError::OverflowInBlockHeight(
             bad_pub_rand_commit.start_height,
             bad_pub_rand_commit.num_pub_rand,
@@ -201,9 +191,7 @@ fn commit_public_randomness_works() {
     assert!(matches!(
         suite
             .commit_public_randomness(&pk_hex, &bad_pub_rand_commit, &pubrand_signature)
-            .unwrap_err()
-            .downcast::<ContractError>()
-            .unwrap(),
+            .unwrap_err(),
         ContractError::FuturePubRandStartHeight { .. }
     ));
 }
