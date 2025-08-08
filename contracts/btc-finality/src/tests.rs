@@ -27,15 +27,14 @@ fn gen_random_pub_rand_list_and_return_commitment(num_pub_rand: u64) -> Vec<u8> 
     let (_eots_sks, eots_pks): (Vec<_>, Vec<_>) =
         (0..num_pub_rand).map(|_| eots::rand_gen()).unzip();
 
-    let commitment = babylon_merkle::hash_from_byte_slices(
+    // Compute the commitment.
+    babylon_merkle::hash_from_byte_slices(
         eots_pks
             .clone()
             .into_iter()
             .map(|pk| pk.to_x_bytes())
             .collect::<Vec<_>>(),
-    );
-
-    commitment
+    )
 }
 
 // Helper function to generate random message
@@ -58,7 +57,7 @@ pub(crate) fn gen_random_msg_commit_pub_rand(
 
     let sig = signing_key.sign(&signed_msg).to_bytes().to_vec();
 
-    let fp_btc_pk_hex = hex::encode(&verifying_key_bytes);
+    let fp_btc_pk_hex = hex::encode(verifying_key_bytes);
 
     let btc_pk = VerifyingKey::from_bytes(&verifying_key_bytes).unwrap();
     let sig_to_verify = Signature::try_from(sig.as_slice()).unwrap();

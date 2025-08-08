@@ -91,7 +91,7 @@ impl MsgCommitPubRand {
             start_height: self.start_height,
             num_pub_rand: self.num_pub_rand,
             height,
-            commitment: self.commitment.clone().into(),
+            commitment: self.commitment.clone(),
         }
     }
 }
