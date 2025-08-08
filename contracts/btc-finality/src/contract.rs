@@ -1,7 +1,7 @@
 use crate::error::ContractError;
 use crate::finality::{
     handle_finality_signature, handle_public_randomness_commit, handle_rewards_distribution,
-    handle_unjail,
+    handle_unjail, MAX_FINALIZED_REWARDED_BLOCKS_PER_END_BLOCK,
 };
 use crate::liveness::handle_liveness;
 use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
@@ -263,11 +263,12 @@ fn handle_end_block(
     let ev = finality::index_block(deps, env.block.height, &hex::decode(app_hash_hex)?)?;
     res = res.add_event(ev);
 
-    // Tally all non-finalised blocks
+    // Tally non-finalised blocks with a per-EndBlock cap
     let events = finality::tally_blocks(
         deps,
         &env,
         max(cfg.finality_activation_height, activated_height.unwrap()),
+        MAX_FINALIZED_REWARDED_BLOCKS_PER_END_BLOCK,
     )?;
     res = res.add_events(events);
 
