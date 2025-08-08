@@ -1,6 +1,6 @@
 use crate::btc_staking_api::{
-    ActiveBtcDelegation, NewFinalityProvider, ProofOfPossessionBtc, SlashedBtcDelegation,
-    UnbondedBtcDelegation, HASH_SIZE,
+    ActiveBtcDelegation, NewFinalityProvider, ProofOfPossessionBtc, UnbondedBtcDelegation,
+    HASH_SIZE,
 };
 use crate::error::StakingApiError;
 use bitcoin::consensus::deserialize;
@@ -112,20 +112,6 @@ impl Validate for UnbondedBtcDelegation {
         }
 
         // TODO: Verify delegator unbonding Schnorr signature (#7.3)
-
-        Ok(())
-    }
-}
-
-impl Validate for SlashedBtcDelegation {
-    fn validate(&self) -> Result<(), StakingApiError> {
-        if self.staking_tx_hash.len() != HASH_SIZE * 2 {
-            return Err(StakingApiError::InvalidStakingTxHash(HASH_SIZE * 2));
-        }
-
-        // if self.recovered_fp_btc_sk.is_empty() {
-        //     return Err(StakingApiError::EmptyBtcSk);
-        // }
 
         Ok(())
     }

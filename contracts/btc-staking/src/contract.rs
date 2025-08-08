@@ -109,17 +109,8 @@ pub fn execute(
         ExecuteMsg::BtcStaking {
             new_fp,
             active_del,
-            slashed_del,
             unbonded_del,
-        } => handle_btc_staking(
-            deps,
-            env,
-            &info,
-            &new_fp,
-            &active_del,
-            &slashed_del,
-            &unbonded_del,
-        ),
+        } => handle_btc_staking(deps, env, &info, &new_fp, &active_del, &unbonded_del),
         ExecuteMsg::Slash { fp_btc_pk_hex } => handle_slash_fp(deps, env, &info, &fp_btc_pk_hex),
     }
 }

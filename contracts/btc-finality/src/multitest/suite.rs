@@ -340,7 +340,6 @@ impl Suite {
             &btc_staking_api::ExecuteMsg::BtcStaking {
                 new_fp: fps.to_vec(),
                 active_del: vec![],
-                slashed_del: vec![],
                 unbonded_del: vec![],
             },
             &[],
@@ -355,7 +354,6 @@ impl Suite {
             &btc_staking_api::ExecuteMsg::BtcStaking {
                 new_fp: vec![],
                 active_del: dels.to_vec(),
-                slashed_del: vec![],
                 unbonded_del: vec![],
             },
             &[],

@@ -231,7 +231,6 @@ mod tests {
         let msg = ExecuteMsg::BtcStaking {
             new_fp: vec![new_fp1.clone(), new_fp2.clone()],
             active_del: vec![],
-            slashed_del: vec![],
             unbonded_del: vec![],
         };
 
@@ -286,7 +285,6 @@ mod tests {
         let msg = ExecuteMsg::BtcStaking {
             new_fp: vec![new_fp1.clone(), new_fp2.clone()],
             active_del: vec![],
-            slashed_del: vec![],
             unbonded_del: vec![],
         };
 
@@ -299,7 +297,6 @@ mod tests {
         let msg = ExecuteMsg::BtcStaking {
             new_fp: vec![],
             active_del: vec![del1.clone(), del2.clone()],
-            slashed_del: vec![],
             unbonded_del: vec![],
         };
 
@@ -354,7 +351,6 @@ mod tests {
         let msg = ExecuteMsg::BtcStaking {
             new_fp: vec![new_fp1.clone()],
             active_del: vec![],
-            slashed_del: vec![],
             unbonded_del: vec![],
         };
 
@@ -367,7 +363,6 @@ mod tests {
         let msg = ExecuteMsg::BtcStaking {
             new_fp: vec![],
             active_del: vec![del1.clone(), del2.clone()],
-            slashed_del: vec![],
             unbonded_del: vec![],
         };
 
@@ -390,7 +385,6 @@ mod tests {
         let msg = ExecuteMsg::BtcStaking {
             new_fp: vec![],
             active_del: vec![],
-            slashed_del: vec![],
             unbonded_del: vec![UnbondedBtcDelegation {
                 staking_tx_hash: staking_tx_hash_hex,
                 unbonding_tx_sig: unbonding_sig.to_bytes().into(),
@@ -440,7 +434,6 @@ mod tests {
         let msg = ExecuteMsg::BtcStaking {
             new_fp: vec![new_fp1.clone(), new_fp2.clone()],
             active_del: vec![],
-            slashed_del: vec![],
             unbonded_del: vec![],
         };
 
@@ -453,7 +446,6 @@ mod tests {
         let msg = ExecuteMsg::BtcStaking {
             new_fp: vec![],
             active_del: vec![del1.clone(), del2.clone()],
-            slashed_del: vec![],
             unbonded_del: vec![],
         };
 
@@ -493,7 +485,6 @@ mod tests {
         let msg = ExecuteMsg::BtcStaking {
             new_fp: vec![new_fp1.clone()],
             active_del: vec![],
-            slashed_del: vec![],
             unbonded_del: vec![],
         };
 
@@ -510,7 +501,6 @@ mod tests {
         let msg = ExecuteMsg::BtcStaking {
             new_fp: vec![],
             active_del: vec![del1.clone(), del2.clone()],
-            slashed_del: vec![],
             unbonded_del: vec![],
         };
 
@@ -535,7 +525,6 @@ mod tests {
         let msg = ExecuteMsg::BtcStaking {
             new_fp: vec![],
             active_del: vec![],
-            slashed_del: vec![],
             unbonded_del: vec![UnbondedBtcDelegation {
                 staking_tx_hash: staking_tx_hash_hex,
                 unbonding_tx_sig: unbonding_sig.to_bytes().into(),
@@ -581,7 +570,6 @@ mod tests {
         let msg = ExecuteMsg::BtcStaking {
             new_fp: vec![new_fp1.clone()],
             active_del: vec![],
-            slashed_del: vec![],
             unbonded_del: vec![],
         };
 
@@ -598,7 +586,6 @@ mod tests {
         let msg = ExecuteMsg::BtcStaking {
             new_fp: vec![],
             active_del: vec![del1.clone(), del2.clone()],
-            slashed_del: vec![],
             unbonded_del: vec![],
         };
 
@@ -712,7 +699,6 @@ mod tests {
         let msg = ExecuteMsg::BtcStaking {
             new_fp: vec![new_fp1.clone()],
             active_del: vec![],
-            slashed_del: vec![],
             unbonded_del: vec![],
         };
 
@@ -726,7 +712,6 @@ mod tests {
         let msg = ExecuteMsg::BtcStaking {
             new_fp: vec![],
             active_del: vec![del1.clone()],
-            slashed_del: vec![],
             unbonded_del: vec![],
         };
 
@@ -766,7 +751,6 @@ mod tests {
         let msg = ExecuteMsg::BtcStaking {
             new_fp: vec![new_fp1.clone(), new_fp2.clone(), new_fp3.clone()],
             active_del: vec![],
-            slashed_del: vec![],
             unbonded_del: vec![],
         };
 
@@ -785,7 +769,6 @@ mod tests {
         let msg = ExecuteMsg::BtcStaking {
             new_fp: vec![],
             active_del: vec![del1.clone(), del2.clone(), del3],
-            slashed_del: vec![],
             unbonded_del: vec![],
         };
 

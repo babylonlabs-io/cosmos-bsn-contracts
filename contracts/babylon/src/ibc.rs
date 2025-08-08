@@ -1,7 +1,7 @@
 use crate::error::ContractError;
 use crate::state::config::CONFIG;
 use babylon_apis::btc_staking_api::{
-    ActiveBtcDelegation, NewFinalityProvider, SlashedBtcDelegation, UnbondedBtcDelegation,
+    ActiveBtcDelegation, NewFinalityProvider, UnbondedBtcDelegation,
 };
 use babylon_apis::finality_api::Evidence;
 use babylon_proto::babylon::{
@@ -194,14 +194,6 @@ pub(crate) mod ibc_packet {
                 .iter()
                 .map(|d| ActiveBtcDelegation::try_from(d).map_err(StdError::generic_err))
                 .collect::<StdResult<_>>()?,
-            slashed_del: btc_staking
-                .slashed_del
-                .iter()
-                .map(|d| SlashedBtcDelegation {
-                    staking_tx_hash: d.staking_tx_hash.clone(),
-                    recovered_fp_btc_sk: d.recovered_fp_btc_sk.clone(),
-                })
-                .collect(),
             unbonded_del: btc_staking
                 .unbonded_del
                 .iter()

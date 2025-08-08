@@ -28,7 +28,6 @@ pub enum ExecuteMsg {
     BtcStaking {
         new_fp: Vec<NewFinalityProvider>,
         active_del: Vec<ActiveBtcDelegation>,
-        slashed_del: Vec<SlashedBtcDelegation>,
         unbonded_del: Vec<UnbondedBtcDelegation>,
     },
     /// Slash finality provider staking power.
@@ -319,16 +318,6 @@ pub struct DelegatorUnbondingInfo {
 pub struct SignatureInfo {
     pub pk: Binary,
     pub sig: Binary,
-}
-
-/// A packet sent from Babylon to the Consumer chain about a slashed BTC
-/// delegation re-staked to >=1 of the Consumer chain's finality providers
-#[cw_serde]
-pub struct SlashedBtcDelegation {
-    /// Staking tx hash of the BTC delegation. It uniquely identifies a BTC delegation
-    pub staking_tx_hash: String,
-    /// Extracted BTC SK of the finality provider on this Consumer chain.
-    pub recovered_fp_btc_sk: String,
 }
 
 /// Sent from Babylon to the Consumer chain upon an early unbonded BTC
