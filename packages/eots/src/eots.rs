@@ -80,6 +80,7 @@ impl Deref for PrivateRand {
 
 /// `PubRand` is the type for a public randomness.
 /// It is formed as a point on the secp256k1 curve
+#[derive(Clone, Copy, Debug)]
 pub struct PubRand {
     inner: ProjectivePoint,
 }
@@ -126,7 +127,7 @@ impl PubRand {
         }
     }
 
-    fn to_x_bytes(&self) -> Vec<u8> {
+    pub fn to_x_bytes(&self) -> Vec<u8> {
         point_to_x_bytes(&self.inner).to_vec()
     }
 }
@@ -494,6 +495,17 @@ impl PublicKey {
     }
 }
 
+/// Generate a random pair of (PrivateRand, PubRand) for testing purpose.
+#[cfg(any(test, feature = "rand"))]
+pub fn rand_gen() -> (PrivateRand, PubRand) {
+    let random_bytes: [u8; 32] = Scalar::generate_vartime(&mut rand::thread_rng())
+        .to_bytes()
+        .into();
+    let x = PrivateRand::new(&random_bytes).unwrap();
+    let p = PubRand::from(ProjectivePoint::mul_by_generator(&*x));
+    (x, p)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -501,15 +513,6 @@ mod tests {
     use k256::{ProjectivePoint, Scalar};
     use rand::{thread_rng, RngCore};
     use sha2::{Digest, Sha256};
-
-    pub fn rand_gen() -> (PrivateRand, PubRand) {
-        let random_bytes: [u8; 32] = Scalar::generate_vartime(&mut thread_rng())
-            .to_bytes()
-            .into();
-        let x = PrivateRand::new(&random_bytes).unwrap();
-        let p = PubRand::from(ProjectivePoint::mul_by_generator(&*x));
-        (x, p)
-    }
 
     impl Default for SecretKey {
         fn default() -> Self {

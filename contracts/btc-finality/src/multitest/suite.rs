@@ -1,3 +1,4 @@
+use crate::error::ContractError;
 use crate::msg::QueryMsg as FinalityQueryMsg;
 use crate::msg::{
     ActiveFinalityProvidersResponse, EvidenceResponse, FinalityProviderPowerResponse,
@@ -182,7 +183,7 @@ impl SuiteBuilder {
 #[derivative(Debug)]
 pub struct Suite {
     #[derivative(Debug = "ignore")]
-    app: BabylonApp,
+    pub app: BabylonApp,
     /// The code id of the babylon contract
     code_id: u64,
     /// Babylon contract address
@@ -367,19 +368,21 @@ impl Suite {
         pk_hex: &str,
         pub_rand: &PubRandCommit,
         pubrand_signature: &[u8],
-    ) -> anyhow::Result<AppResponse> {
-        self.app.execute_contract(
-            Addr::unchecked(USER_ADDR),
-            self.finality.clone(),
-            &finality_api::ExecuteMsg::CommitPublicRandomness {
-                fp_pubkey_hex: pk_hex.to_string(),
-                start_height: pub_rand.start_height,
-                num_pub_rand: pub_rand.num_pub_rand,
-                commitment: pub_rand.commitment.clone().into(),
-                signature: pubrand_signature.into(),
-            },
-            &[],
-        )
+    ) -> Result<AppResponse, ContractError> {
+        self.app
+            .execute_contract(
+                Addr::unchecked(USER_ADDR),
+                self.finality.clone(),
+                &finality_api::ExecuteMsg::CommitPublicRandomness {
+                    fp_pubkey_hex: pk_hex.to_string(),
+                    start_height: pub_rand.start_height,
+                    num_pub_rand: pub_rand.num_pub_rand,
+                    commitment: pub_rand.commitment.clone().into(),
+                    signature: pubrand_signature.into(),
+                },
+                &[],
+            )
+            .map_err(|e| e.downcast::<ContractError>().unwrap())
     }
 
     #[track_caller]

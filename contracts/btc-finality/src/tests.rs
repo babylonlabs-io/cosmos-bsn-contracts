@@ -1,23 +1,13 @@
 use crate::error::{FinalitySigError, PubRandCommitError};
 use crate::msg::{
-    MsgAddFinalitySig, MsgCommitPubRand, BIP340_PUB_KEY_LEN, BIP340_SIGNATURE_LEN,
-    COMMITMENT_LENGTH_BYTES, SCHNORR_EOTS_SIG_LEN, SCHNORR_PUB_RAND_LEN, TMHASH_SIZE,
+    commit_pub_rand_signed_message, MsgAddFinalitySig, MsgCommitPubRand, BIP340_PUB_KEY_LEN,
+    SCHNORR_EOTS_SIG_LEN, SCHNORR_PUB_RAND_LEN, TMHASH_SIZE,
 };
 use babylon_merkle::Proof;
+use k256::ecdsa::signature::{Signer, Verifier};
+use k256::schnorr::{Signature, SigningKey, VerifyingKey};
 use rand::rngs::StdRng;
 use rand::{Rng, SeedableRng};
-
-// Helper function to generate random bytes
-fn gen_random_bytes(rng: &mut StdRng, len: usize) -> Vec<u8> {
-    (0..len).map(|_| rng.gen()).collect()
-}
-
-// Helper function to generate random BTC key pair
-fn gen_random_btc_key_bytes(rng: &mut StdRng) -> (Vec<u8>, Vec<u8>) {
-    let sk = gen_random_bytes(rng, 32);
-    let pk = gen_random_bytes(rng, 32);
-    (sk, pk)
-}
 
 struct MsgTestCase<Msg, MsgErr> {
     name: &'static str,
@@ -28,18 +18,57 @@ struct MsgTestCase<Msg, MsgErr> {
 type MsgCommitPubRandTestCase = MsgTestCase<MsgCommitPubRand, PubRandCommitError>;
 type MsgAddFinalitySigTestCase = MsgTestCase<MsgAddFinalitySig, FinalitySigError>;
 
+// Helper function to generate random bytes
+fn gen_random_bytes(rng: &mut StdRng, len: usize) -> Vec<u8> {
+    (0..len).map(|_| rng.gen()).collect()
+}
+
+fn gen_random_pub_rand_list_and_return_commitment(num_pub_rand: u64) -> Vec<u8> {
+    let (_eots_sks, eots_pks): (Vec<_>, Vec<_>) =
+        (0..num_pub_rand).map(|_| eots::rand_gen()).unzip();
+
+    let commitment = babylon_merkle::hash_from_byte_slices(
+        eots_pks
+            .clone()
+            .into_iter()
+            .map(|pk| pk.to_x_bytes())
+            .collect::<Vec<_>>(),
+    );
+
+    commitment
+}
+
 // Helper function to generate random message
-fn gen_random_msg_commit_pub_rand(
-    rng: &mut StdRng,
+pub(crate) fn gen_random_msg_commit_pub_rand(
+    signing_key: &SigningKey,
+    signing_context: &str,
     start_height: u64,
     num_pub_rand: u64,
 ) -> MsgCommitPubRand {
-    let (_, pk) = gen_random_btc_key_bytes(rng);
-    let commitment = gen_random_bytes(rng, COMMITMENT_LENGTH_BYTES);
-    let sig = gen_random_bytes(rng, BIP340_SIGNATURE_LEN);
+    let verifying_key_bytes = signing_key.verifying_key().to_bytes();
+
+    let commitment = gen_random_pub_rand_list_and_return_commitment(num_pub_rand);
+
+    let signed_msg = commit_pub_rand_signed_message(
+        signing_context.to_string(),
+        start_height,
+        num_pub_rand,
+        &commitment,
+    );
+
+    let sig = signing_key.sign(&signed_msg).to_bytes().to_vec();
+
+    let fp_btc_pk_hex = hex::encode(&verifying_key_bytes);
+
+    let btc_pk = VerifyingKey::from_bytes(&verifying_key_bytes).unwrap();
+    let sig_to_verify = Signature::try_from(sig.as_slice()).unwrap();
+
+    btc_pk
+        .verify(&signed_msg, &sig_to_verify)
+        .expect("Verifying signature must succeed");
 
     MsgCommitPubRand {
-        fp_btc_pk_hex: hex::encode(&pk),
+        fp_btc_pk_hex,
         start_height,
         num_pub_rand,
         commitment,
@@ -83,6 +112,8 @@ fn test_msg_commit_pub_rand_validate_basic() {
         },
     ];
 
+    let signing_key = SigningKey::random(&mut rng);
+
     for MsgCommitPubRandTestCase {
         name,
         msg_modifier,
@@ -91,7 +122,8 @@ fn test_msg_commit_pub_rand_validate_basic() {
     {
         let start_height = rng.gen_range(1..10);
         let num_pub_rand = rng.gen_range(1..100);
-        let mut msg = gen_random_msg_commit_pub_rand(&mut rng, start_height, num_pub_rand);
+        let mut msg =
+            gen_random_msg_commit_pub_rand(&signing_key, "test", start_height, num_pub_rand);
 
         // Apply the test case modifier
         msg_modifier(&mut msg);
@@ -103,7 +135,7 @@ fn test_msg_commit_pub_rand_validate_basic() {
     // overflow in block height
     let start_height = u64::MAX;
     let num_pub_rand = rng.gen_range(1..100);
-    let msg = gen_random_msg_commit_pub_rand(&mut rng, start_height, num_pub_rand);
+    let msg = gen_random_msg_commit_pub_rand(&signing_key, "test", start_height, num_pub_rand);
     assert_eq!(
         msg.validate_basic(),
         Err(PubRandCommitError::OverflowInBlockHeight(

@@ -22,3 +22,4 @@ mod tree;
 
 pub use self::error::MerkleError;
 pub use self::proof::Proof;
+pub use self::tree::hash_from_byte_slices;
