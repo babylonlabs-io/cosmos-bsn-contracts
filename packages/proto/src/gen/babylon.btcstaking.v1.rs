@@ -378,8 +378,6 @@ pub struct BtcStakingIbcPacket {
     #[prost(message, repeated, tag="2")]
     pub active_del: ::prost::alloc::vec::Vec<ActiveBtcDelegation>,
     #[prost(message, repeated, tag="3")]
-    pub slashed_del: ::prost::alloc::vec::Vec<SlashedBtcDelegation>,
-    #[prost(message, repeated, tag="4")]
     pub unbonded_del: ::prost::alloc::vec::Vec<UnbondedBtcDelegation>,
 }
 /// NewFinalityProvider is an IBC packet sent from Babylon to consumer
@@ -500,21 +498,6 @@ pub struct BtcUndelegationInfo {
     /// the staking output
     #[prost(message, optional, tag="6")]
     pub delegator_unbonding_info: ::core::option::Option<DelegatorUnbondingInfo>,
-}
-/// SlashedBTCDelegation is an IBC packet sent from Babylon Genesis to consumer
-/// about a slashed BTC delegation multi-staked to a finality provider
-/// securing the consumer.
-#[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct SlashedBtcDelegation {
-    /// staking tx hash of the BTC delegation. It uniquely identifies a BTC delegation
-    #[prost(string, tag="1")]
-    pub staking_tx_hash: ::prost::alloc::string::String,
-    /// recovered_fp_btc_sk is the extracted BTC SK of the finality provider on
-    /// this consumer
-    /// this allows the consumer to verify the BTC delegation is indeed slashed
-    #[prost(string, tag="2")]
-    pub recovered_fp_btc_sk: ::prost::alloc::string::String,
 }
 /// UnbondedBTCDelegation is an IBC packet sent from Babylon to consumer
 /// upon an early unbonded BTC delegation
