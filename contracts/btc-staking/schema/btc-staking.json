@@ -81,7 +81,6 @@
             "required": [
               "active_del",
               "new_fp",
-              "slashed_del",
               "unbonded_del"
             ],
             "properties": {
@@ -95,12 +94,6 @@
                 "type": "array",
                 "items": {
                   "$ref": "#/definitions/NewFinalityProvider"
-                }
-              },
-              "slashed_del": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/definitions/SlashedBtcDelegation"
                 }
               },
               "unbonded_del": {
@@ -428,25 +421,6 @@
           },
           "sig": {
             "$ref": "#/definitions/Binary"
-          }
-        },
-        "additionalProperties": false
-      },
-      "SlashedBtcDelegation": {
-        "description": "A packet sent from Babylon to the Consumer chain about a slashed BTC delegation re-staked to >=1 of the Consumer chain's finality providers",
-        "type": "object",
-        "required": [
-          "recovered_fp_btc_sk",
-          "staking_tx_hash"
-        ],
-        "properties": {
-          "recovered_fp_btc_sk": {
-            "description": "Extracted BTC SK of the finality provider on this Consumer chain.",
-            "type": "string"
-          },
-          "staking_tx_hash": {
-            "description": "Staking tx hash of the BTC delegation. It uniquely identifies a BTC delegation",
-            "type": "string"
           }
         },
         "additionalProperties": false
