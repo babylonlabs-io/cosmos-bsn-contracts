@@ -31,7 +31,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## [Unreleased](https://github.com/babylonlabs-io/cosmos-bsn-contracts/tree/HEAD)
 
-[Full Changelog](https://github.com/babylonlabs-io/cosmos-bsn-contracts/compare/v0.16.0...HEAD)
+### Improvements
+
+- [#313](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/313) chore: introduce max blocks to finalize in tallying blocks
 
 ## [v0.16.0](https://github.com/babylonlabs-io/cosmos-bsn-contracts/tree/v0.16.0) (2025-08-07)
 
