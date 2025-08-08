@@ -85,9 +85,11 @@ jobs:
     steps:
     - uses: actions/checkout@v4.1.0
     - name: Install dependencies
-      run: rustup component add rustfmt clippy
-    - name: Check format
-      run: cargo fmt -- --check
+      run: |
+        rustup component add rustfmt clippy
+        rustup toolchain install nightly --component rustfmt  # Install nightly rustfmt
+    - name: Check format (nightly)
+      run: cargo +nightly fmt -- --check
     - name: Check clippy
       run: cargo clippy --workspace --all-features --all-targets -- -D warnings
     - name: Run unit tests
