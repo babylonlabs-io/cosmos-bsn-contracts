@@ -33,6 +33,38 @@ jobs:
     - name: Check schema binary naming convention
       run: bash scripts/check-schema-naming.sh
 
+  check-schema-up-to-date:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4.1.0
+      - name: Generate schema
+        run: bash scripts/schema.sh
+      - name: Check for schema drift
+        run: |
+          if ! git diff --quiet; then
+            echo "❌ Schema is outdated. Please run 'bash scripts/schema.sh' and commit the changes.";
+            git diff;
+            exit 1;
+          fi
+
+  check-proto-up-to-date:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4.1.0
+      - uses: bufbuild/buf-action@v1
+        with:
+          # Only install the buf CLI.
+          setup_only: true
+      - name: Generate proto
+        run: bash scripts/protocgen.sh
+      - name: Check for schema drift
+        run: |
+          if ! git diff --quiet -- packages/proto; then
+            echo "❌ Protobuf bindings are out-of-date. Run scripts/protocgen.sh and commit the result."
+            git --no-pager diff -- packages/proto;
+            exit 1;
+          fi
+
   check-go-datagen:
     runs-on: ubuntu-latest
     steps:
@@ -52,5 +84,11 @@ jobs:
       image: rust:1.86.0
     steps:
     - uses: actions/checkout@v4.1.0
-    - name: Build contracts, check formats, and run unit tests
+    - name: Install dependencies
+      run: rustup component add rustfmt clippy
+    - name: Check format
+      run: cargo fmt -- --check
+    - name: Check clippy
+      run: cargo clippy --workspace --all-features --all-targets -- -D warnings
+    - name: Run unit tests
       run: cargo test --lib

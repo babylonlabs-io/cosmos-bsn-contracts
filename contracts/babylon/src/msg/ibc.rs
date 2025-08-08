@@ -1,3 +1,8 @@
+//! This module defines the callback structures used for IBC transfers to Babylon,
+//! specifically for reward distribution and staking operations.
+//!
+//! Reference: https://github.com/babylonlabs-io/babylon/blob/fa63f5eadc697dc17773de2ef4fc6d972a5e1618/x/btcstaking/types/ibc_callbacks.go
+
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::Decimal;
 use ibc_proto::ibc::core::channel::v1::{acknowledgement::Response, Acknowledgement};
@@ -25,17 +30,10 @@ pub struct BtcTimestampResponse {
     pub placeholder: String,
 }
 
-/// IBC callback structure for Babylon protocol integration
-///
-/// This module defines the callback structures used for IBC transfers to Babylon,
-/// specifically for reward distribution and staking operations.
-///
-/// Reference: https://github.com/babylonlabs-io/babylon/blob/fa63f5eadc697dc17773de2ef4fc6d972a5e1618/x/btcstaking/types/ibc_callbacks.go
-
 /// Action for adding BSN rewards
 const ADD_BSN_REWARDS_ACTION: &str = "add_bsn_rewards";
 
-// Callback memo structures for IBC transfers
+/// Callback memo structures for IBC transfers
 #[cw_serde]
 pub struct CallbackMemo {
     pub action: String,
