@@ -6,7 +6,7 @@ toolchain go1.23.11
 
 require (
 	cosmossdk.io/math v1.5.3
-	github.com/babylonlabs-io/babylon/v3 v3.0.0-snapshot.250807
+	github.com/babylonlabs-io/babylon/v3 v3.0.0-rc.1
 	github.com/boljen/go-bitmap v0.0.0-20151001105940-23cd2fb0ce7d
 	github.com/btcsuite/btcd v0.24.2
 	github.com/btcsuite/btcd/btcec/v2 v2.3.4
