@@ -1,7 +1,6 @@
-use crate::{
-    error::ContractError,
-    state::{config::Config, staking::BtcDelegation},
-};
+use crate::error::ContractError;
+use crate::state::config::Config;
+use crate::state::staking::BtcDelegation;
 use babylon_apis::btc_staking_api::{ActiveBtcDelegation, NewFinalityProvider};
 use bitcoin::Transaction;
 use cosmwasm_std::Binary;

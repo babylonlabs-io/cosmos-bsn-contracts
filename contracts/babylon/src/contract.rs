@@ -418,10 +418,8 @@ mod tests {
     use crate::msg::contract::RewardInfo;
     use bitcoin::block::Header as BlockHeader;
     use btc_light_client::msg::InstantiateMsg as BtcLightClientInstantiateMsg;
-    use cosmwasm_std::testing::message_info;
-    use cosmwasm_std::testing::{mock_dependencies, mock_env};
-    use cosmwasm_std::Binary;
-    use cosmwasm_std::Uint128;
+    use cosmwasm_std::testing::{message_info, mock_dependencies, mock_env};
+    use cosmwasm_std::{Binary, Uint128};
 
     const CREATOR: &str = "creator";
 

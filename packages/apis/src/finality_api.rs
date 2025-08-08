@@ -1,12 +1,10 @@
+use crate::Bytes;
+use babylon_merkle::Proof;
 /// Finality messages / API
 /// The definitions here roughly follow the same structure as the equivalent IBC protobuf pub struct types,
 /// defined in `packages/proto/src/gen/babylon.finality.v1.rs`
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::Binary;
-
-use babylon_merkle::Proof;
-
-use crate::Bytes;
 
 #[cw_serde]
 #[derive(Default)]

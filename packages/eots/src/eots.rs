@@ -1,16 +1,12 @@
 use crate::error::Error;
 use crate::Result;
+use k256::elliptic_curve::group::Group;
+use k256::elliptic_curve::ops::{MulByGenerator, Reduce};
+use k256::elliptic_curve::point::{AffineCoordinates, DecompressPoint};
 use k256::elliptic_curve::sec1::ToEncodedPoint;
-use k256::{
-    elliptic_curve::{
-        group::Group,
-        ops::{MulByGenerator, Reduce},
-        point::{AffineCoordinates, DecompressPoint},
-        subtle::Choice,
-        PrimeField,
-    },
-    AffinePoint, ProjectivePoint, Scalar, U256,
-};
+use k256::elliptic_curve::subtle::Choice;
+use k256::elliptic_curve::PrimeField;
+use k256::{AffinePoint, ProjectivePoint, Scalar, U256};
 use sha2::{Digest, Sha256};
 use std::ops::{Deref, Mul};
 

@@ -1,9 +1,7 @@
-use crate::{
-    error::ContractError,
-    events::{new_finality_provider_status_change_event, FinalityProviderStatus},
-    state::config::Config,
-    state::finality::{get_last_signed_height, get_power_table_at_height, JAIL},
-};
+use crate::error::ContractError;
+use crate::events::{new_finality_provider_status_change_event, FinalityProviderStatus};
+use crate::state::config::Config;
+use crate::state::finality::{get_last_signed_height, get_power_table_at_height, JAIL};
 use cosmwasm_std::{DepsMut, Env, Event};
 
 /// Check for inactive finality providers, and jail them.
@@ -56,10 +54,8 @@ pub fn handle_liveness(
 mod tests {
     use super::*;
     use crate::state::finality::{set_voting_power_table, FP_BLOCK_SIGNER, FP_START_HEIGHT};
-    use cosmwasm_std::{
-        testing::{mock_dependencies, mock_env},
-        Timestamp,
-    };
+    use cosmwasm_std::testing::{mock_dependencies, mock_env};
+    use cosmwasm_std::Timestamp;
     use std::collections::HashMap;
 
     #[test]

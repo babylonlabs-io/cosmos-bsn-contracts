@@ -10,6 +10,7 @@ use babylon_proto::babylon::zoneconcierge::v1::{BtcHeaders, BtcTimestamp, ProofE
 use cosmwasm_std::{Deps, DepsMut, StdError, StdResult};
 use cw_storage_plus::{Item, Map};
 use prost::Message;
+
 pub const BABYLON_EPOCHS: Map<u64, Vec<u8>> = Map::new("babylon_epochs");
 pub const BABYLON_EPOCH_BASE: Item<Vec<u8>> = Item::new("babylon_epoch_base");
 pub const BABYLON_EPOCH_EPOCH_LAST_FINALIZED: Item<Vec<u8>> = Item::new("babylon_epoch_last");

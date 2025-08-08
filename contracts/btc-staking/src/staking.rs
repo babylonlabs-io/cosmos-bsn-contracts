@@ -453,8 +453,9 @@ pub(crate) mod tests {
     };
     use btc_light_client::msg::btc_header::BtcHeaderResponse;
     use cosmwasm_std::testing::{message_info, mock_dependencies, mock_env};
-    use cosmwasm_std::SystemError;
-    use cosmwasm_std::{from_json, to_json_binary, Addr, ContractResult, SystemResult, WasmQuery};
+    use cosmwasm_std::{
+        from_json, to_json_binary, Addr, ContractResult, SystemError, SystemResult, WasmQuery,
+    };
 
     // Compute staking tx hash of a delegation
     pub(crate) fn staking_tx_hash(del: &BtcDelegation) -> Txid {

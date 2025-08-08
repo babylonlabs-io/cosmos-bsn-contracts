@@ -4,12 +4,11 @@ use babylon_apis::btc_staking_api::{
     ActiveBtcDelegation, NewFinalityProvider, UnbondedBtcDelegation,
 };
 use babylon_apis::finality_api::Evidence;
-use babylon_proto::babylon::{
-    btcstaking::v1::BtcStakingIbcPacket,
-    zoneconcierge::v1::{
-        inbound_packet::Packet as InboundPacketType, outbound_packet::Packet as OutboundPacketType,
-        BsnSlashingIbcPacket, BtcHeaders, BtcTimestamp, InboundPacket, OutboundPacket,
-    },
+use babylon_proto::babylon::btcstaking::v1::BtcStakingIbcPacket;
+use babylon_proto::babylon::zoneconcierge::v1::inbound_packet::Packet as InboundPacketType;
+use babylon_proto::babylon::zoneconcierge::v1::outbound_packet::Packet as OutboundPacketType;
+use babylon_proto::babylon::zoneconcierge::v1::{
+    BsnSlashingIbcPacket, BtcHeaders, BtcTimestamp, InboundPacket, OutboundPacket,
 };
 use cosmwasm_std::{
     to_json_binary, Binary, Deps, DepsMut, Env, Event, Ibc3ChannelOpenResponse, IbcBasicResponse,

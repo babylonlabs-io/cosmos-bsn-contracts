@@ -12,11 +12,9 @@ use crate::state::config::{
     DEFAULT_REWARD_INTERVAL,
 };
 use crate::state::finality::get_btc_staking_activated_height;
-use crate::{finality, queries, state};
-use std::cmp::max;
-
 #[cfg(test)]
 use crate::state::finality::ACCUMULATED_VOTING_WEIGHTS;
+use crate::{finality, queries, state};
 use babylon_apis::finality_api::SudoMsg;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
@@ -26,6 +24,7 @@ use cosmwasm_std::{
 };
 use cw2::set_contract_version;
 use cw_utils::{maybe_addr, nonpayable};
+use std::cmp::max;
 
 pub const CONTRACT_NAME: &str = env!("CARGO_PKG_NAME");
 pub const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -300,13 +299,10 @@ pub(crate) fn encode_smart_query<Q: CustomQuery>(
 #[cfg(test)]
 pub(crate) mod tests {
     use super::*;
-
-    use cosmwasm_std::{
-        coin, coins, from_json,
-        testing::{message_info, mock_dependencies, mock_env},
-        Uint128, WasmMsg,
-    };
+    use cosmwasm_std::testing::{message_info, mock_dependencies, mock_env};
+    use cosmwasm_std::{coin, coins, from_json, Uint128, WasmMsg};
     use cw_controllers::AdminResponse;
+
     pub(crate) const CREATOR: &str = "creator";
     pub(crate) const INIT_ADMIN: &str = "initial_admin";
     const NEW_ADMIN: &str = "new_admin";

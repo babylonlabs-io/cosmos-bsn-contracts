@@ -2,10 +2,9 @@ use anyhow::{bail, Result as AnyResult};
 use cosmwasm_std::testing::{MockApi, MockQuerier, MockStorage};
 use cosmwasm_std::Order::Ascending;
 use cosmwasm_std::{
-    Addr, Api, Binary, BlockInfo, CustomQuery, Empty, Querier, QuerierResult, StdError, StdResult,
-    Storage, Timestamp,
+    Addr, Api, Binary, BlockInfo, CustomMsg, CustomQuery, Empty, OwnedDeps, Querier, QuerierResult,
+    StdError, StdResult, Storage, Timestamp,
 };
-use cosmwasm_std::{CustomMsg, OwnedDeps};
 use cw_multi_test::{
     App, AppResponse, BankKeeper, BasicAppBuilder, CosmosRouter, Module, WasmKeeper,
 };

@@ -2,7 +2,6 @@ use babylon_apis::error::StakingApiError;
 use btc_light_client::error::ContractError as BTCLightclientError;
 use cosmwasm_std::{StdError, Uint128};
 use cw_utils::{ParseReplyError, PaymentError};
-
 use thiserror::Error;
 
 #[derive(Error, Debug, PartialEq)]

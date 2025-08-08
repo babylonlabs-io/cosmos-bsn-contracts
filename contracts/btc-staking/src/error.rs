@@ -1,16 +1,13 @@
-use hex::FromHexError;
-use prost::DecodeError;
-use thiserror::Error;
-
+use babylon_apis::error::StakingApiError;
+use babylon_merkle::MerkleError;
 use bitcoin::hashes::FromSliceError;
 use bitcoin::hex::HexToArrayError;
-
 use cosmwasm_std::{ConversionOverflowError, StdError};
 use cw_controllers::AdminError;
 use cw_utils::PaymentError;
-
-use babylon_apis::error::StakingApiError;
-use babylon_merkle::MerkleError;
+use hex::FromHexError;
+use prost::DecodeError;
+use thiserror::Error;
 
 #[derive(Error, Debug, PartialEq)]
 pub enum ContractError {

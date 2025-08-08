@@ -1,11 +1,10 @@
-use cosmwasm_std::Order::{Ascending, Descending};
-use cosmwasm_std::{Deps, StdResult, Storage};
-use cw_storage_plus::{Bound, Map};
-
 use crate::error::ContractError;
 use crate::state::config::CONFIG;
 use babylon_apis::finality_api::PubRandCommit;
 use babylon_contract::msg::consumer_header::ConsumerHeightResponse;
+use cosmwasm_std::Order::{Ascending, Descending};
+use cosmwasm_std::{Deps, StdResult, Storage};
+use cw_storage_plus::{Bound, Map};
 
 /// Map of public randomness commitments by fp and block height
 pub const PUB_RAND_COMMITS: Map<(&str, u64), PubRandCommit> = Map::new("fp_pub_rand_commit");

@@ -1,4 +1,5 @@
-// Adapted from Tgrade's poe-contracts/packages/utils/src/member_indexes.rs
+//! Adapted from Tgrade's poe-contracts/packages/utils/src/member_indexes.rs
+
 use crate::state::staking::FinalityProviderState;
 use cw_storage_plus::{Index, IndexList, MultiIndex};
 
