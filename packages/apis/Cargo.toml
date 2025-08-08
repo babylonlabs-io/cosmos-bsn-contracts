@@ -8,8 +8,8 @@ repository.workspace = true
 authors.workspace = true
 
 [dependencies]
-babylon-merkle   = { path = "../merkle", version = "0.16.0" }
-babylon-proto    = { path = "../proto", version = "0.16.0" }
+babylon-merkle   = { path = "../merkle", version = "0.17.0" }
+babylon-proto    = { path = "../proto", version = "0.17.0" }
 bech32           = { workspace = true }
 bitcoin          = { workspace = true }
 cosmwasm-std     = { workspace = true }

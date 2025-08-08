@@ -31,17 +31,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## [Unreleased](https://github.com/babylonlabs-io/cosmos-bsn-contracts/tree/HEAD)
 
+[Full Changelog](https://github.com/babylonlabs-io/cosmos-bsn-contracts/compare/v0.17.0...HEAD)
+
+## [v0.17.0](https://github.com/babylonlabs-io/cosmos-bsn-contracts/tree/v0.17.0) (2025-08-08)
+
+[Full Changelog](https://github.com/babylonlabs-io/cosmos-bsn-contracts/compare/v0.16.0...v0.17.0)
+
 ### Improvements
 
+- [#314](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/314) chore: update babylon to v3.0.0-rc.1 and release v0.17.0
 - [#313](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/313) chore: introduce max blocks to finalize in tallying blocks
-
-### Improvements
-
-- [#311](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/311) chore: impl `gen_random_msg_commit_pub_rand()` properly and re-enable EOTS sig check in tests
-
-### Improvements
-
 - [#312](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/312) ci: check schema/proto/lint
+- [#311](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/311) chore: impl `gen_random_msg_commit_pub_rand()` properly and re-enable EOTS sig check in tests
 
 ## [v0.16.0](https://github.com/babylonlabs-io/cosmos-bsn-contracts/tree/v0.16.0) (2025-08-07)
 

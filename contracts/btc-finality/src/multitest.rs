@@ -116,7 +116,7 @@ fn commit_public_randomness_works() {
 
     // Generate a new FP using a random key.
     let signing_key = SigningKey::random(&mut rng);
-    let pk_hex = hex::encode(&signing_key.verifying_key().to_bytes());
+    let pk_hex = hex::encode(signing_key.verifying_key().to_bytes());
 
     let mut fp2 = new_fp.clone();
     fp2.btc_pk_hex = pk_hex.clone();

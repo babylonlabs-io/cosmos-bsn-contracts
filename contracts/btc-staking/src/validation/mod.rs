@@ -28,11 +28,3 @@ pub fn verify_undelegation(
     // No-op
     Ok(())
 }
-
-pub fn verify_slashed_delegation(
-    _active_delegation: &BtcDelegation,
-    _slashed_fp_sk_hex: &str,
-) -> Result<(), ContractError> {
-    // No-op
-    Ok(())
-}
