@@ -29,10 +29,11 @@ use std::collections::{HashMap, HashSet};
 // or performance degradation caused by excessive future commitments.
 const MAX_PUB_RAND_COMMIT_OFFSET: u64 = 160_000;
 
-// Setting max amount of finalized blocks per EndBlock to 10_000 to cap processing time,
+// Setting max amount of finalized blocks per EndBlock to 1_000 to cap processing time,
 // mirroring Babylon's `MaxFinalizedRewardedBlocksPerEndBlock`.
 // https://github.com/babylonlabs-io/babylon/blob/53d1a8e211f5c9d8b369397bde1f6cf05c7038ad/x/finality/types/constants.go#L7
-pub const MAX_FINALIZED_REWARDED_BLOCKS_PER_END_BLOCK: u64 = 10_000;
+// Setting a smaller value here because the cost in CosmWasm is higher than in Go module.
+pub const MAX_FINALIZED_REWARDED_BLOCKS_PER_END_BLOCK: u64 = 1_000;
 
 /// Validates that the given height is not lower than the finality activation height.
 /// Returns error if the height received is lower than the finality activation block height.
@@ -464,12 +465,7 @@ pub fn tally_blocks(
     deps: &mut DepsMut,
     env: &Env,
     start_height: u64,
-    max_blocks_to_finalize: u64,
 ) -> Result<Vec<Event>, ContractError> {
-    if max_blocks_to_finalize == 0 {
-        return Ok(vec![]);
-    }
-
     // Start finalising blocks since max(start_height, next_height)
     let next_height = NEXT_HEIGHT.may_load(deps.storage)?.unwrap_or(0);
     let start_height = max(start_height, next_height);
@@ -487,7 +483,7 @@ pub fn tally_blocks(
     // Process at most `max_blocks` heights to cap per-block processing time
     let end_height_inclusive = min(
         env.block.height,
-        start_height.saturating_add(max_blocks_to_finalize.saturating_sub(1)),
+        start_height.saturating_add(MAX_FINALIZED_REWARDED_BLOCKS_PER_END_BLOCK.saturating_sub(1)),
     );
     for h in start_height..=end_height_inclusive {
         let mut indexed_block = BLOCKS.load(deps.storage, h)?;
