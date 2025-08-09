@@ -4,6 +4,12 @@ on:
   push:
     tags:
       - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      version_tag:
+        description: 'Version tag (e.g., v1.0.0)'
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -62,8 +68,8 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ github.token }}
       with:
-          tag_name: ${{ github.ref_name }}
-          release_name: Release ${{ github.ref_name }}
+          tag_name: ${{ github.event_name == 'workflow_dispatch' && inputs.version_tag || github.ref_name }}
+          release_name: Release ${{ github.event_name == 'workflow_dispatch' && inputs.version_tag || github.ref_name }}
           body: |
             Attached there are some build artifacts generated at this tag.
           draft: false
