@@ -1,3 +1,5 @@
+//! https://github.com/babylonlabs-io/babylon/blob/ff15aa54445a82de9705beec2f4072bfc2a6db0c/x/finality/keeper/tallying.go
+
 use crate::error::ContractError;
 use crate::state::finality::{get_power_table_at_height, BLOCKS, NEXT_HEIGHT, SIGNATURES};
 use babylon_apis::finality_api::IndexedBlock;

@@ -307,6 +307,7 @@ fn setup_test(fp_btc_pk_hex: &str) -> MockStorage {
     storage
 }
 
+// https://github.com/babylonlabs-io/babylon/blob/ff15aa54445a82de9705beec2f4072bfc2a6db0c/x/finality/keeper/public_randomness_test.go#L30
 #[test]
 fn test_get_pub_rand_commit_for_height() {
     let fp_btc_pk_hex = gen_random_bip340_pub_key_hex();
