@@ -303,11 +303,9 @@ name = "babylon-test-utils"
 version = "0.17.0"
 dependencies = [
  "babylon-apis",
- "babylon-merkle",
  "babylon-proto",
  "bitcoin",
  "cosmwasm-std",
- "eots",
  "hex",
  "k256",
  "prost",
