@@ -1,4 +1,3 @@
-use crate::contract::encode_smart_query;
 use crate::error::ContractError;
 use crate::events::{new_finality_provider_status_change_event, FinalityProviderStatus};
 use crate::state::config::CONFIG;
@@ -8,8 +7,11 @@ use crate::state::finality::{
 use crate::state::public_randomness::{
     get_last_finalized_height, has_timestamped_pub_rand_commit_for_height,
 };
-use btc_staking::msg::{FinalityProviderInfo, FinalityProvidersByTotalActiveSatsResponse};
-use cosmwasm_std::{Addr, DepsMut, Env, QuerierWrapper, Response, StdResult};
+use btc_staking::msg::{
+    FinalityProviderInfo, FinalityProvidersByTotalActiveSatsResponse,
+    QueryMsg as BTCStakingQueryMsg,
+};
+use cosmwasm_std::{Addr, DepsMut, Env, QuerierWrapper, Response};
 use std::collections::{HashMap, HashSet};
 
 const QUERY_LIMIT: Option<u32> = Some(30);
@@ -145,11 +147,9 @@ pub fn query_fps_by_total_active_sats(
     querier: &QuerierWrapper,
     start_after: Option<FinalityProviderInfo>,
     limit: Option<u32>,
-) -> StdResult<Vec<FinalityProviderInfo>> {
-    let query = encode_smart_query(
-        staking_addr,
-        &btc_staking::msg::QueryMsg::FinalityProvidersByTotalActiveSats { start_after, limit },
-    )?;
-    let res: FinalityProvidersByTotalActiveSatsResponse = querier.query(&query)?;
+) -> Result<Vec<FinalityProviderInfo>, ContractError> {
+    let query = BTCStakingQueryMsg::FinalityProvidersByTotalActiveSats { start_after, limit };
+    let res: FinalityProvidersByTotalActiveSatsResponse =
+        querier.query_wasm_smart(staking_addr.to_string(), &query)?;
     Ok(res.fps)
 }

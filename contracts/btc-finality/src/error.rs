@@ -9,6 +9,8 @@ use thiserror::Error;
 
 #[derive(thiserror::Error, Debug, PartialEq)]
 pub enum PubRandCommitError {
+    #[error(transparent)]
+    StakingApiError(#[from] StakingApiError),
     #[error("Empty FP BTC PubKey")]
     EmptyFpBtcPubKey,
     #[error("Commitment must be {COMMITMENT_LENGTH_BYTES} bytes, got {0}")]
