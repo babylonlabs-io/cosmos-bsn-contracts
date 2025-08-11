@@ -262,8 +262,11 @@ struct TestCase {
     err_msg: Option<ContractError>,
 }
 
-// Helper function to generate a mock BIP340 public key hex.
-fn gen_random_bip340_pub_key_hex() -> String {
+// Generates a mock BIP340 public key hex.
+fn gen_mock_bip340_pub_key_hex() -> String {
+    // BIP340 public keys are 32 bytes (64 hex chars), but for testing, we use a mock compressed SEC1 format:
+    // '02' is the prefix for a compressed public key, and '0'.repeat(62) fills out the rest to 64 hex chars.
+    // This is not a valid BIP340 key, but matches the expected input length for tests.
     "02".to_string() + &"0".repeat(62)
 }
 
@@ -310,7 +313,7 @@ fn setup_test(fp_btc_pk_hex: &str) -> MockStorage {
 // https://github.com/babylonlabs-io/babylon/blob/ff15aa54445a82de9705beec2f4072bfc2a6db0c/x/finality/keeper/public_randomness_test.go#L30
 #[test]
 fn test_get_pub_rand_commit_for_height() {
-    let fp_btc_pk_hex = gen_random_bip340_pub_key_hex();
+    let fp_btc_pk_hex = gen_mock_bip340_pub_key_hex();
 
     let tests = vec![
         TestCase {
