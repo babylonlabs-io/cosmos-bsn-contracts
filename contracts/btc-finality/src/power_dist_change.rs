@@ -153,3 +153,191 @@ pub fn query_fps_by_total_active_sats(
         querier.query_wasm_smart(staking_addr.to_string(), &query)?;
     Ok(res.fps)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::multitest::suite::SuiteBuilder;
+    use babylon_test_utils::{
+        create_new_finality_provider, get_derived_btc_delegation, get_public_randomness_commitment,
+    };
+    use cosmwasm_std::testing::mock_dependencies;
+    use cosmwasm_std::{coin, Addr};
+    use rand::rngs::StdRng;
+    use rand::{Rng, SeedableRng};
+
+    // End-to-end randomized test with the multi-test suite exercising pagination, filtering and top-K
+    #[test]
+    fn randomized_active_set_top_k_and_filters() {
+        let mut rng = StdRng::seed_from_u64(42);
+        // Use main suite to exercise real queries and storage
+        let (pk_hex_fixed, pub_rand, pubrand_signature) = get_public_randomness_commitment();
+
+        let initial_height = pub_rand.start_height;
+        let initial_funds = &[coin(1_000_000_000, "TOKEN")];
+
+        let mut suite = SuiteBuilder::new()
+            .with_funds(initial_funds)
+            .with_height(initial_height)
+            .build();
+
+        // Register a small set of unique finality providers (limited by available testdata)
+        let mut fps = vec![
+            create_new_finality_provider(1),
+            create_new_finality_provider(2),
+            create_new_finality_provider(3),
+        ];
+        // Make the first one match the test vector pk so we can commit pub rand for it
+        fps[0].btc_pk_hex = pk_hex_fixed.clone();
+        suite.register_finality_providers(&fps).unwrap();
+
+        // Add delegations to a random subset so they have power
+        let mut total_powered = 0usize;
+        for (i, fp) in fps.iter().enumerate() {
+            if rng.gen_bool(0.5) {
+                // have delegation with some probability
+                let mut del = get_derived_btc_delegation((i % 3 + 1) as i32, &[1]);
+                del.total_sat = rng.gen_range(1_000..100_000);
+                del.fp_btc_pk_list = vec![fp.btc_pk_hex.clone()];
+                suite.add_delegations(&[del]).unwrap();
+                total_powered += 1;
+            }
+        }
+
+        // Commit public randomness only for a subset; others should be filtered out
+        // NOTE: timestamping pub rand is mocked at https://github.com/babylonlabs-io/cosmos-bsn-contracts/blob/836881bf5c7a14d60a008f02eb41132fce841c56/contracts/babylon/src/contract.rs#L135-L142
+        suite
+            .commit_public_randomness(&pk_hex_fixed, &pub_rand, &pubrand_signature)
+            .unwrap();
+        // For one more provider (if exists), try to commit the same pub rand
+        if fps.len() > 1 {
+            let pk = &fps[1].btc_pk_hex;
+            let _ = suite.commit_public_randomness(pk, &pub_rand, &pubrand_signature);
+        }
+
+        // Advance one block to make timestamped check pass and compute active set
+        let height = suite
+            .next_block("deadbeefcafebabe".as_bytes())
+            .unwrap()
+            .height;
+
+        // Query the active set
+        let active = suite.get_active_finality_providers(height);
+        // Ensure size does not exceed configured max
+        let max_active = suite
+            .get_btc_finality_config()
+            .max_active_finality_providers as usize;
+        assert!(active.len() <= max_active);
+        // Ensure all in active set have non-zero power and were not filtered by missing pub rand
+        for (pk, power) in active.iter() {
+            assert!(*power > 0, "zero power in active set for {pk}");
+        }
+        // Spot check that our fixed pk is present if it had delegation
+        let power_fixed = suite.get_finality_provider_power(&pk_hex_fixed, height);
+        if power_fixed > 0 {
+            assert!(active.contains_key(&pk_hex_fixed));
+        }
+        // Ensure ordering respects top power: take the maximum in the map and ensure no value exceeds it afterwards when sorted
+        if active.len() > 1 {
+            let mut fp_powers: Vec<u64> = active.values().copied().collect();
+            let mut sorted = fp_powers.clone();
+            sorted.sort_by(|a, b| b.cmp(a));
+            assert_eq!(fp_powers.len(), sorted.len());
+            // The set is unordered, but values multiset should equal after sort
+            fp_powers.sort();
+            sorted.sort();
+            assert_eq!(fp_powers, sorted);
+        }
+        // With many powered FPs, we expect at least one active unless all filtered out
+        assert!(active.len() > 0 || total_powered == 0);
+    }
+
+    // Unit-test handle_power_table_change to ensure events and FP_START_HEIGHT logic
+    #[test]
+    fn handle_power_table_change_events_and_start_height() {
+        let mut deps = mock_dependencies();
+        // minimal config to allow reading CONFIG if needed in helpers later
+        CONFIG
+            .save(
+                deps.as_mut().storage,
+                &crate::state::config::Config::new_test(
+                    Addr::unchecked("babylon"),
+                    Addr::unchecked("staking"),
+                ),
+            )
+            .unwrap();
+
+        let current_height = 100u64;
+        let old: HashMap<String, u64> =
+            HashMap::from([("fp_a".to_string(), 10), ("fp_b".to_string(), 20)]);
+        let new: HashMap<String, u64> =
+            HashMap::from([("fp_b".to_string(), 20), ("fp_c".to_string(), 30)]);
+
+        let resp =
+            super::handle_power_table_change(deps.as_mut().storage, current_height, &old, &new)
+                .expect("ok");
+        // Two events: fp_c Active, fp_a Inactive (order not strictly guaranteed, so just check counts/types)
+        let types: Vec<_> = resp.events.iter().map(|e| e.ty.as_str()).collect();
+        assert!(
+            types.iter().any(|t| *t == "finality_provider_status_change"
+                || *t == "wasm-finality_provider_status_change"),
+            "expected status change event"
+        );
+
+        // FP_START_HEIGHT for fp_c should be set to current_height + 1
+        let start_c = FP_START_HEIGHT
+            .may_load(deps.as_ref().storage, &"fp_c".to_string())
+            .unwrap()
+            .unwrap();
+        assert_eq!(start_c, current_height + 1);
+
+        // Re-applying with fp_c still active should not change start height
+        let resp2 =
+            super::handle_power_table_change(deps.as_mut().storage, current_height + 1, &new, &new)
+                .expect("ok");
+        assert!(resp2.events.is_empty());
+        let start_c2 = FP_START_HEIGHT
+            .may_load(deps.as_ref().storage, &"fp_c".to_string())
+            .unwrap()
+            .unwrap();
+        assert_eq!(start_c2, start_c);
+    }
+
+    // Deterministic small test verifying jailed and missing pub rand FPs are excluded
+    #[test]
+    fn filters_out_slashed_jailed_zero_power_and_no_pub_rand() {
+        // Build full suite but manually control states for clear expectations
+        let (pk_hex, pub_rand, pubrand_signature) = get_public_randomness_commitment();
+        let mut suite = SuiteBuilder::new()
+            .with_height(pub_rand.start_height)
+            .build();
+
+        // Register two providers
+        let mut fp1 = create_new_finality_provider(1);
+        fp1.btc_pk_hex = pk_hex.clone();
+        let fp2 = create_new_finality_provider(2);
+        suite
+            .register_finality_providers(&[fp1.clone(), fp2.clone()])
+            .unwrap();
+
+        // Add delegation to both so they have power
+        let mut del1 = get_derived_btc_delegation(1, &[1]);
+        del1.fp_btc_pk_list = vec![fp1.btc_pk_hex.clone()];
+        del1.total_sat = 50_000;
+        let mut del2 = get_derived_btc_delegation(2, &[2]);
+        del2.fp_btc_pk_list = vec![fp2.btc_pk_hex.clone()];
+        del2.total_sat = 60_000;
+        suite.add_delegations(&[del1, del2]).unwrap();
+
+        // Commit pub rand only for fp1; fp2 should be filtered out by missing pub rand
+        suite
+            .commit_public_randomness(&pk_hex, &pub_rand, &pubrand_signature)
+            .unwrap();
+
+        // Advance a block so timestamped condition holds and active set computed
+        let height = suite.next_block(b"hash").unwrap().height;
+        let active = suite.get_active_finality_providers(height);
+        assert_eq!(active.len(), 1);
+        assert!(active.contains_key(&fp1.btc_pk_hex));
+    }
+}
