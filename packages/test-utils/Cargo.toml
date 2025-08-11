@@ -11,10 +11,13 @@ publish           = true
 [dependencies]
 babylon-apis     = { path = "../apis", version = "0.17.0" }
 babylon-proto    = { path = "../proto", version = "0.17.0" }
+babylon-merkle   = { path = "../merkle", version = "0.17.0" }
+eots             = { path = "../eots", features = ["rand"], version = "0.17.0" }
 bitcoin          = { workspace = true }
 cosmwasm-std     = { workspace = true }
 hex              = { workspace = true }
 k256             = { workspace = true }
 prost            = { workspace = true }
+rand             = { workspace = true }
 serde            = { workspace = true }
 serde_json       = { workspace = true }

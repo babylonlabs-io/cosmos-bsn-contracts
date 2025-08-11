@@ -1,11 +1,10 @@
 use crate::error::{FinalitySigError, PubRandCommitError};
-use crate::msg::{
-    commit_pub_rand_signed_message, MsgAddFinalitySig, MsgCommitPubRand, BIP340_PUB_KEY_LEN,
-    SCHNORR_EOTS_SIG_LEN, SCHNORR_PUB_RAND_LEN, TMHASH_SIZE,
+use crate::msg::{MsgAddFinalitySig, MsgCommitPubRand};
+use babylon_test_utils::datagen::{
+    gen_random_msg_add_finality_sig as gen_random_test_msg_add_finality_sig,
+    gen_random_msg_commit_pub_rand as gen_random_test_msg_commit_pub_rand, gen_random_signing_key,
 };
-use babylon_merkle::Proof;
-use k256::ecdsa::signature::{Signer, Verifier};
-use k256::schnorr::{Signature, SigningKey, VerifyingKey};
+use k256::schnorr::SigningKey;
 use rand::rngs::StdRng;
 use rand::{Rng, SeedableRng};
 
@@ -18,60 +17,36 @@ struct MsgTestCase<Msg, MsgErr> {
 type MsgCommitPubRandTestCase = MsgTestCase<MsgCommitPubRand, PubRandCommitError>;
 type MsgAddFinalitySigTestCase = MsgTestCase<MsgAddFinalitySig, FinalitySigError>;
 
-// Helper function to generate random bytes
-fn gen_random_bytes(rng: &mut StdRng, len: usize) -> Vec<u8> {
-    (0..len).map(|_| rng.gen()).collect()
-}
-
-fn gen_random_pub_rand_list_and_return_commitment(num_pub_rand: u64) -> Vec<u8> {
-    let (_eots_sks, eots_pks): (Vec<_>, Vec<_>) =
-        (0..num_pub_rand).map(|_| eots::rand_gen()).unzip();
-
-    // Compute the commitment.
-    babylon_merkle::hash_from_byte_slices(
-        eots_pks
-            .clone()
-            .into_iter()
-            .map(|pk| pk.to_x_bytes())
-            .collect::<Vec<_>>(),
-    )
-}
-
-// Helper function to generate random message
 pub(crate) fn gen_random_msg_commit_pub_rand(
     signing_key: &SigningKey,
     signing_context: &str,
     start_height: u64,
     num_pub_rand: u64,
 ) -> MsgCommitPubRand {
-    let verifying_key_bytes = signing_key.verifying_key().to_bytes();
-
-    let commitment = gen_random_pub_rand_list_and_return_commitment(num_pub_rand);
-
-    let signed_msg = commit_pub_rand_signed_message(
-        signing_context.to_string(),
+    let test_msg = gen_random_test_msg_commit_pub_rand(
+        signing_key,
+        signing_context,
         start_height,
         num_pub_rand,
-        &commitment,
     );
-
-    let sig = signing_key.sign(&signed_msg).to_bytes().to_vec();
-
-    let fp_btc_pk_hex = hex::encode(verifying_key_bytes);
-
-    let btc_pk = VerifyingKey::from_bytes(&verifying_key_bytes).unwrap();
-    let sig_to_verify = Signature::try_from(sig.as_slice()).unwrap();
-
-    btc_pk
-        .verify(&signed_msg, &sig_to_verify)
-        .expect("Verifying signature must succeed");
-
     MsgCommitPubRand {
-        fp_btc_pk_hex,
-        start_height,
-        num_pub_rand,
-        commitment,
-        sig,
+        fp_btc_pk_hex: test_msg.fp_btc_pk_hex,
+        start_height: test_msg.start_height,
+        num_pub_rand: test_msg.num_pub_rand,
+        commitment: test_msg.commitment,
+        sig: test_msg.sig,
+    }
+}
+
+pub(crate) fn gen_random_msg_add_finality_sig(rng: &mut StdRng) -> MsgAddFinalitySig {
+    let test_msg = gen_random_test_msg_add_finality_sig(rng);
+    MsgAddFinalitySig {
+        fp_btc_pk_hex: test_msg.fp_btc_pk_hex,
+        height: test_msg.height,
+        pub_rand: test_msg.pub_rand,
+        proof: test_msg.proof,
+        block_app_hash: test_msg.block_app_hash,
+        signature: test_msg.signature,
     }
 }
 
@@ -111,7 +86,7 @@ fn test_msg_commit_pub_rand_validate_basic() {
         },
     ];
 
-    let signing_key = SigningKey::random(&mut rng);
+    let signing_key = gen_random_signing_key(&mut rng);
 
     for MsgCommitPubRandTestCase {
         name,
@@ -226,19 +201,7 @@ fn test_msg_add_finality_sig_validate_basic() {
     } in test_cases
     {
         // Create a valid message
-        let mut msg = MsgAddFinalitySig {
-            fp_btc_pk_hex: hex::encode(gen_random_bytes(&mut rng, BIP340_PUB_KEY_LEN)),
-            height: rng.gen_range(1..1000),
-            pub_rand: gen_random_bytes(&mut rng, SCHNORR_PUB_RAND_LEN),
-            proof: Proof {
-                total: 0,
-                index: 0,
-                leaf_hash: Default::default(),
-                aunts: Default::default(),
-            },
-            block_app_hash: gen_random_bytes(&mut rng, TMHASH_SIZE),
-            signature: gen_random_bytes(&mut rng, SCHNORR_EOTS_SIG_LEN),
-        };
+        let mut msg = gen_random_msg_add_finality_sig(&mut rng);
 
         // Apply the test case modifier
         msg_modifier(&mut msg);
