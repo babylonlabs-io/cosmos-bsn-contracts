@@ -158,9 +158,8 @@ pub fn query_fps_by_total_active_sats(
 mod tests {
     use super::*;
     use crate::multitest::suite::SuiteBuilder;
-    use babylon_test_utils::{
-        create_new_finality_provider, get_derived_btc_delegation, get_public_randomness_commitment,
-    };
+    use babylon_test_utils::datagen::gen_random_new_finality_provider;
+    use babylon_test_utils::{get_derived_btc_delegation, get_public_randomness_commitment};
     use cosmwasm_std::testing::mock_dependencies;
     use cosmwasm_std::{coin, Addr};
     use rand::rngs::StdRng;
@@ -181,27 +180,26 @@ mod tests {
             .with_height(initial_height)
             .build();
 
-        // Register a small set of unique finality providers (limited by available testdata)
-        let mut fps = vec![
-            create_new_finality_provider(1),
-            create_new_finality_provider(2),
-            create_new_finality_provider(3),
-        ];
+        // Register a larger randomized set of finality providers
+        let num_fps: usize = rng.gen_range(10..20);
+        let mut fps = Vec::with_capacity(num_fps);
+        for _ in 0..num_fps {
+            fps.push(gen_random_new_finality_provider(&mut rng));
+        }
         // Make the first one match the test vector pk so we can commit pub rand for it
         fps[0].btc_pk_hex = pk_hex_fixed.clone();
         suite.register_finality_providers(&fps).unwrap();
 
-        // Add delegations to a random subset so they have power
+        // Add delegations to a small subset so they have power.
+        // Limit to unique staking txs available in testdata (ids 1..=3) to avoid duplicates.
         let mut total_powered = 0usize;
-        for (i, fp) in fps.iter().enumerate() {
-            if rng.gen_bool(0.5) {
-                // have delegation with some probability
-                let mut del = get_derived_btc_delegation((i % 3 + 1) as i32, &[1]);
-                del.total_sat = rng.gen_range(1_000..100_000);
-                del.fp_btc_pk_list = vec![fp.btc_pk_hex.clone()];
-                suite.add_delegations(&[del]).unwrap();
-                total_powered += 1;
-            }
+        let max_unique_delegations = 3usize.min(fps.len());
+        for (i, fp) in fps.iter().enumerate().take(max_unique_delegations) {
+            let mut del = get_derived_btc_delegation((i + 1) as i32, &[1]);
+            del.total_sat = rng.gen_range(1_000..100_000);
+            del.fp_btc_pk_list = vec![fp.btc_pk_hex.clone()];
+            suite.add_delegations(&[del]).unwrap();
+            total_powered += 1;
         }
 
         // Commit public randomness only for a subset; others should be filtered out
@@ -249,7 +247,7 @@ mod tests {
             assert_eq!(fp_powers, sorted);
         }
         // With many powered FPs, we expect at least one active unless all filtered out
-        assert!(active.len() > 0 || total_powered == 0);
+        assert!(!active.is_empty() || total_powered == 0);
     }
 
     // Unit-test handle_power_table_change to ensure events and FP_START_HEIGHT logic
@@ -286,7 +284,7 @@ mod tests {
 
         // FP_START_HEIGHT for fp_c should be set to current_height + 1
         let start_c = FP_START_HEIGHT
-            .may_load(deps.as_ref().storage, &"fp_c".to_string())
+            .may_load(deps.as_ref().storage, "fp_c")
             .unwrap()
             .unwrap();
         assert_eq!(start_c, current_height + 1);
@@ -297,7 +295,7 @@ mod tests {
                 .expect("ok");
         assert!(resp2.events.is_empty());
         let start_c2 = FP_START_HEIGHT
-            .may_load(deps.as_ref().storage, &"fp_c".to_string())
+            .may_load(deps.as_ref().storage, "fp_c")
             .unwrap()
             .unwrap();
         assert_eq!(start_c2, start_c);
@@ -306,6 +304,8 @@ mod tests {
     // Deterministic small test verifying jailed and missing pub rand FPs are excluded
     #[test]
     fn filters_out_slashed_jailed_zero_power_and_no_pub_rand() {
+        let mut rng = StdRng::seed_from_u64(42);
+
         // Build full suite but manually control states for clear expectations
         let (pk_hex, pub_rand, pubrand_signature) = get_public_randomness_commitment();
         let mut suite = SuiteBuilder::new()
@@ -313,9 +313,9 @@ mod tests {
             .build();
 
         // Register two providers
-        let mut fp1 = create_new_finality_provider(1);
+        let mut fp1 = gen_random_new_finality_provider(&mut rng);
         fp1.btc_pk_hex = pk_hex.clone();
-        let fp2 = create_new_finality_provider(2);
+        let fp2 = gen_random_new_finality_provider(&mut rng);
         suite
             .register_finality_providers(&[fp1.clone(), fp2.clone()])
             .unwrap();

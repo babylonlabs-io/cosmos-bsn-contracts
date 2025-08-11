@@ -1,3 +1,4 @@
+use babylon_apis::btc_staking_api::NewFinalityProvider;
 use babylon_merkle::Proof;
 use eots::{PrivateRand, PubRand};
 use k256::ecdsa::signature::{Signer, Verifier};
@@ -132,5 +133,21 @@ pub fn gen_random_msg_add_finality_sig<R: RngCore>(rng: &mut R) -> TestMsgAddFin
         },
         block_app_hash: gen_random_bytes(rng, TMHASH_SIZE),
         signature: gen_random_bytes(rng, SCHNORR_EOTS_SIG_LEN),
+    }
+}
+
+/// Generate a random NewFinalityProvider for testing
+pub fn gen_random_new_finality_provider<R: RngCore>(rng: &mut R) -> NewFinalityProvider {
+    let btc_pk_bytes = gen_random_bytes(rng, BIP340_PUB_KEY_LEN);
+    let btc_pk_hex = hex::encode(btc_pk_bytes);
+
+    // Create proof of possession by signing the finality provider's address
+    let addr = format!("bbn{}", hex::encode(gen_random_bytes(rng, 20)));
+
+    NewFinalityProvider {
+        addr,
+        btc_pk_hex,
+        pop: None,
+        consumer_id: format!("consumer-{}", rng.gen::<u32>()),
     }
 }
