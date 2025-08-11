@@ -1,5 +1,6 @@
 mod finality;
 mod power_dist_change;
+mod tallying;
 
 pub mod contract;
 pub mod error;

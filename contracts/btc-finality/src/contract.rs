@@ -263,7 +263,7 @@ fn handle_end_block(
     res = res.add_event(ev);
 
     // Tally non-finalised blocks with a per-EndBlock cap
-    let events = finality::tally_blocks(
+    let events = crate::tallying::tally_blocks(
         deps,
         &env,
         max(cfg.finality_activation_height, activated_height.unwrap()),
