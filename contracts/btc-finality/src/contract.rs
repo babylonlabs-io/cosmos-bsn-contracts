@@ -253,10 +253,9 @@ fn handle_end_block(
     }
 
     // Should not proceed if BTC staking is not activated
-    let activated_height = get_btc_staking_activated_height(deps.storage);
-    if activated_height.is_none() {
+    let Some(activated_height) = get_btc_staking_activated_height(deps.storage) else {
         return Ok(res);
-    }
+    };
 
     // Index the current block
     let ev = finality::index_block(deps, env.block.height, &hex::decode(app_hash_hex)?)?;
@@ -266,7 +265,7 @@ fn handle_end_block(
     let events = crate::tallying::tally_blocks(
         deps,
         &env,
-        max(cfg.finality_activation_height, activated_height.unwrap()),
+        max(cfg.finality_activation_height, activated_height),
     )?;
     res = res.add_events(events);
 
