@@ -164,9 +164,8 @@ mod tests {
     use cosmwasm_std::testing::mock_dependencies;
     use cosmwasm_std::{coin, Addr};
 
-    // End-to-end randomized test with the multi-test suite exercising pagination, filtering and top-K
     #[test]
-    fn randomized_active_set_top_k_and_filters() {
+    fn test_compute_active_finality_providers() {
         // Use main suite to exercise real queries and storage
         let (pk_hex_fixed, pub_rand, pubrand_signature) = get_public_randomness_commitment();
 
@@ -178,7 +177,7 @@ mod tests {
             .with_height(initial_height)
             .build();
 
-        // Register a larger randomized set of finality providers
+        // Register a small fixed set of finality providers
         let num_fps: usize = 3;
         let mut fps = Vec::with_capacity(num_fps);
         for id in 1..=num_fps {
@@ -190,14 +189,12 @@ mod tests {
 
         // Add delegations to a small subset so they have power.
         // Limit to unique staking txs available in testdata (ids 1..=3) to avoid duplicates.
-        let mut total_powered = 0usize;
         let max_unique_delegations = 3usize.min(fps.len());
         for (i, fp) in fps.iter().enumerate().take(max_unique_delegations) {
             let mut del = get_derived_btc_delegation((i + 1) as i32, &[1]);
             del.total_sat = 100_000;
             del.fp_btc_pk_list = vec![fp.btc_pk_hex.clone()];
             suite.add_delegations(&[del]).unwrap();
-            total_powered += 1;
         }
 
         // Commit public randomness only for a subset; others should be filtered out
@@ -205,11 +202,9 @@ mod tests {
         suite
             .commit_public_randomness(&pk_hex_fixed, &pub_rand, &pubrand_signature)
             .unwrap();
-        // For one more provider (if exists), try to commit the same pub rand
-        if fps.len() > 1 {
-            let pk = &fps[1].btc_pk_hex;
-            let _ = suite.commit_public_randomness(pk, &pub_rand, &pubrand_signature);
-        }
+        // For one more provider, try to commit the same pub rand
+        let pk = &fps[1].btc_pk_hex;
+        let _ = suite.commit_public_randomness(pk, &pub_rand, &pubrand_signature);
 
         // Advance one block to make timestamped check pass and compute active set
         let height = suite
@@ -234,18 +229,16 @@ mod tests {
             assert!(active.contains_key(&pk_hex_fixed));
         }
         // Ensure ordering respects top power: take the maximum in the map and ensure no value exceeds it afterwards when sorted
-        if active.len() > 1 {
-            let mut fp_powers: Vec<u64> = active.values().copied().collect();
-            let mut sorted = fp_powers.clone();
-            sorted.sort_by(|a, b| b.cmp(a));
-            assert_eq!(fp_powers.len(), sorted.len());
-            // The set is unordered, but values multiset should equal after sort
-            fp_powers.sort();
-            sorted.sort();
-            assert_eq!(fp_powers, sorted);
-        }
+        let mut fp_powers: Vec<u64> = active.values().copied().collect();
+        let mut sorted = fp_powers.clone();
+        sorted.sort_by(|a, b| b.cmp(a));
+        assert_eq!(fp_powers.len(), sorted.len());
+        // The set is unordered, but values multiset should equal after sort
+        fp_powers.sort();
+        sorted.sort();
+        assert_eq!(fp_powers, sorted);
         // With many powered FPs, we expect at least one active unless all filtered out
-        assert!(!active.is_empty() || total_powered == 0);
+        assert!(!active.is_empty());
     }
 
     // Unit-test handle_power_table_change to ensure events and FP_START_HEIGHT logic
