@@ -62,6 +62,6 @@ anyhow                = { workspace = true }
 assert_matches        = { workspace = true }
 pbjson-types          = { workspace = true }
 prost                 = { workspace = true }
-rand                  = { workspace = true }
 serde                 = { workspace = true }
 tendermint-proto      = { workspace = true }
+rand                  = { workspace = true }

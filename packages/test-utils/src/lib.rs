@@ -40,8 +40,6 @@ const ADD_FINALITY_SIG_DATA: &str = "add_finality_sig_{}_msg.dat";
 
 const EOTS_DATA: &str = "eots_testdata.json";
 
-pub mod datagen;
-
 pub fn find_project_path() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
 }

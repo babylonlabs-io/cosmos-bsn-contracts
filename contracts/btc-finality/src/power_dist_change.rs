@@ -158,17 +158,15 @@ pub fn query_fps_by_total_active_sats(
 mod tests {
     use super::*;
     use crate::multitest::suite::SuiteBuilder;
-    use babylon_test_utils::datagen::gen_random_new_finality_provider;
-    use babylon_test_utils::{get_derived_btc_delegation, get_public_randomness_commitment};
+    use babylon_test_utils::{
+        create_new_finality_provider, get_derived_btc_delegation, get_public_randomness_commitment,
+    };
     use cosmwasm_std::testing::mock_dependencies;
     use cosmwasm_std::{coin, Addr};
-    use rand::rngs::StdRng;
-    use rand::{Rng, SeedableRng};
 
     // End-to-end randomized test with the multi-test suite exercising pagination, filtering and top-K
     #[test]
     fn randomized_active_set_top_k_and_filters() {
-        let mut rng = StdRng::seed_from_u64(42);
         // Use main suite to exercise real queries and storage
         let (pk_hex_fixed, pub_rand, pubrand_signature) = get_public_randomness_commitment();
 
@@ -181,10 +179,10 @@ mod tests {
             .build();
 
         // Register a larger randomized set of finality providers
-        let num_fps: usize = rng.gen_range(10..20);
+        let num_fps: usize = 3;
         let mut fps = Vec::with_capacity(num_fps);
-        for _ in 0..num_fps {
-            fps.push(gen_random_new_finality_provider(&mut rng));
+        for id in 1..=num_fps {
+            fps.push(create_new_finality_provider(id as i32));
         }
         // Make the first one match the test vector pk so we can commit pub rand for it
         fps[0].btc_pk_hex = pk_hex_fixed.clone();
@@ -196,7 +194,7 @@ mod tests {
         let max_unique_delegations = 3usize.min(fps.len());
         for (i, fp) in fps.iter().enumerate().take(max_unique_delegations) {
             let mut del = get_derived_btc_delegation((i + 1) as i32, &[1]);
-            del.total_sat = rng.gen_range(1_000..100_000);
+            del.total_sat = 100_000;
             del.fp_btc_pk_list = vec![fp.btc_pk_hex.clone()];
             suite.add_delegations(&[del]).unwrap();
             total_powered += 1;
@@ -304,8 +302,6 @@ mod tests {
     // Deterministic small test verifying jailed and missing pub rand FPs are excluded
     #[test]
     fn filters_out_slashed_jailed_zero_power_and_no_pub_rand() {
-        let mut rng = StdRng::seed_from_u64(42);
-
         // Build full suite but manually control states for clear expectations
         let (pk_hex, pub_rand, pubrand_signature) = get_public_randomness_commitment();
         let mut suite = SuiteBuilder::new()
@@ -313,9 +309,9 @@ mod tests {
             .build();
 
         // Register two providers
-        let mut fp1 = gen_random_new_finality_provider(&mut rng);
+        let mut fp1 = create_new_finality_provider(1);
         fp1.btc_pk_hex = pk_hex.clone();
-        let fp2 = gen_random_new_finality_provider(&mut rng);
+        let fp2 = create_new_finality_provider(2);
         suite
             .register_finality_providers(&[fp1.clone(), fp2.clone()])
             .unwrap();

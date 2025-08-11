@@ -311,7 +311,6 @@ dependencies = [
  "hex",
  "k256",
  "prost",
- "rand",
  "serde",
  "serde_json",
 ]
