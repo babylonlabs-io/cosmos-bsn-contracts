@@ -1,9 +1,12 @@
-use crate::error::{FinalitySigError, PubRandCommitError};
+use crate::error::{ContractError, FinalitySigError, PubRandCommitError};
 use crate::msg::{
     commit_pub_rand_signed_message, MsgAddFinalitySig, MsgCommitPubRand, BIP340_PUB_KEY_LEN,
     SCHNORR_EOTS_SIG_LEN, SCHNORR_PUB_RAND_LEN, TMHASH_SIZE,
 };
+use crate::state::public_randomness::{get_pub_rand_commit_for_height, PUB_RAND_COMMITS};
+use babylon_apis::finality_api::PubRandCommit;
 use babylon_merkle::Proof;
+use cosmwasm_std::testing::MockStorage;
 use k256::ecdsa::signature::{Signer, Verifier};
 use k256::schnorr::{Signature, SigningKey, VerifyingKey};
 use rand::rngs::StdRng;
@@ -244,5 +247,159 @@ fn test_msg_add_finality_sig_validate_basic() {
         msg_modifier(&mut msg);
 
         assert_eq!(msg.validate_basic(), expected, "Test case failed: {name}");
+    }
+}
+
+// Test case structure
+struct TestCase {
+    name: &'static str,
+    height: u64,
+    valid: bool,
+    expected_commitment: Option<Vec<u8>>,
+    mutate_store: Option<Box<dyn Fn(&mut MockStorage, &str)>>,
+    err_msg: Option<ContractError>,
+}
+
+// Helper function to generate a mock BIP340 public key hex.
+fn gen_random_bip340_pub_key_hex() -> String {
+    "02".to_string() + &"0".repeat(62)
+}
+
+// Removes all commits under the key `fp_btc_pk_hex`.
+fn delete_index(storage: &mut MockStorage, fp_btc_pk_hex: &str) {
+    let keys_to_remove = PUB_RAND_COMMITS
+        .prefix(fp_btc_pk_hex)
+        .range(storage, None, None, cosmwasm_std::Order::Ascending)
+        .filter_map(|item| {
+            if let Ok((key, _)) = item {
+                Some(key)
+            } else {
+                None
+            }
+        })
+        .collect::<Vec<_>>();
+
+    for key in keys_to_remove {
+        PUB_RAND_COMMITS.remove(storage, (fp_btc_pk_hex, key));
+    }
+}
+
+// Setup test function for `test_get_pub_rand_commit_for_height`.
+fn setup_test(fp_btc_pk_hex: &str) -> MockStorage {
+    let mut storage = MockStorage::new();
+
+    // Setup: Add 3 commits [0-9], [10-19], [20-29]
+    for i in 0..3 {
+        let commit = PubRandCommit {
+            start_height: i * 10,
+            num_pub_rand: 10,
+            commitment: format!("commit-{i}").as_bytes().to_vec(),
+            height: i as u64,
+        };
+
+        PUB_RAND_COMMITS
+            .save(&mut storage, (fp_btc_pk_hex, i * 10), &commit)
+            .unwrap();
+    }
+
+    storage
+}
+
+#[test]
+fn test_get_pub_rand_commit_for_height() {
+    let fp_btc_pk_hex = gen_random_bip340_pub_key_hex();
+
+    let tests = vec![
+        TestCase {
+            name: "height within first commit",
+            height: 5,
+            valid: true,
+            expected_commitment: Some(b"commit-0".to_vec()),
+            mutate_store: None,
+            err_msg: None,
+        },
+        TestCase {
+            name: "height at start of second commit",
+            height: 10,
+            valid: true,
+            expected_commitment: Some(b"commit-1".to_vec()),
+            mutate_store: None,
+            err_msg: None,
+        },
+        TestCase {
+            name: "height at end of last commit",
+            height: 29,
+            valid: true,
+            expected_commitment: Some(b"commit-2".to_vec()),
+            mutate_store: None,
+            err_msg: None,
+        },
+        TestCase {
+            name: "height before first commit",
+            height: 0,
+            valid: true,
+            expected_commitment: Some(b"commit-0".to_vec()),
+            mutate_store: None,
+            err_msg: None,
+        },
+        TestCase {
+            name: "height after all commits",
+            height: 30,
+            valid: false,
+            expected_commitment: None,
+            mutate_store: None,
+            err_msg: None,
+        },
+        TestCase {
+            name: "empty index",
+            height: 5,
+            valid: false,
+            expected_commitment: None,
+            mutate_store: Some(Box::new(|storage, fp_btc_pk_hex| {
+                delete_index(storage, fp_btc_pk_hex);
+            })),
+            err_msg: Some(ContractError::MissingPubRandCommit(
+                fp_btc_pk_hex.clone(),
+                5,
+            )),
+        },
+        TestCase {
+            name: "commit data missing in store",
+            height: 15,
+            valid: false,
+            expected_commitment: None,
+            mutate_store: Some(Box::new(|storage, fp_btc_pk_hex| {
+                // Deletes specific commit data.
+                PUB_RAND_COMMITS.remove(storage, (fp_btc_pk_hex, 10));
+            })),
+            err_msg: Some(ContractError::MissingPubRandCommit(
+                fp_btc_pk_hex.clone(),
+                15,
+            )),
+        },
+    ];
+
+    for tc in tests {
+        let mut storage = setup_test(&fp_btc_pk_hex);
+
+        if let Some(mutate_fn) = tc.mutate_store {
+            mutate_fn(&mut storage, &fp_btc_pk_hex);
+        }
+
+        let result = get_pub_rand_commit_for_height(&storage, &fp_btc_pk_hex, tc.height);
+
+        if tc.valid {
+            assert_eq!(
+                result.unwrap().commitment,
+                tc.expected_commitment.unwrap(),
+                "Committments mismatch for test {}",
+                tc.name
+            );
+        } else {
+            assert!(result.is_err(), "Expected error for test: {}", tc.name);
+            if let Some(expected_err_msg) = tc.err_msg {
+                assert_eq!(result.unwrap_err(), expected_err_msg);
+            }
+        }
     }
 }
