@@ -250,13 +250,15 @@ fn test_msg_add_finality_sig_validate_basic() {
     }
 }
 
+type MutateStoreFn = Box<dyn Fn(&mut MockStorage, &str)>;
+
 // Test case structure
 struct TestCase {
     name: &'static str,
     height: u64,
     valid: bool,
     expected_commitment: Option<Vec<u8>>,
-    mutate_store: Option<Box<dyn Fn(&mut MockStorage, &str)>>,
+    mutate_store: Option<MutateStoreFn>,
     err_msg: Option<ContractError>,
 }
 
@@ -294,7 +296,7 @@ fn setup_test(fp_btc_pk_hex: &str) -> MockStorage {
             start_height: i * 10,
             num_pub_rand: 10,
             commitment: format!("commit-{i}").as_bytes().to_vec(),
-            height: i as u64,
+            height: i,
         };
 
         PUB_RAND_COMMITS
