@@ -32,14 +32,10 @@ pub fn get_pub_rand_commit_for_height(
             Ok(value)
         })
         .collect::<StdResult<Vec<_>>>()?;
-    if res.is_empty() {
-        Err(ContractError::MissingPubRandCommit(
-            fp_btc_pk_hex.to_string(),
-            height,
-        ))
-    } else {
-        Ok(res[0].clone())
-    }
+
+    res.into_iter()
+        .next()
+        .ok_or_else(|| ContractError::MissingPubRandCommit(fp_btc_pk_hex.to_string(), height))
 }
 
 // Finds the public randomness commitment that includes the given height for the given finality provider.
