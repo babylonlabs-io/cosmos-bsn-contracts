@@ -320,7 +320,7 @@ impl Suite {
 
     #[track_caller]
     pub fn get_double_signing_evidence(&self, pk_hex: &str, height: u64) -> EvidenceResponse {
-        self.query_finality_contract::<EvidenceResponse>(crate::msg::QueryMsg::Evidence {
+        self.query_finality_contract(crate::msg::QueryMsg::Evidence {
             btc_pk_hex: pk_hex.to_string(),
             height,
         })
