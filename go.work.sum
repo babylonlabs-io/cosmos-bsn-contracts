@@ -213,6 +213,10 @@ github.com/aws/aws-sdk-go-v2/service/sts v1.23.2/go.mod h1:Eows6e1uQEsc4ZaHANmsP
 github.com/aws/smithy-go v1.15.0/go.mod h1:Tg+OJXh4MB2R/uN61Ko2f6hTZwB/ZYGOtib8J3gBHzA=
 github.com/aymerick/douceur v0.2.0/go.mod h1:wlT5vV2O3h55X9m7iVYN0TBM0NH/MmbLnd30/FjWUq4=
 github.com/aymerick/raymond v2.0.3-0.20180322193309-b565731e1464+incompatible/go.mod h1:osfaiScAUVup+UC9Nfq76eWqDhXlp+4UYaA8uhTBO6g=
+github.com/babylonlabs-io/babylon-sdk/demo v0.0.0-20250812055517-94a61e99f28c h1:C56HHoMHF1uA5iTskmA8HOnrXnbFOMn1+am8/+tjoQ8=
+github.com/babylonlabs-io/babylon-sdk/demo v0.0.0-20250812055517-94a61e99f28c/go.mod h1:BlT+EaE0WgQWQUB+bl0cIWU+dApr1m9BMZ1Sc2aJq8Q=
+github.com/babylonlabs-io/babylon-sdk/x v0.0.0-20250812055517-94a61e99f28c h1:K1sDeW3cwkK4xLBU/+dqgrnQPGVsjKwFCFiA6siB3Z0=
+github.com/babylonlabs-io/babylon-sdk/x v0.0.0-20250812055517-94a61e99f28c/go.mod h1:seS4E882FYvlzi07MpIgtCtcC7AISJp1oo30AWMbGfE=
 github.com/babylonlabs-io/babylon/v3 v3.0.0-rc.1/go.mod h1:7QpvIvZTClWlm1hNz4ivb3I522XrOJC5UcnqDGiwi08=
 github.com/bazelbuild/rules_go v0.49.0 h1:5vCbuvy8Q11g41lseGJDc5vxhDjJtfxr6nM/IC4VmqM=
 github.com/bazelbuild/rules_go v0.49.0/go.mod h1:Dhcz716Kqg1RHNWos+N6MlXNkjNP2EwZQ0LukRKJfMs=
