@@ -6,20 +6,12 @@ mod validate;
 
 use bech32::Variant::Bech32;
 use bech32::{FromBase32, ToBase32, Variant};
-use cosmwasm_std::{Addr, Binary, CanonicalAddr, CustomQuery, QueryRequest, WasmQuery};
+use cosmwasm_std::{Addr, CanonicalAddr};
 use error::StakingApiError;
 use sha2::Digest;
 pub use validate::Validate;
 
 pub type Bytes = Vec<u8>;
-
-pub fn encode_raw_query<T: Into<Binary>, Q: CustomQuery>(addr: &Addr, key: T) -> QueryRequest<Q> {
-    WasmQuery::Raw {
-        contract_addr: addr.into(),
-        key: key.into(),
-    }
-    .into()
-}
 
 /// Converts a bech32 address to a canonical address
 /// ported from cosmwasm-std/testing/mock.rs

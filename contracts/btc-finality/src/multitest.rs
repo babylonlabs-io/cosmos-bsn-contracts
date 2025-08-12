@@ -1,4 +1,4 @@
-mod suite;
+pub mod suite;
 
 use crate::error::{ContractError, PubRandCommitError};
 use crate::msg::{FinalitySignatureResponse, JailedFinalityProvider};
