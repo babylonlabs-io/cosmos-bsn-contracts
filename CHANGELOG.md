@@ -35,6 +35,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Improvements
 
+- [#317](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/317) finality: add tests for voting power rotation
 - [#315](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/315) refactor: unify imports and update CI
 
 ## [v0.17.0](https://github.com/babylonlabs-io/cosmos-bsn-contracts/tree/v0.17.0) (2025-08-08)

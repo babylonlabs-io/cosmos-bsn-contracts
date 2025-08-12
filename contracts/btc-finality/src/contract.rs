@@ -19,8 +19,8 @@ use babylon_apis::finality_api::SudoMsg;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    attr, to_json_binary, Addr, CustomQuery, Deps, DepsMut, Empty, Env, MessageInfo, QueryRequest,
-    QueryResponse, Reply, Response, StdResult, WasmQuery,
+    attr, to_json_binary, Addr, Deps, DepsMut, Empty, Env, MessageInfo, QueryResponse, Reply,
+    Response, StdResult,
 };
 use cw2::set_contract_version;
 use cw_utils::{maybe_addr, nonpayable};
@@ -283,17 +283,6 @@ fn handle_end_block(
     }
 
     Ok(res)
-}
-
-pub(crate) fn encode_smart_query<Q: CustomQuery>(
-    addr: &Addr,
-    msg: &btc_staking::msg::QueryMsg,
-) -> StdResult<QueryRequest<Q>> {
-    Ok(WasmQuery::Smart {
-        contract_addr: addr.to_string(),
-        msg: to_json_binary(&msg)?,
-    }
-    .into())
 }
 
 #[cfg(test)]
