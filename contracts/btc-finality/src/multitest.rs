@@ -2,6 +2,8 @@ pub mod suite;
 
 use crate::error::{ContractError, PubRandCommitError};
 use crate::msg::{FinalitySignatureResponse, JailedFinalityProvider};
+use crate::state::finality::FP_POWER_TABLE;
+use crate::state::finality::{get_fp_power, get_power_table_at_height};
 use crate::tests::gen_random_msg_commit_pub_rand;
 use babylon_apis::finality_api::IndexedBlock;
 use babylon_bindings_test::{
@@ -242,6 +244,53 @@ fn test_add_finality_sig() {
     suite
         .commit_public_randomness(&pk_hex, &pub_rand, &pubrand_signature)
         .unwrap();
+
+    // Case 2: fail if the finality provider has not committed public randomness at that height
+    let block_height2 = pub_rand.start_height + pub_rand.num_pub_rand + 1;
+
+    FP_POWER_TABLE
+        .save(suite.app.storage_mut(), (block_height2, &pk_hex), &1)
+        .unwrap();
+
+    assert_eq!(
+        get_fp_power(suite.app.storage_mut(), block_height2, &pk_hex).unwrap(),
+        1
+    );
+
+    assert_eq!(
+        suite
+            .submit_finality_signature(
+                &pk_hex,
+                block_height2,
+                &pub_rand_one,
+                &proof,
+                &add_finality_signature.block_app_hash,
+                &add_finality_signature.finality_sig,
+            )
+            .unwrap_err(),
+        ContractError::NoVotingPower(pk_hex.clone(), block_height2),
+        "Modifying the contract storage against suite.app.storage_mut() does not work"
+    );
+
+    FP_POWER_TABLE.remove(suite.app.storage_mut(), (block_height2, &pk_hex));
+
+    assert!(get_fp_power(suite.app.storage_mut(), block_height2, &pk_hex).is_err());
+
+    suite.set_power_table(&pk_hex, block_height2, 1).unwrap();
+
+    assert_eq!(
+        suite
+            .submit_finality_signature(
+                &pk_hex,
+                block_height2,
+                &pub_rand_one,
+                &proof,
+                &add_finality_signature.block_app_hash,
+                &add_finality_signature.finality_sig,
+            )
+            .unwrap_err(),
+        ContractError::MissingPubRandCommit(pk_hex.clone(), block_height2)
+    );
 }
 
 #[test]

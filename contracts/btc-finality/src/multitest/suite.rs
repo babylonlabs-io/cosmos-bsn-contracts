@@ -459,6 +459,31 @@ impl Suite {
     }
 
     #[track_caller]
+    pub fn set_power_table(
+        &mut self,
+        pk_hex: &str,
+        height: u64,
+        power: u64,
+    ) -> Result<AppResponse, ContractError> {
+        let mut block = self.app.block_info();
+        block.height = height + 1;
+        self.app.set_block(block);
+
+        self.app
+            .execute_contract(
+                Addr::unchecked(USER_ADDR),
+                self.finality.clone(),
+                &finality_api::ExecuteMsg::SetPowerTable {
+                    fp_pubkey_hex: pk_hex.to_string(),
+                    height,
+                    power,
+                },
+                &[],
+            )
+            .map_err(|e| e.downcast::<ContractError>().unwrap())
+    }
+
+    #[track_caller]
     pub fn unjail(&mut self, sender: &str, fp_pubkey_hex: &str) -> AnyResult<AppResponse> {
         self.app.execute_contract(
             Addr::unchecked(sender),
