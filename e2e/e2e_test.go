@@ -182,10 +182,12 @@ func (s *BabylonSDKTestSuite) Test3MockConsumerFpDelegation() {
 }
 
 func (s *BabylonSDKTestSuite) Test4BeginBlock() {
+	var err error
+
 	portion, _ := sdkmath.LegacyNewDecFromStr("0.1")
-	err := s.ConsumerApp.BabylonKeeper.SetParams(s.ConsumerChain.GetContext(), bbnsdktypes.Params{
-		MaxGasBeginBlocker: 1,
-		MaxGasEndBlocker:   1,
+	err = s.ConsumerApp.BabylonKeeper.SetParams(s.ConsumerChain.GetContext(), bbnsdktypes.Params{
+		MaxGasBeginBlocker: 100_000,
+		MaxGasEndBlocker:   100_000,
 		BtcStakingPortion:  portion,
 	})
 	s.NoError(err)
