@@ -29,8 +29,8 @@ require (
 
 require (
 	cosmossdk.io/math v1.5.3
-	github.com/babylonlabs-io/babylon-sdk/demo v0.0.0-20250811134052-502fd980825c
-	github.com/babylonlabs-io/babylon-sdk/x v0.0.0-20250811134052-502fd980825c
+	github.com/babylonlabs-io/babylon-sdk/demo v0.0.0-20250812051508-d08768a8e676
+	github.com/babylonlabs-io/babylon-sdk/x v0.0.0-20250812051508-d08768a8e676
 	github.com/babylonlabs-io/babylon/v3 v3.0.0-snapshot.250724
 	github.com/btcsuite/btcd v0.24.2
 	github.com/cometbft/cometbft v0.38.17
