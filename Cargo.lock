@@ -477,6 +477,7 @@ dependencies = [
  "babylon-proto",
  "babylon-test-utils",
  "bitcoin",
+ "btc-finality",
  "btc-light-client",
  "btc-staking",
  "cosmwasm-schema",

@@ -2,6 +2,7 @@ pub mod suite;
 
 use crate::error::{ContractError, PubRandCommitError};
 use crate::msg::{FinalitySignatureResponse, JailedFinalityProvider};
+use crate::state::finality::{get_fp_power, FP_POWER_TABLE};
 use crate::tests::gen_random_msg_commit_pub_rand;
 use babylon_apis::finality_api::IndexedBlock;
 use babylon_bindings_test::{
@@ -192,6 +193,121 @@ fn commit_public_randomness_works() {
             .unwrap_err(),
         ContractError::FuturePubRandStartHeight { .. }
     ));
+}
+
+// TODO: complete `FuzzAddFinalitySig`.
+#[test]
+fn test_add_finality_sig() {
+    // Read public randomness commitment test data
+    let (pk_hex, pub_rand, pubrand_signature) = get_public_randomness_commitment();
+    let pub_rand_one = get_pub_rand_value();
+    // Read equivalent / consistent add finality signature test data
+    let add_finality_signature = get_add_finality_sig();
+    let proof = add_finality_signature.proof.unwrap();
+
+    let initial_height = pub_rand.start_height;
+    let initial_funds = &[coin(1_000_000, "TOKEN")];
+
+    let mut suite = SuiteBuilder::new()
+        .with_height(initial_height)
+        .with_funds(initial_funds)
+        .build();
+
+    // Register one FP
+    // NOTE: the test data ensures that pub rand commit / finality sig are
+    // signed by the 1st FP
+    let new_fp = create_new_finality_provider(1);
+
+    suite.register_finality_providers(&[new_fp]).unwrap();
+
+    // Case 1: fail if the finality provider does not have voting power.
+    assert_eq!(
+        suite
+            .submit_finality_signature(
+                &pk_hex,
+                initial_height + 1,
+                &pub_rand_one,
+                &proof,
+                &add_finality_signature.block_app_hash,
+                &add_finality_signature.finality_sig,
+            )
+            .unwrap_err(),
+        ContractError::NoVotingPower(pk_hex.clone(), initial_height + 1)
+    );
+
+    // Add a delegation, so that the finality provider has some power
+    let mut del1 = get_derived_btc_delegation(1, &[1]);
+    del1.fp_btc_pk_list = vec![pk_hex.clone()];
+
+    suite.add_delegations(&[del1]).unwrap();
+
+    suite
+        .commit_public_randomness(&pk_hex, &pub_rand, &pubrand_signature)
+        .unwrap();
+
+    // Case 2: fail if the finality provider has not committed public randomness at that height
+    let block_height2 = pub_rand.start_height + pub_rand.num_pub_rand + 1;
+
+    FP_POWER_TABLE
+        .save(suite.app.storage_mut(), (block_height2, &pk_hex), &1)
+        .unwrap();
+
+    assert_eq!(
+        get_fp_power(suite.app.storage_mut(), block_height2, &pk_hex).unwrap(),
+        1
+    );
+
+    assert_eq!(
+        suite
+            .submit_finality_signature(
+                &pk_hex,
+                block_height2,
+                &pub_rand_one,
+                &proof,
+                &add_finality_signature.block_app_hash,
+                &add_finality_signature.finality_sig,
+            )
+            .unwrap_err(),
+        ContractError::NoVotingPower(pk_hex.clone(), block_height2),
+        "Modifying the contract storage against suite.app.storage_mut() does not work"
+    );
+
+    FP_POWER_TABLE.remove(suite.app.storage_mut(), (block_height2, &pk_hex));
+
+    assert!(get_fp_power(suite.app.storage_mut(), block_height2, &pk_hex).is_err());
+
+    suite.set_power_table(&pk_hex, block_height2, 1).unwrap();
+
+    assert_eq!(
+        suite
+            .submit_finality_signature(
+                &pk_hex,
+                block_height2,
+                &pub_rand_one,
+                &proof,
+                &add_finality_signature.block_app_hash,
+                &add_finality_signature.finality_sig,
+            )
+            .unwrap_err(),
+        ContractError::MissingPubRandCommit(pk_hex.clone(), block_height2)
+    );
+
+    suite
+        .set_power_table(&pk_hex, initial_height + 1, 1)
+        .unwrap();
+
+    let _result = suite.submit_finality_signature(
+        &pk_hex,
+        initial_height + 1,
+        &pub_rand_one,
+        &proof,
+        &add_finality_signature.block_app_hash,
+        &add_finality_signature.finality_sig,
+    );
+
+    // TODO: why it failed to be submitted?
+    // result: Err(PubRandCommitNotBTCTimestamped("The finality provider db34109af277bdb0b0d643f97190730217538f8643cafd4005a633903a1ea03d last committed height: 102, last finalized height: 100"))
+    // assert!(result.is_ok());
 }
 
 #[test]

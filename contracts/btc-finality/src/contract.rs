@@ -196,6 +196,19 @@ pub fn execute(
             },
         ),
         ExecuteMsg::Unjail { fp_pubkey_hex } => handle_unjail(deps, &env, &info, &fp_pubkey_hex),
+        #[cfg(any(test, feature = "testing"))]
+        ExecuteMsg::SetPowerTable {
+            fp_pubkey_hex,
+            height,
+            power,
+        } => {
+            crate::state::finality::FP_POWER_TABLE.save(
+                deps.storage,
+                (height, fp_pubkey_hex.as_str()),
+                &power,
+            )?;
+            Ok(Response::new())
+        }
     }
 }
 
@@ -231,11 +244,7 @@ fn handle_update_staking(
 }
 
 fn handle_begin_block(deps: &mut DepsMut, env: Env) -> Result<Response, ContractError> {
-    // Compute active finality provider set
-    let max_active_fps = CONFIG.load(deps.storage)?.max_active_finality_providers as usize;
-    let response = compute_active_finality_providers(deps, &env, max_active_fps)?;
-
-    Ok(response)
+    compute_active_finality_providers(deps, &env)
 }
 
 fn handle_end_block(

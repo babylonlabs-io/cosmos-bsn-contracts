@@ -66,6 +66,12 @@ pub enum ExecuteMsg {
         /// FP to unjail
         fp_pubkey_hex: String,
     },
+    #[cfg(feature = "testing")]
+    SetPowerTable {
+        fp_pubkey_hex: String,
+        height: u64,
+        power: u64,
+    },
 }
 
 /// Represents the necessary metadata and finalization status of a block.

@@ -15,7 +15,7 @@ pub const BLOCKS: Map<u64, IndexedBlock> = Map::new("blocks");
 pub const NEXT_HEIGHT: Item<u64> = Item::new("next_height");
 
 /// `FP_POWER_TABLE` is the map of finality providers to their total active sats at a given height
-const FP_POWER_TABLE: Map<(u64, &str), u64> = Map::new("fp_power_table");
+pub(crate) const FP_POWER_TABLE: Map<(u64, &str), u64> = Map::new("fp_power_table");
 
 /// Map of finality providers to block height they initially entered the active set.
 /// If an FP isn't in this map, he was not in the active finality provider set,

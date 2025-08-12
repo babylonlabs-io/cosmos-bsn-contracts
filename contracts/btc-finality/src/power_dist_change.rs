@@ -22,9 +22,11 @@ pub const JAIL_FOREVER: u64 = 0;
 pub fn compute_active_finality_providers(
     deps: &mut DepsMut,
     env: &Env,
-    max_active_fps: usize,
 ) -> Result<Response, ContractError> {
     let cfg = CONFIG.load(deps.storage)?;
+
+    let max_active_fps = cfg.max_active_finality_providers as usize;
+
     // Get last finalized height (for timestamped public randomness checks)
     let last_finalized_height = get_last_finalized_height(&deps.as_ref())?;
 
