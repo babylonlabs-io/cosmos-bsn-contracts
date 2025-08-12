@@ -4,15 +4,16 @@ import (
 	"encoding/json"
 	"testing"
 
+	sdkmath "cosmossdk.io/math"
 	wasmibctesting "github.com/CosmWasm/wasmd/tests/wasmibctesting"
 	"github.com/babylonlabs-io/babylon-sdk/demo/app"
 	appparams "github.com/babylonlabs-io/babylon-sdk/demo/app/params"
+	bbnsdktypes "github.com/babylonlabs-io/babylon-sdk/x/babylon/types"
 	btclctypes "github.com/babylonlabs-io/babylon/v3/x/btclightclient/types"
+	"github.com/babylonlabs-io/cosmos-bsn-contracts/e2e/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	ibctesting "github.com/cosmos/ibc-go/v10/testing"
 	"github.com/stretchr/testify/suite"
-
-	"github.com/babylonlabs-io/cosmos-bsn-contracts/e2e/types"
 )
 
 // In the Test function, we create and run the suite
@@ -181,7 +182,15 @@ func (s *BabylonSDKTestSuite) Test3MockConsumerFpDelegation() {
 }
 
 func (s *BabylonSDKTestSuite) Test4BeginBlock() {
-	err := s.ConsumerApp.BabylonKeeper.BeginBlocker(s.ConsumerChain.GetContext())
+	portion, _ := sdkmath.LegacyNewDecFromStr("0.1")
+	err := s.ConsumerApp.BabylonKeeper.SetParams(s.ConsumerChain.GetContext(), bbnsdktypes.Params{
+		MaxGasBeginBlocker: 1,
+		MaxGasEndBlocker:   1,
+		BtcStakingPortion:  portion,
+	})
+	s.NoError(err)
+
+	err = s.ConsumerApp.BabylonKeeper.BeginBlocker(s.ConsumerChain.GetContext())
 	s.NoError(err)
 }
 
