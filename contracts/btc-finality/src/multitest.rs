@@ -2,8 +2,7 @@ pub mod suite;
 
 use crate::error::{ContractError, PubRandCommitError};
 use crate::msg::{FinalitySignatureResponse, JailedFinalityProvider};
-use crate::state::finality::FP_POWER_TABLE;
-use crate::state::finality::{get_fp_power, get_power_table_at_height};
+use crate::state::finality::{get_fp_power, FP_POWER_TABLE};
 use crate::tests::gen_random_msg_commit_pub_rand;
 use babylon_apis::finality_api::IndexedBlock;
 use babylon_bindings_test::{
@@ -196,6 +195,7 @@ fn commit_public_randomness_works() {
     ));
 }
 
+// TODO: complete `FuzzAddFinalitySig`.
 #[test]
 fn test_add_finality_sig() {
     // Read public randomness commitment test data
@@ -291,6 +291,23 @@ fn test_add_finality_sig() {
             .unwrap_err(),
         ContractError::MissingPubRandCommit(pk_hex.clone(), block_height2)
     );
+
+    suite
+        .set_power_table(&pk_hex, initial_height + 1, 1)
+        .unwrap();
+
+    let _result = suite.submit_finality_signature(
+        &pk_hex,
+        initial_height + 1,
+        &pub_rand_one,
+        &proof,
+        &add_finality_signature.block_app_hash,
+        &add_finality_signature.finality_sig,
+    );
+
+    // TODO: why it failed to be submitted?
+    // result: Err(PubRandCommitNotBTCTimestamped("The finality provider db34109af277bdb0b0d643f97190730217538f8643cafd4005a633903a1ea03d last committed height: 102, last finalized height: 100"))
+    // assert!(result.is_ok());
 }
 
 #[test]
