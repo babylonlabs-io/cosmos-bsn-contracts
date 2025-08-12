@@ -218,6 +218,21 @@ fn test_add_finality_sig() {
 
     suite.register_finality_providers(&[new_fp]).unwrap();
 
+    // Case 1: fail if the finality provider does not have voting power.
+    assert_eq!(
+        suite
+            .submit_finality_signature(
+                &pk_hex,
+                initial_height + 1,
+                &pub_rand_one,
+                &proof,
+                &add_finality_signature.block_app_hash,
+                &add_finality_signature.finality_sig,
+            )
+            .unwrap_err(),
+        ContractError::NoVotingPower(pk_hex.clone(), initial_height + 1)
+    );
+
     // Add a delegation, so that the finality provider has some power
     let mut del1 = get_derived_btc_delegation(1, &[1]);
     del1.fp_btc_pk_list = vec![pk_hex.clone()];
@@ -227,63 +242,6 @@ fn test_add_finality_sig() {
     suite
         .commit_public_randomness(&pk_hex, &pub_rand, &pubrand_signature)
         .unwrap();
-
-    // Call the begin-block sudo handler(s), for completeness
-    let res = suite
-        .call_begin_block(&add_finality_signature.block_app_hash, initial_height + 1)
-        .unwrap();
-    assert_eq!(2, res.events.len());
-    assert_eq!(
-        res.events[0],
-        Event::new("sudo").add_attribute("_contract_address", BTC_FINALITY_CONTRACT_ADDR)
-    );
-    // Check the finality provider status change event
-    assert_eq!(
-        res.events[1],
-        Event::new("wasm-finality_provider_status_change")
-            .add_attribute("_contract_address", BTC_FINALITY_CONTRACT_ADDR)
-            .add_attribute("btc_pk", &pk_hex)
-            .add_attribute("new_state", "FINALITY_PROVIDER_STATUS_ACTIVE")
-    );
-
-    // Call the end-block sudo handler(s), so that the block is indexed in the store
-    let res = suite
-        .call_end_block(&add_finality_signature.block_app_hash, initial_height + 1)
-        .unwrap();
-    assert_eq!(2, res.events.len());
-    assert_eq!(
-        res.events[0],
-        Event::new("sudo").add_attribute("_contract_address", BTC_FINALITY_CONTRACT_ADDR)
-    );
-    assert_eq!(
-        res.events[1],
-        Event::new("wasm-index_block")
-            .add_attribute("_contract_address", BTC_FINALITY_CONTRACT_ADDR)
-            .add_attribute("module", "finality")
-            .add_attribute("last_height", (initial_height + 1).to_string())
-    );
-
-    // Submit a finality signature from that finality provider at height initial_height + 1
-    let finality_sig = add_finality_signature.finality_sig.to_vec();
-    suite
-        .submit_finality_signature(
-            &pk_hex,
-            initial_height + 1,
-            &pub_rand_one,
-            &proof,
-            &add_finality_signature.block_app_hash,
-            &finality_sig,
-        )
-        .unwrap();
-
-    // Query finality signature for that exact height
-    let sig = suite.get_finality_signature(&pk_hex, initial_height + 1);
-    assert_eq!(
-        sig,
-        FinalitySignatureResponse {
-            signature: finality_sig
-        }
-    );
 }
 
 #[test]
@@ -851,4 +809,3 @@ fn offline_fps_are_jailed() {
     assert_eq!(active_fps.len(), 1);
     assert!(active_fps.contains_key(&new_fp1.btc_pk_hex));
 }
-

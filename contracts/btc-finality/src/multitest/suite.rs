@@ -433,7 +433,7 @@ impl Suite {
         proof: &tendermint_proto::crypto::Proof,
         block_app_hash: &[u8],
         finality_sig: &[u8],
-    ) -> anyhow::Result<AppResponse> {
+    ) -> Result<AppResponse, ContractError> {
         // Execute the message at a higher height, so that:
         // 1. It's not rejected because of height being too low.
         // 2. The FP has consolidated power at such height
@@ -441,19 +441,21 @@ impl Suite {
         block.height = height + 1;
         self.app.set_block(block);
 
-        self.app.execute_contract(
-            Addr::unchecked(USER_ADDR),
-            self.finality.clone(),
-            &finality_api::ExecuteMsg::SubmitFinalitySignature {
-                fp_pubkey_hex: pk_hex.to_string(),
-                height,
-                pub_rand: pub_rand.into(),
-                proof: proof.try_into().expect("Invalid Merkle proof"),
-                block_hash: block_app_hash.into(),
-                signature: finality_sig.into(),
-            },
-            &[],
-        )
+        self.app
+            .execute_contract(
+                Addr::unchecked(USER_ADDR),
+                self.finality.clone(),
+                &finality_api::ExecuteMsg::SubmitFinalitySignature {
+                    fp_pubkey_hex: pk_hex.to_string(),
+                    height,
+                    pub_rand: pub_rand.into(),
+                    proof: proof.try_into().expect("Invalid Merkle proof"),
+                    block_hash: block_app_hash.into(),
+                    signature: finality_sig.into(),
+                },
+                &[],
+            )
+            .map_err(|e| e.downcast::<ContractError>().unwrap())
     }
 
     #[track_caller]
