@@ -71,7 +71,7 @@ func (s *BabylonSDKTestSuite) Test1ContractDeployment() {
 	// consumer client
 	consumerCli := types.NewConsumerClient(s.T(), s.ConsumerChain)
 	// setup contracts on consumer (now just fetches addresses)
-	consumerContracts, err := consumerCli.BootstrapContracts()
+	consumerContracts, err := consumerCli.BootstrapContracts(true)
 	s.NoError(err)
 	// provider client
 	providerCli := types.NewProviderClient(s.T(), s.ProviderChain)
@@ -186,8 +186,8 @@ func (s *BabylonSDKTestSuite) Test4BeginBlock() {
 
 	portion, _ := sdkmath.LegacyNewDecFromStr("0.1")
 	err = s.ConsumerApp.BabylonKeeper.SetParams(s.ConsumerChain.GetContext(), bbnsdktypes.Params{
-		MaxGasBeginBlocker: 200_000,
-		MaxGasEndBlocker:   200_000,
+		MaxGasBeginBlocker: 500_000,
+		MaxGasEndBlocker:   500_000,
 		BtcStakingPortion:  portion,
 	})
 	s.NoError(err)
