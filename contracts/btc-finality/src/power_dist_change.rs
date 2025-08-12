@@ -262,33 +262,27 @@ mod tests {
         let new: HashMap<String, u64> =
             HashMap::from([("fp_b".to_string(), 20), ("fp_c".to_string(), 30)]);
 
-        let resp =
-            super::handle_power_table_change(deps.as_mut().storage, current_height, &old, &new)
-                .expect("ok");
+        let resp = handle_power_table_change(deps.as_mut().storage, current_height, &old, &new)
+            .expect("ok");
         // Two events: fp_c Active, fp_a Inactive (order not strictly guaranteed, so just check counts/types)
-        let types: Vec<_> = resp.events.iter().map(|e| e.ty.as_str()).collect();
         assert!(
-            types.iter().any(|t| *t == "finality_provider_status_change"
-                || *t == "wasm-finality_provider_status_change"),
+            resp.events
+                .iter()
+                .any(|e| e.ty.as_str() == "finality_provider_status_change"
+                    || e.ty.as_str() == "wasm-finality_provider_status_change"),
             "expected status change event"
         );
 
         // FP_START_HEIGHT for fp_c should be set to current_height + 1
-        let start_c = FP_START_HEIGHT
-            .may_load(deps.as_ref().storage, "fp_c")
-            .unwrap()
-            .unwrap();
+        let start_c = FP_START_HEIGHT.load(deps.as_ref().storage, "fp_c").unwrap();
         assert_eq!(start_c, current_height + 1);
 
         // Re-applying with fp_c still active should not change start height
         let resp2 =
-            super::handle_power_table_change(deps.as_mut().storage, current_height + 1, &new, &new)
+            handle_power_table_change(deps.as_mut().storage, current_height + 1, &new, &new)
                 .expect("ok");
         assert!(resp2.events.is_empty());
-        let start_c2 = FP_START_HEIGHT
-            .may_load(deps.as_ref().storage, "fp_c")
-            .unwrap()
-            .unwrap();
+        let start_c2 = FP_START_HEIGHT.load(deps.as_ref().storage, "fp_c").unwrap();
         assert_eq!(start_c2, start_c);
     }
 
