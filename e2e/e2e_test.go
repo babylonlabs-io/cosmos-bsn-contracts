@@ -186,8 +186,8 @@ func (s *BabylonSDKTestSuite) Test4BeginBlock() {
 
 	portion, _ := sdkmath.LegacyNewDecFromStr("0.1")
 	err = s.ConsumerApp.BabylonKeeper.SetParams(s.ConsumerChain.GetContext(), bbnsdktypes.Params{
-		MaxGasBeginBlocker: 500_000,
-		MaxGasEndBlocker:   500_000,
+		MaxGasBeginBlocker: 200_000,
+		MaxGasEndBlocker:   200_000,
 		BtcStakingPortion:  portion,
 	})
 	s.NoError(err)
