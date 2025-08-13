@@ -1,3 +1,5 @@
+pub mod migration;
+
 use babylon_apis::btc_staking_api::{
     ActiveBtcDelegation, BtcUndelegationInfo, CovenantAdaptorSignatures, DelegatorUnbondingInfo,
     NewFinalityProvider, ProofOfPossessionBtc,

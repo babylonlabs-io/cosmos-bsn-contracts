@@ -13,6 +13,7 @@ babylon-apis     = { path = "../apis", version = "0.17.0" }
 babylon-proto    = { path = "../proto", version = "0.17.0" }
 bitcoin          = { workspace = true }
 cosmwasm-std     = { workspace = true }
+cw2              = { workspace = true }
 hex              = { workspace = true }
 k256             = { workspace = true }
 prost            = { workspace = true }
