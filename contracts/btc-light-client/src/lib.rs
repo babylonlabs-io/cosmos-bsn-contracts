@@ -1,7 +1,7 @@
 use crate::error::ContractError;
+use crate::msg::contract::MigrateMsg;
 pub use crate::msg::ExecuteMsg;
 use crate::msg::{InstantiateMsg, QueryMsg};
-use crate::msg::contract::MigrateMsg;
 pub use crate::state::BitcoinNetwork;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;

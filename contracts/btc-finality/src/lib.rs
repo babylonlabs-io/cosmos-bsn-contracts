@@ -1,11 +1,9 @@
 use crate::error::ContractError;
 use crate::msg::{ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg};
+use babylon_apis::finality_api::SudoMsg;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
-use cosmwasm_std::{
-    Deps, DepsMut, Env, MessageInfo, QueryResponse, Reply, Response, StdResult,
-};
-use babylon_apis::finality_api::SudoMsg;
+use cosmwasm_std::{Deps, DepsMut, Env, MessageInfo, QueryResponse, Reply, Response, StdResult};
 
 mod finality;
 mod power_dist_change;

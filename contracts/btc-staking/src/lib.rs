@@ -2,9 +2,7 @@ use crate::error::ContractError;
 use crate::msg::{ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
-use cosmwasm_std::{
-    Deps, DepsMut, Env, MessageInfo, QueryResponse, Reply, Response, StdResult,
-};
+use cosmwasm_std::{Deps, DepsMut, Env, MessageInfo, QueryResponse, Reply, Response, StdResult};
 
 mod staking;
 mod validation;

@@ -5,8 +5,8 @@ use crate::staking::{handle_btc_staking, handle_slash_fp, process_expired_btc_de
 use crate::state::config::{Config, ADMIN, CONFIG};
 use babylon_apis::btc_staking_api::SudoMsg;
 use cosmwasm_std::{
-    attr, to_json_binary, Addr, Deps, DepsMut, Env, MessageInfo, QueryResponse, Reply,
-    Response, StdResult,
+    attr, to_json_binary, Addr, Deps, DepsMut, Env, MessageInfo, QueryResponse, Reply, Response,
+    StdResult,
 };
 use cw2::set_contract_version;
 use cw_utils::{maybe_addr, nonpayable};
@@ -79,7 +79,11 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> Result<QueryResponse, Contr
     }
 }
 
-pub fn migrate(_deps: DepsMut, _env: Env, _msg: crate::msg::MigrateMsg) -> Result<Response, ContractError> {
+pub fn migrate(
+    _deps: DepsMut,
+    _env: Env,
+    _msg: crate::msg::MigrateMsg,
+) -> Result<Response, ContractError> {
     Ok(Response::default())
 }
 

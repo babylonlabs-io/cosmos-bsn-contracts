@@ -35,6 +35,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Improvements
 
+- [#326](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/326) feat: contract migration support
 - [#318](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/318) chore: port `TestGetPubRandCommitForHeight` and tallying test
 - [#317](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/317) finality: add tests for voting power rotation
 - [#315](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/315) refactor: unify imports and update CI

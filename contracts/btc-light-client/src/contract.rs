@@ -9,9 +9,7 @@ use crate::state::{
 };
 use babylon_proto::babylon::btclightclient::v1::BtcHeaderInfo;
 use bitcoin::BlockHash;
-use cosmwasm_std::{
-    to_json_binary, Binary, Deps, DepsMut, Env, MessageInfo, Response, Storage,
-};
+use cosmwasm_std::{to_json_binary, Binary, Deps, DepsMut, Env, MessageInfo, Response, Storage};
 use cw2::set_contract_version;
 use cw_utils::maybe_addr;
 use std::str::FromStr;
@@ -99,7 +97,11 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> Result<Binary, ContractErr
     }
 }
 
-pub fn migrate(deps: DepsMut, _env: Env, _msg: crate::msg::contract::MigrateMsg) -> Result<Response, ContractError> {
+pub fn migrate(
+    deps: DepsMut,
+    _env: Env,
+    _msg: crate::msg::contract::MigrateMsg,
+) -> Result<Response, ContractError> {
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
     Ok(Response::new().add_attribute("action", "migrate"))
 }
