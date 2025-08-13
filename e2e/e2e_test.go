@@ -70,7 +70,12 @@ func (s *BabylonSDKTestSuite) Test1ContractDeployment() {
 	// consumer client
 	consumerCli := types.NewConsumerClient(s.T(), s.ConsumerChain)
 	// setup contracts on consumer (now just fetches addresses)
-	consumerContracts, err := consumerCli.BootstrapContracts()
+	consumerContracts, err := consumerCli.BootstrapContracts(
+		types.BABYLON_CONTRACT_PATH,
+		types.BTC_LIGHT_CLIENT_CONTRACT_PATH,
+		types.BTC_STAKING_CONTRACT_PATH,
+		types.BTC_FINALITY_CONTRACT_PATH,
+	)
 	s.NoError(err)
 	// provider client
 	providerCli := types.NewProviderClient(s.T(), s.ProviderChain)

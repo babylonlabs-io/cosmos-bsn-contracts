@@ -3,6 +3,7 @@ package types
 import (
 	"encoding/base64"
 	"encoding/hex"
+	"encoding/json"
 	"math/rand"
 	"testing"
 	"time"
@@ -313,4 +314,16 @@ type BtcStaking struct {
 	ActiveDel   []ActiveBtcDelegation   `json:"active_del"`
 	SlashedDel  []SlashedBtcDelegation  `json:"slashed_del"`
 	UnbondedDel []UnbondedBtcDelegation `json:"unbonded_del"`
+}
+
+type MigrateMsg struct {
+}
+
+func GenMigrateMsg() []byte {
+	msg := MigrateMsg{}
+	msgBytes, err := json.Marshal(msg)
+	if err != nil {
+		panic(err)
+	}
+	return msgBytes
 }
