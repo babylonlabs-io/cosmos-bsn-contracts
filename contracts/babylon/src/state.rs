@@ -14,7 +14,6 @@ use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{Addr, Deps, DepsMut, StdError, StdResult, WasmMsg};
 use cw_storage_plus::{Item, Map};
 use prost::Message;
-use tendermint_proto::crypto::ProofOps;
 
 pub const NUM_BTC_TXS: usize = 2;
 
@@ -36,6 +35,28 @@ pub const BABYLON_CHECKPOINTS: Map<u64, Vec<u8>> = Map::new("babylon_checkpoints
 pub const CONSUMER_HEADERS: Map<u64, Vec<u8>> = Map::new("consumer_headers");
 pub const CONSUMER_HEADER_LAST: Item<Vec<u8>> = Item::new("consumer_header_last");
 pub const CONSUMER_HEIGHT_LAST: Item<u64> = Item::new("consumer_height_last");
+
+#[cw_serde]
+pub struct Config {
+    pub network: btc_light_client::BitcoinNetwork,
+    pub btc_confirmation_depth: u32,
+    pub checkpoint_finalization_timeout: u32,
+    /// If set, this stores the address of the BTC light client contract on the Consumer.
+    pub btc_light_client: Option<Addr>,
+    /// If set, this stores a BTC staking contract used for BTC re-staking
+    pub btc_staking: Option<Addr>,
+    /// If set, this stores a BTC finality contract used for BTC finality on the Consumer
+    pub btc_finality: Option<Addr>,
+    /// Consumer name
+    pub consumer_name: String,
+    /// Consumer description
+    pub consumer_description: String,
+    pub denom: String,
+    /// IBC packet timeout in days
+    pub ibc_packet_timeout_days: u64,
+    /// Babylon module name for receiving ICS-20 transfers
+    pub destination_module: String,
+}
 
 // getter/setter for last finalised Consumer header
 pub fn get_last_consumer_header(
@@ -88,28 +109,6 @@ fn handle_consumer_header(
     Ok(())
 }
 
-#[cw_serde]
-pub struct Config {
-    pub network: btc_light_client::BitcoinNetwork,
-    pub btc_confirmation_depth: u32,
-    pub checkpoint_finalization_timeout: u32,
-    /// If set, this stores the address of the BTC light client contract on the Consumer.
-    pub btc_light_client: Option<Addr>,
-    /// If set, this stores a BTC staking contract used for BTC re-staking
-    pub btc_staking: Option<Addr>,
-    /// If set, this stores a BTC finality contract used for BTC finality on the Consumer
-    pub btc_finality: Option<Addr>,
-    /// Consumer name
-    pub consumer_name: String,
-    /// Consumer description
-    pub consumer_description: String,
-    pub denom: String,
-    /// IBC packet timeout in days
-    pub ibc_packet_timeout_days: u64,
-    /// Babylon module name for receiving ICS-20 transfers
-    pub destination_module: String,
-}
-
 // Checks if the BTC light client has been initialised or not
 // the check is done by checking existence of base epoch
 pub fn is_initialized(deps: &DepsMut) -> bool {
@@ -124,11 +123,6 @@ pub fn get_base_epoch(deps: Deps) -> Result<Epoch, BabylonEpochChainError> {
     Epoch::decode(base_epoch_bytes.as_slice()).map_err(BabylonEpochChainError::DecodeError)
 }
 
-fn set_base_epoch(deps: &mut DepsMut, base_epoch: &Epoch) -> StdResult<()> {
-    let base_epoch_bytes = &base_epoch.encode_to_vec();
-    BABYLON_EPOCH_BASE.save(deps.storage, base_epoch_bytes)
-}
-
 // getter/setter for last finalised epoch
 pub fn get_last_finalized_epoch(deps: Deps) -> Result<Epoch, BabylonEpochChainError> {
     let last_finalized_epoch_bytes = BABYLON_EPOCH_EPOCH_LAST_FINALIZED
@@ -136,11 +130,6 @@ pub fn get_last_finalized_epoch(deps: Deps) -> Result<Epoch, BabylonEpochChainEr
         .map_err(|_| BabylonEpochChainError::NoFinalizedEpoch {})?;
     Epoch::decode(last_finalized_epoch_bytes.as_slice())
         .map_err(BabylonEpochChainError::DecodeError)
-}
-
-fn set_last_finalized_epoch(deps: &mut DepsMut, last_finalized_epoch: &Epoch) -> StdResult<()> {
-    let last_finalized_epoch_bytes = &last_finalized_epoch.encode_to_vec();
-    BABYLON_EPOCH_EPOCH_LAST_FINALIZED.save(deps.storage, last_finalized_epoch_bytes)
 }
 
 /// Retrieves the metadata of a given epoch.
@@ -211,7 +200,8 @@ fn insert_epoch_and_checkpoint(
     BABYLON_CHECKPOINTS.save(deps.storage, epoch_number, &raw_ckpt_bytes)?;
 
     // update last finalised epoch
-    set_last_finalized_epoch(deps, &verified_tuple.epoch)
+    let last_finalized_epoch_bytes = &verified_tuple.epoch.encode_to_vec();
+    BABYLON_EPOCH_EPOCH_LAST_FINALIZED.save(deps.storage, last_finalized_epoch_bytes)
 }
 
 /// Extracts data needed for verifying Babylon epoch chain from a given BTC timestamp.
@@ -340,7 +330,10 @@ pub fn handle_btc_timestamp(
                 &txs_info,
             )?;
 
-            set_base_epoch(deps, epoch)?;
+            // Set base epoch.
+            let base_epoch_bytes = &epoch.encode_to_vec();
+            BABYLON_EPOCH_BASE.save(deps.storage, base_epoch_bytes)?;
+
             Ok(insert_epoch_and_checkpoint(deps, &verified_tuple)?)
         };
 
