@@ -65,8 +65,7 @@ pub fn get_last_consumer_header(
     let last_consumer_header_bytes = CONSUMER_HEADER_LAST
         .load(deps.storage)
         .map_err(|_| error::ConsumerHeaderChainError::NoConsumerHeader {})?;
-    IndexedHeader::decode(last_consumer_header_bytes.as_slice())
-        .map_err(error::ConsumerHeaderChainError::DecodeError)
+    IndexedHeader::decode(last_consumer_header_bytes.as_slice()).map_err(Into::into)
 }
 
 // Getter/setter for last finalised Consumer height.
@@ -85,10 +84,49 @@ pub fn get_consumer_header(
         .load(deps.storage, height)
         .map_err(|_| error::ConsumerHeaderChainError::ConsumerHeaderNotFoundError { height })?;
 
-    // try to decode the indexed_header
-    let indexed_header = IndexedHeader::decode(consumer_header_bytes.as_slice())?;
+    IndexedHeader::decode(consumer_header_bytes.as_slice()).map_err(Into::into)
+}
 
-    Ok(indexed_header)
+// Checks if the BTC light client has been initialised or not
+// the check is done by checking existence of base epoch
+pub fn is_initialized(deps: &DepsMut) -> bool {
+    BABYLON_EPOCH_BASE.load(deps.storage).is_ok()
+}
+
+// getter/setter for base epoch
+pub fn get_base_epoch(deps: Deps) -> Result<Epoch, BabylonEpochChainError> {
+    // NOTE: if init is successful, then base epoch is guaranteed to be in storage and decodable
+    let base_epoch_bytes = BABYLON_EPOCH_BASE.load(deps.storage)?;
+    Epoch::decode(base_epoch_bytes.as_slice()).map_err(Into::into)
+}
+
+// getter/setter for last finalised epoch
+pub fn get_last_finalized_epoch(deps: Deps) -> Result<Epoch, BabylonEpochChainError> {
+    let last_finalized_epoch_bytes = BABYLON_EPOCH_EPOCH_LAST_FINALIZED
+        .load(deps.storage)
+        .map_err(|_| BabylonEpochChainError::NoFinalizedEpoch {})?;
+    Epoch::decode(last_finalized_epoch_bytes.as_slice()).map_err(Into::into)
+}
+
+/// Retrieves the metadata of a given epoch.
+pub fn get_epoch(deps: Deps, epoch_number: u64) -> Result<Epoch, BabylonEpochChainError> {
+    // try to find the epoch metadata of the given epoch
+    let epoch_bytes = BABYLON_EPOCHS
+        .load(deps.storage, epoch_number)
+        .map_err(|_| BabylonEpochChainError::EpochNotFoundError { epoch_number })?;
+    Epoch::decode(epoch_bytes.as_slice()).map_err(Into::into)
+}
+
+/// Retrieves the checkpoint of a given epoch.
+pub fn get_checkpoint(
+    deps: Deps,
+    epoch_number: u64,
+) -> Result<RawCheckpoint, BabylonEpochChainError> {
+    // try to find the checkpoint of the given epoch
+    let ckpt_bytes = BABYLON_CHECKPOINTS
+        .load(deps.storage, epoch_number)
+        .map_err(|_| BabylonEpochChainError::CheckpointNotFoundError { epoch_number })?;
+    RawCheckpoint::decode(ckpt_bytes.as_slice()).map_err(Into::into)
 }
 
 // TODO: unit test
@@ -107,58 +145,6 @@ fn handle_consumer_header(
     CONSUMER_HEIGHT_LAST.save(deps.storage, &consumer_header.height)?;
 
     Ok(())
-}
-
-// Checks if the BTC light client has been initialised or not
-// the check is done by checking existence of base epoch
-pub fn is_initialized(deps: &DepsMut) -> bool {
-    BABYLON_EPOCH_BASE.load(deps.storage).is_ok()
-}
-
-// getter/setter for base epoch
-pub fn get_base_epoch(deps: Deps) -> Result<Epoch, BabylonEpochChainError> {
-    // NOTE: if init is successful, then base epoch is guaranteed to be in storage and decodable
-    let base_epoch_bytes = BABYLON_EPOCH_BASE.load(deps.storage)?;
-
-    Epoch::decode(base_epoch_bytes.as_slice()).map_err(BabylonEpochChainError::DecodeError)
-}
-
-// getter/setter for last finalised epoch
-pub fn get_last_finalized_epoch(deps: Deps) -> Result<Epoch, BabylonEpochChainError> {
-    let last_finalized_epoch_bytes = BABYLON_EPOCH_EPOCH_LAST_FINALIZED
-        .load(deps.storage)
-        .map_err(|_| BabylonEpochChainError::NoFinalizedEpoch {})?;
-    Epoch::decode(last_finalized_epoch_bytes.as_slice())
-        .map_err(BabylonEpochChainError::DecodeError)
-}
-
-/// Retrieves the metadata of a given epoch.
-pub fn get_epoch(deps: Deps, epoch_number: u64) -> Result<Epoch, BabylonEpochChainError> {
-    // try to find the epoch metadata of the given epoch
-    let epoch_bytes = BABYLON_EPOCHS
-        .load(deps.storage, epoch_number)
-        .map_err(|_| BabylonEpochChainError::EpochNotFoundError { epoch_number })?;
-
-    // try to decode the epoch
-    let epoch = Epoch::decode(epoch_bytes.as_slice())?;
-
-    Ok(epoch)
-}
-
-/// Retrieves the checkpoint of a given epoch.
-pub fn get_checkpoint(
-    deps: Deps,
-    epoch_number: u64,
-) -> Result<RawCheckpoint, BabylonEpochChainError> {
-    // try to find the checkpoint of the given epoch
-    let ckpt_bytes = BABYLON_CHECKPOINTS
-        .load(deps.storage, epoch_number)
-        .map_err(|_| BabylonEpochChainError::CheckpointNotFoundError { epoch_number })?;
-
-    // try to decode the checkpoint
-    let ckpt_res = RawCheckpoint::decode(ckpt_bytes.as_slice())?;
-
-    Ok(ckpt_res)
 }
 
 struct VerifiedEpochAndCheckpoint {
