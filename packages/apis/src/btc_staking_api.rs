@@ -326,9 +326,6 @@ pub struct SignatureInfo {
 pub struct UnbondedBtcDelegation {
     /// Staking tx hash of the BTC delegation. It uniquely identifies a BTC delegation
     pub staking_tx_hash: String,
-    /// Signature on the unbonding tx signed by the BTC delegator
-    /// It proves that the BTC delegator wants to unbond
-    pub unbonding_tx_sig: Binary,
 }
 
 #[cw_serde]

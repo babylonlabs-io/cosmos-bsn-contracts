@@ -107,12 +107,6 @@ impl Validate for UnbondedBtcDelegation {
             return Err(StakingApiError::InvalidStakingTxHash(HASH_SIZE * 2));
         }
 
-        if self.unbonding_tx_sig.is_empty() {
-            return Err(StakingApiError::EmptySignature);
-        }
-
-        // TODO: Verify delegator unbonding Schnorr signature (#7.3)
-
         Ok(())
     }
 }
