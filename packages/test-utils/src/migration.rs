@@ -9,10 +9,10 @@ use cw2::{get_contract_version, set_contract_version};
 use std::fmt::Debug;
 
 /// Type alias for contract migration functions
-pub type MigrateFn<E, M> = fn(DepsMut, Env, M) -> Result<Response, E>;
+pub type MigrateFn<M, E> = fn(DepsMut, Env, M) -> Result<Response, E>;
 
 /// Type alias for contract instantiate functions
-pub type InstantiateFn<E, I> = fn(DepsMut, Env, MessageInfo, I) -> Result<Response, E>;
+pub type InstantiateFn<I, E> = fn(DepsMut, Env, MessageInfo, I) -> Result<Response, E>;
 
 /// Tester for contract migration scenarios
 ///
@@ -51,10 +51,10 @@ impl MigrationTester {
     /// * `migration_msg` - The migrate message to use in tests
     /// * `instantiate_msg` - The instantiate message to use in tests
     /// * `error_matcher` - Function that extracts (expected, actual) from InvalidContractName error
-    pub fn test_migration_basics<E, M, I>(
+    pub fn test_migration_basics<M, I, E>(
         &self,
-        migrate_fn: MigrateFn<E, M>,
-        instantiate_fn: InstantiateFn<E, I>,
+        migrate_fn: MigrateFn<M, E>,
+        instantiate_fn: InstantiateFn<I, E>,
         migration_msg: M,
         instantiate_msg: I,
         error_matcher: impl Fn(&E) -> Option<(&str, &str)>,
@@ -83,10 +83,10 @@ impl MigrationTester {
     /// # Arguments
     /// * `migrate_fn` - The contract's migrate function
     /// * `migration_msg` - The migrate message to use in the test
-    pub fn test_basic_migration<E, M>(&self, migrate_fn: MigrateFn<E, M>, migration_msg: M)
+    pub fn test_basic_migration<M, E>(&self, migrate_fn: MigrateFn<M, E>, migration_msg: M)
     where
-        E: Debug,
         M: Clone,
+        E: Debug,
     {
         let mut deps = mock_dependencies();
 
@@ -121,16 +121,16 @@ impl MigrationTester {
     /// * `instantiate_fn` - The contract's instantiate function
     /// * `migration_msg` - The migrate message to use in the test
     /// * `instantiate_msg` - The instantiate message to use in the test
-    pub fn test_after_instantiate<E, M, I>(
+    pub fn test_after_instantiate<M, I, E>(
         &self,
-        migrate_fn: MigrateFn<E, M>,
-        instantiate_fn: InstantiateFn<E, I>,
+        migrate_fn: MigrateFn<M, E>,
+        instantiate_fn: InstantiateFn<I, E>,
         migration_msg: M,
         instantiate_msg: I,
     ) where
-        E: Debug,
         M: Clone,
         I: Clone,
+        E: Debug,
     {
         let mut deps = mock_dependencies();
         let info = message_info(&deps.api.addr_make("creator"), &[]);
@@ -172,14 +172,14 @@ impl MigrationTester {
     /// * `migrate_fn` - The contract's migrate function
     /// * `migration_msg` - The migrate message to use in the test
     /// * `error_matcher` - Function that extracts (expected, actual) from InvalidContractName error
-    pub fn test_wrong_contract<E, M>(
+    pub fn test_wrong_contract<M, E>(
         &self,
-        migrate_fn: MigrateFn<E, M>,
+        migrate_fn: MigrateFn<M, E>,
         migration_msg: M,
         error_matcher: impl Fn(&E) -> Option<(&str, &str)>,
     ) where
-        E: Debug,
         M: Clone,
+        E: Debug,
     {
         let mut deps = mock_dependencies();
 
