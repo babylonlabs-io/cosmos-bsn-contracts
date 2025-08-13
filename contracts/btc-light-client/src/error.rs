@@ -71,10 +71,7 @@ pub enum ContractError {
     Unauthorized(String),
 
     #[error("Cannot migrate from different contract. Expected: {expected}, found: {actual}")]
-    InvalidContractName {
-        expected: String,
-        actual: String,
-    },
+    InvalidContractName { expected: String, actual: String },
 }
 
 impl From<bitcoin::consensus::encode::Error> for ContractError {
