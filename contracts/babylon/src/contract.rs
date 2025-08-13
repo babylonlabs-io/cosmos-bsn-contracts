@@ -435,6 +435,7 @@ pub fn execute(
 mod tests {
     use super::*;
     use crate::msg::contract::RewardInfo;
+    use babylon_test_utils::migration::MigrationTester;
     use bitcoin::block::Header as BlockHeader;
     use btc_light_client::msg::InstantiateMsg as BtcLightClientInstantiateMsg;
     use cosmwasm_std::testing::{message_info, mock_dependencies, mock_env};
@@ -750,9 +751,7 @@ mod tests {
 
     #[test]
     fn test_migration_basics() {
-        let tester =
-            babylon_test_utils::migration::MigrationTester::new(CONTRACT_NAME, CONTRACT_VERSION);
-        tester.test_migration_basics(
+        MigrationTester::new(CONTRACT_NAME, CONTRACT_VERSION).test_migration_basics(
             migrate,
             instantiate,
             MigrateMsg {},

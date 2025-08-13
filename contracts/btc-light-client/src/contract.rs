@@ -305,6 +305,7 @@ pub(crate) mod tests {
         get_base_header, get_header, get_header_height, BitcoinNetwork, Config, CONFIG,
     };
     use crate::ExecuteMsg;
+    use babylon_test_utils::migration::MigrationTester;
     use babylon_test_utils::{get_btc_lc_fork_headers, get_btc_lc_fork_msg, get_btc_lc_headers};
     use bitcoin::block::Header as BlockHeader;
     use cosmwasm_std::testing::mock_dependencies;
@@ -646,9 +647,7 @@ pub(crate) mod tests {
 
     #[test]
     fn test_migration_basics() {
-        let tester =
-            babylon_test_utils::migration::MigrationTester::new(CONTRACT_NAME, CONTRACT_VERSION);
-        tester.test_migration_basics(
+        MigrationTester::new(CONTRACT_NAME, CONTRACT_VERSION).test_migration_basics(
             migrate,
             instantiate,
             crate::msg::contract::MigrateMsg {},

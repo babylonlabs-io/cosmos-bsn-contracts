@@ -174,6 +174,7 @@ fn handle_update_contract_addresses(
 #[cfg(test)]
 pub mod tests {
     use super::*;
+    use babylon_test_utils::migration::MigrationTester;
     use cosmwasm_std::from_json;
     use cosmwasm_std::testing::{message_info, mock_dependencies, mock_env};
     use cw_controllers::AdminResponse;
@@ -350,9 +351,7 @@ pub mod tests {
 
     #[test]
     fn test_migration_basics() {
-        let tester =
-            babylon_test_utils::migration::MigrationTester::new(CONTRACT_NAME, CONTRACT_VERSION);
-        tester.test_migration_basics(
+        MigrationTester::new(CONTRACT_NAME, CONTRACT_VERSION).test_migration_basics(
             migrate,
             instantiate,
             crate::msg::MigrateMsg {},

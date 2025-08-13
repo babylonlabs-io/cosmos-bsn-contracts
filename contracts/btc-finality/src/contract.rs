@@ -298,6 +298,7 @@ fn handle_end_block(
 #[cfg(test)]
 pub(crate) mod tests {
     use super::*;
+    use babylon_test_utils::migration::MigrationTester;
     use cosmwasm_std::testing::{message_info, mock_dependencies, mock_env};
     use cosmwasm_std::{coin, coins, from_json, Uint128, WasmMsg};
     use cw_controllers::AdminResponse;
@@ -506,9 +507,7 @@ pub(crate) mod tests {
 
     #[test]
     fn test_migration_basics() {
-        let tester =
-            babylon_test_utils::migration::MigrationTester::new(CONTRACT_NAME, CONTRACT_VERSION);
-        tester.test_migration_basics(
+        MigrationTester::new(CONTRACT_NAME, CONTRACT_VERSION).test_migration_basics(
             migrate,
             instantiate,
             crate::msg::MigrateMsg {},
