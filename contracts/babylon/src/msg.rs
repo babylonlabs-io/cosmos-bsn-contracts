@@ -1,3 +1,5 @@
+//! Types and messages for the Babylon contract API.
+
 #[cfg(not(target_arch = "wasm32"))]
 use crate::state::Config;
 use babylon_apis::finality_api::Evidence;
@@ -7,8 +9,8 @@ use babylon_proto::babylon::zoneconcierge::v1::IndexedHeader;
 use cosmwasm_schema::{cw_serde, QueryResponses};
 use cosmwasm_std::{Binary, Decimal, StdError, StdResult, Timestamp, Uint128};
 use hex::ToHex;
-use ibc_proto::ibc::core::channel::v1::acknowledgement::Response;
-use ibc_proto::ibc::core::channel::v1::Acknowledgement;
+
+pub type TransferInfoResponse = Option<String>;
 
 #[cw_serde]
 pub struct InstantiateMsg {
@@ -299,24 +301,6 @@ impl From<&RawCheckpoint> for CheckpointResponse {
 impl From<RawCheckpoint> for CheckpointResponse {
     fn from(checkpoint: RawCheckpoint) -> Self {
         Self::from(&checkpoint)
-    }
-}
-
-pub type TransferInfoResponse = Option<String>;
-
-pub fn new_ack_res() -> Acknowledgement {
-    let resp = Response::Result(vec![]);
-
-    Acknowledgement {
-        response: Some(resp),
-    }
-}
-
-pub fn new_ack_err(emsg: String) -> Acknowledgement {
-    let resp = Response::Error(emsg);
-
-    Acknowledgement {
-        response: Some(resp),
     }
 }
 
