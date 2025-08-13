@@ -1,4 +1,6 @@
-//! This module manages contract's system state.
+//! Contract system-state management:
+//! - Track finalized Babylon epochs & raw checkpoints.
+//! - Track finalized Consumer headers & heights.
 
 use crate::error;
 use crate::error::BabylonEpochChainError;
@@ -101,7 +103,7 @@ fn insert_consumer_header(deps: &mut DepsMut, consumer_header: &IndexedHeader) -
 }
 
 // TODO: unit test
-pub fn handle_consumer_header(
+fn handle_consumer_header(
     deps: &mut DepsMut,
     consumer_header: &IndexedHeader,
 ) -> Result<(), error::ConsumerHeaderChainError> {
@@ -237,7 +239,7 @@ fn insert_epoch_and_checkpoint(
 }
 
 /// Extracts data needed for verifying Babylon epoch chain from a given BTC timestamp.
-pub fn extract_data_from_btc_ts(
+fn extract_data_from_btc_ts(
     btc_ts: &BtcTimestamp,
 ) -> Result<
     (
@@ -276,7 +278,7 @@ pub fn extract_data_from_btc_ts(
 }
 
 /// Initialises the Babylon epoch chain storage.
-pub fn init(
+fn init(
     deps: &mut DepsMut,
     btc_headers: Option<&BtcHeaders>,
     epoch: &Epoch,
@@ -300,7 +302,7 @@ pub fn init(
 }
 
 /// Handles a BTC-finalised epoch by using the raw checkpoint and inclusion proofs.
-pub fn handle_epoch_and_checkpoint(
+fn handle_epoch_and_checkpoint(
     deps: &mut DepsMut,
     btc_headers: Option<&BtcHeaders>,
     epoch: &Epoch,
