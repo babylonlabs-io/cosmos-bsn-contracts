@@ -102,8 +102,6 @@ pub enum ContractError {
     PubRandCommitNotBTCTimestamped(String),
     #[error("Jail for {0} did not yet expire")]
     JailPeriodNotPassed(String),
-    #[error("Cannot unjail FP who's been jailed forever")]
-    JailedForever {},
     #[error(transparent)]
     PubRandCommit(#[from] PubRandCommitError),
     #[error(transparent)]
