@@ -244,11 +244,7 @@ pub fn handle_btc_timestamp(
             deps.api
                 .debug("CONTRACT: handle_btc_timestamp: creating BTC headers message");
             wasm_msg = Some(
-                crate::utils::btc_light_client_executor::new_btc_headers_msg(
-                    deps,
-                    &btc_headers.headers,
-                )
-                .map_err(|e| {
+                crate::utils::new_btc_headers_msg(deps, &btc_headers.headers).map_err(|e| {
                     let err_msg = format!("failed to submit BTC headers: {e}");
                     deps.api
                         .debug(&format!("CONTRACT: handle_btc_timestamp: {err_msg}"));
