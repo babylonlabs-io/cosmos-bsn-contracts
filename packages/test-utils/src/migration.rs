@@ -62,21 +62,9 @@ impl MigrationTester {
         M: Clone,
         I: Clone,
     {
-        self.test_basic_migration(migrate_fn, {
-            let msg = migration_msg.clone();
-            move || msg.clone()
-        });
-        self.test_after_instantiate(migrate_fn, instantiate_fn, {
-            let msg = migration_msg.clone();
-            move || msg.clone()
-        }, {
-            let msg = instantiate_msg.clone();
-            move || msg.clone()
-        });
-        self.test_wrong_contract(migrate_fn, {
-            let msg = migration_msg.clone();
-            move || msg.clone()
-        }, error_matcher);
+        self.test_basic_migration(migrate_fn, migration_msg.clone());
+        self.test_after_instantiate(migrate_fn, instantiate_fn, migration_msg.clone(), instantiate_msg);
+        self.test_wrong_contract(migrate_fn, migration_msg, error_matcher);
     }
 
     /// Test basic migration from a previous version
@@ -88,13 +76,14 @@ impl MigrationTester {
     ///
     /// # Arguments
     /// * `migrate_fn` - The contract's migrate function
-    /// * `migration_msg` - Function that creates a migrate message
+    /// * `migration_msg` - The migrate message to use in the test
     pub fn test_basic_migration<E, M>(
         &self,
         migrate_fn: MigrateFn<E, M>,
-        migration_msg: impl Fn() -> M,
+        migration_msg: M,
     ) where
         E: std::fmt::Debug,
+        M: Clone,
     {
         let mut deps = mock_dependencies();
 
@@ -102,7 +91,7 @@ impl MigrationTester {
         set_contract_version(&mut deps.storage, self.contract_name, "0.1.0").unwrap();
 
         // Call migrate with the provided migrate message
-        let res = migrate_fn(deps.as_mut(), mock_env(), migration_msg()).unwrap();
+        let res = migrate_fn(deps.as_mut(), mock_env(), migration_msg).unwrap();
 
         // Check that the response contains the expected attributes
         assert_eq!(res.attributes.len(), 3);
@@ -127,23 +116,24 @@ impl MigrationTester {
     /// # Arguments
     /// * `migrate_fn` - The contract's migrate function
     /// * `instantiate_fn` - The contract's instantiate function
-    /// * `migration_msg` - Function that creates a migrate message
-    /// * `instantiate_msg` - Function that creates an instantiate message
+    /// * `migration_msg` - The migrate message to use in the test
+    /// * `instantiate_msg` - The instantiate message to use in the test
     pub fn test_after_instantiate<E, M, I>(
         &self,
         migrate_fn: MigrateFn<E, M>,
         instantiate_fn: InstantiateFn<E, I>,
-        migration_msg: impl Fn() -> M,
-        instantiate_msg: impl Fn() -> I,
+        migration_msg: M,
+        instantiate_msg: I,
     ) where
         E: std::fmt::Debug,
+        M: Clone,
+        I: Clone,
     {
         let mut deps = mock_dependencies();
-        let msg = instantiate_msg();
         let info = message_info(&deps.api.addr_make("creator"), &[]);
 
         // Instantiate the contract first
-        instantiate_fn(deps.as_mut(), mock_env(), info, msg).unwrap();
+        instantiate_fn(deps.as_mut(), mock_env(), info, instantiate_msg).unwrap();
 
         // Verify initial version is set
         let version_info = get_contract_version(&deps.storage).unwrap();
@@ -151,7 +141,7 @@ impl MigrationTester {
         assert_eq!(version_info.version, self.contract_version);
 
         // Now attempt migration
-        let res = migrate_fn(deps.as_mut(), mock_env(), migration_msg()).unwrap();
+        let res = migrate_fn(deps.as_mut(), mock_env(), migration_msg).unwrap();
 
         // Check that the response contains the expected attributes
         assert_eq!(res.attributes.len(), 3);
@@ -177,15 +167,16 @@ impl MigrationTester {
     ///
     /// # Arguments
     /// * `migrate_fn` - The contract's migrate function
-    /// * `migration_msg` - Function that creates a migrate message
+    /// * `migration_msg` - The migrate message to use in the test
     /// * `error_matcher` - Function that checks if the error is the expected InvalidContractName
     pub fn test_wrong_contract<E, M>(
         &self,
         migrate_fn: MigrateFn<E, M>,
-        migration_msg: impl Fn() -> M,
+        migration_msg: M,
         error_matcher: impl Fn(&E) -> bool,
     ) where
         E: std::fmt::Debug,
+        M: Clone,
     {
         let mut deps = mock_dependencies();
 
@@ -193,7 +184,7 @@ impl MigrationTester {
         set_contract_version(&mut deps.storage, "wrong-contract", "0.1.0").unwrap();
 
         // Call migrate and expect error
-        let err = migrate_fn(deps.as_mut(), mock_env(), migration_msg()).unwrap_err();
+        let err = migrate_fn(deps.as_mut(), mock_env(), migration_msg).unwrap_err();
 
         // Check the error matches the expected InvalidContractName pattern
         assert!(
@@ -265,7 +256,7 @@ mod tests {
     #[test]
     fn test_migration_tester_basic() {
         let tester = MigrationTester::new(TEST_CONTRACT_NAME, TEST_CONTRACT_VERSION);
-        tester.test_basic_migration(test_migrate, || TestMigrateMsg);
+        tester.test_basic_migration(test_migrate, TestMigrateMsg);
     }
 
     #[test]
@@ -274,8 +265,8 @@ mod tests {
         tester.test_after_instantiate(
             test_migrate,
             test_instantiate,
-            || TestMigrateMsg,
-            || TestInstantiateMsg,
+            TestMigrateMsg,
+            TestInstantiateMsg,
         );
     }
 
@@ -284,7 +275,7 @@ mod tests {
         let tester = MigrationTester::new(TEST_CONTRACT_NAME, TEST_CONTRACT_VERSION);
         tester.test_wrong_contract(
             test_migrate,
-            || TestMigrateMsg,
+            TestMigrateMsg,
             |err| matches!(err, TestError::InvalidContractName { .. }),
         );
     }
