@@ -10,77 +10,6 @@ use hex::ToHex;
 use ibc_proto::ibc::core::channel::v1::acknowledgement::Response;
 use ibc_proto::ibc::core::channel::v1::Acknowledgement;
 
-/// Metadata of a Consumer header.
-///
-/// This struct is for use in RPC requests and responses. It has convenience helpers to convert
-/// from the internal representation (`IndexedHeader`).
-///
-/// Adapted from `IndexedHeader`.
-#[cw_serde]
-pub struct ConsumerHeaderResponse {
-    /// Unique ID of the consumer
-    pub consumer_id: String,
-    /// Hash of this header.
-    /// Hex-encoded string of 32 bytes
-    pub hash: String,
-    /// Height of this header in the Consumer's ledger.
-    /// (hash, height) jointly provides the position of the header on the Consumer ledger
-    pub height: u64,
-    /// Timestamp of this header in the Consumer's ledger.
-    /// It's necessary for the Consumer to unbond all mature validators/delegations before this
-    /// timestamp when this header is BTC-finalised
-    pub time: Option<Timestamp>,
-    /// Hash of the babylon block that includes this Consumer header.
-    /// Hex-encoded string of 32 bytes
-    pub babylon_header_hash: String,
-    /// Height of the babylon block that includes this Consumer header
-    pub babylon_header_height: u64,
-    /// Epoch number of this header in the Babylon ledger
-    pub babylon_epoch: u64,
-    /// Hash of the tx that includes this header.
-    /// (babylon_block_height, babylon_tx_hash) jointly provides the position of
-    /// Header in the Babylon ledger.
-    /// Hex-encoded string of 32 bytes
-    pub babylon_tx_hash: String,
-}
-
-/// Metadata of a Consumer height.
-///
-/// This struct is for use in RPC requests and responses. It is a convenience, efficient way to
-/// return the height of the last finalised Consumer header.
-///
-/// Adapted from `ConsumerHeaderResponse`.
-#[cw_serde]
-pub struct ConsumerHeightResponse {
-    pub height: u64,
-}
-
-/// Convert from `&IndexedHeader` to `ConsumerHeaderResponse`.
-impl From<&IndexedHeader> for ConsumerHeaderResponse {
-    fn from(header: &IndexedHeader) -> Self {
-        ConsumerHeaderResponse {
-            consumer_id: header.consumer_id.clone(),
-            hash: header.hash.encode_hex(),
-            height: header.height,
-            time: header
-                .time
-                .as_ref()
-                .map(|t| Timestamp::from_seconds(t.seconds as u64).plus_nanos(t.nanos as u64)),
-            babylon_header_hash: header.babylon_header_hash.encode_hex(),
-            babylon_header_height: header.babylon_header_height,
-            babylon_epoch: header.babylon_epoch,
-            babylon_tx_hash: header.babylon_tx_hash.encode_hex(),
-        }
-    }
-}
-
-/// Convert from `IndexedHeader` to `ConsumerHeaderResponse`.
-impl From<IndexedHeader> for ConsumerHeaderResponse {
-    fn from(header: IndexedHeader) -> Self {
-        Self::from(&header)
-    }
-}
-
 #[cw_serde]
 pub struct InstantiateMsg {
     pub network: btc_light_client::BitcoinNetwork,
@@ -142,9 +71,7 @@ impl InstantiateMsg {
             destination_module: "btcstaking".to_string(),
         }
     }
-}
 
-impl InstantiateMsg {
     pub fn validate(&self) -> StdResult<()> {
         if self.consumer_name.trim().is_empty() {
             return Err(StdError::generic_err("Consumer name cannot be empty"));
@@ -268,6 +195,77 @@ impl From<&Epoch> for EpochResponse {
 impl From<Epoch> for EpochResponse {
     fn from(epoch: Epoch) -> Self {
         Self::from(&epoch)
+    }
+}
+
+/// Metadata of a Consumer header.
+///
+/// This struct is for use in RPC requests and responses. It has convenience helpers to convert
+/// from the internal representation (`IndexedHeader`).
+///
+/// Adapted from `IndexedHeader`.
+#[cw_serde]
+pub struct ConsumerHeaderResponse {
+    /// Unique ID of the consumer
+    pub consumer_id: String,
+    /// Hash of this header.
+    /// Hex-encoded string of 32 bytes
+    pub hash: String,
+    /// Height of this header in the Consumer's ledger.
+    /// (hash, height) jointly provides the position of the header on the Consumer ledger
+    pub height: u64,
+    /// Timestamp of this header in the Consumer's ledger.
+    /// It's necessary for the Consumer to unbond all mature validators/delegations before this
+    /// timestamp when this header is BTC-finalised
+    pub time: Option<Timestamp>,
+    /// Hash of the babylon block that includes this Consumer header.
+    /// Hex-encoded string of 32 bytes
+    pub babylon_header_hash: String,
+    /// Height of the babylon block that includes this Consumer header
+    pub babylon_header_height: u64,
+    /// Epoch number of this header in the Babylon ledger
+    pub babylon_epoch: u64,
+    /// Hash of the tx that includes this header.
+    /// (babylon_block_height, babylon_tx_hash) jointly provides the position of
+    /// Header in the Babylon ledger.
+    /// Hex-encoded string of 32 bytes
+    pub babylon_tx_hash: String,
+}
+
+/// Metadata of a Consumer height.
+///
+/// This struct is for use in RPC requests and responses. It is a convenience, efficient way to
+/// return the height of the last finalised Consumer header.
+///
+/// Adapted from `ConsumerHeaderResponse`.
+#[cw_serde]
+pub struct ConsumerHeightResponse {
+    pub height: u64,
+}
+
+/// Convert from `&IndexedHeader` to `ConsumerHeaderResponse`.
+impl From<&IndexedHeader> for ConsumerHeaderResponse {
+    fn from(header: &IndexedHeader) -> Self {
+        ConsumerHeaderResponse {
+            consumer_id: header.consumer_id.clone(),
+            hash: header.hash.encode_hex(),
+            height: header.height,
+            time: header
+                .time
+                .as_ref()
+                .map(|t| Timestamp::from_seconds(t.seconds as u64).plus_nanos(t.nanos as u64)),
+            babylon_header_hash: header.babylon_header_hash.encode_hex(),
+            babylon_header_height: header.babylon_header_height,
+            babylon_epoch: header.babylon_epoch,
+            babylon_tx_hash: header.babylon_tx_hash.encode_hex(),
+        }
+    }
+}
+
+/// Convert from `IndexedHeader` to `ConsumerHeaderResponse`.
+impl From<IndexedHeader> for ConsumerHeaderResponse {
+    fn from(header: IndexedHeader) -> Self {
+        Self::from(&header)
     }
 }
 
