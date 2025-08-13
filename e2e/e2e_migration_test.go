@@ -93,6 +93,18 @@ func (s *ContractMigrationSuite) Test1ContractDeployment() {
 }
 
 func (s *ContractMigrationSuite) Test2ContractMigration() {
+	ctx := s.ConsumerChain.GetContext()
+
+	// assert there is only 1 code ID for each contract
+	history := s.ConsumerCli.App.WasmKeeper.GetContractHistory(ctx, s.ConsumerContract.Babylon)
+	s.Len(history, 1)
+	history = s.ConsumerCli.App.WasmKeeper.GetContractHistory(ctx, s.ConsumerContract.BTCLightClient)
+	s.Len(history, 1)
+	history = s.ConsumerCli.App.WasmKeeper.GetContractHistory(ctx, s.ConsumerContract.BTCStaking)
+	s.Len(history, 1)
+	history = s.ConsumerCli.App.WasmKeeper.GetContractHistory(ctx, s.ConsumerContract.BTCFinality)
+	s.Len(history, 1)
+
 	// migrate the contracts
 	err := s.ConsumerCli.MigrateContracts(
 		types.BABYLON_CONTRACT_PATH,
@@ -101,6 +113,16 @@ func (s *ContractMigrationSuite) Test2ContractMigration() {
 		types.BTC_FINALITY_CONTRACT_PATH,
 	)
 	s.NoError(err)
+
+	// ensure the code ID is updated
+	history = s.ConsumerCli.App.WasmKeeper.GetContractHistory(ctx, s.ConsumerContract.Babylon)
+	s.Len(history, 2)
+	history = s.ConsumerCli.App.WasmKeeper.GetContractHistory(ctx, s.ConsumerContract.BTCLightClient)
+	s.Len(history, 2)
+	history = s.ConsumerCli.App.WasmKeeper.GetContractHistory(ctx, s.ConsumerContract.BTCStaking)
+	s.Len(history, 2)
+	history = s.ConsumerCli.App.WasmKeeper.GetContractHistory(ctx, s.ConsumerContract.BTCFinality)
+	s.Len(history, 2)
 }
 
 // TearDownSuite runs once after all the suite's tests have been run
