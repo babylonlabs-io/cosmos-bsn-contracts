@@ -110,12 +110,12 @@ func (p *TestConsumerClient) GetSender() sdk.AccAddress {
 	return p.Chain.SenderAccount.GetAddress()
 }
 
-func (p *TestConsumerClient) BootstrapContracts() (*ConsumerContract, error) {
+func (p *TestConsumerClient) BootstrapContracts(pinCodes bool) (*ConsumerContract, error) {
 	// Query the Babylon module for contract addresses
 	contracts := p.App.BabylonKeeper.GetBSNContracts(p.Chain.GetContext())
 	if contracts == nil || !contracts.IsSet() {
 		// If contracts are not set, deploy them
-		return p.deployContracts()
+		return p.deployContracts(pinCodes)
 	}
 
 	babylonAddr, err := sdk.AccAddressFromBech32(contracts.BabylonContract)
@@ -145,7 +145,7 @@ func (p *TestConsumerClient) BootstrapContracts() (*ConsumerContract, error) {
 	return &r, nil
 }
 
-func (p *TestConsumerClient) deployContracts() (*ConsumerContract, error) {
+func (p *TestConsumerClient) deployContracts(pinCodes bool) (*ConsumerContract, error) {
 	ctx := p.Chain.GetContext()
 	wasmKeeper := p.App.WasmKeeper
 	wasmMsgServer := wasmkeeper.NewMsgServerImpl(&wasmKeeper)
@@ -204,6 +204,17 @@ func (p *TestConsumerClient) deployContracts() (*ConsumerContract, error) {
 		return nil, fmt.Errorf("failed to store btc finality contract: %w", err)
 	}
 	btcFinalityCodeID := btcFinalityResp.CodeID
+
+	if pinCodes {
+		// pin codes
+		_, err = wasmMsgServer.PinCodes(ctx, &wasmtypes.MsgPinCodes{
+			Authority: p.App.GovKeeper.GetAuthority(),
+			CodeIDs:   []uint64{babylonCodeID, btcLightClientCodeID, btcStakingCodeID, btcFinalityCodeID},
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to pin codes: %w", err)
+		}
+	}
 
 	// Prepare init messages for the other contracts
 	admin := p.Chain.SenderAccount.GetAddress().String()
