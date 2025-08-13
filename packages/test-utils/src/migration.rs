@@ -7,6 +7,12 @@ use cosmwasm_std::testing::{message_info, mock_dependencies, mock_env};
 use cosmwasm_std::{attr, DepsMut, Env, MessageInfo, Response};
 use cw2::{get_contract_version, set_contract_version};
 
+/// Type alias for contract migration functions
+pub type MigrateFn<E, M> = fn(DepsMut, Env, M) -> Result<Response, E>;
+
+/// Type alias for contract instantiate functions
+pub type InstantiateFn<E, I> = fn(DepsMut, Env, MessageInfo, I) -> Result<Response, E>;
+
 /// Tester for contract migration scenarios
 ///
 /// This tester provides a clean API for testing common migration scenarios
@@ -46,8 +52,8 @@ impl MigrationTester {
     /// * `error_matcher` - Function that checks if the error is the expected InvalidContractName
     pub fn test_migration_basics<E, M, I>(
         &self,
-        migrate_fn: impl Fn(DepsMut, Env, M) -> Result<Response, E> + Copy,
-        instantiate_fn: impl Fn(DepsMut, Env, MessageInfo, I) -> Result<Response, E> + Copy,
+        migrate_fn: MigrateFn<E, M>,
+        instantiate_fn: InstantiateFn<E, I>,
         migration_msg: M,
         instantiate_msg: I,
         error_matcher: impl Fn(&E) -> bool + Copy,
@@ -85,7 +91,7 @@ impl MigrationTester {
     /// * `migration_msg` - Function that creates a migrate message
     pub fn test_basic_migration<E, M>(
         &self,
-        migrate_fn: impl Fn(DepsMut, Env, M) -> Result<Response, E>,
+        migrate_fn: MigrateFn<E, M>,
         migration_msg: impl Fn() -> M,
     ) where
         E: std::fmt::Debug,
@@ -125,8 +131,8 @@ impl MigrationTester {
     /// * `instantiate_msg` - Function that creates an instantiate message
     pub fn test_after_instantiate<E, M, I>(
         &self,
-        migrate_fn: impl Fn(DepsMut, Env, M) -> Result<Response, E>,
-        instantiate_fn: impl Fn(DepsMut, Env, MessageInfo, I) -> Result<Response, E>,
+        migrate_fn: MigrateFn<E, M>,
+        instantiate_fn: InstantiateFn<E, I>,
         migration_msg: impl Fn() -> M,
         instantiate_msg: impl Fn() -> I,
     ) where
@@ -175,7 +181,7 @@ impl MigrationTester {
     /// * `error_matcher` - Function that checks if the error is the expected InvalidContractName
     pub fn test_wrong_contract<E, M>(
         &self,
-        migrate_fn: impl Fn(DepsMut, Env, M) -> Result<Response, E>,
+        migrate_fn: MigrateFn<E, M>,
         migration_msg: impl Fn() -> M,
         error_matcher: impl Fn(&E) -> bool,
     ) where
