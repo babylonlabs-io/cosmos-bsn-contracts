@@ -4,7 +4,7 @@ use crate::finality::{
     handle_unjail,
 };
 use crate::liveness::handle_liveness;
-use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
+use crate::msg::{ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg};
 use crate::power_dist_change::compute_active_finality_providers;
 use crate::state::config::{
     Config, ADMIN, CONFIG, DEFAULT_FINALITY_ACTIVATION_HEIGHT, DEFAULT_JAIL_DURATION,
@@ -17,8 +17,8 @@ use crate::state::finality::ACCUMULATED_VOTING_WEIGHTS;
 use crate::{finality, queries, state};
 use babylon_apis::finality_api::SudoMsg;
 use cosmwasm_std::{
-    attr, to_json_binary, Addr, Deps, DepsMut, Empty, Env, MessageInfo, QueryResponse, Reply,
-    Response, StdResult,
+    attr, to_json_binary, Addr, Deps, DepsMut, Env, MessageInfo, QueryResponse, Reply, Response,
+    StdResult,
 };
 use cw2::set_contract_version;
 use cw_utils::{maybe_addr, nonpayable};
@@ -135,7 +135,7 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> Result<QueryResponse, Cont
     }
 }
 
-pub fn migrate(_deps: DepsMut, _env: Env, _msg: Empty) -> Result<Response, ContractError> {
+pub fn migrate(_deps: DepsMut, _env: Env, _msg: MigrateMsg) -> Result<Response, ContractError> {
     Ok(Response::default())
 }
 

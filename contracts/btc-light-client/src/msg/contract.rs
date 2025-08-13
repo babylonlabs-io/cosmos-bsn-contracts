@@ -107,3 +107,6 @@ pub enum QueryMsg {
     #[returns(Config)]
     Config {},
 }
+
+#[cw_serde]
+pub struct MigrateMsg {}

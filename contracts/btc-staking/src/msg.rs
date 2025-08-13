@@ -12,6 +12,9 @@ pub type InstantiateMsg = babylon_apis::btc_staking_api::InstantiateMsg;
 pub type ExecuteMsg = babylon_apis::btc_staking_api::ExecuteMsg;
 
 #[cw_serde]
+pub struct MigrateMsg {}
+
+#[cw_serde]
 #[derive(QueryResponses)]
 pub enum QueryMsg {
     /// Returns the current configuration of the btc-staking contract.

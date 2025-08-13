@@ -93,6 +93,9 @@ impl InstantiateMsg {
 }
 
 #[cw_serde]
+pub struct MigrateMsg {}
+
+#[cw_serde]
 pub enum ExecuteMsg {
     /// Slashing event from the BTC staking contract.
     ///

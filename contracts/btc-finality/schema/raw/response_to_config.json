@@ -1,25 +1,63 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Config",
-  "description": "Config are Babylon-selectable BTC staking configuration",
+  "description": "Config are Babylon-selectable BTC finality configuration",
   "type": "object",
   "required": [
     "babylon",
-    "btc_light_client",
     "denom",
-    "finality"
+    "finality_activation_height",
+    "jail_duration",
+    "max_active_finality_providers",
+    "min_pub_rand",
+    "missed_blocks_window",
+    "reward_interval",
+    "staking"
   ],
   "properties": {
     "babylon": {
       "$ref": "#/definitions/Addr"
     },
-    "btc_light_client": {
-      "$ref": "#/definitions/Addr"
-    },
     "denom": {
       "type": "string"
     },
-    "finality": {
+    "finality_activation_height": {
+      "description": "Block height at which the finality module will start to accept finality voting and the minimum allowed value for the public randomness commit start height.",
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0.0
+    },
+    "jail_duration": {
+      "description": "Minimum period of time in seconds that a finality provider remains jailed (in case of being automatically jailed because of offline detection).",
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0.0
+    },
+    "max_active_finality_providers": {
+      "description": "Maximum number of active finality providers in the BTC staking protocol.",
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0.0
+    },
+    "min_pub_rand": {
+      "description": "Minimum amount of public randomness each public randomness commitment should commit.",
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0.0
+    },
+    "missed_blocks_window": {
+      "description": "Missed number of blocks an FP can be jailed for due to offline detection",
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0.0
+    },
+    "reward_interval": {
+      "description": "Number of blocks that define the rewards distribution interval",
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0.0
+    },
+    "staking": {
       "$ref": "#/definitions/Addr"
     }
   },

@@ -1,10 +1,10 @@
 use crate::error::ContractError;
 pub use crate::msg::contract::ExecuteMsg;
-use crate::msg::contract::InstantiateMsg;
+use crate::msg::contract::{InstantiateMsg, MigrateMsg};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    Binary, Deps, DepsMut, Empty, Env, IbcBasicResponse, IbcChannelCloseMsg, IbcChannelConnectMsg,
+    Binary, Deps, DepsMut, Env, IbcBasicResponse, IbcChannelCloseMsg, IbcChannelConnectMsg,
     IbcChannelOpenMsg, IbcChannelOpenResponse, IbcPacketAckMsg, IbcPacketReceiveMsg,
     IbcPacketTimeoutMsg, IbcReceiveResponse, MessageInfo, Never, Reply, Response, StdResult,
 };
@@ -40,7 +40,7 @@ pub fn query(deps: Deps, env: Env, msg: msg::contract::QueryMsg) -> Result<Binar
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn migrate(deps: DepsMut, env: Env, msg: Empty) -> Result<Response, ContractError> {
+pub fn migrate(deps: DepsMut, env: Env, msg: MigrateMsg) -> Result<Response, ContractError> {
     contract::migrate(deps, env, msg)
 }
 

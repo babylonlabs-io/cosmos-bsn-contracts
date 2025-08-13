@@ -1,14 +1,14 @@
 use crate::error::ContractError;
 use crate::ibc::{get_ibc_packet_timeout, ibc_packet, IBC_TRANSFER_CHANNEL, IBC_ZC_CHANNEL};
-use crate::msg::contract::{ExecuteMsg, InstantiateMsg, QueryMsg};
+use crate::msg::contract::{ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg};
 use crate::msg::ibc::{CallbackMemo, FpRatio};
 use crate::queries;
 use crate::state::config::{Config, CONFIG, DEFAULT_IBC_PACKET_TIMEOUT_DAYS};
 use crate::state::consumer_header_chain::CONSUMER_HEIGHT_LAST;
 use babylon_apis::{btc_staking_api, finality_api, to_bech32_addr, to_module_canonical_addr};
 use cosmwasm_std::{
-    to_json_binary, to_json_string, Addr, Decimal, Deps, DepsMut, Empty, Env, MessageInfo,
-    QueryResponse, Reply, Response, SubMsg, SubMsgResponse, WasmMsg,
+    to_json_binary, to_json_string, Addr, Decimal, Deps, DepsMut, Env, MessageInfo, QueryResponse,
+    Reply, Response, SubMsg, SubMsgResponse, WasmMsg,
 };
 use cw2::set_contract_version;
 use cw_utils::{must_pay, ParseReplyError};
@@ -277,7 +277,7 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> Result<QueryResponse, Cont
 }
 
 /// this is a no-op just to test how this integrates with wasmd
-pub fn migrate(_deps: DepsMut, _env: Env, _msg: Empty) -> Result<Response, ContractError> {
+pub fn migrate(_deps: DepsMut, _env: Env, _msg: MigrateMsg) -> Result<Response, ContractError> {
     Ok(Response::default())
 }
 
