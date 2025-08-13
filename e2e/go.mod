@@ -30,8 +30,8 @@ require (
 require (
 	cosmossdk.io/log v1.6.0
 	cosmossdk.io/math v1.5.3
-	github.com/babylonlabs-io/babylon-sdk/demo v0.0.0-20250812055517-94a61e99f28c
-	github.com/babylonlabs-io/babylon-sdk/x v0.0.0-20250812055517-94a61e99f28c
+	github.com/babylonlabs-io/babylon-sdk/demo v0.0.0-20250813023217-42b5045e395f
+	github.com/babylonlabs-io/babylon-sdk/x v0.0.0-20250813023217-42b5045e395f
 	github.com/babylonlabs-io/babylon/v3 v3.0.0-snapshot.250805a
 	github.com/btcsuite/btcd v0.24.2
 	github.com/cometbft/cometbft v0.38.17
@@ -73,7 +73,7 @@ require (
 	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/aead/siphash v1.0.1 // indirect
 	github.com/aws/aws-sdk-go v1.49.0 // indirect
-	github.com/babylonlabs-io/babylon-sdk/tests/e2e v0.0.0-20250812055517-94a61e99f28c // indirect
+	github.com/babylonlabs-io/babylon-sdk/tests/e2e v0.0.0-20250813023217-42b5045e395f // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bgentry/go-netrc v0.0.0-20140422174119-9fd32a8b3d3d // indirect
 	github.com/bgentry/speakeasy v0.2.0 // indirect
