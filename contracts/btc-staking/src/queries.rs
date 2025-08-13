@@ -188,7 +188,7 @@ mod tests {
     use crate::staking::tests::staking_tx_hash;
     use crate::state::staking::{BtcDelegation, FinalityProviderState, FP_STATE_KEY};
     use babylon_apis::btc_staking_api::{FinalityProvider, UnbondedBtcDelegation};
-    use babylon_test_utils::{create_new_finality_provider, get_btc_del_unbonding_sig};
+    use babylon_test_utils::create_new_finality_provider;
     use cosmwasm_std::storage_keys::namespace_with_key;
     use cosmwasm_std::testing::{message_info, mock_dependencies, mock_env};
     use cosmwasm_std::StdError::NotFound;
@@ -380,13 +380,11 @@ mod tests {
         // Unbond the second delegation
         // Compute staking tx hash
         let staking_tx_hash_hex = staking_tx_hash(&del2.into()).to_string();
-        let unbonding_sig = babylon_test_utils::get_btc_del_unbonding_sig(2, &[1]);
         let msg = ExecuteMsg::BtcStaking {
             new_fp: vec![],
             active_del: vec![],
             unbonded_del: vec![UnbondedBtcDelegation {
                 staking_tx_hash: staking_tx_hash_hex,
-                unbonding_tx_sig: unbonding_sig.to_bytes().into(),
             }],
         };
         execute(deps.as_mut(), mock_env(), info.clone(), msg).unwrap();
@@ -520,13 +518,11 @@ mod tests {
         // Unbond the first delegation
         // Compute staking tx hash
         let staking_tx_hash_hex = staking_tx_hash(&del1.into()).to_string();
-        let unbonding_sig = get_btc_del_unbonding_sig(1, &[1]);
         let msg = ExecuteMsg::BtcStaking {
             new_fp: vec![],
             active_del: vec![],
             unbonded_del: vec![UnbondedBtcDelegation {
                 staking_tx_hash: staking_tx_hash_hex,
-                unbonding_tx_sig: unbonding_sig.to_bytes().into(),
             }],
         };
         execute(deps.as_mut(), mock_env(), info.clone(), msg).unwrap();

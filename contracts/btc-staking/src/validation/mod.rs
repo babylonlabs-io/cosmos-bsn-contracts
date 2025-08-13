@@ -3,7 +3,6 @@ use crate::state::config::Config;
 use crate::state::staking::BtcDelegation;
 use babylon_apis::btc_staking_api::{ActiveBtcDelegation, NewFinalityProvider};
 use bitcoin::Transaction;
-use cosmwasm_std::Binary;
 
 pub fn verify_new_fp(_new_fp: &NewFinalityProvider) -> Result<(), ContractError> {
     // No-op
@@ -19,11 +18,7 @@ pub fn verify_active_delegation(
     Ok(())
 }
 
-pub fn verify_undelegation(
-    _cfg: &Config,
-    _btc_del: &BtcDelegation,
-    _sig: &Binary,
-) -> Result<(), ContractError> {
+pub fn verify_undelegation(_cfg: &Config, _btc_del: &BtcDelegation) -> Result<(), ContractError> {
     // No-op
     Ok(())
 }
