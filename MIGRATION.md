@@ -54,22 +54,14 @@ supported but may be added in future versions.
 First, build your updated contract:
 
 ```bash
-# Build optimized contract
-cargo wasm
-cargo schema
-
-# Optimize the wasm file (recommended)
-docker run --rm -v "$(pwd)":/code \
-  --mount type=volume,source="$(basename "$(pwd)")_cache",target=/code/target \
-  --mount type=volume,source=registry_cache,target=/usr/local/cargo/registry \
-  cosmwasm/rust-optimizer:0.12.13
+cargo optimize
 ```
 
 Store the new contract code on the blockchain:
 
 ```bash
 # Store the new contract code
-TX_HASH=$(wasmd tx wasm store artifacts/contract.wasm \
+TX_HASH=$(bcd tx wasm store artifacts/contract.wasm \
   --from admin-key \
   --gas auto \
   --gas-adjustment 1.3 \
@@ -82,7 +74,7 @@ TX_HASH=$(wasmd tx wasm store artifacts/contract.wasm \
 sleep 6
 
 # Get the new code ID
-NEW_CODE_ID=$(wasmd query tx $TX_HASH \
+NEW_CODE_ID=$(bcd query tx $TX_HASH \
   --node https://your-node-endpoint \
   --output json | jq -r '.logs[0].events[] | select(.type=="store_code") | .attributes[] | select(.key=="code_id") | .value')
 
@@ -99,7 +91,7 @@ CONTRACT_ADDRESS="cosmos1..."
 MIGRATE_MSG='{}' # Empty for non-state-breaking migrations
 
 # Execute migration
-wasmd tx wasm migrate $CONTRACT_ADDRESS $NEW_CODE_ID "$MIGRATE_MSG" \
+bcd tx wasm migrate $CONTRACT_ADDRESS $NEW_CODE_ID "$MIGRATE_MSG" \
   --from admin-key \
   --gas auto \
   --gas-adjustment 1.3 \
@@ -114,17 +106,11 @@ Confirm the migration was successful:
 
 ```bash
 # Check contract info to verify new code ID
-wasmd query wasm contract $CONTRACT_ADDRESS \
+bcd query wasm contract $CONTRACT_ADDRESS \
   --node https://your-node-endpoint
 
-# Query contract version to verify update
-wasmd query wasm contract-state smart $CONTRACT_ADDRESS \
-  '{"contract_info":{}}' \
-  --node https://your-node-endpoint
-
-# Test contract functionality
-wasmd query wasm contract-state smart $CONTRACT_ADDRESS \
-  '{"config":{}}' \
+# Query whether the code ID is updated
+bcd query wasm contract-history $CONTRACT_ADDRESS \
   --node https://your-node-endpoint
 ```
 
@@ -211,7 +197,7 @@ code ID.
 Check the transaction details for specific error messages:
 
 ```bash
-wasmd query tx $TX_HASH --node https://your-node-endpoint
+bcd query tx $TX_HASH --node https://your-node-endpoint
 ```
 
 ### Contract Not Responding After Migration
