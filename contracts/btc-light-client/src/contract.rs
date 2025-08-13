@@ -651,8 +651,8 @@ pub(crate) mod tests {
         tester.test_migration_basics(
             migrate,
             instantiate,
-            || crate::msg::contract::MigrateMsg {},
-            || InstantiateMsg {
+            crate::msg::contract::MigrateMsg {},
+            InstantiateMsg {
                 network: BitcoinNetwork::Regtest,
                 btc_confirmation_depth: 1,
                 checkpoint_finalization_timeout: 100,

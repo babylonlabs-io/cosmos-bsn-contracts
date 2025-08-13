@@ -41,22 +41,36 @@ impl MigrationTester {
     /// # Arguments
     /// * `migrate_fn` - The contract's migrate function
     /// * `instantiate_fn` - The contract's instantiate function
-    /// * `migration_msg` - Function that creates a migrate message
-    /// * `instantiate_msg` - Function that creates an instantiate message
+    /// * `migration_msg` - The migrate message to use in tests
+    /// * `instantiate_msg` - The instantiate message to use in tests
     /// * `error_matcher` - Function that checks if the error is the expected InvalidContractName
     pub fn test_migration_basics<E, M, I>(
         &self,
         migrate_fn: impl Fn(DepsMut, Env, M) -> Result<Response, E> + Copy,
         instantiate_fn: impl Fn(DepsMut, Env, MessageInfo, I) -> Result<Response, E> + Copy,
-        migration_msg: impl Fn() -> M + Copy,
-        instantiate_msg: impl Fn() -> I + Copy,
+        migration_msg: M,
+        instantiate_msg: I,
         error_matcher: impl Fn(&E) -> bool + Copy,
     ) where
         E: std::fmt::Debug,
+        M: Clone,
+        I: Clone,
     {
-        self.test_basic_migration(migrate_fn, migration_msg);
-        self.test_after_instantiate(migrate_fn, instantiate_fn, migration_msg, instantiate_msg);
-        self.test_wrong_contract(migrate_fn, migration_msg, error_matcher);
+        self.test_basic_migration(migrate_fn, {
+            let msg = migration_msg.clone();
+            move || msg.clone()
+        });
+        self.test_after_instantiate(migrate_fn, instantiate_fn, {
+            let msg = migration_msg.clone();
+            move || msg.clone()
+        }, {
+            let msg = instantiate_msg.clone();
+            move || msg.clone()
+        });
+        self.test_wrong_contract(migrate_fn, {
+            let msg = migration_msg.clone();
+            move || msg.clone()
+        }, error_matcher);
     }
 
     /// Test basic migration from a previous version
@@ -204,10 +218,10 @@ mod tests {
         }
     }
 
-    #[derive(Default)]
+    #[derive(Default, Clone)]
     struct TestMigrateMsg;
 
-    #[derive(Default)]
+    #[derive(Default, Clone)]
     struct TestInstantiateMsg;
 
     fn test_migrate(
@@ -275,8 +289,8 @@ mod tests {
         tester.test_migration_basics(
             test_migrate,
             test_instantiate,
-            || TestMigrateMsg,
-            || TestInstantiateMsg,
+            TestMigrateMsg,
+            TestInstantiateMsg,
             |err| matches!(err, TestError::InvalidContractName { .. }),
         );
     }

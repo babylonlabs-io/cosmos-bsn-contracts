@@ -755,8 +755,8 @@ mod tests {
         tester.test_migration_basics(
             migrate,
             instantiate,
-            || MigrateMsg {},
-            || InstantiateMsg::new_test(),
+            MigrateMsg {},
+            InstantiateMsg::new_test(),
             |err| matches!(err, ContractError::InvalidContractName { .. }),
         );
     }

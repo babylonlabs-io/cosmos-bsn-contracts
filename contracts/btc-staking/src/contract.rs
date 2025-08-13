@@ -355,8 +355,8 @@ pub mod tests {
         tester.test_migration_basics(
             migrate,
             instantiate,
-            || crate::msg::MigrateMsg {},
-            || InstantiateMsg::default(),
+            crate::msg::MigrateMsg {},
+            InstantiateMsg::default(),
             |err| matches!(err, ContractError::InvalidContractName { .. }),
         );
     }
