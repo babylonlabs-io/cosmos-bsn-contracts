@@ -211,6 +211,9 @@ func (p *TestConsumerClient) deployContracts(pinCodes bool) (*ConsumerContract, 
 			Authority: p.App.GovKeeper.GetAuthority(),
 			CodeIDs:   []uint64{babylonCodeID, btcLightClientCodeID, btcStakingCodeID, btcFinalityCodeID},
 		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to pin codes: %w", err)
+		}
 	}
 
 	// Prepare init messages for the other contracts
