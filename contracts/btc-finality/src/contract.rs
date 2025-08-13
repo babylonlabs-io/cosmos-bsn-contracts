@@ -505,28 +505,14 @@ pub(crate) mod tests {
     }
 
     #[test]
-    fn test_migrate_basic() {
-        let tester = babylon_test_utils::migration::MigrationTester::new(CONTRACT_NAME, CONTRACT_VERSION);
-        tester.test_basic_migration(migrate, || crate::msg::MigrateMsg {});
-    }
-
-    #[test]
-    fn test_migrate_after_instantiate() {
-        let tester = babylon_test_utils::migration::MigrationTester::new(CONTRACT_NAME, CONTRACT_VERSION);
-        tester.test_after_instantiate(
+    fn test_migration_basics() {
+        let tester =
+            babylon_test_utils::migration::MigrationTester::new(CONTRACT_NAME, CONTRACT_VERSION);
+        tester.test_migration_basics(
             migrate,
             instantiate,
             || crate::msg::MigrateMsg {},
             || InstantiateMsg::default(),
-        );
-    }
-
-    #[test]
-    fn test_migrate_wrong_contract() {
-        let tester = babylon_test_utils::migration::MigrationTester::new(CONTRACT_NAME, CONTRACT_VERSION);
-        tester.test_wrong_contract(
-            migrate,
-            || crate::msg::MigrateMsg {},
             |err| matches!(err, ContractError::InvalidContractName { .. }),
         );
     }

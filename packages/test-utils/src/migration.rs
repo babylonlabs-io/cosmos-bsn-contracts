@@ -1,16 +1,14 @@
 //! Migration testing utilities for CosmWasm contracts
-//! 
+//!
 //! This module provides a test builder pattern for testing contract migrations
 //! that can be reused across all contracts to avoid code duplication.
 
-use cosmwasm_std::{
-    attr, testing::{mock_dependencies, mock_env, message_info}, 
-    DepsMut, Env, MessageInfo, Response
-};
+use cosmwasm_std::testing::{message_info, mock_dependencies, mock_env};
+use cosmwasm_std::{attr, DepsMut, Env, MessageInfo, Response};
 use cw2::{get_contract_version, set_contract_version};
 
 /// Tester for contract migration scenarios
-/// 
+///
 /// This tester provides a clean API for testing common migration scenarios
 /// across different contracts while avoiding code duplication.
 pub struct MigrationTester {
@@ -20,7 +18,7 @@ pub struct MigrationTester {
 
 impl MigrationTester {
     /// Create a new migration tester
-    /// 
+    ///
     /// # Arguments
     /// * `contract_name` - The contract's name constant (usually CONTRACT_NAME)
     /// * `contract_version` - The contract's version constant (usually CONTRACT_VERSION)
@@ -31,30 +29,60 @@ impl MigrationTester {
         }
     }
 
+    /// Test the basic migration scenarios
+    ///
+    /// This convenience method runs the three fundamental migration tests that every contract should have:
+    /// - Basic migration from a previous version
+    /// - Migration after instantiation
+    /// - Migration with wrong contract name (expects failure)
+    ///
+    /// Contracts can define additional custom migration tests beyond these basics.
+    ///
+    /// # Arguments
+    /// * `migrate_fn` - The contract's migrate function
+    /// * `instantiate_fn` - The contract's instantiate function
+    /// * `migration_msg` - Function that creates a migrate message
+    /// * `instantiate_msg` - Function that creates an instantiate message
+    /// * `error_matcher` - Function that checks if the error is the expected InvalidContractName
+    pub fn test_migration_basics<E, M, I>(
+        &self,
+        migrate_fn: impl Fn(DepsMut, Env, M) -> Result<Response, E> + Copy,
+        instantiate_fn: impl Fn(DepsMut, Env, MessageInfo, I) -> Result<Response, E> + Copy,
+        migration_msg: impl Fn() -> M + Copy,
+        instantiate_msg: impl Fn() -> I + Copy,
+        error_matcher: impl Fn(&E) -> bool + Copy,
+    ) where
+        E: std::fmt::Debug,
+    {
+        self.test_basic_migration(migrate_fn, migration_msg);
+        self.test_after_instantiate(migrate_fn, instantiate_fn, migration_msg, instantiate_msg);
+        self.test_wrong_contract(migrate_fn, migration_msg, error_matcher);
+    }
+
     /// Test basic migration from a previous version
-    /// 
+    ///
     /// This test:
     /// 1. Sets up a contract with a fake previous version ("0.1.0")
     /// 2. Calls migrate with the provided migrate message
     /// 3. Verifies response attributes and version update
-    /// 
+    ///
     /// # Arguments
     /// * `migrate_fn` - The contract's migrate function
-    /// * `default_migrate_msg` - Function that creates a default migrate message
+    /// * `migration_msg` - Function that creates a migrate message
     pub fn test_basic_migration<E, M>(
         &self,
         migrate_fn: impl Fn(DepsMut, Env, M) -> Result<Response, E>,
-        default_migrate_msg: impl Fn() -> M,
-    ) where 
+        migration_msg: impl Fn() -> M,
+    ) where
         E: std::fmt::Debug,
     {
         let mut deps = mock_dependencies();
-        
+
         // Set a fake previous version to simulate a deployed contract
         set_contract_version(&mut deps.storage, self.contract_name, "0.1.0").unwrap();
 
         // Call migrate with the provided migrate message
-        let res = migrate_fn(deps.as_mut(), mock_env(), default_migrate_msg()).unwrap();
+        let res = migrate_fn(deps.as_mut(), mock_env(), migration_msg()).unwrap();
 
         // Check that the response contains the expected attributes
         assert_eq!(res.attributes.len(), 3);
@@ -69,29 +97,29 @@ impl MigrationTester {
     }
 
     /// Test migration after contract instantiation
-    /// 
+    ///
     /// This test:
     /// 1. Instantiates the contract normally
     /// 2. Verifies the initial version is set
     /// 3. Attempts migration (same version to same version)
     /// 4. Verifies migration succeeds with proper attributes
-    /// 
+    ///
     /// # Arguments
     /// * `migrate_fn` - The contract's migrate function
     /// * `instantiate_fn` - The contract's instantiate function
-    /// * `default_migrate_msg` - Function that creates a default migrate message
-    /// * `default_instantiate_msg` - Function that creates a default instantiate message
+    /// * `migration_msg` - Function that creates a migrate message
+    /// * `instantiate_msg` - Function that creates an instantiate message
     pub fn test_after_instantiate<E, M, I>(
         &self,
         migrate_fn: impl Fn(DepsMut, Env, M) -> Result<Response, E>,
         instantiate_fn: impl Fn(DepsMut, Env, MessageInfo, I) -> Result<Response, E>,
-        default_migrate_msg: impl Fn() -> M,
-        default_instantiate_msg: impl Fn() -> I,
-    ) where 
+        migration_msg: impl Fn() -> M,
+        instantiate_msg: impl Fn() -> I,
+    ) where
         E: std::fmt::Debug,
     {
         let mut deps = mock_dependencies();
-        let msg = default_instantiate_msg();
+        let msg = instantiate_msg();
         let info = message_info(&deps.api.addr_make("creator"), &[]);
 
         // Instantiate the contract first
@@ -103,12 +131,15 @@ impl MigrationTester {
         assert_eq!(version_info.version, self.contract_version);
 
         // Now attempt migration
-        let res = migrate_fn(deps.as_mut(), mock_env(), default_migrate_msg()).unwrap();
+        let res = migrate_fn(deps.as_mut(), mock_env(), migration_msg()).unwrap();
 
         // Check that the response contains the expected attributes
         assert_eq!(res.attributes.len(), 3);
         assert_eq!(res.attributes[0], attr("action", "migrate"));
-        assert_eq!(res.attributes[1], attr("from_version", self.contract_version));
+        assert_eq!(
+            res.attributes[1],
+            attr("from_version", self.contract_version)
+        );
         assert_eq!(res.attributes[2], attr("to_version", self.contract_version));
 
         // Verify the version remains the same
@@ -118,22 +149,22 @@ impl MigrationTester {
     }
 
     /// Test migration with wrong contract name
-    /// 
+    ///
     /// This test:
     /// 1. Sets up storage with a wrong contract name
     /// 2. Attempts migration and expects it to fail
     /// 3. Verifies the error matches the expected InvalidContractName pattern
-    /// 
+    ///
     /// # Arguments
     /// * `migrate_fn` - The contract's migrate function
-    /// * `default_migrate_msg` - Function that creates a default migrate message
+    /// * `migration_msg` - Function that creates a migrate message
     /// * `error_matcher` - Function that checks if the error is the expected InvalidContractName
     pub fn test_wrong_contract<E, M>(
         &self,
         migrate_fn: impl Fn(DepsMut, Env, M) -> Result<Response, E>,
-        default_migrate_msg: impl Fn() -> M,
+        migration_msg: impl Fn() -> M,
         error_matcher: impl Fn(&E) -> bool,
-    ) where 
+    ) where
         E: std::fmt::Debug,
     {
         let mut deps = mock_dependencies();
@@ -142,12 +173,12 @@ impl MigrationTester {
         set_contract_version(&mut deps.storage, "wrong-contract", "0.1.0").unwrap();
 
         // Call migrate and expect error
-        let err = migrate_fn(deps.as_mut(), mock_env(), default_migrate_msg()).unwrap_err();
+        let err = migrate_fn(deps.as_mut(), mock_env(), migration_msg()).unwrap_err();
 
         // Check the error matches the expected InvalidContractName pattern
         assert!(
-            error_matcher(&err), 
-            "Expected InvalidContractName error, got: {:?}", 
+            error_matcher(&err),
+            "Expected InvalidContractName error, got: {:?}",
             err
         );
     }
@@ -156,7 +187,7 @@ impl MigrationTester {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cosmwasm_std::{StdError, Response};
+    use cosmwasm_std::{Response, StdError};
 
     const TEST_CONTRACT_NAME: &str = "test-contract";
     const TEST_CONTRACT_VERSION: &str = "1.0.0";
@@ -179,9 +210,13 @@ mod tests {
     #[derive(Default)]
     struct TestInstantiateMsg;
 
-    fn test_migrate(_deps: DepsMut, _env: Env, _msg: TestMigrateMsg) -> Result<Response, TestError> {
+    fn test_migrate(
+        _deps: DepsMut,
+        _env: Env,
+        _msg: TestMigrateMsg,
+    ) -> Result<Response, TestError> {
         let prev_version = get_contract_version(_deps.storage)?;
-        
+
         if prev_version.contract != TEST_CONTRACT_NAME {
             return Err(TestError::InvalidContractName {
                 expected: TEST_CONTRACT_NAME.to_string(),
@@ -198,10 +233,10 @@ mod tests {
     }
 
     fn test_instantiate(
-        _deps: DepsMut, 
-        _env: Env, 
-        _info: MessageInfo, 
-        _msg: TestInstantiateMsg
+        _deps: DepsMut,
+        _env: Env,
+        _info: MessageInfo,
+        _msg: TestInstantiateMsg,
     ) -> Result<Response, TestError> {
         set_contract_version(_deps.storage, TEST_CONTRACT_NAME, TEST_CONTRACT_VERSION)?;
         Ok(Response::new().add_attribute("action", "instantiate"))
@@ -230,6 +265,18 @@ mod tests {
         tester.test_wrong_contract(
             test_migrate,
             || TestMigrateMsg,
+            |err| matches!(err, TestError::InvalidContractName { .. }),
+        );
+    }
+
+    #[test]
+    fn test_migration_basics() {
+        let tester = MigrationTester::new(TEST_CONTRACT_NAME, TEST_CONTRACT_VERSION);
+        tester.test_migration_basics(
+            test_migrate,
+            test_instantiate,
+            || TestMigrateMsg,
+            || TestInstantiateMsg,
             |err| matches!(err, TestError::InvalidContractName { .. }),
         );
     }
