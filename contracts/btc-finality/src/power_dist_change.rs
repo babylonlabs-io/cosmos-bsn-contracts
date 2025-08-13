@@ -15,7 +15,6 @@ use cosmwasm_std::{Addr, DepsMut, Env, QuerierWrapper, Response};
 use std::collections::{HashMap, HashSet};
 
 const QUERY_LIMIT: Option<u32> = Some(30);
-pub const JAIL_FOREVER: u64 = 0;
 
 /// Sorts all finality providers, counts the total voting power of top finality providers, and records them
 /// in the contract state. Returns a Response with events for finality provider status changes.
@@ -48,10 +47,10 @@ pub fn compute_active_finality_providers(
                     return false;
                 }
                 // Filter out FPs that are jailed.
-                // Error (shouldn't happen) is being mapped to "jailed forever"
+                // Any storage error defaults to treating the FP as not jailed
                 if JAIL
                     .may_load(deps.storage, &fp.btc_pk_hex)
-                    .unwrap_or(Some(JAIL_FOREVER))
+                    .unwrap_or(None)
                     .is_some()
                 {
                     return false;
