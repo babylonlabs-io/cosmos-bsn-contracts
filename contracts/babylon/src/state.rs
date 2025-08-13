@@ -277,52 +277,6 @@ fn extract_data_from_btc_ts(
     Ok((epoch, raw_ckpt, proof_epoch_sealed, txs_info))
 }
 
-/// Initialises the Babylon epoch chain storage.
-fn init(
-    deps: &mut DepsMut,
-    btc_headers: Option<&BtcHeaders>,
-    epoch: &Epoch,
-    raw_ckpt: &RawCheckpoint,
-    proof_epoch_sealed: &ProofEpochSealed,
-    txs_info: &[TransactionInfo; NUM_BTC_TXS],
-) -> Result<(), BabylonEpochChainError> {
-    let verified_tuple = verify_epoch_and_checkpoint(
-        deps.as_ref(),
-        btc_headers,
-        epoch,
-        raw_ckpt,
-        proof_epoch_sealed,
-        txs_info,
-    )?;
-
-    // all good, init base
-    set_base_epoch(deps, epoch)?;
-    // then insert everything and update last finalised epoch
-    Ok(insert_epoch_and_checkpoint(deps, &verified_tuple)?)
-}
-
-/// Handles a BTC-finalised epoch by using the raw checkpoint and inclusion proofs.
-fn handle_epoch_and_checkpoint(
-    deps: &mut DepsMut,
-    btc_headers: Option<&BtcHeaders>,
-    epoch: &Epoch,
-    raw_ckpt: &RawCheckpoint,
-    proof_epoch_sealed: &ProofEpochSealed,
-    txs_info: &[TransactionInfo; NUM_BTC_TXS],
-) -> Result<(), BabylonEpochChainError> {
-    let verified_tuple = verify_epoch_and_checkpoint(
-        deps.as_ref(),
-        btc_headers,
-        epoch,
-        raw_ckpt,
-        proof_epoch_sealed,
-        txs_info,
-    )?;
-
-    // all good, insert everything and update last finalised epoch
-    Ok(insert_epoch_and_checkpoint(deps, &verified_tuple)?)
-}
-
 /// Handles a BTC timestamp.
 /// It returns an Option<WasmMsg>.
 /// The returned WasmMsg, if Some, is a message to submit BTC headers to the BTC light client.
@@ -373,15 +327,23 @@ pub fn handle_btc_timestamp(
 
     if is_initialized(deps) {
         deps.api.debug("CONTRACT: handle_btc_timestamp: Babylon epoch chain is initialized, handling epoch and checkpoint");
-        handle_epoch_and_checkpoint(
-            deps,
-            btc_ts.btc_headers.as_ref(),
-            epoch,
-            raw_ckpt,
-            proof_epoch_sealed,
-            &txs_info,
-        )
-        .map_err(|e| {
+
+        // Handles a BTC-finalised epoch by using the raw checkpoint and inclusion proofs.
+        let mut handle_epoch_and_checkpoint = || -> Result<(), BabylonEpochChainError> {
+            let verified_tuple = verify_epoch_and_checkpoint(
+                deps.as_ref(),
+                btc_ts.btc_headers.as_ref(),
+                epoch,
+                raw_ckpt,
+                proof_epoch_sealed,
+                &txs_info,
+            )?;
+
+            // all good, insert everything and update last finalised epoch
+            Ok(insert_epoch_and_checkpoint(deps, &verified_tuple)?)
+        };
+
+        handle_epoch_and_checkpoint().map_err(|e| {
             let err_msg = format!("failed to handle Babylon epoch from Babylon: {e}");
             deps.api
                 .debug(&format!("CONTRACT: handle_btc_timestamp: {err_msg}"));
@@ -390,15 +352,23 @@ pub fn handle_btc_timestamp(
     } else {
         deps.api
             .debug("handle_btc_timestamp: Babylon epoch chain not initialized, initializing");
-        init(
-            deps,
-            btc_ts.btc_headers.as_ref(),
-            epoch,
-            raw_ckpt,
-            proof_epoch_sealed,
-            &txs_info,
-        )
-        .map_err(|e| {
+
+        // Initialises the Babylon epoch chain storage.
+        let mut init = || -> Result<(), BabylonEpochChainError> {
+            let verified_tuple = verify_epoch_and_checkpoint(
+                deps.as_ref(),
+                btc_ts.btc_headers.as_ref(),
+                epoch,
+                raw_ckpt,
+                proof_epoch_sealed,
+                &txs_info,
+            )?;
+
+            set_base_epoch(deps, epoch)?;
+            Ok(insert_epoch_and_checkpoint(deps, &verified_tuple)?)
+        };
+
+        init().map_err(|e| {
             let err_msg = format!("failed to initialize Babylon epoch: {e}");
             deps.api
                 .debug(&format!("CONTRACT: handle_btc_timestamp: {err_msg}"));
