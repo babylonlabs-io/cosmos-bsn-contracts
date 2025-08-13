@@ -1,3 +1,4 @@
+#[cfg(not(target_arch = "wasm32"))]
 pub mod migration;
 
 use babylon_apis::btc_staking_api::{
