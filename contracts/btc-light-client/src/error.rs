@@ -69,6 +69,12 @@ pub enum ContractError {
 
     #[error("Unauthorized: sender {0} is not authorized to call this function")]
     Unauthorized(String),
+
+    #[error("Cannot migrate from different contract. Expected: {expected}, found: {actual}")]
+    InvalidContractName {
+        expected: String,
+        actual: String,
+    },
 }
 
 impl From<bitcoin::consensus::encode::Error> for ContractError {
