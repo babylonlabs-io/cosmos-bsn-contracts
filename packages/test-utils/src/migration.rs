@@ -57,7 +57,7 @@ impl MigrationTester {
         instantiate_fn: InstantiateFn<E, I>,
         migration_msg: M,
         instantiate_msg: I,
-        error_matcher: impl Fn(&E) -> Option<(&str, &str)> + Copy,
+        error_matcher: impl Fn(&E) -> Option<(&str, &str)>,
     ) where
         E: Debug,
         M: Clone,
