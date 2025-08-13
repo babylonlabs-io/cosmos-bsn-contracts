@@ -1,0 +1,46 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Nullable_SigningInfoResponse",
+  "anyOf": [
+    {
+      "$ref": "#/definitions/SigningInfoResponse"
+    },
+    {
+      "type": "null"
+    }
+  ],
+  "definitions": {
+    "SigningInfoResponse": {
+      "type": "object",
+      "required": [
+        "fp_btc_pk_hex",
+        "last_signed_height",
+        "start_height"
+      ],
+      "properties": {
+        "fp_btc_pk_hex": {
+          "type": "string"
+        },
+        "jailed_until": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0.0
+        },
+        "last_signed_height": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        },
+        "start_height": {
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

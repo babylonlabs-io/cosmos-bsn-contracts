@@ -67,6 +67,8 @@ pub enum ContractError {
     BitcoinEncode(String),
     #[error(transparent)]
     HexError(#[from] FromHexError),
+    #[error("Cannot migrate from different contract. Expected: {expected}, found: {actual}")]
+    InvalidContractName { expected: String, actual: String },
 }
 
 impl From<bitcoin::consensus::encode::Error> for ContractError {

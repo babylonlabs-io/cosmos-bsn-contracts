@@ -1,10 +1,11 @@
 use crate::error::ContractError;
+use crate::msg::contract::MigrateMsg;
 pub use crate::msg::ExecuteMsg;
 use crate::msg::{InstantiateMsg, QueryMsg};
 pub use crate::state::BitcoinNetwork;
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
-use cosmwasm_std::{Binary, Deps, DepsMut, Empty, Env, MessageInfo, Response};
+use cosmwasm_std::{Binary, Deps, DepsMut, Env, MessageInfo, Response};
 
 mod bitcoin;
 pub mod contract;
@@ -31,7 +32,7 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> Result<Binary, ContractErro
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn migrate(deps: DepsMut, env: Env, msg: Empty) -> Result<Response, ContractError> {
+pub fn migrate(deps: DepsMut, env: Env, msg: MigrateMsg) -> Result<Response, ContractError> {
     contract::migrate(deps, env, msg)
 }
 

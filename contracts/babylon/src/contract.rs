@@ -1,14 +1,14 @@
 use crate::error::ContractError;
 use crate::ibc::{get_ibc_packet_timeout, ibc_packet, IBC_TRANSFER_CHANNEL, IBC_ZC_CHANNEL};
-use crate::msg::contract::{ExecuteMsg, InstantiateMsg, QueryMsg};
+use crate::msg::contract::{ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg};
 use crate::msg::ibc::{CallbackMemo, FpRatio};
 use crate::queries;
 use crate::state::config::{Config, CONFIG, DEFAULT_IBC_PACKET_TIMEOUT_DAYS};
 use crate::state::consumer_header_chain::CONSUMER_HEIGHT_LAST;
 use babylon_apis::{btc_staking_api, finality_api, to_bech32_addr, to_module_canonical_addr};
 use cosmwasm_std::{
-    to_json_binary, to_json_string, Addr, Decimal, Deps, DepsMut, Empty, Env, MessageInfo,
-    QueryResponse, Reply, Response, SubMsg, SubMsgResponse, WasmMsg,
+    to_json_binary, to_json_string, Addr, Decimal, Deps, DepsMut, Env, MessageInfo, QueryResponse,
+    Reply, Response, SubMsg, SubMsgResponse, WasmMsg,
 };
 use cw2::set_contract_version;
 use cw_utils::{must_pay, ParseReplyError};
@@ -276,9 +276,28 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> Result<QueryResponse, Cont
     }
 }
 
-/// this is a no-op just to test how this integrates with wasmd
-pub fn migrate(_deps: DepsMut, _env: Env, _msg: Empty) -> Result<Response, ContractError> {
-    Ok(Response::default())
+/// Handle contract migration.
+/// This function is called when the contract is migrated to a new version.
+/// For non-state-breaking migrations, this updates the contract version and logs the migration.
+pub fn migrate(deps: DepsMut, _env: Env, _msg: MigrateMsg) -> Result<Response, ContractError> {
+    // Get the current version stored in the contract
+    let prev_version = cw2::get_contract_version(deps.storage)?;
+
+    // Validate that this is the expected contract
+    if prev_version.contract != CONTRACT_NAME {
+        return Err(ContractError::InvalidContractName {
+            expected: CONTRACT_NAME.to_string(),
+            actual: prev_version.contract,
+        });
+    }
+
+    // Update to the new version
+    set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
+
+    Ok(Response::new()
+        .add_attribute("action", "migrate")
+        .add_attribute("from_version", prev_version.version)
+        .add_attribute("to_version", CONTRACT_VERSION))
 }
 
 pub fn execute(
@@ -419,7 +438,7 @@ mod tests {
     use bitcoin::block::Header as BlockHeader;
     use btc_light_client::msg::InstantiateMsg as BtcLightClientInstantiateMsg;
     use cosmwasm_std::testing::{message_info, mock_dependencies, mock_env};
-    use cosmwasm_std::{Binary, Uint128};
+    use cosmwasm_std::{attr, Binary, Uint128};
 
     const CREATOR: &str = "creator";
 
@@ -727,5 +746,76 @@ mod tests {
         assert_eq!(response.attributes[1].value, "1000");
         assert_eq!(response.attributes[2].key, "fp_count");
         assert_eq!(response.attributes[2].value, "2");
+    }
+
+    #[test]
+    fn test_migrate_basic() {
+        let mut deps = mock_dependencies();
+
+        // Set a fake previous version to simulate a deployed contract
+        set_contract_version(&mut deps.storage, CONTRACT_NAME, "0.1.0").unwrap();
+
+        // Call migrate with empty MigrateMsg
+        let res = migrate(deps.as_mut(), mock_env(), MigrateMsg {}).unwrap();
+
+        // Check that the response contains the expected attributes
+        assert_eq!(res.attributes.len(), 3);
+        assert_eq!(res.attributes[0], attr("action", "migrate"));
+        assert_eq!(res.attributes[1], attr("from_version", "0.1.0"));
+        assert_eq!(res.attributes[2], attr("to_version", CONTRACT_VERSION));
+
+        // Verify the version was updated
+        let version_info = cw2::get_contract_version(&deps.storage).unwrap();
+        assert_eq!(version_info.contract, CONTRACT_NAME);
+        assert_eq!(version_info.version, CONTRACT_VERSION);
+    }
+
+    #[test]
+    fn test_migrate_after_instantiate() {
+        let mut deps = mock_dependencies();
+        let msg = InstantiateMsg::new_test();
+        let info = message_info(&deps.api.addr_make(CREATOR), &[]);
+
+        // Instantiate the contract first
+        instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
+
+        // Verify initial version is set
+        let version_info = cw2::get_contract_version(&deps.storage).unwrap();
+        assert_eq!(version_info.contract, CONTRACT_NAME);
+        assert_eq!(version_info.version, CONTRACT_VERSION);
+
+        // Now attempt migration
+        let res = migrate(deps.as_mut(), mock_env(), MigrateMsg {}).unwrap();
+
+        // Check that the response contains the expected attributes
+        assert_eq!(res.attributes.len(), 3);
+        assert_eq!(res.attributes[0], attr("action", "migrate"));
+        assert_eq!(res.attributes[1], attr("from_version", CONTRACT_VERSION));
+        assert_eq!(res.attributes[2], attr("to_version", CONTRACT_VERSION));
+
+        // Verify the version remains the same
+        let version_info = cw2::get_contract_version(&deps.storage).unwrap();
+        assert_eq!(version_info.contract, CONTRACT_NAME);
+        assert_eq!(version_info.version, CONTRACT_VERSION);
+    }
+
+    #[test]
+    fn test_migrate_wrong_contract() {
+        let mut deps = mock_dependencies();
+
+        // Set a wrong contract name to simulate migration from different contract
+        set_contract_version(&mut deps.storage, "wrong-contract", "0.1.0").unwrap();
+
+        // Call migrate and expect error
+        let err = migrate(deps.as_mut(), mock_env(), MigrateMsg {}).unwrap_err();
+
+        // Check the error is InvalidContractName
+        match err {
+            ContractError::InvalidContractName { expected, actual } => {
+                assert_eq!(expected, CONTRACT_NAME);
+                assert_eq!(actual, "wrong-contract");
+            }
+            _ => panic!("Expected InvalidContractName error"),
+        }
     }
 }

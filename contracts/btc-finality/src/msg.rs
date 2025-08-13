@@ -25,6 +25,9 @@ pub const TMHASH_SIZE: usize = 32;
 pub type InstantiateMsg = babylon_apis::finality_api::InstantiateMsg;
 pub type ExecuteMsg = babylon_apis::finality_api::ExecuteMsg;
 
+#[cw_serde]
+pub struct MigrateMsg {}
+
 // https://github.com/babylonlabs-io/babylon/blob/49972e2d3e35caf0a685c37e1f745c47b75bfc69/x/finality/types/tx.pb.go#L36
 #[derive(Debug)]
 pub struct MsgCommitPubRand {

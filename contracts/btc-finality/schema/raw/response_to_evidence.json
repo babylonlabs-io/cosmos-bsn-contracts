@@ -1,0 +1,101 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "EvidenceResponse",
+  "type": "object",
+  "properties": {
+    "evidence": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/Evidence"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "Evidence": {
+      "description": "Evidence is the evidence that a finality provider has signed finality signatures with correct public randomness on two conflicting Babylon headers",
+      "type": "object",
+      "required": [
+        "block_height",
+        "canonical_app_hash",
+        "canonical_finality_sig",
+        "fork_app_hash",
+        "fork_finality_sig",
+        "fp_btc_pk",
+        "pub_rand",
+        "signing_context"
+      ],
+      "properties": {
+        "block_height": {
+          "description": "Height of the conflicting blocks",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        },
+        "canonical_app_hash": {
+          "description": "AppHash of the canonical block",
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "uint8",
+            "minimum": 0.0
+          }
+        },
+        "canonical_finality_sig": {
+          "description": "Finality signature to the canonical block, where finality signature is an EOTS signature, i.e., the `s` in a Schnorr signature `(r, s)`. `r` is the public randomness already committed by the finality provider. Deserializes to `SchnorrEOTSSig`",
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "uint8",
+            "minimum": 0.0
+          }
+        },
+        "fork_app_hash": {
+          "description": "AppHash of the fork block",
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "uint8",
+            "minimum": 0.0
+          }
+        },
+        "fork_finality_sig": {
+          "description": "Finality signature to the fork block, where finality signature is an EOTS signature. Deserializes to `SchnorrEOTSSig`",
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "uint8",
+            "minimum": 0.0
+          }
+        },
+        "fp_btc_pk": {
+          "description": "BTC PK of the finality provider that casts this vote",
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "uint8",
+            "minimum": 0.0
+          }
+        },
+        "pub_rand": {
+          "description": "Public randomness the finality provider has committed to. Deserializes to `SchnorrPubRand`",
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "uint8",
+            "minimum": 0.0
+          }
+        },
+        "signing_context": {
+          "description": "Context in which the finality signatures were used. It must be hex encoded 32 bytes, of the sha256 hash of the context string",
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

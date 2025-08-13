@@ -1,0 +1,38 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "JailedFinalityProvidersResponse",
+  "type": "object",
+  "required": [
+    "jailed_finality_providers"
+  ],
+  "properties": {
+    "jailed_finality_providers": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/JailedFinalityProvider"
+      }
+    }
+  },
+  "additionalProperties": false,
+  "definitions": {
+    "JailedFinalityProvider": {
+      "type": "object",
+      "required": [
+        "btc_pk_hex",
+        "jailed_until"
+      ],
+      "properties": {
+        "btc_pk_hex": {
+          "type": "string"
+        },
+        "jailed_until": {
+          "description": "Here zero means 'forever'",
+          "type": "integer",
+          "format": "uint64",
+          "minimum": 0.0
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ActiveFinalityProvidersResponse",
+  "type": "object",
+  "required": [
+    "active_finality_providers"
+  ],
+  "properties": {
+    "active_finality_providers": {
+      "type": "object",
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

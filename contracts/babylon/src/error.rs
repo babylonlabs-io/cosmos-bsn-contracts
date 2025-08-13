@@ -60,6 +60,8 @@ pub enum ContractError {
     InvalidRewards(Uint128, Uint128),
     #[error("Consumer name is not set")]
     ConsumerNameNotSet {},
+    #[error("Cannot migrate from different contract. Expected: {expected}, found: {actual}")]
+    InvalidContractName { expected: String, actual: String },
 }
 
 impl From<serde_json::Error> for ContractError {

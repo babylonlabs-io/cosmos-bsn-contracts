@@ -1,16 +1,17 @@
 # Cosmos BSN Contracts
 
-This repository contains the CosmWasm smart contracts that enable
-the integration of Cosmos BSNs with the Babylon BTC Staking protocol.
+This repository contains the CosmWasm smart contracts that enable the
+integration of Cosmos BSNs with the Babylon BTC Staking protocol.
 
 ## Architecture
 
 The contracts are written in Rust, and use the CosmWasm framework to interact
-with the BSN's Cosmos application layer.
-There's a thin layer which adds a [`babylon` module](https://github.com/babylonlabs-io/babylon-sdk/tree/main/x/babylon)
-, which provides the necessary functionality to interact with the contracts
-through privileged calls (`sudo` messages) and custom messages.
-This thin layer is naturally written in Go, and uses the Cosmos SDK.
+with the BSN's Cosmos application layer. There's a thin layer which adds a
+[`babylon`
+module](https://github.com/babylonlabs-io/babylon-sdk/tree/main/x/babylon) ,
+which provides the necessary functionality to interact with the contracts
+through privileged calls (`sudo` messages) and custom messages. This thin layer
+is naturally written in Go, and uses the Cosmos SDK.
 
 An integrator can import the `babylon` module into their Cosmos SDK-based chain,
 and use the provided functionality to interact with the Cosmos BSN contracts,
@@ -22,6 +23,13 @@ integration and future upgrades.
 
 A broad architecture diagram, along with the contracts' main interfaces, can be
 found in the [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) documentation.
+
+## Contract Migration
+
+All contracts support CosmWasm's built-in migration mechanism for upgrading
+contract logic while preserving state. For detailed migration procedures,
+troubleshooting, and best practices, see the [`MIGRATION.md`](MIGRATION.md)
+guide.
 
 ## Development
 
@@ -79,8 +87,8 @@ Note: Requires the optimized contract to be built (`cargo optimize`)
 cargo test --test integration
 ```
 
-Alternatively, you can run the following command, that makes sure to build the optimized contract before running
-the integration tests.
+Alternatively, you can run the following command, that makes sure to build the
+optimized contract before running the integration tests.
 
 ```bash
 cargo run-script integration

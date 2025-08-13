@@ -130,4 +130,6 @@ pub enum ContractError {
     EotsError(#[from] eots::Error),
     #[error("Arithmetic calculation overflow")]
     CalculationOverflow,
+    #[error("Cannot migrate from different contract. Expected: {expected}, found: {actual}")]
+    InvalidContractName { expected: String, actual: String },
 }
