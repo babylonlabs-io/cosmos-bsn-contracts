@@ -46,13 +46,8 @@ pub fn compute_active_finality_providers(
                 if fp.slashed {
                     return false;
                 }
-                // Filter out FPs that are jailed.
-                // Any storage error defaults to treating the FP as not jailed
-                if JAIL
-                    .may_load(deps.storage, &fp.btc_pk_hex)
-                    .unwrap_or(None)
-                    .is_some()
-                {
+                // Filter out FPs that are jailed (fail-safe boolean check)
+                if JAIL.has(deps.storage, &fp.btc_pk_hex) {
                     return false;
                 }
                 // Filter out FPs that don't have timestamped public randomness
