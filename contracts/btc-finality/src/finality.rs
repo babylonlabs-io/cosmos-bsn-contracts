@@ -1,6 +1,5 @@
 use crate::error::{ContractError, FinalitySigError};
 use crate::msg::{MsgAddFinalitySig, MsgCommitPubRand};
-use crate::power_dist_change::JAIL_FOREVER;
 use crate::state::config::{ADMIN, CONFIG};
 use crate::state::finality::{
     collect_accumulated_voting_weights, get_fp_power, ACCUMULATED_VOTING_WEIGHTS, BLOCKS,
@@ -320,11 +319,6 @@ pub fn handle_unjail(
     // Others can unjail only themselves
     // First, ensure the finality provider is jailed
     let jail_until = JAIL.load(deps.storage, fp_btc_pk_hex)?;
-
-    // Ensure the jail is not forever
-    if jail_until == JAIL_FOREVER {
-        return Err(ContractError::JailedForever {});
-    }
 
     // Ensure the jail period has passed (except for admin)
     if !is_admin && env.block.time.seconds() < jail_until {

@@ -29,7 +29,6 @@ pub const FP_BLOCK_SIGNER: Map<&str, u64> = Map::new("block_signer");
 /// Map of jailed FPs to jail expiration time.
 /// If an FP doesn't appear in this map, it is not jailed.
 /// The value is the time in seconds since UNIX epoch when the FP will be released from jail.
-/// If it's zero, the FP will be jailed forever.
 pub const JAIL: Map<&str, u64> = Map::new("jail");
 
 /// Map of double signing evidence by FP and block height
