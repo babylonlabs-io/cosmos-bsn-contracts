@@ -116,7 +116,7 @@ func (p *TestConsumerClient) GetSender() sdk.AccAddress {
 	return p.Chain.SenderAccount.GetAddress()
 }
 
-func (p *TestConsumerClient) BootstrapContracts(babylonContractPath string, btcLightClientContractPath string, btcStakingContractPath string, btcFinalityContractPath string) (*ConsumerContract, error) {
+func (p *TestConsumerClient) BootstrapContracts(babylonContractPath string, btcLightClientContractPath string, btcStakingContractPath string, btcFinalityContractPath string, pinCodes bool) (*ConsumerContract, error) {
 	// Query the Babylon module for contract addresses
 	contracts := p.App.BabylonKeeper.GetBSNContracts(p.Chain.GetContext())
 	if contracts == nil || !contracts.IsSet() {
@@ -126,6 +126,7 @@ func (p *TestConsumerClient) BootstrapContracts(babylonContractPath string, btcL
 			btcLightClientContractPath,
 			btcStakingContractPath,
 			btcFinalityContractPath,
+			pinCodes,
 		)
 	}
 
@@ -156,7 +157,7 @@ func (p *TestConsumerClient) BootstrapContracts(babylonContractPath string, btcL
 	return &r, nil
 }
 
-func (p *TestConsumerClient) DeployContracts(babylonContractPath string, btcLightClientContractPath string, btcStakingContractPath string, btcFinalityContractPath string) (*ConsumerContract, error) {
+func (p *TestConsumerClient) DeployContracts(babylonContractPath string, btcLightClientContractPath string, btcStakingContractPath string, btcFinalityContractPath string, pinCodes bool) (*ConsumerContract, error) {
 	ctx := p.Chain.GetContext()
 	wasmKeeper := p.App.WasmKeeper
 	wasmMsgServer := wasmkeeper.NewMsgServerImpl(&wasmKeeper)
@@ -215,6 +216,17 @@ func (p *TestConsumerClient) DeployContracts(babylonContractPath string, btcLigh
 		return nil, fmt.Errorf("failed to store btc finality contract: %w", err)
 	}
 	btcFinalityCodeID := btcFinalityResp.CodeID
+
+	if pinCodes {
+		// pin codes
+		_, err = wasmMsgServer.PinCodes(ctx, &wasmtypes.MsgPinCodes{
+			Authority: p.App.GovKeeper.GetAuthority(),
+			CodeIDs:   []uint64{babylonCodeID, btcLightClientCodeID, btcStakingCodeID, btcFinalityCodeID},
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to pin codes: %w", err)
+		}
+	}
 
 	// Prepare init messages for the other contracts
 	admin := p.Chain.SenderAccount.GetAddress().String()

@@ -7,11 +7,10 @@ import (
 	"github.com/babylonlabs-io/babylon-sdk/demo/app"
 	appparams "github.com/babylonlabs-io/babylon-sdk/demo/app/params"
 	btclctypes "github.com/babylonlabs-io/babylon/v3/x/btclightclient/types"
+	"github.com/babylonlabs-io/cosmos-bsn-contracts/e2e/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	ibctesting "github.com/cosmos/ibc-go/v10/testing"
 	"github.com/stretchr/testify/suite"
-
-	"github.com/babylonlabs-io/cosmos-bsn-contracts/e2e/types"
 )
 
 // In the Test function, we create and run the suite
@@ -74,6 +73,7 @@ func (s *ContractMigrationSuite) Test1ContractDeployment() {
 		types.OLD_BTC_LIGHT_CLIENT_CONTRACT_PATH,
 		types.OLD_BTC_STAKING_CONTRACT_PATH,
 		types.OLD_BTC_FINALITY_CONTRACT_PATH,
+		true, // pin codes
 	)
 	s.NoError(err)
 	// provider client
