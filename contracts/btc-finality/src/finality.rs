@@ -12,7 +12,7 @@ use crate::state::public_randomness::{
 use babylon_apis::btc_staking_api::FinalityProvider;
 use babylon_apis::finality_api::{Evidence, IndexedBlock, PubRandCommit};
 use babylon_apis::to_canonical_addr;
-use babylon_contract::msg::contract::{ExecuteMsg, RewardInfo};
+use babylon_contract::msg::{ExecuteMsg, RewardInfo};
 use cosmwasm_std::{
     coins, to_json_binary, DepsMut, Env, Event, MessageInfo, Response, Uint128, WasmMsg,
 };

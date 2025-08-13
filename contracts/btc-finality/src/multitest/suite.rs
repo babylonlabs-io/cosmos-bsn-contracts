@@ -132,7 +132,7 @@ impl SuiteBuilder {
             .instantiate_contract(
                 contract_code_id,
                 owner.clone(),
-                &babylon_contract::msg::contract::InstantiateMsg {
+                &babylon_contract::msg::InstantiateMsg {
                     network: BitcoinNetwork::Testnet,
                     btc_confirmation_depth: 1,
                     checkpoint_finalization_timeout: 1,
@@ -256,7 +256,7 @@ impl Suite {
             .wrap()
             .query_wasm_smart(
                 self.babylon.clone(),
-                &babylon_contract::msg::contract::QueryMsg::Config {},
+                &babylon_contract::msg::QueryMsg::Config {},
             )
             .unwrap()
     }

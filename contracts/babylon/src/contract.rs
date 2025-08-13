@@ -1,7 +1,6 @@
 use crate::error::ContractError;
 use crate::ibc::{get_ibc_packet_timeout, ibc_packet, IBC_TRANSFER_CHANNEL, IBC_ZC_CHANNEL};
-use crate::msg::contract::{ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg};
-use crate::msg::ibc::{CallbackMemo, FpRatio};
+use crate::msg::{CallbackMemo, ExecuteMsg, FpRatio, InstantiateMsg, MigrateMsg, QueryMsg};
 use crate::queries;
 use crate::state::{Config, CONFIG, CONSUMER_HEIGHT_LAST, DEFAULT_IBC_PACKET_TIMEOUT_DAYS};
 use babylon_apis::{btc_staking_api, finality_api, to_bech32_addr, to_module_canonical_addr};
@@ -428,7 +427,7 @@ pub fn execute(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::msg::contract::RewardInfo;
+    use crate::msg::RewardInfo;
     use bitcoin::block::Header as BlockHeader;
     use btc_light_client::msg::InstantiateMsg as BtcLightClientInstantiateMsg;
     use cosmwasm_std::testing::{message_info, mock_dependencies, mock_env};

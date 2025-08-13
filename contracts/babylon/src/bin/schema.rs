@@ -1,4 +1,4 @@
-use babylon_contract::msg::contract::{ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg};
+use babylon_contract::msg::{ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg};
 use cosmwasm_schema::write_api;
 
 fn main() {
