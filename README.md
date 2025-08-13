@@ -23,6 +23,10 @@ integration and future upgrades.
 A broad architecture diagram, along with the contracts' main interfaces, can be
 found in the [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) documentation.
 
+## Contract Migration
+
+All contracts support CosmWasm's built-in migration mechanism for upgrading contract logic while preserving state. For detailed migration procedures, troubleshooting, and best practices, see the [`MIGRATION.md`](MIGRATION.md) guide.
+
 ## Development
 
 ### Prerequisites
