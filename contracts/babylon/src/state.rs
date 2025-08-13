@@ -70,18 +70,6 @@ pub fn get_consumer_header(
     Ok(indexed_header)
 }
 
-#[allow(dead_code)]
-fn verify_consumer_header(
-    _deps: Deps,
-    _consumer_header: &IndexedHeader,
-    _epoch: &Epoch,
-    _proof_consumer_header_in_epoch: &ProofOps,
-) -> Result<(), error::ConsumerHeaderChainError> {
-    // NOTE: we don't verify timestamped BSN header here,
-    // as we assume it is already verified by Babylon
-    Ok(())
-}
-
 // TODO: unit test
 fn handle_consumer_header(
     deps: &mut DepsMut,
