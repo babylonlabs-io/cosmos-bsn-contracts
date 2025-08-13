@@ -82,25 +82,20 @@ fn verify_consumer_header(
     Ok(())
 }
 
-fn insert_consumer_header(deps: &mut DepsMut, consumer_header: &IndexedHeader) -> StdResult<()> {
-    // insert indexed header
-    let consumer_header_bytes = consumer_header.encode_to_vec();
-    CONSUMER_HEADERS.save(deps.storage, consumer_header.height, &consumer_header_bytes)?;
-
-    // update last finalised header
-    let last_consumer_header_bytes = &consumer_header.encode_to_vec();
-    CONSUMER_HEADER_LAST
-        .save(deps.storage, last_consumer_header_bytes)
-        // Save the height of the last finalised Consumer header in passing as well
-        .and(CONSUMER_HEIGHT_LAST.save(deps.storage, &consumer_header.height))
-}
-
 // TODO: unit test
 fn handle_consumer_header(
     deps: &mut DepsMut,
     consumer_header: &IndexedHeader,
 ) -> Result<(), error::ConsumerHeaderChainError> {
-    insert_consumer_header(deps, consumer_header)?;
+    // Insert indexed header.
+    let consumer_header_bytes = consumer_header.encode_to_vec();
+    CONSUMER_HEADERS.save(deps.storage, consumer_header.height, &consumer_header_bytes)?;
+
+    // Update last finalised header.
+    let last_consumer_header_bytes = &consumer_header.encode_to_vec();
+    CONSUMER_HEADER_LAST.save(deps.storage, last_consumer_header_bytes)?;
+    // Save the height of the last finalised Consumer header in passing as well
+    CONSUMER_HEIGHT_LAST.save(deps.storage, &consumer_header.height)?;
 
     Ok(())
 }
