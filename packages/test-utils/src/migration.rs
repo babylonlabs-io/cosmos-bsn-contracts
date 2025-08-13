@@ -6,6 +6,7 @@
 use cosmwasm_std::testing::{message_info, mock_dependencies, mock_env};
 use cosmwasm_std::{attr, DepsMut, Env, MessageInfo, Response};
 use cw2::{get_contract_version, set_contract_version};
+use std::fmt::Debug;
 
 /// Type alias for contract migration functions
 pub type MigrateFn<E, M> = fn(DepsMut, Env, M) -> Result<Response, E>;
@@ -58,12 +59,17 @@ impl MigrationTester {
         instantiate_msg: I,
         error_matcher: impl Fn(&E) -> bool + Copy,
     ) where
-        E: std::fmt::Debug,
+        E: Debug,
         M: Clone,
         I: Clone,
     {
         self.test_basic_migration(migrate_fn, migration_msg.clone());
-        self.test_after_instantiate(migrate_fn, instantiate_fn, migration_msg.clone(), instantiate_msg);
+        self.test_after_instantiate(
+            migrate_fn,
+            instantiate_fn,
+            migration_msg.clone(),
+            instantiate_msg,
+        );
         self.test_wrong_contract(migrate_fn, migration_msg, error_matcher);
     }
 
@@ -77,12 +83,9 @@ impl MigrationTester {
     /// # Arguments
     /// * `migrate_fn` - The contract's migrate function
     /// * `migration_msg` - The migrate message to use in the test
-    pub fn test_basic_migration<E, M>(
-        &self,
-        migrate_fn: MigrateFn<E, M>,
-        migration_msg: M,
-    ) where
-        E: std::fmt::Debug,
+    pub fn test_basic_migration<E, M>(&self, migrate_fn: MigrateFn<E, M>, migration_msg: M)
+    where
+        E: Debug,
         M: Clone,
     {
         let mut deps = mock_dependencies();
@@ -125,7 +128,7 @@ impl MigrationTester {
         migration_msg: M,
         instantiate_msg: I,
     ) where
-        E: std::fmt::Debug,
+        E: Debug,
         M: Clone,
         I: Clone,
     {
@@ -175,7 +178,7 @@ impl MigrationTester {
         migration_msg: M,
         error_matcher: impl Fn(&E) -> bool,
     ) where
-        E: std::fmt::Debug,
+        E: Debug,
         M: Clone,
     {
         let mut deps = mock_dependencies();
@@ -189,8 +192,7 @@ impl MigrationTester {
         // Check the error matches the expected InvalidContractName pattern
         assert!(
             error_matcher(&err),
-            "Expected InvalidContractName error, got: {:?}",
-            err
+            "Expected InvalidContractName error, got: {err:?}",
         );
     }
 }
@@ -273,11 +275,9 @@ mod tests {
     #[test]
     fn test_migration_tester_wrong_contract() {
         let tester = MigrationTester::new(TEST_CONTRACT_NAME, TEST_CONTRACT_VERSION);
-        tester.test_wrong_contract(
-            test_migrate,
-            TestMigrateMsg,
-            |err| matches!(err, TestError::InvalidContractName { .. }),
-        );
+        tester.test_wrong_contract(test_migrate, TestMigrateMsg, |err| {
+            matches!(err, TestError::InvalidContractName { .. })
+        });
     }
 
     #[test]
