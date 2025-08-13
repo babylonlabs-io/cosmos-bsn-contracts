@@ -36,6 +36,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ### Improvements
 
 - [#327](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/327) chore: remove JAIL_FOREVER
+- [#319](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/319) e2e: add logs and contract pinning support in e2e framework
 - [#318](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/318) chore: port `TestGetPubRandCommitForHeight` and tallying test
 - [#317](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/317) finality: add tests for voting power rotation
 - [#315](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/315) refactor: unify imports and update CI
