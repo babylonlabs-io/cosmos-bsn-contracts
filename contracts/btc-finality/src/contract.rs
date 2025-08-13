@@ -399,11 +399,9 @@ pub(crate) mod tests {
                 assert_eq!(funds, &coins(999, "TOKEN")); // 666 + 333 = 999 (due to floor division)
 
                 // Verify the message is a RewardsDistribution message
-                let msg_data: babylon_contract::msg::contract::ExecuteMsg = from_json(msg).unwrap();
+                let msg_data: babylon_contract::msg::ExecuteMsg = from_json(msg).unwrap();
                 match msg_data {
-                    babylon_contract::msg::contract::ExecuteMsg::RewardsDistribution {
-                        fp_distribution,
-                    } => {
+                    babylon_contract::msg::ExecuteMsg::RewardsDistribution { fp_distribution } => {
                         assert_eq!(fp_distribution.len(), 2);
                         assert_eq!(fp_distribution[0].fp_pubkey_hex, fp1);
                         assert_eq!(fp_distribution[0].reward, Uint128::from(666u128));

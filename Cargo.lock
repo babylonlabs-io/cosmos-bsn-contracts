@@ -264,11 +264,9 @@ dependencies = [
  "cw2",
  "derivative",
  "hex",
- "ibc-proto",
  "pbjson-types",
  "prost",
  "serde_json",
- "tendermint-proto",
  "thiserror 1.0.69",
  "thousands",
 ]
@@ -1535,34 +1533,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6c49c37c09c17a53d937dfbb742eb3a961d65a994e6bcdcf37e7399d0cc8ab5e"
 dependencies = [
  "digest",
-]
-
-[[package]]
-name = "ibc-proto"
-version = "0.52.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a650b51e384e54264b53974feb38e95e37aac70f7f2f9c07eb8022fe15eb8e20"
-dependencies = [
- "base64 0.22.1",
- "bytes",
- "cosmos-sdk-proto",
- "flex-error",
- "ics23",
- "prost",
- "subtle-encoding",
- "tendermint-proto",
-]
-
-[[package]]
-name = "ics23"
-version = "0.12.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "73b17f1a5bd7d12ad30a21445cfa5f52fd7651cb3243ba866f9916b1ec112f12"
-dependencies = [
- "anyhow",
- "bytes",
- "hex",
- "prost",
 ]
 
 [[package]]
