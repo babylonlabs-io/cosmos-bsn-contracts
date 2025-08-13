@@ -278,11 +278,9 @@ mod tests {
     #[test]
     fn test_migration_tester_wrong_contract() {
         let tester = MigrationTester::new(TEST_CONTRACT_NAME, TEST_CONTRACT_VERSION);
-        tester.test_wrong_contract(test_migrate, TestMigrateMsg, |err| {
-            match err {
-                TestError::InvalidContractName { expected, actual } => Some((expected, actual)),
-                _ => None,
-            }
+        tester.test_wrong_contract(test_migrate, TestMigrateMsg, |err| match err {
+            TestError::InvalidContractName { expected, actual } => Some((expected, actual)),
+            _ => None,
         });
     }
 
