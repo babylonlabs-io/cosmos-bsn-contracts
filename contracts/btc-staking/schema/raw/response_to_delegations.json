@@ -24,7 +24,6 @@
         "end_height",
         "fp_btc_pk_list",
         "params_version",
-        "slashed",
         "slashing_tx",
         "staker_addr",
         "staking_output_idx",
@@ -73,10 +72,6 @@
           "type": "integer",
           "format": "uint32",
           "minimum": 0.0
-        },
-        "slashed": {
-          "description": "Whether a given delegation is related to a slashed FP.",
-          "type": "boolean"
         },
         "slashing_tx": {
           "description": "Slashing tx in raw bytes.",
