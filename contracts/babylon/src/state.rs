@@ -54,17 +54,6 @@ pub fn get_last_consumer_height(deps: Deps) -> StdResult<u64> {
     CONSUMER_HEIGHT_LAST.load(deps.storage)
 }
 
-fn set_last_consumer_header(
-    deps: &mut DepsMut,
-    last_consumer_header: &IndexedHeader,
-) -> StdResult<()> {
-    let last_consumer_header_bytes = &last_consumer_header.encode_to_vec();
-    CONSUMER_HEADER_LAST
-        .save(deps.storage, last_consumer_header_bytes)
-        // Save the height of the last finalised Consumer header in passing as well
-        .and(CONSUMER_HEIGHT_LAST.save(deps.storage, &last_consumer_header.height))
-}
-
 /// Returns a Consumer header of a given height.
 pub fn get_consumer_header(
     deps: Deps,
@@ -99,7 +88,11 @@ fn insert_consumer_header(deps: &mut DepsMut, consumer_header: &IndexedHeader) -
     CONSUMER_HEADERS.save(deps.storage, consumer_header.height, &consumer_header_bytes)?;
 
     // update last finalised header
-    set_last_consumer_header(deps, consumer_header)
+    let last_consumer_header_bytes = &consumer_header.encode_to_vec();
+    CONSUMER_HEADER_LAST
+        .save(deps.storage, last_consumer_header_bytes)
+        // Save the height of the last finalised Consumer header in passing as well
+        .and(CONSUMER_HEIGHT_LAST.save(deps.storage, &consumer_header.height))
 }
 
 // TODO: unit test
