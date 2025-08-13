@@ -417,7 +417,7 @@ func (p *TestConsumerClient) MigrateContracts(babylonContractPath string, btcLig
 		Msg:      GenMigrateMsg(),
 	})
 	if err != nil {
-		return fmt.Errorf("failed to migrate btc staking contract: %w", err)
+		return fmt.Errorf("failed to migrate btc light client contract: %w", err)
 	}
 
 	_, err = wasmMsgServer.MigrateContract(ctx, &wasmtypes.MsgMigrateContract{
