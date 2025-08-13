@@ -35,6 +35,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Improvements
 
+- [#329](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/329) refactor(babylon): consolidate state and msg module
 - [#326](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/326) feat: contract migration support
 - [#327](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/327) chore: remove JAIL_FOREVER
 - [#319](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/319) e2e: add logs and contract pinning support in e2e framework
