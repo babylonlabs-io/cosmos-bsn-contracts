@@ -251,7 +251,7 @@ impl Suite {
     }
 
     #[track_caller]
-    pub fn get_babylon_config(&self) -> babylon_contract::state::config::Config {
+    pub fn get_babylon_config(&self) -> babylon_contract::state::Config {
         self.app
             .wrap()
             .query_wasm_smart(

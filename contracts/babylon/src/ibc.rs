@@ -1,5 +1,5 @@
 use crate::error::ContractError;
-use crate::state::config::CONFIG;
+use crate::state::CONFIG;
 use babylon_apis::btc_staking_api::{
     ActiveBtcDelegation, NewFinalityProvider, UnbondedBtcDelegation,
 };

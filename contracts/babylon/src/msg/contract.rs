@@ -5,7 +5,7 @@ use cosmwasm_std::{Binary, StdError, StdResult, Uint128};
 use {
     crate::msg::consumer_header::{ConsumerHeaderResponse, ConsumerHeightResponse},
     crate::msg::epoch::EpochResponse,
-    crate::state::config::Config,
+    crate::state::Config,
 };
 
 #[cw_serde]

@@ -3,8 +3,7 @@ use crate::ibc::{get_ibc_packet_timeout, ibc_packet, IBC_TRANSFER_CHANNEL, IBC_Z
 use crate::msg::contract::{ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg};
 use crate::msg::ibc::{CallbackMemo, FpRatio};
 use crate::queries;
-use crate::state::config::{Config, CONFIG, DEFAULT_IBC_PACKET_TIMEOUT_DAYS};
-use crate::state::consumer_header_chain::CONSUMER_HEIGHT_LAST;
+use crate::state::{Config, CONFIG, CONSUMER_HEIGHT_LAST, DEFAULT_IBC_PACKET_TIMEOUT_DAYS};
 use babylon_apis::{btc_staking_api, finality_api, to_bech32_addr, to_module_canonical_addr};
 use cosmwasm_std::{
     to_json_binary, to_json_string, Addr, Decimal, Deps, DepsMut, Env, MessageInfo, QueryResponse,

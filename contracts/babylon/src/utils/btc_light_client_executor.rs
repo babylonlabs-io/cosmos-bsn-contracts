@@ -1,5 +1,5 @@
 use crate::error::ContractError;
-use crate::state::config::CONFIG;
+use crate::state::CONFIG;
 use babylon_proto::babylon::btclightclient::v1::BtcHeaderInfo;
 use btc_light_client::msg::btc_header::btc_headers_from_info;
 use btc_light_client::msg::contract::ExecuteMsg as BtcLightClientExecuteMsg;

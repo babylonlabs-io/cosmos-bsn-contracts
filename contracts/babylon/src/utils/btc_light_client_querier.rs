@@ -1,5 +1,5 @@
 use crate::error::ContractError;
-use crate::state::config::CONFIG;
+use crate::state::CONFIG;
 use btc_light_client::msg::btc_header::BtcHeaderResponse;
 use cosmwasm_std::Deps;
 
