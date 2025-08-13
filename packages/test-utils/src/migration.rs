@@ -50,14 +50,14 @@ impl MigrationTester {
     /// * `instantiate_fn` - The contract's instantiate function
     /// * `migration_msg` - The migrate message to use in tests
     /// * `instantiate_msg` - The instantiate message to use in tests
-    /// * `error_matcher` - Function that checks if the error is the expected InvalidContractName
+    /// * `error_matcher` - Function that extracts (expected, actual) from InvalidContractName error
     pub fn test_migration_basics<E, M, I>(
         &self,
         migrate_fn: MigrateFn<E, M>,
         instantiate_fn: InstantiateFn<E, I>,
         migration_msg: M,
         instantiate_msg: I,
-        error_matcher: impl Fn(&E) -> bool + Copy,
+        error_matcher: impl Fn(&E) -> Option<(&str, &str)> + Copy,
     ) where
         E: Debug,
         M: Clone,
@@ -166,17 +166,17 @@ impl MigrationTester {
     /// This test:
     /// 1. Sets up storage with a wrong contract name
     /// 2. Attempts migration and expects it to fail
-    /// 3. Verifies the error matches the expected InvalidContractName pattern
+    /// 3. Verifies the error is InvalidContractName with correct expected/actual values
     ///
     /// # Arguments
     /// * `migrate_fn` - The contract's migrate function
     /// * `migration_msg` - The migrate message to use in the test
-    /// * `error_matcher` - Function that checks if the error is the expected InvalidContractName
+    /// * `error_matcher` - Function that extracts (expected, actual) from InvalidContractName error
     pub fn test_wrong_contract<E, M>(
         &self,
         migrate_fn: MigrateFn<E, M>,
         migration_msg: M,
-        error_matcher: impl Fn(&E) -> bool,
+        error_matcher: impl Fn(&E) -> Option<(&str, &str)>,
     ) where
         E: Debug,
         M: Clone,
@@ -189,11 +189,14 @@ impl MigrationTester {
         // Call migrate and expect error
         let err = migrate_fn(deps.as_mut(), mock_env(), migration_msg).unwrap_err();
 
-        // Check the error matches the expected InvalidContractName pattern
-        assert!(
-            error_matcher(&err),
-            "Expected InvalidContractName error, got: {err:?}",
-        );
+        // Check the error is InvalidContractName with correct values
+        match error_matcher(&err) {
+            Some((expected, actual)) => {
+                assert_eq!(expected, self.contract_name);
+                assert_eq!(actual, "wrong-contract");
+            }
+            None => panic!("Expected InvalidContractName error, got: {err:?}"),
+        }
     }
 }
 
@@ -276,7 +279,10 @@ mod tests {
     fn test_migration_tester_wrong_contract() {
         let tester = MigrationTester::new(TEST_CONTRACT_NAME, TEST_CONTRACT_VERSION);
         tester.test_wrong_contract(test_migrate, TestMigrateMsg, |err| {
-            matches!(err, TestError::InvalidContractName { .. })
+            match err {
+                TestError::InvalidContractName { expected, actual } => Some((expected, actual)),
+                _ => None,
+            }
         });
     }
 
@@ -288,7 +294,10 @@ mod tests {
             test_instantiate,
             TestMigrateMsg,
             TestInstantiateMsg,
-            |err| matches!(err, TestError::InvalidContractName { .. }),
+            |err| match err {
+                TestError::InvalidContractName { expected, actual } => Some((expected, actual)),
+                _ => None,
+            },
         );
     }
 }

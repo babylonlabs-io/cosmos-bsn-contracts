@@ -356,7 +356,10 @@ pub mod tests {
             instantiate,
             crate::msg::MigrateMsg {},
             InstantiateMsg::default(),
-            |err| matches!(err, ContractError::InvalidContractName { .. }),
+            |err| match err {
+                ContractError::InvalidContractName { expected, actual } => Some((expected, actual)),
+                _ => None,
+            },
         );
     }
 }

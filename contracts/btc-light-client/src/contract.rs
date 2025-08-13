@@ -657,7 +657,10 @@ pub(crate) mod tests {
                 checkpoint_finalization_timeout: 100,
                 admin: None,
             },
-            |err| matches!(err, ContractError::InvalidContractName { .. }),
+            |err| match err {
+                ContractError::InvalidContractName { expected, actual } => Some((expected, actual)),
+                _ => None,
+            },
         );
     }
 }
