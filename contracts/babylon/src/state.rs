@@ -2,8 +2,7 @@
 //! - Track finalized Babylon epochs & raw checkpoints.
 //! - Track finalized Consumer headers & heights.
 
-use crate::error;
-use crate::error::BabylonEpochChainError;
+use crate::error::{BabylonEpochChainError, ConsumerHeaderChainError};
 use babylon_proto::babylon::btccheckpoint::v1::TransactionInfo;
 use babylon_proto::babylon::checkpointing::v1::RawCheckpoint;
 use babylon_proto::babylon::epoching::v1::Epoch;
@@ -58,42 +57,37 @@ pub struct Config {
     pub destination_module: String,
 }
 
-// getter/setter for last finalised Consumer header
-pub fn get_last_consumer_header(
-    deps: Deps,
-) -> Result<IndexedHeader, error::ConsumerHeaderChainError> {
+/// Returns the last finalised Consumer header if any.
+pub fn get_last_consumer_header(deps: Deps) -> Result<IndexedHeader, ConsumerHeaderChainError> {
     let last_consumer_header_bytes = CONSUMER_HEADER_LAST
-        .load(deps.storage)
-        .map_err(|_| error::ConsumerHeaderChainError::NoConsumerHeader {})?;
+        .may_load(deps.storage)?
+        .ok_or(ConsumerHeaderChainError::NoConsumerHeader {})?;
     IndexedHeader::decode(last_consumer_header_bytes.as_slice()).map_err(Into::into)
 }
 
-// Getter/setter for last finalised Consumer height.
-// Zero means no finalised Consumer header yet
+/// Returns the last finalised Consumer height.
+/// Zero means no finalised Consumer header yet
 pub fn get_last_consumer_height(deps: Deps) -> StdResult<u64> {
     CONSUMER_HEIGHT_LAST.load(deps.storage)
 }
 
-/// Returns a Consumer header of a given height.
+/// Returns the indexed Consumer header for the given height if any.
 pub fn get_consumer_header(
     deps: Deps,
     height: u64,
-) -> Result<IndexedHeader, error::ConsumerHeaderChainError> {
-    // try to find the indexed header at the given height
+) -> Result<IndexedHeader, ConsumerHeaderChainError> {
     let consumer_header_bytes = CONSUMER_HEADERS
-        .load(deps.storage, height)
-        .map_err(|_| error::ConsumerHeaderChainError::ConsumerHeaderNotFoundError { height })?;
-
+        .may_load(deps.storage, height)?
+        .ok_or(ConsumerHeaderChainError::ConsumerHeaderNotFoundError { height })?;
     IndexedHeader::decode(consumer_header_bytes.as_slice()).map_err(Into::into)
 }
 
-// Checks if the BTC light client has been initialised or not
-// the check is done by checking existence of base epoch
+/// Checks if the BTC light client has been initialised or not by checking existence of base epoch.
 pub fn is_initialized(deps: &DepsMut) -> bool {
     BABYLON_EPOCH_BASE.load(deps.storage).is_ok()
 }
 
-// getter/setter for base epoch
+/// Returns the base epoch.
 pub fn get_base_epoch(deps: Deps) -> Result<Epoch, BabylonEpochChainError> {
     // NOTE: if init is successful, then base epoch is guaranteed to be in storage and decodable
     let base_epoch_bytes = BABYLON_EPOCH_BASE.load(deps.storage)?;
@@ -110,10 +104,9 @@ pub fn get_last_finalized_epoch(deps: Deps) -> Result<Epoch, BabylonEpochChainEr
 
 /// Retrieves the metadata of a given epoch.
 pub fn get_epoch(deps: Deps, epoch_number: u64) -> Result<Epoch, BabylonEpochChainError> {
-    // try to find the epoch metadata of the given epoch
     let epoch_bytes = BABYLON_EPOCHS
-        .load(deps.storage, epoch_number)
-        .map_err(|_| BabylonEpochChainError::EpochNotFoundError { epoch_number })?;
+        .may_load(deps.storage, epoch_number)?
+        .ok_or(BabylonEpochChainError::EpochNotFoundError { epoch_number })?;
     Epoch::decode(epoch_bytes.as_slice()).map_err(Into::into)
 }
 
@@ -122,10 +115,9 @@ pub fn get_checkpoint(
     deps: Deps,
     epoch_number: u64,
 ) -> Result<RawCheckpoint, BabylonEpochChainError> {
-    // try to find the checkpoint of the given epoch
     let ckpt_bytes = BABYLON_CHECKPOINTS
-        .load(deps.storage, epoch_number)
-        .map_err(|_| BabylonEpochChainError::CheckpointNotFoundError { epoch_number })?;
+        .may_load(deps.storage, epoch_number)?
+        .ok_or(BabylonEpochChainError::CheckpointNotFoundError { epoch_number })?;
     RawCheckpoint::decode(ckpt_bytes.as_slice()).map_err(Into::into)
 }
 
@@ -133,7 +125,7 @@ pub fn get_checkpoint(
 fn handle_consumer_header(
     deps: &mut DepsMut,
     consumer_header: &IndexedHeader,
-) -> Result<(), error::ConsumerHeaderChainError> {
+) -> Result<(), ConsumerHeaderChainError> {
     // Insert indexed header.
     let consumer_header_bytes = consumer_header.encode_to_vec();
     CONSUMER_HEADERS.save(deps.storage, consumer_header.height, &consumer_header_bytes)?;
