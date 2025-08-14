@@ -8,11 +8,6 @@ use bitcoin::block::Header as BlockHeader;
 use cosmwasm_std::testing::{message_info, mock_dependencies, mock_env};
 use prost::Message;
 
-/// Helper function to get the appropriate base header
-fn get_btc_base_header() -> Option<BaseHeader> {
-    None
-}
-
 fn test_headers() -> Vec<BtcHeaderInfo> {
     let headers = vec![
         // Initial base header on Babylon Genesis mainnet, https://www.blockchain.com/explorer/blocks/btc/854784.
@@ -61,33 +56,6 @@ fn instantiate_should_work() {
     assert_eq!(cfg.btc_confirmation_depth, 6);
     assert_eq!(cfg.checkpoint_finalization_timeout, 100);
     assert_eq!(cfg.network, BitcoinNetwork::Mainnet);
-
-    // Test header storage only if base header was provided
-    if let Some(base_header) = get_btc_base_header() {
-        let base_header_info = base_header.to_btc_header_info().unwrap();
-        let base_header_height = BTC_HEIGHTS
-            .load(&deps.storage, base_header_info.hash.as_ref())
-            .unwrap();
-        assert_eq!(base_header_height, 854784);
-
-        let base_header_in_storage = BTC_HEADERS.load(&deps.storage, base_header_height).unwrap();
-        assert_eq!(base_header_in_storage, base_header_info.encode_to_vec());
-    }
-
-    // Submit new headers should work only if we have an initial header
-    if get_btc_base_header().is_some() {
-        let new_header = headers[1].block_header().unwrap();
-        let msg = ExecuteMsg::BtcHeaders {
-            headers: vec![new_header.into()],
-            first_work: None,
-            first_height: None,
-        };
-        execute(deps.as_mut(), mock_env(), info, msg).expect("Submit new headers should work");
-
-        // Tip updated when new headers are submitted successfully.
-        let tip = get_tip(&deps.storage).unwrap();
-        assert_eq!(tip.height, headers[1].height);
-    }
 }
 
 #[test]
