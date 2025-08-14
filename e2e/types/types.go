@@ -174,10 +174,6 @@ type ActiveBtcDelegation struct {
 	ParamsVersion        uint32                      `json:"params_version"`
 }
 
-type SlashedBtcDelegation struct {
-	// Define fields as needed
-}
-
 type UnbondedBtcDelegation struct {
 	StakingTxHash string `json:"staking_tx_hash"`
 }
