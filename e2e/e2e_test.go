@@ -202,11 +202,22 @@ func (s *BabylonSDKTestSuite) Test4BeginBlock() {
 
 	err = s.ConsumerApp.BabylonKeeper.BeginBlocker(s.ConsumerChain.GetContext())
 	s.NoError(err)
+
+	// ensure no error during BeginBlocker
+	for _, event := range s.ConsumerChain.GetContext().EventManager().Events() {
+		s.NotEqual(event.Type, bbnsdktypes.EventTypeFeeCollectorError)
+		s.NotEqual(event.Type, bbnsdktypes.EventTypeContractCommunicationError)
+	}
 }
 
 func (s *BabylonSDKTestSuite) Test4EndBlock() {
 	_, err := s.ConsumerApp.BabylonKeeper.EndBlocker(s.ConsumerChain.GetContext())
 	s.NoError(err)
+
+	// ensure no error during EndBlocker
+	for _, event := range s.ConsumerChain.GetContext().EventManager().Events() {
+		s.NotEqual(event.Type, bbnsdktypes.EventTypeContractCommunicationError)
+	}
 }
 
 func (s *BabylonSDKTestSuite) Test5NextBlock() {
@@ -220,6 +231,12 @@ func (s *BabylonSDKTestSuite) Test5NextBlock() {
 		},
 	})
 	s.Error(err)
+
+	// ensure no error during NextBlocker
+	for _, event := range s.ConsumerChain.GetContext().EventManager().Events() {
+		s.NotEqual(event.Type, bbnsdktypes.EventTypeFeeCollectorError)
+		s.NotEqual(event.Type, bbnsdktypes.EventTypeContractCommunicationError)
+	}
 }
 
 func (s *BabylonSDKTestSuite) Test6BTCUndelegate() {
