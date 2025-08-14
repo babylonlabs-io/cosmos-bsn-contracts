@@ -404,7 +404,7 @@ func (p *TestConsumerClient) MigrateContracts(babylonContractPath string, btcLig
 		Sender:   admin,
 		Contract: p.Contracts.Babylon.String(),
 		CodeID:   babylonCodeID,
-		Msg:      GenMigrateMsg(),
+		Msg:      NewMigrateMsg(),
 	})
 	if err != nil {
 		return fmt.Errorf("failed to migrate babylon contract: %w", err)
@@ -414,7 +414,7 @@ func (p *TestConsumerClient) MigrateContracts(babylonContractPath string, btcLig
 		Sender:   admin,
 		Contract: p.Contracts.BTCLightClient.String(),
 		CodeID:   btcLightClientCodeID,
-		Msg:      GenMigrateMsg(),
+		Msg:      NewMigrateMsg(),
 	})
 	if err != nil {
 		return fmt.Errorf("failed to migrate btc light client contract: %w", err)
@@ -424,7 +424,7 @@ func (p *TestConsumerClient) MigrateContracts(babylonContractPath string, btcLig
 		Sender:   admin,
 		Contract: p.Contracts.BTCStaking.String(),
 		CodeID:   btcStakingCodeID,
-		Msg:      GenMigrateMsg(),
+		Msg:      NewMigrateMsg(),
 	})
 	if err != nil {
 		return fmt.Errorf("failed to migrate btc staking contract: %w", err)
@@ -434,7 +434,7 @@ func (p *TestConsumerClient) MigrateContracts(babylonContractPath string, btcLig
 		Sender:   admin,
 		Contract: p.Contracts.BTCFinality.String(),
 		CodeID:   btcFinalityCodeID,
-		Msg:      GenMigrateMsg(),
+		Msg:      NewMigrateMsg(),
 	})
 	if err != nil {
 		return fmt.Errorf("failed to migrate btc finality contract: %w", err)
