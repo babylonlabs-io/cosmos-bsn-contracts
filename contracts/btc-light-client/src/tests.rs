@@ -1,18 +1,20 @@
 use crate::contract::{execute, instantiate};
-use crate::msg::InstantiateMsg;
-use crate::state::test_utils::{get_btc_base_header, test_headers};
-use crate::state::{get_tip, BTC_HEADERS, BTC_HEIGHTS, CONFIG};
-use crate::{BitcoinNetwork, ExecuteMsg};
+use crate::msg::btc_header::BtcHeader;
+use crate::msg::{ExecuteMsg, InstantiateMsg};
+use crate::state::{BTC_HEIGHTS, CONFIG};
+use crate::BitcoinNetwork;
+use babylon_proto::babylon::btclightclient::v1::BtcHeaderInfoResponse;
+use babylon_test_utils::get_btc_lc_mainchain_resp;
+use bitcoin::block::Header as BlockHeader;
 use cosmwasm_std::testing::{message_info, mock_dependencies, mock_env};
-use prost::Message;
+use cosmwasm_std::{Addr, Uint256};
+use std::str::FromStr;
 
 #[test]
 fn instantiate_should_work() {
     let mut deps = mock_dependencies();
 
     let info = message_info(&deps.api.addr_make("creator"), &[]);
-
-    let headers = test_headers();
 
     let msg = InstantiateMsg {
         network: BitcoinNetwork::Mainnet,
@@ -32,33 +34,6 @@ fn instantiate_should_work() {
     assert_eq!(cfg.btc_confirmation_depth, 6);
     assert_eq!(cfg.checkpoint_finalization_timeout, 100);
     assert_eq!(cfg.network, BitcoinNetwork::Mainnet);
-
-    // Test header storage only if base header was provided
-    if let Some(base_header) = get_btc_base_header() {
-        let base_header_info = base_header.to_btc_header_info().unwrap();
-        let base_header_height = BTC_HEIGHTS
-            .load(&deps.storage, base_header_info.hash.as_ref())
-            .unwrap();
-        assert_eq!(base_header_height, 854784);
-
-        let base_header_in_storage = BTC_HEADERS.load(&deps.storage, base_header_height).unwrap();
-        assert_eq!(base_header_in_storage, base_header_info.encode_to_vec());
-    }
-
-    // Submit new headers should work only if we have an initial header
-    if get_btc_base_header().is_some() {
-        let new_header = headers[1].block_header().unwrap();
-        let msg = ExecuteMsg::BtcHeaders {
-            headers: vec![new_header.into()],
-            first_work: None,
-            first_height: None,
-        };
-        execute(deps.as_mut(), mock_env(), info, msg).expect("Submit new headers should work");
-
-        // Tip updated when new headers are submitted successfully.
-        let tip = get_tip(&deps.storage).unwrap();
-        assert_eq!(tip.height, headers[1].height);
-    }
 }
 
 #[test]
@@ -88,18 +63,6 @@ fn instantiate_without_initial_header_should_work() {
 
 #[test]
 fn auto_init_on_first_header_works() {
-    use std::str::FromStr;
-
-    use crate::contract::{execute, instantiate};
-    use crate::msg::btc_header::BtcHeader;
-    use crate::msg::{ExecuteMsg, InstantiateMsg};
-    use crate::state::BTC_HEIGHTS;
-    use babylon_proto::babylon::btclightclient::v1::BtcHeaderInfoResponse;
-    use babylon_test_utils::get_btc_lc_mainchain_resp;
-    use bitcoin::block::Header as BlockHeader;
-    use cosmwasm_std::testing::{mock_dependencies, mock_env};
-    use cosmwasm_std::{Addr, Uint256};
-
     let mut deps = mock_dependencies();
 
     // Instantiate without initial header

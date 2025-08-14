@@ -220,36 +220,3 @@ pub fn get_headers(
 
     Ok(headers)
 }
-
-pub mod test_utils {
-    use crate::msg::contract::BaseHeader;
-    use babylon_proto::babylon::btclightclient::v1::BtcHeaderInfo;
-    use bitcoin::block::Header as BlockHeader;
-
-    /// Helper function to get the appropriate base header
-    pub fn get_btc_base_header() -> Option<BaseHeader> {
-        None
-    }
-
-    pub fn test_headers() -> Vec<BtcHeaderInfo> {
-        let headers = vec![
-        // Initial base header on Babylon Genesis mainnet, https://www.blockchain.com/explorer/blocks/btc/854784.
-        ("0000c020f382af1f6d228721b49f3da2f5b831587803b16597b301000000000000000000e4f76aae64d8316d195a92424871b74168b58d1c3c6988548e0e9890b15fc2fc3c00aa66be1a0317082e4bc7", 854784),
-        ("0000003acbfbbb0a8d32aa0e739dc4f910a58299a8015b1cd48902000000000000000000a32c4a6ca3d399cc5146c28af944b807f298c6de063c161c13a1b3ca6fd2632e6500aa66be1a031783eb001c", 854785)
-    ];
-
-        headers
-            .into_iter()
-            .map(|(header, height)| {
-                let header: BlockHeader = bitcoin::consensus::encode::deserialize_hex(header)
-                    .expect("Static value must be correct");
-                BtcHeaderInfo {
-                    header: bitcoin::consensus::serialize(&header).into(),
-                    hash: bitcoin::consensus::serialize(&header.block_hash()).into(),
-                    height,
-                    work: header.work().to_be_bytes().to_vec().into(),
-                }
-            })
-            .collect()
-    }
-}
