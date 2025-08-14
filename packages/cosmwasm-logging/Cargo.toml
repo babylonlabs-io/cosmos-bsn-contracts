@@ -1,0 +1,20 @@
+[package]
+name = "cosmwasm-logging"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+description = "Conditional logging utilities for CosmWasm contracts with development and production variants"
+license.workspace = true
+repository.workspace = true
+keywords = ["cosmwasm", "blockchain", "logging", "wasm"]
+categories = ["development-tools::debugging", "wasm"]
+
+[dependencies]
+cosmwasm-std = { workspace = true }
+
+[dev-dependencies]
+cosmwasm-std = { version = "2.0", features = ["testing"] }
+
+[features]
+default = ["logging"]
+logging = []
