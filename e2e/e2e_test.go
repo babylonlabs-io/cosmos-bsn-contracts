@@ -1,6 +1,7 @@
 package e2e
 
 import (
+	"bytes"
 	"encoding/json"
 	"testing"
 
@@ -11,6 +12,7 @@ import (
 	bbnsdktypes "github.com/babylonlabs-io/babylon-sdk/x/babylon/types"
 	btclctypes "github.com/babylonlabs-io/babylon/v3/x/btclightclient/types"
 	"github.com/babylonlabs-io/cosmos-bsn-contracts/e2e/types"
+	"github.com/btcsuite/btcd/wire"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	ibctesting "github.com/cosmos/ibc-go/v10/testing"
 	"github.com/stretchr/testify/suite"
@@ -218,6 +220,46 @@ func (s *BabylonSDKTestSuite) Test5NextBlock() {
 		},
 	})
 	s.Error(err)
+}
+
+func (s *BabylonSDKTestSuite) Test6BTCUndelegate() {
+	// get the BTC delegation
+	consumerDels, err := s.ConsumerCli.Query(s.ConsumerContract.BTCStaking, types.Query{"delegations": {}})
+	s.NoError(err)
+	s.NotEmpty(consumerDels)
+	del := consumerDels["delegations"].([]any)[0].(map[string]any)
+	s.NotEmpty(del)
+
+	// ensure the delegation is active
+	// i.e., the delegator_unbonding_info is nil
+	undelegationInfo := del["undelegation_info"].(map[string]any)
+	s.Nil(undelegationInfo["delegator_unbonding_info"])
+
+	// get staking tx hash of the BTC delegation
+	stakingTxInterface := del["staking_tx"].([]interface{})
+	stakingTxBytes := make([]byte, len(stakingTxInterface))
+	for i, v := range stakingTxInterface {
+		stakingTxBytes[i] = byte(v.(float64))
+	}
+	var stakingTx wire.MsgTx
+	err = stakingTx.Deserialize(bytes.NewReader(stakingTxBytes))
+	s.NoError(err)
+	stakingTxHash := stakingTx.TxHash().String()
+
+	// undelegate
+	msg := types.NewUnbondedDelMessage(stakingTxHash)
+	msgBytes, err := json.Marshal(msg)
+	s.NoError(err)
+	_, err = s.ConsumerCli.Exec(s.ConsumerContract.BTCStaking, msgBytes)
+	s.NoError(err)
+
+	// get the delegation again and ensure it is unbonded
+	// i.e., the delegator_unbonding_info is no longer nil
+	consumerDels, err = s.ConsumerCli.Query(s.ConsumerContract.BTCStaking, types.Query{"delegations": {}})
+	s.NoError(err)
+	del = consumerDels["delegations"].([]any)[0].(map[string]any)
+	undelegationInfo = del["undelegation_info"].(map[string]any)
+	s.NotNil(undelegationInfo["delegator_unbonding_info"])
 }
 
 // TearDownSuite runs once after all the suite's tests have been run

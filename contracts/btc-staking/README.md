@@ -19,7 +19,6 @@ BtcStaking {
     new_fp: Vec<NewFinalityProvider>,
     active_del: Vec<ActiveBtcDelegation>,
     unbonded_del: Vec<UnbondedBtcDelegation>,
-    slashed_del: Vec<SlashedBtcDelegation>,
 },
 ```
 
