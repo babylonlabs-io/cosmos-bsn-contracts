@@ -9,15 +9,14 @@
 //! ## Features
 //!
 //! - **Standard log crate**: Use familiar `info!()`, `debug!()`, `error!()` macros
-//! - **Zero-cost production**: `disable-logging` feature eliminates all logging code
+//! - **Zero-cost production**: No features = all logging code eliminated at compile-time
 //! - **CosmWasm integration**: Logs route through CosmWasm's `api.debug()`
 //! - **Lazy initialization**: Logger only initializes when actually used
 //!
 //! ## Usage
 //!
 //! ```rust
-//! use log::{info, debug, error, warn};
-//! use cosmwasm_logging::init_cosmwasm_logger;
+//! use cosmwasm_logging::{init_cosmwasm_logger, info, debug, error, warn};
 //!
 //! pub fn instantiate(
 //!     deps: DepsMut,
@@ -61,151 +60,131 @@
 //!
 //! # Production build (no logging)
 //! [dependencies]
-//! cosmwasm-logging = { path = "...", features = ["disable-logging"] }
+//! cosmwasm-logging = { path = "..." }  # No features = no-op macros
 //! ```
 
 #[cfg(feature = "logging")]
-use std::sync::Once;
+mod enabled {
+    use std::sync::Once;
+    use cosmwasm_std::Api;
+    use log::{Level, Log, Metadata, Record};
 
-// Re-export the log crate when logging is enabled
-#[cfg(feature = "logging")]
-pub use log::{debug, error, info, trace, warn, log};
+    pub use log::{debug, error, info, trace, warn, log};
 
-#[cfg(feature = "logging")]
-use cosmwasm_std::Api;
+    static COSMWASM_LOGGER: CosmWasmLogger = CosmWasmLogger;
+    static INIT: Once = Once::new();
 
-#[cfg(feature = "logging")]
-use log::{Level, Log, Metadata, Record};
-
-#[cfg(feature = "logging")]
-static COSMWASM_LOGGER: CosmWasmLogger = CosmWasmLogger;
-
-#[cfg(feature = "logging")]
-static INIT: Once = Once::new();
-
-#[cfg(feature = "logging")]
-thread_local! {
-    static COSMWASM_API: std::cell::RefCell<Option<&'static dyn Api>> = std::cell::RefCell::new(None);
-}
-
-#[cfg(feature = "logging")]
-struct CosmWasmLogger;
-
-#[cfg(feature = "logging")]
-impl Log for CosmWasmLogger {
-    fn enabled(&self, _metadata: &Metadata) -> bool {
-        // Always enabled if logger is initialized - CosmWasm will handle filtering
-        true
+    thread_local! {
+        static COSMWASM_API: std::cell::RefCell<Option<&'static dyn Api>> = std::cell::RefCell::new(None);
     }
 
-    fn log(&self, record: &Record) {
-        if self.enabled(record.metadata()) {
-            COSMWASM_API.with(|api_ref| {
-                if let Some(api) = *api_ref.borrow() {
-                    let level_str = match record.level() {
-                        Level::Error => "ERROR",
-                        Level::Warn => "WARN",
-                        Level::Info => "INFO",
-                        Level::Debug => "DEBUG",
-                        Level::Trace => "TRACE",
-                    };
+    struct CosmWasmLogger;
 
-                    let message = format!("[{level_str}] {}: {}", record.target(), record.args());
-                    api.debug(&message);
-                }
-            });
+    impl Log for CosmWasmLogger {
+        fn enabled(&self, _metadata: &Metadata) -> bool {
+            // Always enabled if logger is initialized - CosmWasm will handle filtering
+            true
+        }
+
+        fn log(&self, record: &Record) {
+            if self.enabled(record.metadata()) {
+                COSMWASM_API.with(|api_ref| {
+                    if let Some(api) = *api_ref.borrow() {
+                        let level_str = match record.level() {
+                            Level::Error => "ERROR",
+                            Level::Warn => "WARN",
+                            Level::Info => "INFO",
+                            Level::Debug => "DEBUG",
+                            Level::Trace => "TRACE",
+                        };
+
+                        let message = format!("{}: [{}] {}", record.target(), level_str, record.args());
+                        api.debug(&message);
+                    }
+                });
+            }
+        }
+
+        fn flush(&self) {
+            // No-op for CosmWasm
         }
     }
 
-    fn flush(&self) {
-        // No-op for CosmWasm
+    /// Initialize the CosmWasm logger.
+    ///
+    /// This should be called once, typically in your contract's `instantiate` function.
+    /// Subsequent calls are ignored (similar to Substrate's RuntimeLogger::init()).
+    pub fn init_cosmwasm_logger(api: &dyn Api) {
+        INIT.call_once(|| {
+            // Store the API reference
+            COSMWASM_API.with(|api_ref| {
+                // SAFETY: We assume the API reference lives for the duration of the contract call
+                // This is safe in CosmWasm as the API is provided by the runtime and outlives all contract execution
+                let api_static: &'static dyn Api = unsafe { std::mem::transmute(api) };
+                *api_ref.borrow_mut() = Some(api_static);
+            });
+
+            // Set the global logger (ignore error if already set)
+            let _ = log::set_logger(&COSMWASM_LOGGER)
+                .map(|()| log::set_max_level(log::LevelFilter::Trace));
+        });
     }
 }
 
-/// Initialize the CosmWasm logger.
-///
-/// This should be called once, typically in your contract's `instantiate` function.
-/// Subsequent calls are ignored (similar to Substrate's RuntimeLogger::init()).
-///
-/// # Example
-/// ```rust
-/// use cosmwasm_logging::init_cosmwasm_logger;
-/// use log::info;
-///
-/// pub fn instantiate(deps: DepsMut, env: Env, info: MessageInfo, msg: InstantiateMsg) -> Result<Response, ContractError> {
-///     init_cosmwasm_logger(&deps.api);
-///     info!("Contract instantiated");
-///     Ok(Response::new())
-/// }
-/// ```
+#[cfg(not(feature = "logging"))]
+mod disabled {
+    /// No-op logger initialization when logging is disabled.
+    pub fn init_cosmwasm_logger(_api: &dyn cosmwasm_std::Api) {
+        // No-op when logging is disabled
+    }
+
+    // No-op macros that match log crate's API
+    #[macro_export]
+    macro_rules! error {
+        (target: $target:expr, $($arg:tt)*) => {};
+        ($($arg:tt)*) => {};
+    }
+
+    #[macro_export]
+    macro_rules! warn {
+        (target: $target:expr, $($arg:tt)*) => {};
+        ($($arg:tt)*) => {};
+    }
+
+    #[macro_export]
+    macro_rules! info {
+        (target: $target:expr, $($arg:tt)*) => {};
+        ($($arg:tt)*) => {};
+    }
+
+    #[macro_export]
+    macro_rules! debug {
+        (target: $target:expr, $($arg:tt)*) => {};
+        ($($arg:tt)*) => {};
+    }
+
+    #[macro_export]
+    macro_rules! trace {
+        (target: $target:expr, $($arg:tt)*) => {};
+        ($($arg:tt)*) => {};
+    }
+
+    #[macro_export]
+    macro_rules! log {
+        (target: $target:expr, $lvl:expr, $($arg:tt)+) => {};
+        ($lvl:expr, $($arg:tt)+) => {};
+    }
+
+    // Re-export our no-op macros
+    pub use {debug, error, info, log, trace, warn};
+}
+
+// Export the appropriate symbols based on feature
 #[cfg(feature = "logging")]
-pub fn init_cosmwasm_logger(api: &dyn Api) {
-    INIT.call_once(|| {
-        // Store the API reference
-        COSMWASM_API.with(|api_ref| {
-            // SAFETY: We assume the API reference lives for the duration of the contract call
-            // This is safe in CosmWasm as the API is provided by the runtime and outlives all contract execution
-            let api_static: &'static dyn Api = unsafe { std::mem::transmute(api) };
-            *api_ref.borrow_mut() = Some(api_static);
-        });
-
-        // Set the global logger (ignore error if already set)
-        let _ = log::set_logger(&COSMWASM_LOGGER)
-            .map(|()| log::set_max_level(log::LevelFilter::Trace));
-    });
-}
-
-/// Initialize the CosmWasm logger (no-op when logging is disabled).
-///
-/// When the `disable-logging` feature is enabled, this function does nothing
-/// and all logging macros become no-ops at compile time.
-#[cfg(not(feature = "logging"))]
-pub fn init_cosmwasm_logger(_api: &dyn cosmwasm_std::Api) {
-    // No-op when logging is disabled
-}
-
-// When logging is disabled, provide no-op macros that match log crate's API
-#[cfg(not(feature = "logging"))]
-#[macro_export]
-macro_rules! error {
-    (target: $target:expr, $($arg:tt)*) => {};
-    ($($arg:tt)*) => {};
-}
+pub use enabled::*;
 
 #[cfg(not(feature = "logging"))]
-#[macro_export]
-macro_rules! warn {
-    (target: $target:expr, $($arg:tt)*) => {};
-    ($($arg:tt)*) => {};
-}
-
-#[cfg(not(feature = "logging"))]
-#[macro_export]
-macro_rules! info {
-    (target: $target:expr, $($arg:tt)*) => {};
-    ($($arg:tt)*) => {};
-}
-
-#[cfg(not(feature = "logging"))]
-#[macro_export]
-macro_rules! debug {
-    (target: $target:expr, $($arg:tt)*) => {};
-    ($($arg:tt)*) => {};
-}
-
-#[cfg(not(feature = "logging"))]
-#[macro_export]
-macro_rules! trace {
-    (target: $target:expr, $($arg:tt)*) => {};
-    ($($arg:tt)*) => {};
-}
-
-#[cfg(not(feature = "logging"))]
-#[macro_export]
-macro_rules! log {
-    (target: $target:expr, $lvl:expr, $($arg:tt)+) => {};
-    ($lvl:expr, $($arg:tt)+) => {};
-}
+pub use disabled::*;
 
 #[cfg(test)]
 mod tests {
@@ -214,19 +193,9 @@ mod tests {
     #[test]
     fn test_init_logger_compiles() {
         // Test that the function compiles in both feature configurations
-        #[cfg(feature = "logging")]
-        {
-            use cosmwasm_std::testing::mock_dependencies;
-            let deps = mock_dependencies();
-            init_cosmwasm_logger(&deps.api);
-        }
-
-        #[cfg(not(feature = "logging"))]
-        {
-            use cosmwasm_std::testing::mock_dependencies;
-            let deps = mock_dependencies();
-            init_cosmwasm_logger(&deps.api);
-        }
+        use cosmwasm_std::testing::mock_dependencies;
+        let deps = mock_dependencies();
+        init_cosmwasm_logger(&deps.api);
     }
 
     #[test]
