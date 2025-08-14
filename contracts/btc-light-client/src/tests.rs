@@ -1,12 +1,14 @@
 use crate::contract::{execute, instantiate};
-use crate::msg::contract::BaseHeader;
-use crate::msg::InstantiateMsg;
-use crate::state::{get_tip, BTC_HEADERS, BTC_HEIGHTS, CONFIG};
-use crate::{BitcoinNetwork, ExecuteMsg};
-use babylon_proto::babylon::btclightclient::v1::BtcHeaderInfo;
+use crate::msg::btc_header::BtcHeader;
+use crate::msg::{ExecuteMsg, InstantiateMsg};
+use crate::state::{BTC_HEIGHTS, CONFIG};
+use crate::BitcoinNetwork;
+use babylon_proto::babylon::btclightclient::v1::{BtcHeaderInfo, BtcHeaderInfoResponse};
+use babylon_test_utils::get_btc_lc_mainchain_resp;
 use bitcoin::block::Header as BlockHeader;
 use cosmwasm_std::testing::{message_info, mock_dependencies, mock_env};
-use prost::Message;
+use cosmwasm_std::{Addr, Uint256};
+use std::str::FromStr;
 
 fn test_headers() -> Vec<BtcHeaderInfo> {
     let headers = vec![
@@ -85,18 +87,6 @@ fn instantiate_without_initial_header_should_work() {
 
 #[test]
 fn auto_init_on_first_header_works() {
-    use std::str::FromStr;
-
-    use crate::contract::{execute, instantiate};
-    use crate::msg::btc_header::BtcHeader;
-    use crate::msg::{ExecuteMsg, InstantiateMsg};
-    use crate::state::BTC_HEIGHTS;
-    use babylon_proto::babylon::btclightclient::v1::BtcHeaderInfoResponse;
-    use babylon_test_utils::get_btc_lc_mainchain_resp;
-    use bitcoin::block::Header as BlockHeader;
-    use cosmwasm_std::testing::{mock_dependencies, mock_env};
-    use cosmwasm_std::{Addr, Uint256};
-
     let mut deps = mock_dependencies();
 
     // Instantiate without initial header
