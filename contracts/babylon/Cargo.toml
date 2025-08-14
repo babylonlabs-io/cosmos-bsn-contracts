@@ -28,11 +28,14 @@ default = []
 cranelift = ["cosmwasm-vm/cranelift"]
 # for quicker tests, cargo test --lib
 library = []
+# Optional logging support for development builds (not included in default)
+logging = ["cosmwasm-logging/logging"]
 
 [dependencies]
 babylon-apis     = { path = "../../packages/apis" }
 babylon-proto    = { path = "../../packages/proto" }
 bitcoin          = { workspace = true }
+cosmwasm-logging = { path = "../../packages/cosmwasm-logging" }
 cosmwasm-schema  = { workspace = true }
 cosmwasm-std     = { workspace = true }
 cw2              = { workspace = true }

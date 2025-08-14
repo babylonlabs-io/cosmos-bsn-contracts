@@ -10,6 +10,7 @@ use babylon_proto::babylon::zoneconcierge::v1::outbound_packet::Packet as Outbou
 use babylon_proto::babylon::zoneconcierge::v1::{
     BsnSlashingIbcPacket, BtcHeaders, BtcTimestamp, InboundPacket, OutboundPacket,
 };
+use cosmwasm_logging::{debug, error, ContractLogger};
 use cosmwasm_std::{
     to_json_binary, Binary, Deps, DepsMut, Env, Event, Ibc3ChannelOpenResponse, IbcBasicResponse,
     IbcChannelCloseMsg, IbcChannelConnectMsg, IbcChannelOpenMsg, IbcChannelOpenResponse, IbcMsg,
@@ -227,7 +228,7 @@ pub(crate) mod ibc_packet {
         )
         .map_err(|e| {
             let err = format!("CONTRACT: handle_btc_headers, failed to submit BTC headers: {e}");
-            deps.api.debug(&err);
+            error!(deps, "{}", err);
             StdError::generic_err(err)
         })?;
 
@@ -280,10 +281,10 @@ pub fn ibc_packet_timeout(
     _env: Env,
     msg: IbcPacketTimeoutMsg,
 ) -> Result<IbcBasicResponse, ContractError> {
-    deps.api.debug(&format!(
+    debug!(deps, 
         "Cosmos BSN contracts: ibc_packet_timeout: packet timed out on channel {} port {}",
         msg.packet.src.channel_id, msg.packet.src.port_id
-    ));
+    );
 
     let response = IbcBasicResponse::new()
         .add_attribute("action", "ibc_packet_timeout")
