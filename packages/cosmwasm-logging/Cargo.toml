@@ -1,0 +1,19 @@
+[package]
+name = "cosmwasm-logging"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+description = "Standard Rust logging for CosmWasm contracts with zero-cost production builds"
+license.workspace = true
+repository.workspace = true
+keywords = ["cosmwasm", "blockchain", "logging", "wasm"]
+categories = ["development-tools::debugging", "wasm"]
+
+[dependencies]
+cosmwasm-std = { workspace = true, default-features = false }
+log = { version = "0.4", optional = true }
+
+[features]
+default = []  # No logging by default
+logging = ["log"]
+disable-logging = ["log?/max_level_off"]
