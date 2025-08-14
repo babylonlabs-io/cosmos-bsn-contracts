@@ -48,6 +48,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 - [#317](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/317) finality: add tests for voting power rotation
 - [#315](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/315) refactor: unify imports and update CI
 
+### Bugfixes
+
+- [#334](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/334) fix: add missing sudo export
+
 ## [v0.17.0](https://github.com/babylonlabs-io/cosmos-bsn-contracts/tree/v0.17.0) (2025-08-08)
 
 [Full Changelog](https://github.com/babylonlabs-io/cosmos-bsn-contracts/compare/v0.16.0...v0.17.0)
