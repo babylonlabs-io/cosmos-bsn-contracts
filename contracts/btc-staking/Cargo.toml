@@ -7,7 +7,10 @@ repository.workspace = true
 authors = ["Babylon Labs Ltd. <admin@babylonlabs.io>", "Mauro Lacy <mauro@babylonlabs.io>"]
 publish = false
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[package.metadata.optimizer]
+builds = [
+  { name = "dev", features = ["logging"] },
+]
 
 [lib]
 crate-type = ["cdylib", "rlib"]
@@ -25,6 +28,7 @@ default = []
 cranelift = ["cosmwasm-vm/cranelift"]
 # for quicker tests, cargo test --lib
 library = []
+logging = ["cosmwasm-logging/logging"]
 
 [dependencies]
 btc-light-client = { path = "../btc-light-client", features = [ "library" ] }
@@ -35,6 +39,7 @@ babylon-test-utils = { path = "../../packages/test-utils" }
 eots               = { path = "../../packages/eots" }
 
 bitcoin          = { workspace = true }
+cosmwasm-logging = { workspace = true }
 cosmwasm-schema  = { workspace = true }
 cosmwasm-std     = { workspace = true }
 cw2              = { workspace = true }

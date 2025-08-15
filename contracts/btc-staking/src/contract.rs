@@ -4,6 +4,7 @@ use crate::queries;
 use crate::staking::{handle_btc_staking, handle_slash_fp, process_expired_btc_delegations};
 use crate::state::config::{Config, ADMIN, CONFIG};
 use babylon_apis::btc_staking_api::SudoMsg;
+use cosmwasm_logging::{debug, info, init_cosmwasm_logger};
 use cosmwasm_std::{
     attr, to_json_binary, Addr, Deps, DepsMut, Env, MessageInfo, QueryResponse, Reply, Response,
     StdResult,
@@ -20,6 +21,11 @@ pub fn instantiate(
     info: MessageInfo,
     msg: InstantiateMsg,
 ) -> Result<Response, ContractError> {
+    init_cosmwasm_logger(deps.api);
+
+    info!("Instantiating BTC staking contract");
+    debug!("Instantiate message: {:?}", msg);
+
     nonpayable(&info)?;
     let denom = deps.querier.query_bonded_denom()?;
     let config = Config {
@@ -42,6 +48,8 @@ pub fn reply(_deps: DepsMut, _env: Env, _reply: Reply) -> StdResult<Response> {
 }
 
 pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> Result<QueryResponse, ContractError> {
+    init_cosmwasm_logger(deps.api);
+
     match msg {
         QueryMsg::Config {} => Ok(to_json_binary(&CONFIG.load(deps.storage)?)?),
         QueryMsg::Admin {} => to_json_binary(&ADMIN.query_admin(deps)?).map_err(Into::into),
@@ -84,6 +92,8 @@ pub fn migrate(
     _env: Env,
     _msg: crate::msg::MigrateMsg,
 ) -> Result<Response, ContractError> {
+    init_cosmwasm_logger(deps.api);
+
     // Get the current version stored in the contract
     let prev_version = cw2::get_contract_version(deps.storage)?;
 
@@ -110,6 +120,7 @@ pub fn execute(
     info: MessageInfo,
     msg: ExecuteMsg,
 ) -> Result<Response, ContractError> {
+    init_cosmwasm_logger(deps.api);
     let api = deps.api;
     match msg {
         ExecuteMsg::UpdateAdmin { admin } => ADMIN

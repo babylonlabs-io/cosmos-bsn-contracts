@@ -9,6 +9,7 @@ use crate::state::{
 };
 use babylon_proto::babylon::btclightclient::v1::BtcHeaderInfo;
 use bitcoin::BlockHash;
+use cosmwasm_logging::{debug, error, info, init_cosmwasm_logger};
 use cosmwasm_std::{to_json_binary, Binary, Deps, DepsMut, Env, MessageInfo, Response, Storage};
 use cw2::set_contract_version;
 use cw_utils::maybe_addr;
@@ -23,6 +24,11 @@ pub fn instantiate(
     info: MessageInfo,
     msg: InstantiateMsg,
 ) -> Result<Response, ContractError> {
+    init_cosmwasm_logger(deps.api);
+
+    info!("Instantiating BTC light client contract");
+    debug!("Instantiate message: {:?}", msg);
+
     msg.validate()?;
 
     let InstantiateMsg {
@@ -54,27 +60,30 @@ pub fn execute(
     info: MessageInfo,
     msg: ExecuteMsg,
 ) -> Result<Response, ContractError> {
+    init_cosmwasm_logger(deps.api);
+
     match msg {
         ExecuteMsg::BtcHeaders {
             headers,
             first_work,
             first_height,
         } => {
-            let api = deps.api;
             let headers_len = headers.len();
 
             handle_btc_headers(deps, info, headers, first_work, first_height)
                 .inspect(|_| {
-                    api.debug(&format!("CONTRACT: handle_btc_headers: Successfully handled {headers_len} BTC headers"));
+                    debug!("Successfully handled {} BTC headers", headers_len);
                 })
                 .inspect_err(|e| {
-                    api.debug(&format!("CONTRACT: handle_btc_headers: Failed to handle {headers_len} BTC headers: {e}"));
+                    error!("Failed to handle {headers_len} BTC headers: {}", e);
                 })
         }
     }
 }
 
 pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> Result<Binary, ContractError> {
+    init_cosmwasm_logger(deps.api);
+
     match msg {
         QueryMsg::Admin {} => to_json_binary(&ADMIN.query_admin(deps)?).map_err(Into::into),
         QueryMsg::Config {} => Ok(to_json_binary(&CONFIG.load(deps.storage)?)?),
@@ -102,6 +111,8 @@ pub fn migrate(
     _env: Env,
     _msg: crate::msg::contract::MigrateMsg,
 ) -> Result<Response, ContractError> {
+    init_cosmwasm_logger(deps.api);
+
     // Get the current version stored in the contract
     let prev_version = cw2::get_contract_version(deps.storage)?;
 
