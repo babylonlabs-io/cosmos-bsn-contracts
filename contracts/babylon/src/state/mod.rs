@@ -109,4 +109,3 @@ pub fn handle_btc_timestamp(
         .debug("handle_btc_timestamp: completed processing BTC timestamp");
     Ok(wasm_msg)
 }
-

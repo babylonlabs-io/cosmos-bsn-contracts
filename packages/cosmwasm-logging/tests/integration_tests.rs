@@ -43,7 +43,10 @@ fn test_complex_formatting() {
 
     info!("User {} deposited {} tokens", user, amount);
     debug!("Current balances: {:?}", balance);
-    error!("Failed to process transaction for user {} with amount {}: {}", user, amount, "insufficient funds");
+    error!(
+        "Failed to process transaction for user {} with amount {}: {}",
+        user, amount, "insufficient funds"
+    );
 }
 
 #[test]
@@ -84,7 +87,10 @@ fn test_realistic_contract_scenario() {
     }
 
     // Simulate execution
-    info!("Transfer executed successfully: {} tokens from {} to {}", amount, sender, recipient);
+    info!(
+        "Transfer executed successfully: {} tokens from {} to {}",
+        amount, sender, recipient
+    );
     trace!("Transfer completed at block height: {}", 12345);
 }
 

@@ -65,11 +65,11 @@
 
 #[cfg(feature = "logging")]
 mod enabled {
-    use std::sync::Once;
     use cosmwasm_std::Api;
     use log::{Level, Log, Metadata, Record};
+    use std::sync::Once;
 
-    pub use log::{debug, error, info, trace, warn, log};
+    pub use log::{debug, error, info, log, trace, warn};
 
     static COSMWASM_LOGGER: CosmWasmLogger = CosmWasmLogger;
     static INIT: Once = Once::new();
@@ -98,7 +98,8 @@ mod enabled {
                             Level::Trace => "TRACE",
                         };
 
-                        let message = format!("CW: {}: [{}] {}", record.target(), level_str, record.args());
+                        let message =
+                            format!("CW: {}: [{}] {}", record.target(), level_str, record.args());
                         api.debug(&message);
                     }
                 });
