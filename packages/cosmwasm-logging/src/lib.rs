@@ -122,11 +122,6 @@ mod enabled {
                             // RefCell already borrowed (recursive logging) - silently skip.
                             // This is expected if logging is called recursively (e.g., from within Api::debug).
                             // If you see this unexpectedly, check for recursive logging in your code.
-                            #[cfg(debug_assertions)]
-                            debug_assert!(
-                                true,
-                                "cosmwasm-logging: RefCell borrow failed due to recursive logging. This is expected if logging is called recursively."
-                            );
                         }
                     }
                 });
