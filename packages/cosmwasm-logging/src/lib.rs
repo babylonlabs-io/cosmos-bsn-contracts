@@ -98,7 +98,7 @@ mod enabled {
                             Level::Trace => "TRACE",
                         };
 
-                        let message = format!("{}: [{}] {}", record.target(), level_str, record.args());
+                        let message = format!("CW: {}: [{}] {}", record.target(), level_str, record.args());
                         api.debug(&message);
                     }
                 });
@@ -166,12 +166,17 @@ mod enabled {
     ///
     /// ## Log Output Format
     ///
-    /// Logs are formatted as: `target: [LEVEL] message`
+    /// Logs are formatted as: `CW: target: [LEVEL] message`
     ///
     /// Examples:
-    /// - `contract::babylon::instantiate: [INFO] Contract instantiated`
-    /// - `contract::babylon::execute: [DEBUG] Processing transfer`
-    /// - `ibc::packet: [ERROR] Failed to process IBC packet`
+    /// - `CW: contract::babylon::instantiate: [INFO] Contract instantiated`
+    /// - `CW: contract::babylon::execute: [DEBUG] Processing transfer`
+    /// - `CW: ibc::packet: [ERROR] Failed to process IBC packet`
+    ///
+    /// The `CW:` prefix makes it easy to grep all CosmWasm contract logs:
+    /// ```bash
+    /// grep "CW:" /path/to/logfile
+    /// ```
     pub fn init_cosmwasm_logger(api: &dyn Api) {
         INIT.call_once(|| {
             // Store the API reference
