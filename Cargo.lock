@@ -254,6 +254,7 @@ dependencies = [
  "btc-finality",
  "btc-light-client",
  "btc-staking",
+ "cosmwasm-logging",
  "cosmwasm-schema",
  "cosmwasm-std",
  "cosmwasm-vm",
@@ -751,6 +752,14 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.101",
+]
+
+[[package]]
+name = "cosmwasm-logging"
+version = "0.17.0"
+dependencies = [
+ "cosmwasm-std",
+ "log",
 ]
 
 [[package]]

@@ -26,6 +26,7 @@ anybuf = { version = "0.5.0" }
 babylon-apis = { path = "./packages/apis" }
 babylon-proto = { path = "./packages/proto" }
 babylon-contract = { path = "./contracts/babylon" }
+cosmwasm-logging = { path = "./packages/cosmwasm-logging" }
 eots = { path = "./packages/eots" }
 anyhow = "1.0.82"
 bech32 = "0.9.1"

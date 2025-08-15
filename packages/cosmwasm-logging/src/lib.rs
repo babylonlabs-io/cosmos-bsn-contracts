@@ -112,8 +112,66 @@ mod enabled {
 
     /// Initialize the CosmWasm logger.
     ///
-    /// This should be called once, typically in your contract's `instantiate` function.
-    /// Subsequent calls are ignored (similar to Substrate's RuntimeLogger::init()).
+    /// This function sets up logging to route through CosmWasm's `api.debug()` system.
+    /// It uses `std::sync::Once` internally, so it's safe and efficient to call multiple times.
+    ///
+    /// ## Recommended Usage
+    ///
+    /// Call this function at the beginning of **every contract entry point** to ensure
+    /// logging works in all scenarios, including unit tests that call functions directly:
+    ///
+    /// ```rust
+    /// pub fn instantiate(deps: DepsMut, env: Env, info: MessageInfo, msg: InstantiateMsg) -> Result<Response, ContractError> {
+    ///     init_cosmwasm_logger(deps.api);
+    ///     info!("Contract instantiated");
+    ///     // ... rest of function
+    /// }
+    ///
+    /// pub fn execute(deps: DepsMut, env: Env, info: MessageInfo, msg: ExecuteMsg) -> Result<Response, ContractError> {
+    ///     init_cosmwasm_logger(deps.api);
+    ///     debug!("Execute called by {}", info.sender);
+    ///     // ... rest of function
+    /// }
+    ///
+    /// pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> Result<QueryResponse, ContractError> {
+    ///     init_cosmwasm_logger(deps.api);
+    ///     debug!("Query: {:?}", msg);
+    ///     // ... rest of function
+    /// }
+    ///
+    /// pub fn reply(deps: DepsMut, env: Env, reply: Reply) -> Result<Response, ContractError> {
+    ///     init_cosmwasm_logger(deps.api);
+    ///     debug!("Reply received: {}", reply.id);
+    ///     // ... rest of function
+    /// }
+    ///
+    /// pub fn migrate(deps: DepsMut, env: Env, msg: MigrateMsg) -> Result<Response, ContractError> {
+    ///     init_cosmwasm_logger(deps.api);
+    ///     info!("Contract migration started");
+    ///     // ... rest of function
+    /// }
+    /// ```
+    ///
+    /// ## Behavior
+    ///
+    /// - **First call**: Initializes the logger and stores the API reference
+    /// - **Subsequent calls**: No-op (returns immediately)
+    /// - **Thread safety**: Safe to call from multiple contexts
+    /// - **Performance**: Zero overhead after first initialization
+    ///
+    /// ## When logging is disabled
+    ///
+    /// When compiled without the `logging` feature, this function becomes a no-op
+    /// and is completely eliminated at compile time.
+    ///
+    /// ## Log Output Format
+    ///
+    /// Logs are formatted as: `target: [LEVEL] message`
+    ///
+    /// Examples:
+    /// - `contract::babylon::instantiate: [INFO] Contract instantiated`
+    /// - `contract::babylon::execute: [DEBUG] Processing transfer`
+    /// - `ibc::packet: [ERROR] Failed to process IBC packet`
     pub fn init_cosmwasm_logger(api: &dyn Api) {
         INIT.call_once(|| {
             // Store the API reference
@@ -133,9 +191,17 @@ mod enabled {
 
 #[cfg(not(feature = "logging"))]
 mod disabled {
-    /// No-op logger initialization when logging is disabled.
+    /// Initialize the CosmWasm logger (no-op when logging is disabled).
+    ///
+    /// When compiled without the `logging` feature, this function does nothing
+    /// and is completely eliminated at compile time, providing zero runtime cost.
+    ///
+    /// This function has the same signature as the enabled version, so you can
+    /// call it safely in all contract entry points regardless of feature flags.
+    ///
+    /// See the `enabled` module documentation for full usage examples.
     pub fn init_cosmwasm_logger(_api: &dyn cosmwasm_std::Api) {
-        // No-op when logging is disabled
+        // No-op when logging is disabled - this function is eliminated at compile time
     }
 
     // No-op macros that match log crate's API
