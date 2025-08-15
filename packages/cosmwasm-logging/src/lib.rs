@@ -99,18 +99,28 @@ mod enabled {
         fn log(&self, record: &Record) {
             if self.enabled(record.metadata()) {
                 COSMWASM_API.with(|api_ref| {
-                    if let Some(api) = *api_ref.borrow() {
-                        let level_str = match record.level() {
-                            Level::Error => "ERROR",
-                            Level::Warn => "WARN",
-                            Level::Info => "INFO",
-                            Level::Debug => "DEBUG",
-                            Level::Trace => "TRACE",
-                        };
+                    match api_ref.try_borrow().map(|borrowed| *borrowed) {
+                        Ok(Some(api)) => {
+                            let level_str = match record.level() {
+                                Level::Error => "ERROR",
+                                Level::Warn => "WARN",
+                                Level::Info => "INFO",
+                                Level::Debug => "DEBUG",
+                                Level::Trace => "TRACE",
+                            };
 
-                        let message =
-                            format!("CW: {}: [{level_str}] {}", record.target(), record.args());
-                        api.debug(&message);
+                            let message =
+                                format!("CW: {}: [{level_str}] {}", record.target(), record.args());
+                            api.debug(&message);
+                        }
+                        Ok(None) => {
+                            // Logger not initialized - this is a programming error
+                            #[cfg(debug_assertions)]
+                            eprintln!("Warning: cosmwasm-logging used before init_cosmwasm_logger() was called");
+                        }
+                        Err(_) => {
+                            // RefCell already borrowed (recursive logging) - silently skip
+                        }
                     }
                 });
             }

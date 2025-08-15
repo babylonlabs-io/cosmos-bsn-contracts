@@ -170,3 +170,19 @@ fn test_no_recursion_with_standard_api() {
     // If we reach here without panic, our simple RefCell approach is working
     // as expected in the CosmWasm environment
 }
+
+/// Test that logging without initialization shows warning in debug builds
+#[cfg(feature = "logging")]
+#[test]
+fn test_uninitialized_logger_warning() {
+    // Don't initialize the logger - this should trigger warning in debug builds
+
+    // This will trigger the Ok(None) case in our match statement
+    // In debug builds, it should print a warning to stderr
+    // In release builds, it should be silent
+    info!("This message should trigger uninitialized warning in debug builds");
+    debug!("Another uninitialized message");
+
+    // We can't easily test stderr output in unit tests, but this documents
+    // the expected behavior for manual testing with `cargo test -- --nocapture`
+}
