@@ -205,44 +205,147 @@ mod disabled {
     }
 
     // No-op macros that match log crate's API
+    //
+    // These macros achieve zero-cost logging elimination using `if false { ... }`.
+    // The official log crate uses level checking (`if lvl <= STATIC_MAX_LEVEL { ... }`),
+    // but since we want simple on/off behavior (not partial level filtering),
+    // `if false` is more direct and achieves the same dead code elimination.
+    //
+    // Benefits of this approach:
+    // - Type checking: Code inside gets validated but never executes
+    // - No moves: format_args!() handles format strings without moving values
+    // - Zero cost: Optimizer completely removes the `if false` blocks
+    // - Warning suppression: Variables appear "used" to the compiler
     #[macro_export]
     macro_rules! error {
-        (target: $target:expr, $($arg:tt)*) => {};
-        ($($arg:tt)*) => {};
+        (target: $target:expr, $($arg:tt)*) => {
+            if false {
+                // Allow attributes to suppress warnings in the unreachable dead code:
+                // - unreachable_code: The `if false` makes this code unreachable
+                // - unused_variables: Variables in format strings appear unused since code never runs
+                #[allow(unreachable_code, unused_variables)]
+                {
+                    let _ = format_args!($($arg)*);
+                    let _ = $target;
+                }
+            }
+        };
+        ($($arg:tt)*) => {
+            if false {
+                #[allow(unreachable_code, unused_variables)]
+                {
+                    let _ = format_args!($($arg)*);
+                }
+            }
+        };
     }
 
     #[macro_export]
     macro_rules! warn {
-        (target: $target:expr, $($arg:tt)*) => {};
-        ($($arg:tt)*) => {};
+        (target: $target:expr, $($arg:tt)*) => {
+            if false {
+                #[allow(unreachable_code, unused_variables)]
+                {
+                    let _ = format_args!($($arg)*);
+                    let _ = $target;
+                }
+            }
+        };
+        ($($arg:tt)*) => {
+            if false {
+                #[allow(unreachable_code, unused_variables)]
+                {
+                    let _ = format_args!($($arg)*);
+                }
+            }
+        };
     }
 
     #[macro_export]
     macro_rules! info {
-        (target: $target:expr, $($arg:tt)*) => {};
-        ($($arg:tt)*) => {};
+        (target: $target:expr, $($arg:tt)*) => {
+            if false {
+                #[allow(unreachable_code, unused_variables)]
+                {
+                    let _ = format_args!($($arg)*);
+                    let _ = $target;
+                }
+            }
+        };
+        ($($arg:tt)*) => {
+            if false {
+                #[allow(unreachable_code, unused_variables)]
+                {
+                    let _ = format_args!($($arg)*);
+                }
+            }
+        };
     }
 
     #[macro_export]
     macro_rules! debug {
-        (target: $target:expr, $($arg:tt)*) => {};
-        ($($arg:tt)*) => {};
+        (target: $target:expr, $($arg:tt)*) => {
+            if false {
+                #[allow(unreachable_code, unused_variables)]
+                {
+                    let _ = format_args!($($arg)*);
+                    let _ = $target;
+                }
+            }
+        };
+        ($($arg:tt)*) => {
+            if false {
+                #[allow(unreachable_code, unused_variables)]
+                {
+                    let _ = format_args!($($arg)*);
+                }
+            }
+        };
     }
 
     #[macro_export]
     macro_rules! trace {
-        (target: $target:expr, $($arg:tt)*) => {};
-        ($($arg:tt)*) => {};
+        (target: $target:expr, $($arg:tt)*) => {
+            if false {
+                #[allow(unreachable_code, unused_variables)]
+                {
+                    let _ = format_args!($($arg)*);
+                    let _ = $target;
+                }
+            }
+        };
+        ($($arg:tt)*) => {
+            if false {
+                #[allow(unreachable_code, unused_variables)]
+                {
+                    let _ = format_args!($($arg)*);
+                }
+            }
+        };
     }
 
     #[macro_export]
     macro_rules! log {
-        (target: $target:expr, $lvl:expr, $($arg:tt)+) => {};
-        ($lvl:expr, $($arg:tt)+) => {};
+        (target: $target:expr, $lvl:expr, $($arg:tt)+) => {
+            if false {
+                #[allow(unreachable_code, unused_variables)]
+                {
+                    let _ = format_args!($($arg)+);
+                    let _ = $target;
+                    let _ = $lvl;
+                }
+            }
+        };
+        ($lvl:expr, $($arg:tt)+) => {
+            if false {
+                #[allow(unreachable_code, unused_variables)]
+                {
+                    let _ = format_args!($($arg)+);
+                    let _ = $lvl;
+                }
+            }
+        };
     }
-
-    // Re-export our no-op macros
-    pub use {debug, error, info, log, trace, warn};
 }
 
 // Export the appropriate symbols based on feature
