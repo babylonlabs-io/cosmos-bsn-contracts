@@ -16,4 +16,3 @@ log = { version = "0.4", optional = true }
 [features]
 default = []  # No logging by default
 logging = ["log"]
-disable-logging = ["log?/max_level_off"]
