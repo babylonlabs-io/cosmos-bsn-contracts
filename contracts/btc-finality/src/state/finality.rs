@@ -31,6 +31,11 @@ pub const FP_BLOCK_SIGNER: Map<&str, u64> = Map::new("block_signer");
 /// The value is the time in seconds since UNIX epoch when the FP will be released from jail.
 pub const JAIL: Map<&str, u64> = Map::new("jail");
 
+/// Returns whether a finality provider is currently jailed
+pub fn is_fp_jailed(storage: &dyn Storage, fp_btc_pk_hex: &str) -> bool {
+    JAIL.has(storage, fp_btc_pk_hex)
+}
+
 /// Map of double signing evidence by FP and block height
 pub const EVIDENCES: Map<(&str, u64), Evidence> = Map::new("evidences");
 

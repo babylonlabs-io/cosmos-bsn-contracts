@@ -2,8 +2,8 @@ use crate::error::{ContractError, FinalitySigError};
 use crate::msg::{MsgAddFinalitySig, MsgCommitPubRand};
 use crate::state::config::{ADMIN, CONFIG};
 use crate::state::finality::{
-    collect_accumulated_voting_weights, get_fp_power, ACCUMULATED_VOTING_WEIGHTS, BLOCKS,
-    EVIDENCES, FP_BLOCK_SIGNER, FP_START_HEIGHT, JAIL, SIGNATURES,
+    collect_accumulated_voting_weights, get_fp_power, is_fp_jailed, ACCUMULATED_VOTING_WEIGHTS,
+    BLOCKS, EVIDENCES, FP_BLOCK_SIGNER, FP_START_HEIGHT, JAIL, SIGNATURES,
 };
 use crate::state::public_randomness::{
     get_last_pub_rand_commit, get_timestamped_pub_rand_commit_for_height, PUB_RAND_COMMITS,
@@ -173,8 +173,17 @@ pub fn handle_finality_signature(
     //     this means Babylon will lose safety under an adaptive adversary corrupting even 1
     //     finality provider. It can simply corrupt a new finality provider and equivocate a
     //     historical block over and over again, making a previous block not finalisable forever
+    // NOTE: Returning slashed error explicitly is necessary for FPs to update their states
     if fp.is_slashed() {
         return Err(ContractError::FinalityProviderAlreadySlashed(
+            add_finality_sig.fp_btc_pk_hex,
+        ));
+    }
+
+    // Ensure the finality provider is not jailed
+    // NOTE: Returning jailed error explicitly is necessary for FPs to update their states
+    if is_fp_jailed(deps.storage, &add_finality_sig.fp_btc_pk_hex) {
+        return Err(ContractError::FinalityProviderAlreadyJailed(
             add_finality_sig.fp_btc_pk_hex,
         ));
     }
