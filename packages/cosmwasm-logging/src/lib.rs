@@ -108,7 +108,8 @@ mod enabled {
                             Level::Trace => "TRACE",
                         };
 
-                        let message = format!("CW: {}: [{level_str}] {}", record.target(), record.args());
+                        let message =
+                            format!("CW: {}: [{level_str}] {}", record.target(), record.args());
                         api.debug(&message);
                     }
                 });
