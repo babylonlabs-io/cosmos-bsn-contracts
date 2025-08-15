@@ -35,6 +35,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Improvements
 
+- [#335](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/335) finality: return jailed FP error explicitly when handling finality signature
 - [#333](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/333) refactor(btc-light-client): remove dead code
 - [#332](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/332) e2e: e2e test for unbonding
 - [#331](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/331) refactor: introduce `MigrationTester`
