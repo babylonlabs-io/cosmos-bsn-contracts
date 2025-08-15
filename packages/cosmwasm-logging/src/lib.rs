@@ -15,8 +15,18 @@
 //!
 //! ## Usage
 //!
-//! ```rust
+//! ```rust,no_run
 //! use cosmwasm_logging::{init_cosmwasm_logger, info, debug, error, warn};
+//! use cosmwasm_std::{DepsMut, Env, MessageInfo, Response};
+//!
+//! // Example types for illustration
+//! #[derive(Debug)]
+//! struct InstantiateMsg;
+//! #[derive(Debug)]
+//! enum ExecuteMsg {
+//!     Transfer { recipient: String, amount: u64 }
+//! }
+//! struct ContractError;
 //!
 //! pub fn instantiate(
 //!     deps: DepsMut,
@@ -25,7 +35,7 @@
 //!     msg: InstantiateMsg,
 //! ) -> Result<Response, ContractError> {
 //!     // Initialize logger once (usually in instantiate)
-//!     init_cosmwasm_logger(&deps.api);
+//!     init_cosmwasm_logger(deps.api);
 //!
 //!     info!("Contract instantiated");
 //!     debug!("Instantiate message: {:?}", msg);
@@ -98,8 +108,7 @@ mod enabled {
                             Level::Trace => "TRACE",
                         };
 
-                        let message =
-                            format!("CW: {}: [{}] {}", record.target(), level_str, record.args());
+                        let message = format!("CW: {}: [{level_str}] {}", record.target(), record.args());
                         api.debug(&message);
                     }
                 });
@@ -121,7 +130,10 @@ mod enabled {
     /// Call this function at the beginning of **every contract entry point** to ensure
     /// logging works in all scenarios, including unit tests that call functions directly:
     ///
-    /// ```rust
+    /// ```rust,no_run
+    /// # use cosmwasm_std::{DepsMut, Deps, Env, MessageInfo, Reply, Response, QueryResponse};
+    /// # use cosmwasm_logging::{init_cosmwasm_logger, info, debug};
+    /// # struct InstantiateMsg; struct ExecuteMsg; struct QueryMsg; struct MigrateMsg; struct ContractError;
     /// pub fn instantiate(deps: DepsMut, env: Env, info: MessageInfo, msg: InstantiateMsg) -> Result<Response, ContractError> {
     ///     init_cosmwasm_logger(deps.api);
     ///     info!("Contract instantiated");

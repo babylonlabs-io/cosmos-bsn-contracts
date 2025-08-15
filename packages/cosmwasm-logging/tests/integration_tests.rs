@@ -129,3 +129,44 @@ fn test_no_op_macros() {
     info!(target: "contract::babylon::test", "This should be a no-op");
     debug!(target: "ibc::test", "This should be a no-op");
 }
+
+/// Test case to document recursion behavior.
+///
+/// This test documents that we're using RefCell::borrow() which could panic
+/// if recursive logging occurs. In practice, CosmWasm's api.debug() should not
+/// trigger recursion, but if it ever does, this test serves as a canary.
+///
+/// If this test fails with "already borrowed: BorrowMutError", we'll know
+/// we need to add recursion guards.
+///
+/// Ref https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/337#discussion_r2278520040
+#[cfg(feature = "logging")]
+#[test]
+fn test_no_recursion_with_standard_api() {
+    let deps = mock_dependencies();
+    init_cosmwasm_logger(&deps.api);
+
+    // Multiple rapid log calls to the same logger instance
+    // This should work fine with RefCell::borrow() since api.debug()
+    // doesn't actually cause recursion in real CosmWasm
+    for i in 0..10 {
+        info!("Rapid logging test iteration {i}");
+        debug!("Debug message {i}");
+        error!("Error message {i}");
+    }
+
+    // Complex nested logging calls
+    info!("Starting complex operation");
+    {
+        debug!("Step 1: validation");
+        {
+            trace!("Validating input parameters");
+            warn!("Warning about deprecated feature");
+        }
+        debug!("Step 2: execution");
+    }
+    info!("Complex operation completed");
+
+    // If we reach here without panic, our simple RefCell approach is working
+    // as expected in the CosmWasm environment
+}
