@@ -35,6 +35,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Improvements
 
+- [#337](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/337) feat: add zero-cost logging system for CosmWasm contracts
 - [#336](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/336) fix: avoid generating full-validation contracts
 - [#335](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/335) finality: return jailed FP error explicitly when handling finality signature
 - [#333](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/333) refactor(btc-light-client): remove dead code

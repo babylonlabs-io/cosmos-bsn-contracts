@@ -24,8 +24,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Machete
-        uses: bnjbvr/cargo-machete@main
-        
+        uses: bnjbvr/cargo-machete@auto-install-action
+
   check-schema-binary-naming:
     runs-on: ubuntu-latest
     steps:

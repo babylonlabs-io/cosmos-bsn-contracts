@@ -6,6 +6,7 @@ use crate::queries;
 use crate::state::config::{Config, CONFIG, DEFAULT_IBC_PACKET_TIMEOUT_DAYS};
 use crate::state::consumer_header_chain::CONSUMER_HEIGHT_LAST;
 use babylon_apis::{btc_staking_api, finality_api, to_bech32_addr, to_module_canonical_addr};
+use cosmwasm_logging::{debug, info, init_cosmwasm_logger};
 use cosmwasm_std::{
     to_json_binary, to_json_string, Addr, Decimal, Deps, DepsMut, Env, MessageInfo, QueryResponse,
     Reply, Response, SubMsg, SubMsgResponse, WasmMsg,
@@ -29,6 +30,12 @@ pub fn instantiate(
     _info: MessageInfo,
     msg: InstantiateMsg,
 ) -> Result<Response, ContractError> {
+    // Initialize logging.
+    init_cosmwasm_logger(deps.api);
+
+    info!(target: "contract::babylon::instantiate", "Instantiating Babylon contract");
+    debug!("Instantiate message: {:?}", msg);
+
     msg.validate()?;
 
     // Initialize config with None values for consumer fields
@@ -146,12 +153,16 @@ pub fn instantiate(
 }
 
 pub fn reply(deps: DepsMut, _env: Env, reply: Reply) -> Result<Response, ContractError> {
+    init_cosmwasm_logger(deps.api);
+
     let response = || {
         reply
             .result
             .into_result()
             .expect("TODO: why it's okay to not handle error here")
     };
+
+    debug!("Processing reply with ID: {}", reply.id);
 
     match reply.id {
         REPLY_ID_INSTANTIATE_LIGHT_CLIENT => reply_init_callback_light_client(deps, response()),
@@ -252,6 +263,8 @@ fn reply_init_callback_finality(
 }
 
 pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> Result<QueryResponse, ContractError> {
+    init_cosmwasm_logger(deps.api);
+
     match msg {
         QueryMsg::Config {} => Ok(to_json_binary(&queries::config(deps)?)?),
         QueryMsg::BabylonBaseEpoch {} => Ok(to_json_binary(&queries::babylon_base_epoch(deps)?)?),
@@ -280,6 +293,8 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> Result<QueryResponse, Cont
 /// This function is called when the contract is migrated to a new version.
 /// For non-state-breaking migrations, this updates the contract version and logs the migration.
 pub fn migrate(deps: DepsMut, _env: Env, _msg: MigrateMsg) -> Result<Response, ContractError> {
+    init_cosmwasm_logger(deps.api);
+
     // Get the current version stored in the contract
     let prev_version = cw2::get_contract_version(deps.storage)?;
 
@@ -306,6 +321,8 @@ pub fn execute(
     info: MessageInfo,
     msg: ExecuteMsg,
 ) -> Result<Response, ContractError> {
+    init_cosmwasm_logger(deps.api);
+
     match msg {
         ExecuteMsg::Slashing { evidence } => {
             // This is an internal routing message from the `btc_finality` contract

@@ -9,6 +9,11 @@ publish = false
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[package.metadata.optimizer]
+builds = [
+  { name = "dev", features = ["logging"] },
+]
+
 [lib]
 crate-type = ["cdylib", "rlib"]
 doctest = false
@@ -25,6 +30,7 @@ default = []
 cranelift = ["cosmwasm-vm/cranelift"]
 # for quicker tests, cargo test --lib
 library = []
+logging = ["cosmwasm-logging/logging"]
 
 [dependencies]
 babylon-apis          = { path = "../../packages/apis" }
@@ -37,6 +43,7 @@ btc-light-client      = { path = "../btc-light-client", features = [ "library" ]
 btc-staking           = { path = "../btc-staking", features = [ "library" ] }
 
 bitcoin          = { workspace = true }
+cosmwasm-logging = { workspace = true }
 cosmwasm-schema  = { workspace = true }
 cosmwasm-std     = { workspace = true }
 cw2              = { workspace = true }
@@ -44,7 +51,7 @@ cw-storage-plus  = { workspace = true }
 cw-utils         = { workspace = true }
 derivative       = { workspace = true }
 hex              = { workspace = true }
-k256             = { workspace = true } 
+k256             = { workspace = true }
 prost            = { workspace = true }
 thiserror        = { workspace = true }
 cw-controllers   = { workspace = true }
