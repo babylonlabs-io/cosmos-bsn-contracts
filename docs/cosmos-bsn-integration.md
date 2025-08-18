@@ -177,7 +177,8 @@ Guide](./ibc-connection-guide.md).
 
 ### 4.4 Upload BSN Contract Code
 
-Upload the four CosmWasm artifacts and record their code IDs. The command is the same for each artifact; only `<WASM_PATH>` changes.
+Upload the four CosmWasm artifacts and record their code IDs. The command is the
+same for each artifact; only `<WASM_PATH>` changes.
 
 ```bash
 # Upload one artifact
@@ -198,3 +199,30 @@ Record the four `code_id`s; you will use them in the next step.
 > Note: These contracts must be compiled locally to obtain the `.wasm` artifacts.
 > Refer to the official contract sources and build instructions at
 > [cosmos-bsn-contracts/contracts](https://github.com/babylonlabs-io/cosmos-bsn-contracts/tree/main/contracts).
+
+### 4.6 Register BSN Consumer on Babylon Genesis
+
+To register your Cosmos chain as a BSN on Babylon Genesis, you must submit its
+BSN metadata.  
+
+Use the following command: 
+
+```bash
+babylond tx btcstkconsumer register-consumer \
+  <CONSUMER_ID> \
+  <CONSUMER_NAME> \
+  <CONSUMER_DESCRIPTION> \
+  <BABYLON_REWARDS_COMMISSION> \
+  --from <bbn-key> --chain-id <bbn-chain-id> --fees 100000ubbn -y
+```
+
+Required metadata for BSN registration:
+- **consumer_id**: IBC client ID of your Cosmos BSN chain (saved during IBC
+  setup)
+- **consumer_name**: Human-readable name for your BSN (e.g., "DeFi Cosmos
+  Chain")
+- **consumer_description**: Brief description of the BSN's purpose
+- **babylon_rewards_commission**: Decimal in [0,1], e.g., `0.1` for 10%
+
+> **Governance Note:** On permissioned Babylon Genesis networks, this operation
+> must be executed by governance.
