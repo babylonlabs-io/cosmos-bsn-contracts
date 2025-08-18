@@ -118,10 +118,10 @@ impl BtcDelegation {
 
     pub fn get_status(&self, btc_height: u32) -> BTCDelegationStatus {
         // Manually unbonded, staking tx time-lock has not begun, or expired
-        // Following Babylon's logic: btcHeight + unbondingTime >= endHeight means EXPIRED
+        // Following Babylon's logic: delegation expires when btc_height >= end_height - unbonding_time
         if self.is_unbonded_early()
             || btc_height < self.start_height
-            || btc_height + self.unbonding_time >= self.end_height
+            || btc_height >= self.end_height.saturating_sub(self.unbonding_time)
         {
             BTCDelegationStatus::UNBONDED
         } else {
