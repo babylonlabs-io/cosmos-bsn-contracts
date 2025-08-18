@@ -127,6 +127,28 @@ enabled:
 - **IBC**: v10  
 - **wasmd**: v0.55  
 
-> **Notice**  
-> We are actively testing backwards compatibility. Once verified, all supported
-> version combinations will be listed here.
+> **Notice:** We are actively testing backwards compatibility. 
+> Once verified, all supported version combinations will be listed here.
+
+### 4.2 Adding the Babylon SDK Module
+
+> **Critical:** Before adding the Babylon SDK module, ensure you are using a 
+> version that is compatible with your Cosmos SDK release. 
+> See the [compatibility matrix]().
+
+The [Babylon module (`x/babylon`)](https://github.com/babylonlabs-io/babylon-sdk/tree/main/x/babylon)
+is the core integration point that enables a Cosmos SDK chain to function as a
+BSN. It provides:
+
+- **Contract Orchestration** — Manages the BSN contract suite (Babylon, BTC
+  Light Client, BTC Staking, BTC Finality) deployed on the chain.
+- **Block Information Bridge** — Sends block hash and app hash to contracts
+  during BeginBlock/EndBlock for time-sensitive operations.
+- **Reward Distribution** — Mints and distributes staking rewards when requested
+  by the finality contract.
+
+For design and functionality details, see the 
+[module documentation](https://github.com/babylonlabs-io/babylon-sdk/tree/main/x/babylon#readme).
+
+> **Notice:** On some Cosmos SDK chains, adding a new module 
+> (or upgrading the binary to include it) may require a governance proposal.
