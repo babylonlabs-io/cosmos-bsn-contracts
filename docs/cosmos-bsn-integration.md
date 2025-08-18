@@ -226,3 +226,29 @@ Required metadata for BSN registration:
 
 > **Governance Note:** On permissioned Babylon Genesis networks, this operation
 > must be executed by governance.
+
+### 4.7 Create Zone Concierge Channel
+
+Establish an ordered IBC channel between the Cosmos BSN chain and Babylon
+Genesis using the `zoneconcierge` port on the Cosmos side and the Babylon
+contract port (`wasm.<babylon_contract_address>`) on the Babylon side.
+
+Use your relayer to create the channel (example with Hermes):
+
+```bash
+rly tx channel <path-name> \
+  --src-port zoneconcierge \
+  --dst-port wasm.<babylon_contract_address> \
+  --order ordered \
+  --version zoneconcierge-1
+```
+
+Parameters:
+- **path-name**: Pre-configured relayer path between Cosmos BSN chain and Babylon
+- **src-port**: Must be `zoneconcierge` on the Cosmos BSN chain
+- **dst-port**: Babylon contract port in the form `wasm.<babylon_contract_address>`
+- **order**: Must be `ordered`
+- **version**: Must be `zoneconcierge-1`
+
+> **Notice:** For background and protocol details, see the Zone Concierge module
+> docs: [x/zoneconcierge README](https://github.com/babylonlabs-io/babylon/blob/v3.0.0-rc.2/x/zoneconcierge/README.md).
