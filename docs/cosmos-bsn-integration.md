@@ -53,3 +53,55 @@ The following steps outline the full lifecycle of a Cosmos BSN:
 
 5. **BSN Consumer Registration:** Register your chain in the Babylon Genesis
    consumer registry using its IBC client ID.
+
+## 3. Governance Notes
+
+For Cosmos BSN integration, governance is required on **two chains**:  
+- **Babylon Genesis** – where the BSN consumer must be registered  
+- **The Cosmos BSN chain itself** – where BSN contracts are deployed and
+  registered in the Babylon SDK module  
+
+Depending on whether you are integrating on **testnet** or **mainnet**, both
+Babylon Genesis and the Cosmos BSN chain may operate in **permissioned** or
+**permissionless** modes.  
+The exact governance requirements vary, but the following apply in all cases.
+
+### 3.1 Babylon Genesis Governance
+
+Every Cosmos BSN must be registered in the Babylon Genesis consumer registry.  
+This operation executes a `MsgRegisterConsumer` with the following metadata:
+
+- IBC client ID of the Cosmos chain  
+- Consumer name and description  
+- Commission parameters  
+
+The governance flow depends on the mode of the Babylon Genesis network:  
+
+- **Permissionless** – The Cosmos chain (or its operator account) can submit the
+  `MsgRegisterConsumer` transaction directly.  
+- **Permissioned** – A governance proposal must be submitted and approved on
+  Babylon Genesis that executes the same `MsgRegisterConsumer` message.  
+
+> **Note**: For simplicity, the rest of this document assumes a **permissionless
+> registration flow**.
+
+### 3.2 Cosmos BSN Governance
+
+On the Cosmos BSN chain itself, governance is required to integrate the BSN
+contract suite with the Babylon SDK module:  
+
+- **Register Contracts** – After deployment, the four BSN contracts must be
+  registered with the Babylon SDK module using a `MsgSetBSNContracts` governance
+  proposal. 
+
+> **Notice**  
+> Depending on the Cosmos BSN chain’s configuration:  
+> - **Permissioned CosmWasm** – Governance may be required for uploading contract
+>   code (`MsgStoreCode`) or allow-listing addresses for code upload
+>   (`MsgAddCodeUploadParamsAddresses`).  
+> - **Module Upgrades** – Adding the Babylon SDK `/x` module or performing
+>   upgrades may also require governance approval.  
+
+> **Note**: For simplicity, the rest of this document, we assume a **permissionless CosmWasm and
+> governance flow** on the Cosmos BSN chain. 
+
