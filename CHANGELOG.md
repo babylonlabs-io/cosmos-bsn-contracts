@@ -35,13 +35,25 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Improvements
 
+- [#336](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/336) fix: avoid generating full-validation contracts
+- [#335](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/335) finality: return jailed FP error explicitly when handling finality signature
+- [#333](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/333) refactor(btc-light-client): remove dead code
+- [#332](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/332) e2e: e2e test for unbonding
+- [#331](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/331) refactor: introduce `MigrationTester`
+- [#330](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/330) fix: remove unbonding_tx_sig from UnbondedBtcDelegation
 - [#329](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/329) refactor(babylon): consolidate state and msg module
+- [#328](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/328) chore: remove slashed from BtcDelegation
 - [#326](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/326) feat: contract migration support
 - [#327](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/327) chore: remove JAIL_FOREVER
+- [#326](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/326) feat: contract migration support
 - [#319](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/319) e2e: add logs and contract pinning support in e2e framework
 - [#318](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/318) chore: port `TestGetPubRandCommitForHeight` and tallying test
 - [#317](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/317) finality: add tests for voting power rotation
 - [#315](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/315) refactor: unify imports and update CI
+
+### Bugfixes
+
+- [#334](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/334) fix: add missing sudo export
 
 ## [v0.17.0](https://github.com/babylonlabs-io/cosmos-bsn-contracts/tree/v0.17.0) (2025-08-08)
 

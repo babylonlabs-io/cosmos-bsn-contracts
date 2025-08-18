@@ -429,21 +429,12 @@
         "description": "Sent from Babylon to the Consumer chain upon an early unbonded BTC delegation.",
         "type": "object",
         "required": [
-          "staking_tx_hash",
-          "unbonding_tx_sig"
+          "staking_tx_hash"
         ],
         "properties": {
           "staking_tx_hash": {
             "description": "Staking tx hash of the BTC delegation. It uniquely identifies a BTC delegation",
             "type": "string"
-          },
-          "unbonding_tx_sig": {
-            "description": "Signature on the unbonding tx signed by the BTC delegator It proves that the BTC delegator wants to unbond",
-            "allOf": [
-              {
-                "$ref": "#/definitions/Binary"
-              }
-            ]
           }
         },
         "additionalProperties": false
@@ -1042,7 +1033,6 @@
             "end_height",
             "fp_btc_pk_list",
             "params_version",
-            "slashed",
             "slashing_tx",
             "staker_addr",
             "staking_output_idx",
@@ -1091,10 +1081,6 @@
               "type": "integer",
               "format": "uint32",
               "minimum": 0.0
-            },
-            "slashed": {
-              "description": "Whether a given delegation is related to a slashed FP.",
-              "type": "boolean"
             },
             "slashing_tx": {
               "description": "Slashing tx in raw bytes.",

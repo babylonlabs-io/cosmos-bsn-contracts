@@ -96,6 +96,8 @@ pub enum ContractError {
     BlockNotFound(u64, String),
     #[error("The finality provider {0} has already been slashed")]
     FinalityProviderAlreadySlashed(String),
+    #[error("The finality provider {0} has already been jailed")]
+    FinalityProviderAlreadyJailed(String),
     #[error("Failed to extract secret key: {0}")]
     SecretKeyExtractionError(String),
     #[error("{0}")]

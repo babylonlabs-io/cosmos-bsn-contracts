@@ -305,9 +305,10 @@ pub(crate) mod tests {
         get_base_header, get_header, get_header_height, BitcoinNetwork, Config, CONFIG,
     };
     use crate::ExecuteMsg;
+    use babylon_test_utils::migration::MigrationTester;
     use babylon_test_utils::{get_btc_lc_fork_headers, get_btc_lc_fork_msg, get_btc_lc_headers};
     use bitcoin::block::Header as BlockHeader;
-    use cosmwasm_std::testing::{message_info, mock_dependencies, mock_env};
+    use cosmwasm_std::testing::mock_dependencies;
     use cosmwasm_std::{from_json, Addr};
 
     /// Initialze the contract state with given headers.
@@ -645,101 +646,21 @@ pub(crate) mod tests {
     }
 
     #[test]
-    fn test_migrate_basic() {
-        let mut deps = mock_dependencies();
-
-        // Set a fake previous version to simulate a deployed contract
-        set_contract_version(&mut deps.storage, CONTRACT_NAME, "0.1.0").unwrap();
-
-        // Call migrate with empty MigrateMsg
-        let res = migrate(
-            deps.as_mut(),
-            mock_env(),
+    fn test_migration_basics() {
+        MigrationTester::new(CONTRACT_NAME, CONTRACT_VERSION).test_migration_basics(
+            migrate,
+            instantiate,
             crate::msg::contract::MigrateMsg {},
-        )
-        .unwrap();
-
-        // Check that the response contains the expected attributes
-        assert_eq!(res.attributes.len(), 3);
-        assert_eq!(res.attributes[0].key, "action");
-        assert_eq!(res.attributes[0].value, "migrate");
-        assert_eq!(res.attributes[1].key, "from_version");
-        assert_eq!(res.attributes[1].value, "0.1.0");
-        assert_eq!(res.attributes[2].key, "to_version");
-        assert_eq!(res.attributes[2].value, CONTRACT_VERSION);
-
-        // Verify the version was updated
-        let version_info = cw2::get_contract_version(&deps.storage).unwrap();
-        assert_eq!(version_info.contract, CONTRACT_NAME);
-        assert_eq!(version_info.version, CONTRACT_VERSION);
-    }
-
-    #[test]
-    fn test_migrate_after_instantiate() {
-        let mut deps = mock_dependencies();
-        setup(&mut deps.storage);
-
-        let msg = InstantiateMsg {
-            network: BitcoinNetwork::Regtest,
-            btc_confirmation_depth: 1,
-            checkpoint_finalization_timeout: 100,
-            admin: None,
-        };
-        let info = message_info(&deps.api.addr_make("creator"), &[]);
-
-        // Instantiate the contract first
-        instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
-
-        // Verify initial version is set
-        let version_info = cw2::get_contract_version(&deps.storage).unwrap();
-        assert_eq!(version_info.contract, CONTRACT_NAME);
-        assert_eq!(version_info.version, CONTRACT_VERSION);
-
-        // Now attempt migration
-        let res = migrate(
-            deps.as_mut(),
-            mock_env(),
-            crate::msg::contract::MigrateMsg {},
-        )
-        .unwrap();
-
-        // Check that the response contains the expected attributes
-        assert_eq!(res.attributes.len(), 3);
-        assert_eq!(res.attributes[0].key, "action");
-        assert_eq!(res.attributes[0].value, "migrate");
-        assert_eq!(res.attributes[1].key, "from_version");
-        assert_eq!(res.attributes[1].value, CONTRACT_VERSION);
-        assert_eq!(res.attributes[2].key, "to_version");
-        assert_eq!(res.attributes[2].value, CONTRACT_VERSION);
-
-        // Verify the version remains the same
-        let version_info = cw2::get_contract_version(&deps.storage).unwrap();
-        assert_eq!(version_info.contract, CONTRACT_NAME);
-        assert_eq!(version_info.version, CONTRACT_VERSION);
-    }
-
-    #[test]
-    fn test_migrate_wrong_contract() {
-        let mut deps = mock_dependencies();
-
-        // Set a wrong contract name to simulate migration from different contract
-        set_contract_version(&mut deps.storage, "wrong-contract", "0.1.0").unwrap();
-
-        // Call migrate and expect error
-        let err = migrate(
-            deps.as_mut(),
-            mock_env(),
-            crate::msg::contract::MigrateMsg {},
-        )
-        .unwrap_err();
-
-        // Check the error is InvalidContractName
-        match err {
-            ContractError::InvalidContractName { expected, actual } => {
-                assert_eq!(expected, CONTRACT_NAME);
-                assert_eq!(actual, "wrong-contract");
-            }
-            _ => panic!("Expected InvalidContractName error"),
-        }
+            InstantiateMsg {
+                network: BitcoinNetwork::Regtest,
+                btc_confirmation_depth: 1,
+                checkpoint_finalization_timeout: 100,
+                admin: None,
+            },
+            |err| match err {
+                ContractError::InvalidContractName { expected, actual } => Some((expected, actual)),
+                _ => None,
+            },
+        );
     }
 }

@@ -3,7 +3,6 @@ package types
 import (
 	"encoding/base64"
 	"encoding/hex"
-	"encoding/json"
 	"math/rand"
 	"testing"
 	"time"
@@ -67,7 +66,7 @@ func GenBTCHeadersMsg(parent *btclctypes.BTCHeaderInfo) ([]*btclctypes.BTCHeader
 }
 
 func GenExecMessage(t *testing.T) ExecuteMessage {
-	_, newDel := genBTCDelegation(t)
+	_, newDel := GenBTCDelegationMessage(t)
 
 	addr := datagen.GenRandomAccount().Address
 
@@ -94,7 +93,6 @@ func GenExecMessage(t *testing.T) ExecuteMessage {
 		BtcStaking: BtcStaking{
 			NewFP:       []NewFinalityProvider{newFp},
 			ActiveDel:   []ActiveBtcDelegation{newDel},
-			SlashedDel:  []SlashedBtcDelegation{},
 			UnbondedDel: []UnbondedBtcDelegation{},
 		},
 	}
@@ -102,7 +100,7 @@ func GenExecMessage(t *testing.T) ExecuteMessage {
 	return executeMessage
 }
 
-func genBTCDelegation(t *testing.T) (*bstypes.Params, ActiveBtcDelegation) {
+func GenBTCDelegationMessage(t *testing.T) (*bstypes.Params, ActiveBtcDelegation) {
 	net := &chaincfg.RegressionNetParams
 	r := rand.New(rand.NewSource(time.Now().Unix()))
 
@@ -227,103 +225,4 @@ func convertBTCDelegationToActiveBtcDelegation(mockDel *bstypes.BTCDelegation) A
 		UndelegationInfo:     undelegationInfo,
 		ParamsVersion:        mockDel.ParamsVersion,
 	}
-}
-
-type NewFinalityProvider struct {
-	Description *FinalityProviderDescription `json:"description,omitempty"`
-	Commission  string                       `json:"commission"`
-	Addr        string                       `json:"addr,omitempty"`
-	BTCPKHex    string                       `json:"btc_pk_hex"`
-	Pop         *ProofOfPossessionBtc        `json:"pop,omitempty"`
-	ConsumerID  string                       `json:"consumer_id"`
-}
-
-type FinalityProviderDescription struct {
-	Moniker         string `json:"moniker"`
-	Identity        string `json:"identity"`
-	Website         string `json:"website"`
-	SecurityContact string `json:"security_contact"`
-	Details         string `json:"details"`
-}
-
-type ProofOfPossessionBtc struct {
-	BTCSigType int32  `json:"btc_sig_type"`
-	BTCSig     string `json:"btc_sig"`
-}
-
-type CovenantAdaptorSignatures struct {
-	CovPK       string   `json:"cov_pk"`
-	AdaptorSigs []string `json:"adaptor_sigs"`
-}
-
-type SignatureInfo struct {
-	PK  string `json:"pk"`
-	Sig string `json:"sig"`
-}
-
-type BtcUndelegationInfo struct {
-	UnbondingTx           string                      `json:"unbonding_tx"`
-	DelegatorUnbondingSig string                      `json:"delegator_unbonding_sig"`
-	CovenantUnbondingSigs []SignatureInfo             `json:"covenant_unbonding_sig_list"`
-	SlashingTx            string                      `json:"slashing_tx"`
-	DelegatorSlashingSig  string                      `json:"delegator_slashing_sig"`
-	CovenantSlashingSigs  []CovenantAdaptorSignatures `json:"covenant_slashing_sigs"`
-}
-
-type ActiveBtcDelegation struct {
-	StakerAddr           string                      `json:"staker_addr"`
-	BTCPkHex             string                      `json:"btc_pk_hex"`
-	FpBtcPkList          []string                    `json:"fp_btc_pk_list"`
-	StartHeight          uint32                      `json:"start_height"`
-	EndHeight            uint32                      `json:"end_height"`
-	TotalSat             uint64                      `json:"total_sat"`
-	StakingTx            string                      `json:"staking_tx"`
-	SlashingTx           string                      `json:"slashing_tx"`
-	DelegatorSlashingSig string                      `json:"delegator_slashing_sig"`
-	CovenantSigs         []CovenantAdaptorSignatures `json:"covenant_sigs"`
-	StakingOutputIdx     uint32                      `json:"staking_output_idx"`
-	UnbondingTime        uint32                      `json:"unbonding_time"`
-	UndelegationInfo     BtcUndelegationInfo         `json:"undelegation_info"`
-	ParamsVersion        uint32                      `json:"params_version"`
-}
-
-type SlashedBtcDelegation struct {
-	// Define fields as needed
-}
-
-type UnbondedBtcDelegation struct {
-	// Define fields as needed
-}
-
-type BabylonExecuteMsg struct {
-	BtcHeaders BTCHeadersMsg `json:"btc_headers"`
-}
-
-type BTCHeadersMsg struct {
-	Headers     []*BtcHeader `json:"headers"`
-	FirstWork   *string      `json:"first_work,omitempty"`
-	FirstHeight *uint32      `json:"first_height,omitempty"`
-}
-
-type ExecuteMessage struct {
-	BtcStaking BtcStaking `json:"btc_staking"`
-}
-
-type BtcStaking struct {
-	NewFP       []NewFinalityProvider   `json:"new_fp"`
-	ActiveDel   []ActiveBtcDelegation   `json:"active_del"`
-	SlashedDel  []SlashedBtcDelegation  `json:"slashed_del"`
-	UnbondedDel []UnbondedBtcDelegation `json:"unbonded_del"`
-}
-
-type MigrateMsg struct {
-}
-
-func GenMigrateMsg() []byte {
-	msg := MigrateMsg{}
-	msgBytes, err := json.Marshal(msg)
-	if err != nil {
-		panic(err)
-	}
-	return msgBytes
 }

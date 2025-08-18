@@ -1,45 +1,12 @@
-use crate::bitcoin::total_work;
 use crate::error::ContractError;
 use crate::msg::btc_header::BtcHeader;
-use babylon_proto::babylon::btclightclient::v1::BtcHeaderInfo;
 use cosmwasm_schema::{cw_serde, QueryResponses};
-use cosmwasm_std::Binary;
 #[cfg(not(target_arch = "wasm32"))]
 use {
     crate::msg::btc_header::{BtcHeaderResponse, BtcHeadersResponse},
     crate::state::Config,
     cw_controllers::AdminResponse,
 };
-
-#[cw_serde]
-pub struct BaseHeader {
-    /// Initial BTC header to initialize the light client.
-    pub header: BtcHeader,
-    /// Total accumulated work of the initial header, encoded as big-endian bytes.
-    pub total_work: Binary,
-    /// Height of the initial header.
-    pub height: u32,
-}
-
-impl BaseHeader {
-    pub fn to_btc_header_info(&self) -> Result<BtcHeaderInfo, ContractError> {
-        let total_work = total_work(&self.total_work)?;
-        self.header.to_btc_header_info(self.height, total_work)
-    }
-}
-
-impl TryFrom<BtcHeaderInfo> for BaseHeader {
-    type Error = ContractError;
-    fn try_from(header_info: BtcHeaderInfo) -> Result<Self, Self::Error> {
-        let total_work: Binary = header_info.work.to_vec().into();
-        let height = header_info.height;
-        Ok(Self {
-            header: header_info.try_into()?,
-            total_work,
-            height,
-        })
-    }
-}
 
 #[cw_serde]
 pub struct InstantiateMsg {

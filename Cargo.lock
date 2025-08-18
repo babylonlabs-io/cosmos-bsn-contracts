@@ -304,6 +304,7 @@ dependencies = [
  "babylon-proto",
  "bitcoin",
  "cosmwasm-std",
+ "cw2",
  "hex",
  "k256",
  "prost",

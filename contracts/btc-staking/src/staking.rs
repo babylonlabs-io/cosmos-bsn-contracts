@@ -234,7 +234,7 @@ fn handle_undelegation(
     }
 
     // verify the early unbonded delegation
-    verify_undelegation(&cfg, &btc_del, &undelegation.unbonding_tx_sig)?;
+    verify_undelegation(&cfg, &btc_del)?;
 
     // Add the signature to the BTC delegation's undelegation and set back
     btc_undelegate(storage, &staking_tx_hash, &mut btc_del)?;
@@ -448,8 +448,7 @@ pub(crate) mod tests {
     use crate::queries;
     use crate::state::staking::BtcUndelegationInfo;
     use babylon_test_utils::{
-        create_new_finality_provider, get_active_btc_delegation, get_btc_del_unbonding_sig,
-        get_derived_btc_delegation,
+        create_new_finality_provider, get_active_btc_delegation, get_derived_btc_delegation,
     };
     use btc_light_client::msg::btc_header::BtcHeaderResponse;
     use cosmwasm_std::testing::{message_info, mock_dependencies, mock_env};
@@ -656,12 +655,9 @@ pub(crate) mod tests {
             }
         );
 
-        let unbonding_sig = get_btc_del_unbonding_sig(1, &[1]);
-
         // Now send the undelegation message
         let undelegation = UnbondedBtcDelegation {
             staking_tx_hash: staking_tx_hash_hex.clone(),
-            unbonding_tx_sig: unbonding_sig.to_bytes().into(),
         };
 
         let msg = ExecuteMsg::BtcStaking {

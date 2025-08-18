@@ -198,7 +198,6 @@ pub(crate) mod ibc_packet {
                 .iter()
                 .map(|u| UnbondedBtcDelegation {
                     staking_tx_hash: u.staking_tx_hash.clone(),
-                    unbonding_tx_sig: u.unbonding_tx_sig.to_vec().into(),
                 })
                 .collect(),
         };
