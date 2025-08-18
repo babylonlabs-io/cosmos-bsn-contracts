@@ -314,8 +314,9 @@ pub fn process_expired_btc_delegations(deps: DepsMut, env: Env) -> Result<Respon
             for staking_tx_hash in expired_dels {
                 let btc_del = BTC_DELEGATIONS.load(deps.storage, &staking_tx_hash)?;
 
-                // Only process active delegations (check with current BTC height)
-                if btc_del.is_active(tip_height) {
+                // Process expired delegations that haven't been processed yet
+                // We check if delegation is NOT already unbonded early to avoid double processing
+                if !btc_del.is_unbonded_early() {
                     // Update delegation power
                     discount_delegation_power(
                         deps.storage,
