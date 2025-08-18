@@ -32,27 +32,32 @@ finality secured by Bitcoin staking.
 <img width="3100" height="772" alt="governance" src="./images/lifecycle.png" />
 
 > **Notice**  
-> Before starting the lifecycle steps, ensure your chain satisfies all
+> Before starting the lifecycle steps, ensure Cosmos BSN chain satisfies all
 > [Compatibility and Version Requirements]().
 
 The following steps outline the full lifecycle of a Cosmos BSN:
 
 1. **Module Integration:** Add the [Babylon SDK](https://github.com/babylonlabs-io/babylon-sdk) 
-   module into your Cosmos SDK chain binary.
+   module into Cosmos SDK chain binary.
 
-2. **Contract Deployment:**  Deploy the [BSN contract](https://github.com/babylonlabs-io/cosmos-bsn-contracts) 
-   suite to your chain and instantiate the Babylon contract, which auto-deploys
-   the Light Client, Staking, and Finality contracts.
+2. **IBC Setup:** Establish IBC connection with Babylon:
+   - Create IBC clients
+   - Create an IBC connection
+   - Create an **ICS20 transfer channel** (required before contract deployment)
 
-3. **Governance Registration:** Register the deployed contract addresses with
+3. **Contract Deployment:** Deploy the [BSN contract suite](https://github.com/babylonlabs-io/cosmos-bsn-contracts) 
+   to Cosmos BSN chain and instantiate the Babylon contract, which requires the ICS20 
+   channel ID and auto-deploys the Light Client, Staking, and Finality contracts.
+
+4. **Governance Registration:** Register the deployed contract addresses with
    the Babylon SDK module via a governance proposal.
 
-4. **IBC Connection Setup:** Establish an ordered 
-   [Zone Concierge IBC channel](https://github.com/babylonlabs-io/babylon/tree/v3.0.0-rc.2/x/zoneconcierge)
-   between your chain and Babylon Genesis.
+5. **Zone Concierge Channel:** Establish an ordered Zone Concierge IBC channel
+   between Cosmos BSN chain and Babylon Genesis.
 
-5. **BSN Consumer Registration:** Register your chain in the Babylon Genesis
+6. **BSN Consumer Registration:** Register cosmos BSN chain in the Babylon Genesis
    consumer registry using its IBC client ID.
+
 
 ## 3. Governance Notes
 
@@ -105,3 +110,23 @@ contract suite with the Babylon SDK module:
 > **Note**: For simplicity, the rest of this document, we assume a **permissionless CosmWasm and
 > governance flow** on the Cosmos BSN chain. 
 
+## 4. Integration Process
+
+### 4.1 Compatibility and Version Requirements
+
+A Cosmos BSN must run on a Cosmos SDK stack with the following modules
+enabled:  
+
+- **IBC Module** – Provides cross-chain communication with Babylon Genesis  
+- **CosmWasm Module** – Enables deployment and execution of the BSN smart
+  contracts  
+- **Governance Module** – Required for module configuration
+  
+**Supported Versions**  
+- **Cosmos SDK**: v0.53  
+- **IBC**: v10  
+- **wasmd**: v0.55  
+
+> **Notice**  
+> We are actively testing backwards compatibility. Once verified, all supported
+> version combinations will be listed here.
