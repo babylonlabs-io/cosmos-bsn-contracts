@@ -174,3 +174,27 @@ Guide](./ibc-connection-guide.md).
 
 > **Important:** Save the **IBC client ID** from this step, it will 
 > be used for BSN consumer registration.
+
+### 4.4 Upload BSN Contract Code
+
+Upload the four CosmWasm artifacts and record their code IDs. The command is the same for each artifact; only `<WASM_PATH>` changes.
+
+```bash
+# Upload one artifact
+<chain-binary> tx wasm store <WASM_PATH> --node <Cosmos BSN RPC> --from <key> --chain-id <chain-id> --gas 200000000 --gas-prices 0.01<denom> -y
+
+# Retrieve the last uploaded code_id
+<chain-binary> query wasm list-code -o json | jq -r '.code_infos[-1].code_id'
+```
+
+Repeat for:
+- Babylon contract: `babylon_contract.wasm`
+- BTC Light Client: `btc_light_client.wasm`
+- BTC Staking: `btc_staking.wasm`
+- BTC Finality: `btc_finality.wasm`
+
+Record the four `code_id`s; you will use them in the next step.
+
+> Note: These contracts must be compiled locally to obtain the `.wasm` artifacts.
+> Refer to the official contract sources and build instructions at
+> [cosmos-bsn-contracts/contracts](https://github.com/babylonlabs-io/cosmos-bsn-contracts/tree/main/contracts).
