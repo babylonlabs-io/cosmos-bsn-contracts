@@ -152,3 +152,25 @@ For design and functionality details, see the
 
 > **Notice:** On some Cosmos SDK chains, adding a new module 
 > (or upgrading the binary to include it) may require a governance proposal.
+
+### 4.3 Establish IBC Connection with Babylon
+
+> **Critical:** An **ICS20 transfer channel** must be established before 
+> deploying BSN contracts. 
+> The Babylon contract requires the channel ID during instantiation.
+
+This step involves setting up an IBC relayer to create the necessary
+communication between Cosmos BSN chain and Babylon Genesis. The
+process includes:
+
+- **IBC Client Creation** — Establish light clients for both chains
+- **IBC Connection** — Create the connection between the chains  
+- **ICS20 Transfer Channel** — Required for token transfers and contract
+  instantiation
+- **Consumer ID Extraction** — Save the IBC client ID for BSN registration
+
+For detailed setup instructions, see the [IBC Connection Setup
+Guide](./ibc-connection-guide.md).
+
+> **Important:** Save the **IBC client ID** from this step, it will 
+> be used for BSN consumer registration.
