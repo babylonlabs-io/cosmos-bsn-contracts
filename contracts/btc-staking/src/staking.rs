@@ -430,6 +430,11 @@ fn slash_finality_provider(
 }
 
 /// Queries the BTC light client for the latest BTC tip height.
+///
+/// This function is used in execute/migrate contexts where we have `DepsMut`.
+/// We need a separate function for queries because Rust's type system treats
+/// `Deps` and `DepsMut` as different types, even though they provide the same
+/// storage and querier functionality.
 fn get_btc_tip_height(deps: &DepsMut) -> Result<u32, ContractError> {
     // Get the BTC light client address from config
     let config = CONFIG.load(deps.storage)?;
@@ -445,6 +450,16 @@ fn get_btc_tip_height(deps: &DepsMut) -> Result<u32, ContractError> {
 }
 
 /// Queries the BTC light client for the latest BTC tip height (for query contexts).
+///
+/// This is the same implementation as `get_btc_tip_height()` above, but accepts
+/// `Deps` instead of `DepsMut`. We need both functions because:
+///
+/// 1. Execute handlers receive `DepsMut` (mutable access)
+/// 2. Query handlers receive `Deps` (read-only access)
+/// 3. Rust's type system won't let us use one function for both contexts
+/// 4. Converting between them adds complexity without benefit
+///
+/// Having two simple functions is the idiomatic Rust approach here.
 pub(crate) fn get_btc_tip_height_for_queries(deps: Deps) -> Result<u32, ContractError> {
     // Get the BTC light client address from config
     let config = CONFIG.load(deps.storage)?;
