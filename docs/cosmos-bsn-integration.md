@@ -26,3 +26,30 @@ finality secured by Bitcoin staking.
   chain to Babylon Genesis.  
 - **Consumer Registration** – Each Cosmos BSN chain is registered on Babylon
   Genesis using its IBC client ID as the consumer identifier.  
+
+## 2. BSN Lifecycle
+
+<img width="3100" height="772" alt="governance" src="./images/lifecycle.png" />
+
+> **Notice**  
+> Before starting the lifecycle steps, ensure your chain satisfies all
+> [Compatibility and Version Requirements]().
+
+The following steps outline the full lifecycle of a Cosmos BSN:
+
+1. **Module Integration:** Add the [Babylon SDK](https://github.com/babylonlabs-io/babylon-sdk) 
+   module into your Cosmos SDK chain binary.
+
+2. **Contract Deployment:**  Deploy the [BSN contract](https://github.com/babylonlabs-io/cosmos-bsn-contracts) 
+   suite to your chain and instantiate the Babylon contract, which auto-deploys
+   the Light Client, Staking, and Finality contracts.
+
+3. **Governance Registration:** Register the deployed contract addresses with
+   the Babylon SDK module via a governance proposal.
+
+4. **IBC Connection Setup:** Establish an ordered 
+   [Zone Concierge IBC channel](https://github.com/babylonlabs-io/babylon/tree/v3.0.0-rc.2/x/zoneconcierge)
+   between your chain and Babylon Genesis.
+
+5. **BSN Consumer Registration:** Register your chain in the Babylon Genesis
+   consumer registry using its IBC client ID.
