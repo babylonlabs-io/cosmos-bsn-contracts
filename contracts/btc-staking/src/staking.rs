@@ -197,7 +197,9 @@ fn handle_active_delegation(
 
     // Index the delegation by its actual expiry height (end_height - unbonding_time)
     // This matches Babylon's logic where delegations expire at endHeight - unbondingTime
-    let actual_expiry_height = delegation.end_height.saturating_sub(delegation.unbonding_time);
+    let actual_expiry_height = delegation
+        .end_height
+        .saturating_sub(delegation.unbonding_time);
     BTC_DELEGATION_EXPIRY_INDEX.update(
         storage,
         actual_expiry_height,

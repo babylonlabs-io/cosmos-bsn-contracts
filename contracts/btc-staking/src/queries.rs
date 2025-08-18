@@ -68,11 +68,11 @@ pub fn delegations(
         .transpose()?;
     let start_after = start_after.as_ref().map(|s| s.as_ref());
     let start_after = start_after.map(Bound::exclusive);
-    
+
     let delegations = if active {
         // For active delegation queries, BTC height is required
         let btc_height = get_btc_tip_height_for_queries(deps)?;
-        
+
         BTC_DELEGATIONS
             .range_raw(deps.storage, start_after, None, Order::Ascending)
             .filter(|item| {
@@ -93,7 +93,7 @@ pub fn delegations(
             .map(|item| item.map(|(_, v)| v))
             .collect::<Result<Vec<BtcDelegation>, _>>()?
     };
-    
+
     Ok(BtcDelegationsResponse { delegations })
 }
 
@@ -127,11 +127,11 @@ pub fn active_delegations_by_fp(
     active: bool,
 ) -> Result<BtcDelegationsResponse, ContractError> {
     let tx_hashes = FP_DELEGATIONS.load(deps.storage, &btc_pk_hex)?;
-    
+
     let delegations = if active {
         // For active delegation queries, BTC height is required
         let btc_height = get_btc_tip_height_for_queries(deps)?;
-        
+
         tx_hashes
             .iter()
             .map(|h| Ok(BTC_DELEGATIONS.load(deps.storage, Txid::from_slice(h)?.as_ref())?))
@@ -150,7 +150,7 @@ pub fn active_delegations_by_fp(
             .map(|h| Ok(BTC_DELEGATIONS.load(deps.storage, Txid::from_slice(h)?.as_ref())?))
             .collect::<Result<Vec<_>, ContractError>>()?
     };
-    
+
     Ok(BtcDelegationsResponse { delegations })
 }
 
@@ -424,7 +424,7 @@ mod tests {
             .unwrap()
             .delegations;
         assert_eq!(dels.len(), 2); // Both delegations are still stored
-        // The first delegation should still be there
+                                   // The first delegation should still be there
         let sorted_dels = sort_delegations(&[del1.into(), del2.into()]);
         assert!(dels.contains(&sorted_dels[0]));
 
