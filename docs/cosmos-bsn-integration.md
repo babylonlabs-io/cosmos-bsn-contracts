@@ -169,8 +169,8 @@ process includes:
   instantiation
 - **Consumer ID Extraction** — Save the IBC client ID for BSN registration
 
-For detailed setup instructions, see the [IBC Connection Setup
-Guide](./ibc-connection-guide.md).
+For detailed setup instructions, see the official 
+[Babylon IBC Relayer Documentation](https://github.com/babylonlabs-io/babylon/blob/v3.0.0-rc.2/docs/ibc-relayer.md).
 
 > **Important:** Save the **IBC client ID** from this step, it will 
 > be used for BSN consumer registration.
