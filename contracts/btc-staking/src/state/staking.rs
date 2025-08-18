@@ -108,22 +108,20 @@ pub struct BtcDelegation {
 }
 
 impl BtcDelegation {
-    pub fn is_active(&self) -> bool {
-        // TODO: Implement full delegation status checks (needs BTC height) (related to #7.2)
-        // self.get_status(btc_height, w) == BTCDelegationStatus::ACTIVE
-        !self.is_unbonded_early()
+    pub fn is_active(&self, btc_height: u32) -> bool {
+        self.get_status(btc_height) == BTCDelegationStatus::ACTIVE
     }
 
-    fn is_unbonded_early(&self) -> bool {
+    pub fn is_unbonded_early(&self) -> bool {
         self.undelegation_info.delegator_unbonding_info.is_some()
     }
 
-    pub fn get_status(&self, btc_height: u32, w: u32) -> BTCDelegationStatus {
-        // Manually unbonded, staking tx time-lock has not begun, is less than w BTC blocks left, or
-        // has expired
+    pub fn get_status(&self, btc_height: u32) -> BTCDelegationStatus {
+        // Manually unbonded, staking tx time-lock has not begun, or expired
+        // Following Babylon's logic: btcHeight + unbondingTime >= endHeight means EXPIRED
         if self.is_unbonded_early()
             || btc_height < self.start_height
-            || btc_height + w > self.end_height
+            || btc_height + self.unbonding_time >= self.end_height
         {
             BTCDelegationStatus::UNBONDED
         } else {

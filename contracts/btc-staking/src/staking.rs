@@ -15,7 +15,7 @@ use bitcoin::consensus::deserialize;
 use bitcoin::hashes::Hash;
 use bitcoin::{Transaction, Txid};
 use btc_light_client::msg::btc_header::BtcHeaderResponse;
-use cosmwasm_std::{DepsMut, Env, Event, MessageInfo, Order, Response, StdResult, Storage};
+use cosmwasm_std::{Deps, DepsMut, Env, Event, MessageInfo, Order, Response, StdResult, Storage};
 use cw_storage_plus::Bound;
 use std::str::FromStr;
 
@@ -195,10 +195,12 @@ fn handle_active_delegation(
     let delegation = BtcDelegation::from(active_delegation);
     BTC_DELEGATIONS.save(storage, staking_tx_hash.as_ref(), &delegation)?;
 
-    // Index the delegation by its end height
+    // Index the delegation by its actual expiry height (end_height - unbonding_time)
+    // This matches Babylon's logic where delegations expire at endHeight - unbondingTime
+    let actual_expiry_height = delegation.end_height.saturating_sub(delegation.unbonding_time);
     BTC_DELEGATION_EXPIRY_INDEX.update(
         storage,
-        delegation.end_height,
+        actual_expiry_height,
         |existing| -> Result<_, ContractError> {
             let mut dels = existing.unwrap_or_default();
             let hash_bytes: [u8; HASH_SIZE] = *staking_tx_hash.as_ref();
@@ -226,8 +228,9 @@ fn handle_undelegation(
     let staking_tx_hash = Txid::from_str(&undelegation.staking_tx_hash)?;
     let mut btc_del = BTC_DELEGATIONS.load(storage, staking_tx_hash.as_ref())?;
 
-    // Ensure the BTC delegation is active
-    if !btc_del.is_active() {
+    // For undelegation, we only need to check that it's not already unbonded early
+    // We don't need BTC height because undelegation is about adding early unbonding info
+    if btc_del.is_unbonded_early() {
         return Err(ContractError::DelegationIsNotActive(
             staking_tx_hash.to_string(),
         ));
@@ -309,8 +312,8 @@ pub fn process_expired_btc_delegations(deps: DepsMut, env: Env) -> Result<Respon
             for staking_tx_hash in expired_dels {
                 let btc_del = BTC_DELEGATIONS.load(deps.storage, &staking_tx_hash)?;
 
-                // Only process active delegations
-                if btc_del.is_active() {
+                // Only process active delegations (check with current BTC height)
+                if btc_del.is_active(tip_height) {
                     // Update delegation power
                     discount_delegation_power(
                         deps.storage,
@@ -427,14 +430,29 @@ fn slash_finality_provider(
 /// Queries the BTC light client for the latest BTC tip height.
 fn get_btc_tip_height(deps: &DepsMut) -> Result<u32, ContractError> {
     // Get the BTC light client address from config
-    let btc_light_client_addr = CONFIG.load(deps.storage)?.btc_light_client;
+    let config = CONFIG.load(deps.storage)?;
 
     // Query the BTC light client for the tip header
     let query_msg = btc_light_client::msg::contract::QueryMsg::BtcTipHeader {};
     // TODO: use a raw query for performance / efficiency
     let tip: BtcHeaderResponse = deps
         .querier
-        .query_wasm_smart(btc_light_client_addr, &query_msg)?;
+        .query_wasm_smart(&config.btc_light_client, &query_msg)?;
+
+    Ok(tip.height)
+}
+
+/// Queries the BTC light client for the latest BTC tip height (for query contexts).
+pub(crate) fn get_btc_tip_height_for_queries(deps: Deps) -> Result<u32, ContractError> {
+    // Get the BTC light client address from config
+    let config = CONFIG.load(deps.storage)?;
+
+    // Query the BTC light client for the tip header
+    let query_msg = btc_light_client::msg::contract::QueryMsg::BtcTipHeader {};
+    // TODO: use a raw query for performance / efficiency
+    let tip: BtcHeaderResponse = deps
+        .querier
+        .query_wasm_smart(&config.btc_light_client, &query_msg)?;
 
     Ok(tip.height)
 }
