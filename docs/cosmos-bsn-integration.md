@@ -147,8 +147,8 @@ BSN. It provides:
   Light Client, BTC Staking, BTC Finality) deployed on the chain.
 - **Block Information Bridge** — Sends block hash and app hash to contracts
   during BeginBlock/EndBlock for time-sensitive operations.
-- **Reward Distribution** — Mints and distributes staking rewards when requested
-  by the finality contract.
+- **Fee Collector** — Intercepts a portion of transaction
+fees collected by the network and sends them to the finality contract for distribution.
 
 For design and functionality details, see the 
 [module documentation](https://github.com/babylonlabs-io/babylon-sdk/tree/main/x/babylon#readme).
