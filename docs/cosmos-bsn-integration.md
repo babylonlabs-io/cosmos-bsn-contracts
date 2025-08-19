@@ -35,7 +35,7 @@ to collect venues and communicate with these contracts from Cosmos layer
 > Before starting the lifecycle steps, ensure Cosmos BSN chain satisfies all
 > [Compatibility and Version Requirements]().
 
-The following steps outline the full lifecycle of a Cosmos BSN:
+The following steps outline of integrating a Cosmos BSN:
 
 1. **Module Integration:** Add the [Babylon SDK](https://github.com/babylonlabs-io/babylon-sdk) 
    module into Cosmos SDK chain binary.
