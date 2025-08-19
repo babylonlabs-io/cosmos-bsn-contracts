@@ -47,17 +47,30 @@ Initialization message fields:
 - `destination_module`: Babylon module name for receiving ICS-20 transfers (e.g., `btcstaking`)
 - `admin`: Address with admin rights over the contract
 
-> Advanced (optional overrides): In most deployments you can leave the three `*_msg` fields unset.
-> If you need to customize sub-contract initialization, provide the respective init message:
-> - `btc_light_client_msg`: BTC Light Client init message. Defaults to the top-level `network`, `btc_confirmation_depth`, `checkpoint_finalization_timeout`, and `admin`. See definition: [`contracts/btc-light-client/src/msg/contract.rs`](../contracts/btc-light-client/src/msg/contract.rs).
-> - `btc_staking_msg`: BTC Staking init message. Defaults to `{ admin }`. See definition: [`packages/apis/src/btc_staking_api.rs`](../packages/apis/src/btc_staking_api.rs).
-> - `btc_finality_msg`: BTC Finality init message. Defaults to `{ admin }` and module defaults. See definition: [`packages/apis/src/finality_api.rs`](../packages/apis/src/finality_api.rs).
-> - Encoding: All three `*_msg` values must be base64-encoded JSON strings (as required by CosmWasm instantiate schemas).
+> Advanced (optional overrides): In most deployments you can leave the three
+> `*_msg` fields unset. If you need to customize sub-contract initialization,
+> provide the respective init message:
+> - `btc_light_client_msg`: BTC Light Client init message. Defaults to the
+>   top-level `network`, `btc_confirmation_depth`,
+>   `checkpoint_finalization_timeout`, and `admin`. See definition:
+>   [`contracts/btc-light-client/src/msg/contract.rs`](../contracts/btc-light-client/src/msg/contract.rs).
+> - `btc_staking_msg`: BTC Staking init message. Defaults to `{ admin }`. See
+>   definition:
+>   [`packages/apis/src/btc_staking_api.rs`](../packages/apis/src/btc_staking_api.rs).
+> - `btc_finality_msg`: BTC Finality init message. Defaults to `{ admin }` and
+>   module defaults. See definition:
+>   [`packages/apis/src/finality_api.rs`](../packages/apis/src/finality_api.rs).
+> - Encoding: All three `*_msg` values must be base64-encoded JSON strings (as
+>   required by CosmWasm instantiate schemas).
 
 > Notes:
-> - `network` must match the Bitcoin network used by your BTC Light Client headers source; mismatches will prevent header verification.
-> - `admin` is applied to the Babylon contract and all three sub-contracts. Many deployments set this to a governance-controlled address; leave unset for no Wasm admin (immutable code state).
-> - `destination_module` is typically `btcstaking` and must correspond to a valid module name on your Cosmos chain that receives rewards via ICS-20.
+> - `network` must match the Bitcoin network used by your BTC Light Client
+>   headers source; mismatches will prevent header verification.
+> - `admin` is applied to the Babylon contract and all three sub-contracts. Many
+>   deployments set this to a governance-controlled address; leave unset for no
+>   Wasm admin (immutable code state).
+> - `destination_module` is typically `btcstaking` and must correspond to a
+>   valid module name on your Cosmos chain that receives rewards via ICS-20.
 
 Example init JSON (adjust values to your environment):
 
