@@ -4,7 +4,7 @@ resolver = "2"
 
 [workspace.package]
 edition    = "2021"
-version    = "0.17.0"
+version    = "1.0.0-rc.0"
 license    = "Apache-2.0"
 repository = "https://github.com/babylonlabs-io/cosmos-bsn-contracts"
 authors    = ["Babylon Labs Ltd. <admin@babylonlabs.io>"]

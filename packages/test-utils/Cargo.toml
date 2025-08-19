@@ -6,11 +6,11 @@ version.workspace = true
 license.workspace = true
 repository.workspace = true
 authors.workspace = true
-publish           = true
+publish.workspace = true
 
 [dependencies]
-babylon-apis     = { path = "../apis", version = "0.17.0" }
-babylon-proto    = { path = "../proto", version = "0.17.0" }
+babylon-apis     = { path = "../apis" }
+babylon-proto    = { path = "../proto" }
 bitcoin          = { workspace = true }
 cosmwasm-std     = { workspace = true }
 cw2              = { workspace = true }
