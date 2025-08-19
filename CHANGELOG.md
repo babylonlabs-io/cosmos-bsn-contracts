@@ -31,7 +31,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## [Unreleased](https://github.com/babylonlabs-io/cosmos-bsn-contracts/tree/HEAD)
 
-[Full Changelog](https://github.com/babylonlabs-io/cosmos-bsn-contracts/compare/v0.1.0.0-rc.0...HEAD)
+[Full Changelog](https://github.com/babylonlabs-io/cosmos-bsn-contracts/compare/v1.0.0-rc.0...HEAD)
 
 ## [v1.0.0-rc.0](https://github.com/babylonlabs-io/cosmos-bsn-contracts/tree/v1.0.0-rc.0) (2025-08-19)
 
