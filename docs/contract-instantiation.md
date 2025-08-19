@@ -18,9 +18,9 @@ governance.
 - [Cosmos BSN contracts](../contracts/) uploaded (code IDs recorded)
 
 > Notice: To complete these prerequisites, see `cosmos-bsn-integration.md`:
-> - [4.2 Adding the Babylon SDK Module](./cosmos-bsn-integration.md#42-adding-the-babylon-sdk-module)
-> - [4.3 Establish IBC Connection with Babylon](./cosmos-bsn-integration.md#43-establish-ibc-connection-with-babylon)
-> - [4.4 Upload BSN Contract Code](./cosmos-bsn-integration.md#44-upload-bsn-contract-code)
+> - [5.1 Adding the Babylon SDK Module](./cosmos-bsn-integration.md#51-adding-the-babylon-sdk-module)
+> - [5.2 Establish IBC Connection with Babylon](./cosmos-bsn-integration.md#52-establish-ibc-connection-with-babylon)
+> - [5.3 Upload BSN Contract Code](./cosmos-bsn-integration.md#53-upload-bsn-contract-code)
 
 ## 2. Instantiate the Babylon Contract
 
