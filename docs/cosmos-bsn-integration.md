@@ -151,6 +151,10 @@ fees collected by the network and sends them to the finality contract for distri
 For design and functionality details, see the 
 [module documentation](https://github.com/babylonlabs-io/babylon-sdk/tree/main/x/babylon/README.md).
 
+> **Notice:** For a step-by-step example of adding the Babylon SDK Module
+> `x/babylon` to a chain, see the demo:
+> [babylon-sdk/demo](https://github.com/babylonlabs-io/babylon-sdk/tree/v0.12.0/demo).
+
 > **Notice:** Module parameters you can set (with module-defined defaults):
 > `MaxGasBeginBlocker` (gas cap for BeginBlock), `MaxGasEndBlocker` (gas cap for
 > EndBlock), `BtcStakingPortion` (decimal [0,1] fraction of fees forwarded to
