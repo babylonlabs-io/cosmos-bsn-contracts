@@ -1,8 +1,8 @@
 # Contract Instantiation and Module Governance
 
-This guide covers instantiating the Babylon contract on your Cosmos BSN chain
-and registering the deployed contract addresses in the Babylon SDK module via
-governance.
+The Babylon contract is the entry point for a Cosmos BSN chain to initialize its on-chain BSN components. 
+Instantiating the Babylon contract deploys and wires up the BTC Light Client, BTC Staking, and BTC Finality contracts, 
+and enables governance to register all deployed addresses in the Babylon SDK Module `x/babylon`.
 
 ## Contents
 
@@ -13,7 +13,7 @@ governance.
 
 ## 1. Prerequisites
 
-- Babylon SDK module integrated into the chain binary ([x/babylon](https://github.com/babylonlabs-io/babylon-sdk/tree/v0.12.0/x/babylon))
+- Babylon SDK Module `x/babylon` integrated into the chain binary ([x/babylon](https://github.com/babylonlabs-io/babylon-sdk/tree/v0.12.0/x/babylon))
 - IBC connection with Babylon Genesis (ICS20 transfer channel established)
 - [Cosmos BSN contracts](../contracts/) uploaded (code IDs recorded)
 
@@ -102,7 +102,7 @@ From the response, record:
 
 ## 4. Register Contracts in the Module (Governance)
 
-Create a governance proposal to register the four contract addresses in the Babylon SDK module.
+Create a governance proposal to register the four contract addresses in the Babylon SDK Module `x/babylon`.
 
 > Governance is needed because `MsgSetBSNContracts` updates module state and is
 > restricted to the module authority (default x/gov), preventing arbitrary users
