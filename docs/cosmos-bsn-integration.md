@@ -22,6 +22,8 @@ finality secured by Bitcoin staking.
   - *BTC Light Client Contract* – Verifies Bitcoin state  
   - *BTC Staking Contract* – Manages BTC staking and delegation  
   - *BTC Finality Contract* – Collects and validates finality signatures
+- **ICS20 IBC Channel** – Standard IBC transfer channel with Babylon Genesis
+  required before BSN contract instantiation.
 - **Zone Concierge IBC Channel** – Ordered channel used to connect the Cosmos
   chain to Babylon Genesis.  
 - **Consumer Registration** – Each Cosmos BSN chain is registered on Babylon
@@ -50,19 +52,21 @@ The following steps outline the full lifecycle of a Cosmos BSN:
 4. **Governance Registration:** Register the deployed contract addresses with
    the Babylon SDK module via a governance proposal.
 
-5. **Zone Concierge Channel:** Establish an ordered Zone Concierge IBC channel
-   between Cosmos BSN chain and Babylon Genesis.
-
-6. **BSN Consumer Registration:** Register cosmos BSN chain in the Babylon Genesis
+5. **BSN Consumer Registration:** Register cosmos BSN chain in the Babylon Genesis
    consumer registry using its IBC client ID.
+
+6. **Zone Concierge Channel:** Establish an ordered Zone Concierge IBC channel
+   between Cosmos BSN chain and Babylon Genesis.
 
 
 ## 3. Governance Notes
 
 For Cosmos BSN integration, governance is required on **two chains**:  
 - **Babylon Genesis** – where the BSN consumer must be registered  
-- **The Cosmos BSN chain itself** – where BSN contracts are deployed and
-  registered in the Babylon SDK module  
+- **The Cosmos BSN chain itself** – where BSN contracts are registered in the
+  Babylon SDK module;  
+  governance for contract deployment is only required if the Cosmos BSN chain
+  uses permissioned CosmWasm  
 
 Depending on whether you are integrating on **testnet** or **mainnet**, both
 Babylon Genesis and the Cosmos BSN chain may operate in **permissioned** or
@@ -78,12 +82,13 @@ This operation executes a `MsgRegisterConsumer` with the following metadata:
 - Consumer name and description  
 - Commission parameters  
 
-The governance flow depends on the mode of the Babylon Genesis network:  
+The registration process depends on how the Babylon Genesis network is configured:
 
-- **Permissionless** – The Cosmos chain (or its operator account) can submit the
-  `MsgRegisterConsumer` transaction directly.  
-- **Permissioned** – A governance proposal must be submitted and approved on
-  Babylon Genesis that executes the same `MsgRegisterConsumer` message.  
+- **Permissionless** – No governance required. The Cosmos chain (or its operator
+  account) can directly submit the MsgRegisterConsumer transaction.
+- **Permissioned** – Governance required. The MsgRegisterConsumer message must
+  be included in a governance proposal on Babylon Genesis and approved before
+  registration.
 
 > **Note**: For simplicity, the rest of this document assumes a **permissionless
 > registration flow**.
