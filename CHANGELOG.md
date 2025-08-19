@@ -31,7 +31,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## [Unreleased](https://github.com/babylonlabs-io/cosmos-bsn-contracts/tree/HEAD)
 
-[Full Changelog](https://github.com/babylonlabs-io/cosmos-bsn-contracts/compare/v0.17.0...HEAD)
+[Full Changelog](https://github.com/babylonlabs-io/cosmos-bsn-contracts/compare/v1.0.0-rc.0...HEAD)
+
+## [v1.0.0-rc.0](https://github.com/babylonlabs-io/cosmos-bsn-contracts/tree/v1.0.0-rc.0) (2025-08-19)
+
+[Full Changelog](https://github.com/babylonlabs-io/cosmos-bsn-contracts/compare/v0.17.0...v1.0.0-rc.0)
 
 ### Improvements
 
@@ -53,7 +57,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Bugfixes
 
-- [#334](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/334) fix: add missing sudo export
+- [#334](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/334) fix:
+  add missing sudo export
+- [#340](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/340) fix:
+  delegation natural expiry
 
 ## [v0.17.0](https://github.com/babylonlabs-io/cosmos-bsn-contracts/tree/v0.17.0) (2025-08-08)
 
