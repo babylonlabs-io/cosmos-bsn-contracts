@@ -15,8 +15,8 @@ Once registered in Babylon Genesis as a BSN consumer, the chain can receive
 finality secured by Bitcoin staking.
 
 **Core components of a Cosmos BSN:**
-- **Babylon SDK Module** – Provides native support for BSN logic and IBC
-  interactions.  
+- **Babylon SDK Module `x/babylon`** – Provides the necessary infrastructure
+to collect venues and communicate with these contracts from Cosmos layer
 - **BSN Contract Suite** – Four CosmWasm contracts deployed on the Cosmos chain:  
   - *Babylon Contract* – Coordinates BSN operations  
   - *BTC Light Client Contract* – Verifies Bitcoin state  
