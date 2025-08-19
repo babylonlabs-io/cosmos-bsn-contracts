@@ -51,30 +51,35 @@ Initialization message fields:
 
 Advanced (optional overrides): If you need to customize sub-contract initialization, provide the respective init message:
 
-- `btc_light_client_msg`: BTC Light Client init message. Defaults to the top-level `network`, `btc_confirmation_depth`, `checkpoint_finalization_timeout`, and `admin`. 
-  Override fields:
+- `btc_light_client_msg`: BTC Light Client init message. Defaults to the
+  top-level `network`, `btc_confirmation_depth`,
+  `checkpoint_finalization_timeout`, and `admin`. Override fields:
   - `network` (string enum: `mainnet` | `signet` | `testnet` | `regtest`)
   - `btc_confirmation_depth` (number)
   - `checkpoint_finalization_timeout` (number)
   - `admin` (string | null)  
-  See definition: [`contracts/btc-light-client/src/msg/contract.rs`](../contracts/btc-light-client/src/msg/contract.rs).
+  See definition:
+  [`contracts/btc-light-client/src/msg/contract.rs`](../contracts/btc-light-client/src/msg/contract.rs).
 
-- `btc_staking_msg`: BTC Staking init message. Defaults to `{ admin }`.
-  Override fields:
+- `btc_staking_msg`: BTC Staking init message. Defaults to `{ admin }`. Override fields:
   - `admin` (string | null)  
-  See definition: [`packages/apis/src/btc_staking_api.rs`](../packages/apis/src/btc_staking_api.rs).
+  See definition:
+  [`packages/apis/src/btc_staking_api.rs`](../packages/apis/src/btc_staking_api.rs).
 
-- `btc_finality_msg`: BTC Finality init message. Defaults to `{ admin }` and module defaults. Common override fields:
+- `btc_finality_msg`: BTC Finality init message. Defaults to `{ admin }` and
+  module defaults. Common override fields:
   - `admin` (string | null)
-  - `max_active_finality_providers` (number)
-  - `min_pub_rand` (number)
-  - `reward_interval` (number)
-  - `missed_blocks_window` (number)
-  - `jail_duration` (number)
-  - `finality_activation_height` (number)  
-  See definition: [`packages/apis/src/finality_api.rs`](../packages/apis/src/finality_api.rs).
+  - `max_active_finality_providers` (number)(default=100)
+  - `min_pub_rand` (number)(default=1)
+  - `reward_interval` (number)(default=50)
+  - `missed_blocks_window` (number)(default=250)
+  - `jail_duration` (number)(default=86400)
+  - `finality_activation_height` (number)(default=1)
+  See definition:
+  [`packages/apis/src/finality_api.rs`](../packages/apis/src/finality_api.rs).
 
-> Notice: All three `*_msg` values must be base64-encoded JSON strings (as required by CosmWasm instantiate schemas).
+> Notice: All three `*_msg` values must be base64-encoded JSON strings (as
+> required by CosmWasm instantiate schemas).
 
 Example init JSON (adjust values to your environment):
 
