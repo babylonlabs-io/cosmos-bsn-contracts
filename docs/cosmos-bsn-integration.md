@@ -151,7 +151,7 @@ BSN. It provides:
 fees collected by the network and sends them to the finality contract for distribution.
 
 For design and functionality details, see the 
-[module documentation](https://github.com/babylonlabs-io/babylon-sdk/tree/main/x/babylon#readme).
+[module documentation](https://github.com/babylonlabs-io/babylon-sdk/tree/main/x/babylon/README.md).
 
 > **Notice:** On some Cosmos SDK chains, adding a new module 
 > (or upgrading the binary to include it) may require a governance proposal.
