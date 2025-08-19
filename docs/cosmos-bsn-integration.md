@@ -198,6 +198,27 @@ Record the four `code_id`s; you will use them in the next step.
 > Refer to the official contract sources and build instructions at
 > [cosmos-bsn-contracts/contracts](https://github.com/babylonlabs-io/cosmos-bsn-contracts/tree/main/contracts).
 
+> **Notice:** This step uploads code only. Do not instantiate any contracts yet.
+
+### 4.5 Instantiate the Babylon Contract
+
+> **Critical:** You must have an ICS20 transfer channel established (from
+> [4.3](#43-establish-ibc-connection-with-babylon)) and the four code IDs (from
+> [4.4](#44-upload-bsn-contract-code)) before instantiating. The Babylon
+> contract will orchestrate the initialization of the other three contracts.
+
+For detailed instructions on instantiating the Babylon contract and registering
+the instantiated Cosmos BSN contracts in the Babylon SDK module, refer to
+[`docs/contract-instantiation.md`](./contract-instantiation.md).
+
+On success, the Babylon contract will automatically:
+- Instantiate the BTC Light Client, BTC Staking, and BTC Finality contracts
+- Store IBC transfer details (ICS20 channel) for rewards distribution
+- Set optional admin for controlled upgrades/migrations
+
+> **Notice:** Most deployments can use default initialization for the three
+> sub-contracts. Advanced users can override sub-contract init messages
+
 ### 4.6 Register BSN Consumer on Babylon Genesis
 
 To register your Cosmos chain as a BSN on Babylon Genesis, you must submit its
