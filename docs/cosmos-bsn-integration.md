@@ -172,8 +172,16 @@ fees collected by the network and sends them to the finality contract for distri
 For design and functionality details, see the 
 [module documentation](https://github.com/babylonlabs-io/babylon-sdk/tree/main/x/babylon/README.md).
 
-> **Notice:** On some Cosmos SDK chains, adding a new module 
-> (or upgrading the binary to include it) may require a governance proposal.
+> **Notice:** Module parameters you can set (with module-defined defaults):
+> `MaxGasBeginBlocker` (gas cap for BeginBlock), `MaxGasEndBlocker` (gas cap for
+> EndBlock), `BtcStakingPortion` (decimal [0,1] fraction of fees forwarded to
+> the Finality contract)
+
+> **Notice:** On a running chain, update these parameters via governance (module
+> params update for `x/babylon`)
+
+> **Notice:** On some Cosmos SDK chains, adding a new module (or upgrading the
+> binary to include it) may require a governance proposal.
 
 ### 5.2 Establish IBC Connection with Babylon
 
