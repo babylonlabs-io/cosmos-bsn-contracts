@@ -29,8 +29,6 @@ finality secured by Bitcoin staking.
 
 ## 2. BSN Lifecycle
 
-<img width="3100" height="772" alt="governance" src="./images/lifecycle.png" />
-
 > **Notice**  
 > Before starting the lifecycle steps, ensure Cosmos BSN chain satisfies all
 > [Compatibility and Version Requirements]().
