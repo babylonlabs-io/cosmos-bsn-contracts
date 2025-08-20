@@ -60,8 +60,8 @@ The following steps outline of integrating a Cosmos BSN:
 ## 3. Governance Notes
 
 For Cosmos BSN integration, governance is required on **two chains**:  
-- **Babylon Genesis** – where the BSN consumer must be registered  
-- **The Cosmos BSN chain itself** – where BSN contracts are registered in the
+- **Babylon Genesis** – where the Cosmos BSN must be registered  
+- **The Cosmos BSN chain itself** – where Cosmos BSN contracts are registered in the
   Babylon SDK Module `x/babylon`;  
   governance for contract deployment is only required if the Cosmos BSN chain
   uses permissioned CosmWasm  
