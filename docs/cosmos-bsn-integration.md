@@ -216,7 +216,7 @@ Repeat for:
 
 Record the four `code_id`s; you will use them in the next step.
 
-> **Notice:** This step uploads code only. Do not instantiate any contracts yet!
+> **Notice:** This step uploads code only. The contracts haven't been instantiated yet!
 
 ### 5.4 Instantiate the Babylon Contract
 
