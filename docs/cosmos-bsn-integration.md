@@ -10,7 +10,7 @@
 - [4. Compatibility and Version Requirements](#4-compatibility-and-version-requirements)
 - [5. Integration Process](#5-integration-process)
   - [5.1 Adding the Babylon SDK Module](#51-adding-the-babylon-sdk-module)
-  - [5.2 Establish IBC Connection with Babylon](#52-establish-ibc-connection-with-babylon)
+  - [5.2 Establish IBC Transfer Channel with Babylon](#52-establish-ibc-transfer-channel-with-babylon)
   - [5.3 Upload BSN Contract Code](#53-upload-bsn-contract-code)
   - [5.4 Instantiate the Babylon Contract](#54-instantiate-the-babylon-contract)
   - [5.5 Register BSN Consumer on Babylon Genesis](#55-register-bsn-consumer-on-babylon-genesis)
@@ -37,7 +37,7 @@ The following steps outline of integrating a Cosmos BSN:
 1. **Module Integration:** Add the [Babylon SDK Module `x/babylon`](https://github.com/babylonlabs-io/babylon-sdk/tree/main/x/babylon/README.md) 
    into Cosmos SDK chain binary.
 
-2. **[IBC Setup](#52-establish-ibc-connection-with-babylon):** Establish IBC connection with Babylon:
+2. **[IBC transfer channel Setup](#52-establish-ibc-transfer-channel-with-babylon):** Establish IBC connection with Babylon:
    - Create IBC clients
    - Create an IBC connection
    - Create an **ICS20 transfer channel** (required before contract deployment)
@@ -46,25 +46,31 @@ The following steps outline of integrating a Cosmos BSN:
    to Cosmos BSN chain and instantiate the Babylon contract, which requires the ICS20 
    channel ID and auto-deploys the Light Client, Staking, and Finality contracts.
 
-4. **[Governance Registration](./contract-instantiation.md):** Register the deployed contract addresses with
-   the Babylon SDK Module `x/babylon` via a governance proposal.
+4. **[Deploying and registering Cosmos BSN Contract](./contract-instantiation.md):** Register the deployed contract
+   addresses with the Babylon SDK Module `x/babylon` via a governance proposal.
 
-5. **[BSN Consumer Registration](#55-register-bsn-consumer-on-babylon-genesis):** Register
+5. **[Registering BSN consumer on Babylon Genesis](#55-register-bsn-consumer-on-babylon-genesis):** Register
    cosmos BSN chain in the Babylon Genesis consumer registry using its IBC
    client ID.
 
-6. **[Zone Concierge Channel](#56-create-zone-concierge-channel):** Establish an ordered Zone Concierge IBC channel
+6. **[IBC Zone Concierge Channel setup](#56-create-zone-concierge-channel):** Establish an ordered Zone Concierge IBC channel
    between Cosmos BSN chain and Babylon Genesis.
 
 
 ## 3. Governance Notes
 
-For Cosmos BSN integration, governance is required on **two chains**:  
-- **Babylon Genesis** – where the Cosmos BSN must be registered  
-- **The Cosmos BSN chain itself** – where Cosmos BSN contracts are registered in the
-  Babylon SDK Module `x/babylon`;  
-  governance for contract deployment is only required if the Cosmos BSN chain
-  uses permissioned CosmWasm  
+For Cosmos BSN integration, governance requirements depend on whether Babylon
+Genesis is configured as **permissioned** or **permissionless**:
+
+- **Permissioned Babylon Genesis** – Governance required on **two chains**:  
+  - **Babylon Genesis** – where the Cosmos BSN must be registered  
+  - **The Cosmos BSN chain itself** – where Cosmos BSN contracts are registered
+    in the Babylon SDK Module `x/babylon`;  
+    governance for contract deployment is only required if the Cosmos BSN chain
+    uses permissioned CosmWasm  
+
+- **Permissionless Babylon Genesis** – Governance required only on the Cosmos
+  BSN chain itself for contract registration and module configuration.
 
 Depending on whether you are integrating on **testnet** or **mainnet**, both
 Babylon Genesis and the Cosmos BSN chain may operate in **permissioned** or
@@ -77,8 +83,12 @@ Every Cosmos BSN must be registered in the Babylon Genesis consumer registry.
 This operation executes a `MsgRegisterConsumer` with the following metadata:
 
 - IBC client ID of the Cosmos chain  
+- Consumer name
 - Consumer name and description  
 - Commission parameters  
+
+> **Note:** For the complete message structure and field definitions, see the
+> [MsgRegisterConsumer proto definition](https://github.com/babylonlabs-io/babylon/blob/v3.0.0-rc.2/proto/babylon/btcstkconsumer/v1/tx.proto#L46).
 
 The registration process depends on how the Babylon Genesis network is configured:
 
@@ -166,7 +176,7 @@ For design and functionality details, see the
 > **Notice:** On some Cosmos SDK chains, adding a new module (or upgrading the
 > binary to include it) may require a governance proposal.
 
-### 5.2 Establish IBC Connection with Babylon
+### 5.2 Establish IBC Transfer Channel with Babylon
 
 > **Critical:** An **ICS20 transfer channel** must be established before 
 > deploying BSN contracts. 
@@ -184,9 +194,6 @@ process includes:
 
 For detailed setup instructions, see the official 
 [Babylon IBC Relayer Documentation](https://github.com/babylonlabs-io/babylon/blob/v3.0.0-rc.2/docs/ibc-relayer.md).
-
-> **Important:** Save the **IBC client ID** from this step, it will 
-> be used for BSN consumer registration.
 
 ### 5.3 Upload BSN Contract Code
 
@@ -221,7 +228,7 @@ Record the four `code_id`s; you will use them in the next step.
 ### 5.4 Instantiate the Babylon Contract
 
 > **Critical:** You must have an ICS20 transfer channel established (from
-> [5.2](#52-establish-ibc-connection-with-babylon)) and the four code IDs (from
+> [5.2](#52-establish-ibc-transfer-channel-with-babylon)) and the four code IDs (from
 > [5.3](#53-upload-bsn-contract-code)) before instantiating. The Babylon
 > contract will orchestrate the initialization of the other three contracts.
 
@@ -289,3 +296,4 @@ Parameters:
 
 > **Notice:** For background and protocol details, see the Zone Concierge module
 > docs: [x/zoneconcierge README](https://github.com/babylonlabs-io/babylon/blob/v3.0.0-rc.2/x/zoneconcierge/README.md).
+> For setup instructions, see [IBC Zone Concierge Setup](https://github.com/babylonlabs-io/babylon/blob/v3.0.0-rc.2/docs/ibc-zoneconcierge-setup.md).

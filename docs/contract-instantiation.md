@@ -19,7 +19,7 @@ and enables governance to register all deployed addresses in the Babylon SDK Mod
 
 > Notice: To complete these prerequisites, see `cosmos-bsn-integration.md`:
 > - [5.1 Adding the Babylon SDK Module](./cosmos-bsn-integration.md#51-adding-the-babylon-sdk-module)
-> - [5.2 Establish IBC Connection with Babylon](./cosmos-bsn-integration.md#52-establish-ibc-connection-with-babylon)
+> - [5.2 Establish IBC Transfer Channel with Babylon](./cosmos-bsn-integration.md#52-establish-ibc-transfer-channel-with-babylon)
 > - [5.3 Upload BSN Contract Code](./cosmos-bsn-integration.md#53-upload-bsn-contract-code)
 
 ## 2. Instantiate the Babylon Contract
@@ -44,7 +44,7 @@ Initialization message fields:
 - `consumer_description`: Short description of this BSN
 - `ics20_channel_id`: ICS20 channel ID created during IBC setup
 - `ibc_packet_timeout_days` (optional): IBC packet timeout in days (default 28)
-- `destination_module`: Babylon module name for receiving ICS-20 transfers (e.g., `btcstaking`)
+- `destination_module`: Babylon module name for receiving ICS-20 transfers (`btcstaking`)
 - `admin`: Address with admin rights over the contract
 
 > Notice: In most deployments you can leave the three `*_msg` fields unset; defaults cover typical configurations.
