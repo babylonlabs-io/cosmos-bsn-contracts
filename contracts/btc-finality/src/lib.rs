@@ -12,6 +12,7 @@ mod tallying;
 pub mod contract;
 pub mod error;
 pub mod events;
+pub mod migrations;
 pub mod msg;
 pub mod queries;
 pub mod state;

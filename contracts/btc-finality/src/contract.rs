@@ -4,6 +4,7 @@ use crate::finality::{
     handle_unjail,
 };
 use crate::liveness::handle_liveness;
+use crate::migrations::migrate_config_v1_0_0_rc_0_to_v1_0_0_rc_1;
 use crate::msg::{ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg};
 use crate::power_dist_change::compute_active_finality_providers;
 use crate::state::config::{
@@ -140,7 +141,7 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> Result<QueryResponse, Cont
 
 /// Handle contract migration.
 /// This function is called when the contract is migrated to a new version.
-/// For non-state-breaking migrations, this updates the contract version and logs the migration.
+/// For state-breaking migrations, this handles the migration of the Config struct.
 pub fn migrate(deps: DepsMut, _env: Env, _msg: MigrateMsg) -> Result<Response, ContractError> {
     // Get the current version stored in the contract
     let prev_version = cw2::get_contract_version(deps.storage)?;
@@ -155,6 +156,17 @@ pub fn migrate(deps: DepsMut, _env: Env, _msg: MigrateMsg) -> Result<Response, C
 
     // Update to the new version
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
+
+    // Handle state migration based on the previous version
+    match prev_version.version.as_str() {
+        "1.0.0-rc.0" => {
+            // Migrate from v1.0.0-rc.0 to v1.0.0-rc.1
+            migrate_config_v1_0_0_rc_0_to_v1_0_0_rc_1(deps)?;
+        }
+        _ => {
+            // No migration needed
+        }
+    }
 
     Ok(Response::new()
         .add_attribute("action", "migrate")
