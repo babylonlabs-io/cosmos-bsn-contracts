@@ -8,8 +8,8 @@ use crate::msg::{ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg};
 use crate::power_dist_change::compute_active_finality_providers;
 use crate::state::config::{
     Config, ADMIN, CONFIG, DEFAULT_FINALITY_ACTIVATION_HEIGHT, DEFAULT_JAIL_DURATION,
-    DEFAULT_MAX_ACTIVE_FINALITY_PROVIDERS, DEFAULT_MIN_PUB_RAND, DEFAULT_MISSED_BLOCKS_WINDOW,
-    DEFAULT_REWARD_INTERVAL,
+    DEFAULT_MAX_ACTIVE_FINALITY_PROVIDERS, DEFAULT_MAX_PUB_RAND_COMMIT_OFFSET,
+    DEFAULT_MIN_PUB_RAND, DEFAULT_MISSED_BLOCKS_WINDOW, DEFAULT_REWARD_INTERVAL,
 };
 use crate::state::finality::get_btc_staking_activated_height;
 #[cfg(test)]
@@ -52,6 +52,9 @@ pub fn instantiate(
         finality_activation_height: msg
             .finality_activation_height
             .unwrap_or(DEFAULT_FINALITY_ACTIVATION_HEIGHT),
+        max_pub_rand_commit_offset: msg
+            .max_pub_rand_commit_offset
+            .unwrap_or(DEFAULT_MAX_PUB_RAND_COMMIT_OFFSET),
     };
     CONFIG.save(deps.storage, &config)?;
 

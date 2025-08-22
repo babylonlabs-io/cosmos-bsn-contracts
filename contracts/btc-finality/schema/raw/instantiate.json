@@ -33,6 +33,14 @@
       "format": "uint32",
       "minimum": 0.0
     },
+    "max_pub_rand_commit_offset": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "format": "uint64",
+      "minimum": 0.0
+    },
     "min_pub_rand": {
       "type": [
         "integer",

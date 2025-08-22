@@ -37,6 +37,14 @@
         "format": "uint32",
         "minimum": 0.0
       },
+      "max_pub_rand_commit_offset": {
+        "type": [
+          "integer",
+          "null"
+        ],
+        "format": "uint64",
+        "minimum": 0.0
+      },
       "min_pub_rand": {
         "type": [
           "integer",
@@ -820,6 +828,7 @@
         "finality_activation_height",
         "jail_duration",
         "max_active_finality_providers",
+        "max_pub_rand_commit_offset",
         "min_pub_rand",
         "missed_blocks_window",
         "reward_interval",
@@ -848,6 +857,12 @@
           "description": "Maximum number of active finality providers in the BTC staking protocol.",
           "type": "integer",
           "format": "uint32",
+          "minimum": 0.0
+        },
+        "max_pub_rand_commit_offset": {
+          "description": "Maximum number of blocks into the future that a public randomness commitment start height can target. This limit prevents abuse by capping the size of the commitments index, protecting against potential memory exhaustion or performance degradation caused by excessive future commitments.",
+          "type": "integer",
+          "format": "uint64",
           "minimum": 0.0
         },
         "min_pub_rand": {
