@@ -13,6 +13,7 @@ pub const DEFAULT_MISSED_BLOCKS_WINDOW: u64 = 250;
 pub const DEFAULT_JAIL_DURATION: u64 = 86400;
 /// TODO: set this to 1 for now, but need to revisit this
 pub const DEFAULT_FINALITY_ACTIVATION_HEIGHT: u64 = 1;
+pub const DEFAULT_MAX_PUB_RAND_COMMIT_OFFSET: u64 = 1_600_000;
 
 /// Config are Babylon-selectable BTC finality configuration
 #[cw_serde]
@@ -34,6 +35,10 @@ pub struct Config {
     /// Block height at which the finality module will start to accept finality voting
     /// and the minimum allowed value for the public randomness commit start height.
     pub finality_activation_height: u64,
+    /// Maximum number of blocks into the future that a public randomness commitment start height can target.
+    /// This limit prevents abuse by capping the size of the commitments index, protecting against potential
+    /// memory exhaustion or performance degradation caused by excessive future commitments.
+    pub max_pub_rand_commit_offset: u64,
 }
 
 impl Config {
@@ -49,6 +54,7 @@ impl Config {
             missed_blocks_window: DEFAULT_MISSED_BLOCKS_WINDOW,
             jail_duration: DEFAULT_JAIL_DURATION,
             finality_activation_height: DEFAULT_FINALITY_ACTIVATION_HEIGHT,
+            max_pub_rand_commit_offset: DEFAULT_MAX_PUB_RAND_COMMIT_OFFSET,
         }
     }
 }

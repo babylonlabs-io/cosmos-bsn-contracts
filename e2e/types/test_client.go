@@ -26,10 +26,10 @@ const (
 	BTC_FINALITY_CONTRACT_PATH     = ARTIFACTS_DIR + "/btc_finality.wasm"
 
 	TEST_DATA_DIR                      = "./testdata"
-	OLD_BABYLON_CONTRACT_PATH          = TEST_DATA_DIR + "/babylon_contract-v0.16.0.wasm"
-	OLD_BTC_LIGHT_CLIENT_CONTRACT_PATH = TEST_DATA_DIR + "/btc_light_client-v0.16.0.wasm"
-	OLD_BTC_STAKING_CONTRACT_PATH      = TEST_DATA_DIR + "/btc_staking-v0.16.0.wasm"
-	OLD_BTC_FINALITY_CONTRACT_PATH     = TEST_DATA_DIR + "/btc_finality-v0.16.0.wasm"
+	OLD_BABYLON_CONTRACT_PATH          = TEST_DATA_DIR + "/babylon_contract-v1.0.0-rc.0.wasm"
+	OLD_BTC_LIGHT_CLIENT_CONTRACT_PATH = TEST_DATA_DIR + "/btc_light_client-v1.0.0-rc.0.wasm"
+	OLD_BTC_STAKING_CONTRACT_PATH      = TEST_DATA_DIR + "/btc_staking-v1.0.0-rc.0.wasm"
+	OLD_BTC_FINALITY_CONTRACT_PATH     = TEST_DATA_DIR + "/btc_finality-v1.0.0-rc.0.wasm"
 )
 
 // Query is a query type used in tests only

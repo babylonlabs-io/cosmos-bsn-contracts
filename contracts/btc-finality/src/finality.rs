@@ -17,12 +17,6 @@ use cosmwasm_std::{
     coins, to_json_binary, DepsMut, Env, Event, MessageInfo, Response, Uint128, WasmMsg,
 };
 
-// The maximum number of blocks into the future
-// that a public randomness commitment start height can target. This limit prevents abuse by capping
-// the size of the commitments index, protecting against potential memory exhaustion
-// or performance degradation caused by excessive future commitments.
-const MAX_PUB_RAND_COMMIT_OFFSET: u64 = 160_000;
-
 /// Validates that the given height is not lower than the finality activation height.
 /// Returns error if the height received is lower than the finality activation block height.
 fn validate_finality_activation(height: u64, activation_height: u64) -> Result<(), ContractError> {
@@ -48,11 +42,11 @@ pub fn handle_public_randomness_commit(
     validate_finality_activation(pub_rand_commit.start_height, cfg.finality_activation_height)?;
 
     // Check the commit start height is not too far into the future
-    if pub_rand_commit.start_height >= env.block.height + MAX_PUB_RAND_COMMIT_OFFSET {
+    if pub_rand_commit.start_height >= env.block.height + cfg.max_pub_rand_commit_offset {
         return Err(ContractError::FuturePubRandStartHeight {
             start_height: pub_rand_commit.start_height,
             current_height: env.block.height,
-            max_offset: MAX_PUB_RAND_COMMIT_OFFSET,
+            max_offset: cfg.max_pub_rand_commit_offset,
         });
     }
 

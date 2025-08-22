@@ -16,6 +16,7 @@ pub struct InstantiateMsg {
     pub missed_blocks_window: Option<u64>,
     pub jail_duration: Option<u64>,
     pub finality_activation_height: Option<u64>,
+    pub max_pub_rand_commit_offset: Option<u64>,
 }
 
 #[cw_serde]

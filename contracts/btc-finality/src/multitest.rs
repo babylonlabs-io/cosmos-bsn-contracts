@@ -185,7 +185,7 @@ fn commit_public_randomness_works() {
 
     // Case 7: commit a pubrand list with startHeight too far into the future
     let mut bad_pub_rand_commit = pub_rand.clone();
-    bad_pub_rand_commit.start_height = 500_000;
+    bad_pub_rand_commit.start_height = 2_000_000;
     assert!(matches!(
         suite
             .commit_public_randomness(&pk_hex, &bad_pub_rand_commit, &pubrand_signature)

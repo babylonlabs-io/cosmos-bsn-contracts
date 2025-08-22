@@ -33,6 +33,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 [Full Changelog](https://github.com/babylonlabs-io/cosmos-bsn-contracts/compare/v1.0.0-rc.0...HEAD)
 
+### Improvements
+
+- [#343](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/343) finality: parameterise max_pub_rand_commit_offset
+
 ## [v1.0.0-rc.0](https://github.com/babylonlabs-io/cosmos-bsn-contracts/tree/v1.0.0-rc.0) (2025-08-19)
 
 [Full Changelog](https://github.com/babylonlabs-io/cosmos-bsn-contracts/compare/v0.17.0...v1.0.0-rc.0)
