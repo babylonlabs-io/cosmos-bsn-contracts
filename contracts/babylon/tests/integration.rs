@@ -1,5 +1,5 @@
 use babylon_contract::ibc::IBC_VERSION;
-use babylon_contract::msg::contract::InstantiateMsg;
+use babylon_contract::msg::InstantiateMsg;
 use btc_light_client::msg::InstantiateMsg as BtcLightClientInstantiateMsg;
 use btc_light_client::BitcoinNetwork;
 use cosmwasm_std::testing::{message_info, mock_ibc_channel_open_try};

@@ -1,7 +1,7 @@
 use crate::error::ContractError;
 use crate::state::config::CONFIG;
 use babylon_apis::finality_api::PubRandCommit;
-use babylon_contract::msg::consumer_header::ConsumerHeightResponse;
+use babylon_contract::msg::ConsumerHeightResponse;
 use cosmwasm_std::Order::{Ascending, Descending};
 use cosmwasm_std::{Deps, StdResult, Storage};
 use cw_storage_plus::{Bound, Map};
@@ -107,7 +107,7 @@ pub fn get_last_finalized_height(deps: &Deps) -> Result<u64, ContractError> {
     // Query the last finalized height of this Consumer from the babylon contract
     let last_consumer_height: ConsumerHeightResponse = deps.querier.query_wasm_smart(
         cfg.babylon,
-        &babylon_contract::msg::contract::QueryMsg::LastConsumerHeight {},
+        &babylon_contract::msg::QueryMsg::LastConsumerHeight {},
     )?;
 
     Ok(last_consumer_height.height)

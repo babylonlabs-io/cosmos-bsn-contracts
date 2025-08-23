@@ -48,7 +48,7 @@ fn initialization() {
 
 mod instantiation {
     use super::*;
-    use crate::state::config::Config;
+    use crate::state::Config;
 
     use cosmwasm_std::to_json_string;
 
