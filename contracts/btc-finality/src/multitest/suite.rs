@@ -234,6 +234,7 @@ impl Suite {
         Ok(block)
     }
 
+    #[allow(dead_code)]
     pub fn advance_seconds(&mut self, seconds: u64) -> AnyResult<()> {
         self.app.advance_seconds(seconds);
         Ok(())

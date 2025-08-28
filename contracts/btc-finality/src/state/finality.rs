@@ -108,12 +108,18 @@ pub fn get_last_signed_height(
     storage: &dyn Storage,
     fp_btc_pk_hex: &str,
 ) -> cosmwasm_std::StdResult<Option<u64>> {
-    match FP_BLOCK_SIGNER.may_load(storage, fp_btc_pk_hex)? {
-        Some(v) => Ok(Some(v)),
-        None => {
-            // Not a block signer yet, check their start height instead
-            FP_START_HEIGHT.may_load(storage, fp_btc_pk_hex)
+    let last_signed = FP_BLOCK_SIGNER.may_load(storage, fp_btc_pk_hex)?;
+    let start_height = FP_START_HEIGHT.may_load(storage, fp_btc_pk_hex)?;
+
+    match (last_signed, start_height) {
+        (Some(signed), Some(start)) => {
+            // Use the more recent value to handle reactivation scenarios
+            // If start_height > signed, it means FP was reactivated after their last signature
+            Ok(Some(signed.max(start)))
         }
+        (Some(signed), None) => Ok(Some(signed)),
+        (None, Some(start)) => Ok(Some(start)),
+        (None, None) => Ok(None),
     }
 }
 
