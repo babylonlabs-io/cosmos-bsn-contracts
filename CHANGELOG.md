@@ -33,6 +33,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 [Full Changelog](https://github.com/babylonlabs-io/cosmos-bsn-contracts/compare/v1.0.0-rc.1...HEAD)
 
+### Bug Fixes
+
+- [#345](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/345) fix:
+  jailing issue in liveness check
+
 ## [v1.0.0-rc.1](https://github.com/babylonlabs-io/cosmos-bsn-contracts/tree/v1.0.0-rc.1) (2025-08-22)
 
 [Full Changelog](https://github.com/babylonlabs-io/cosmos-bsn-contracts/compare/v1.0.0-rc.0...v1.0.0-rc.1)
