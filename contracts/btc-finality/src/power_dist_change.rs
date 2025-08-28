@@ -111,11 +111,8 @@ fn handle_power_table_change(
     let mut response = Response::new();
 
     for fp in new_active_fps {
-        // Active since the next block. Only save if not already set
-        FP_START_HEIGHT.update(storage, fp, |h| match h {
-            Some(h) => Ok::<_, ContractError>(h),
-            None => Ok(current_height + 1),
-        })?;
+        // Active since the next block. Always reset for fresh start (including reactivated FPs)
+        FP_START_HEIGHT.save(storage, fp, &(current_height + 1))?;
 
         // Emit new active finality provider event
         let event =
