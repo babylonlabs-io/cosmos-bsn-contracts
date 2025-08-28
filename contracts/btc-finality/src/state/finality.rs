@@ -113,7 +113,8 @@ pub fn get_last_signed_height(
 
     match (last_signed, start_height) {
         (Some(signed), Some(start)) => {
-            // Use the more recent value - gives grace period for reactivated FPs
+            // Use the more recent value to handle reactivation scenarios
+            // If start_height > signed, it means FP was reactivated after their last signature
             Ok(Some(signed.max(start)))
         }
         (Some(signed), None) => Ok(Some(signed)),

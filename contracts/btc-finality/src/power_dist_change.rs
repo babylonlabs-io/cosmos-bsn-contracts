@@ -111,7 +111,11 @@ fn handle_power_table_change(
     let mut response = Response::new();
 
     for fp in new_active_fps {
-        // Active since the next block. Always reset for fresh start (including reactivated FPs)
+        // All FPs in new_active_fps are by definition newly active
+        // (they weren't in old_power_table but are in new_power_table)
+        // This correctly handles both brand new FPs and reactivated FPs
+        // Reset start_height to give grace period from activation point
+
         FP_START_HEIGHT.save(storage, fp, &(current_height + 1))?;
 
         // Emit new active finality provider event
