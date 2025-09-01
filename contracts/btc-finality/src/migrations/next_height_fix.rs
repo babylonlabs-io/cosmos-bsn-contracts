@@ -16,56 +16,61 @@ use cosmwasm_std::DepsMut;
 /// since this specific corruption occurred.
 pub fn fix_next_height_corruption(deps: DepsMut) -> Result<(), ContractError> {
     deps.api
-        .debug("Starting NEXT_HEIGHT corruption fix migration...");
+        .debug("NEXT_HEIGHT_FIX: Starting NEXT_HEIGHT corruption fix migration...");
 
     // Get current NEXT_HEIGHT value
     let current_next_height = NEXT_HEIGHT.may_load(deps.storage)?.unwrap_or(0);
 
-    deps.api
-        .debug(&format!("Current NEXT_HEIGHT: {}", current_next_height));
+    deps.api.debug(&format!(
+        "NEXT_HEIGHT_FIX: Current NEXT_HEIGHT: {}",
+        current_next_height
+    ));
 
     // Check ONLY for the specific known corruption: NEXT_HEIGHT == 342533
     if current_next_height == 342533 {
-        deps.api.debug("Detected NEXT_HEIGHT pointing to block 342533 - checking if this is the known corruption...");
+        deps.api.debug("NEXT_HEIGHT_FIX: Detected NEXT_HEIGHT pointing to block 342533 - checking if this is the known corruption...");
 
         // Verify that block 342533 is actually finalized (confirming the corruption)
         match BLOCKS.may_load(deps.storage, 342533)? {
             Some(block) if block.finalized => {
                 deps.api.debug(
-                    "CONFIRMED CORRUPTION: Block 342533 is finalized but NEXT_HEIGHT points to it!",
+                    "NEXT_HEIGHT_FIX: CONFIRMED CORRUPTION: Block 342533 is finalized but NEXT_HEIGHT points to it!",
                 );
-                deps.api.debug("Applying emergency fix...");
+                deps.api.debug("NEXT_HEIGHT_FIX: Applying emergency fix...");
 
                 // Fix the corruption by setting NEXT_HEIGHT to 342534
                 NEXT_HEIGHT.save(deps.storage, &342534)?;
 
                 deps.api
-                    .debug("EMERGENCY FIX APPLIED: Corrected NEXT_HEIGHT from 342533 to 342534");
+                    .debug("NEXT_HEIGHT_FIX: EMERGENCY FIX APPLIED: Corrected NEXT_HEIGHT from 342533 to 342534");
+                deps.api.debug(
+                    "NEXT_HEIGHT_FIX: This will resume finalization for 600,000+ stuck blocks",
+                );
                 deps.api
-                    .debug("This will resume finalization for 600,000+ stuck blocks");
+                    .debug("NEXT_HEIGHT_FIX: Migration completed successfully - fix applied");
 
                 return Ok(());
             }
             Some(block) => {
                 deps.api.debug(&format!(
-                    "Block 342533 exists but is not finalized (finalized: {}). No corruption present - no fix needed.",
+                    "NEXT_HEIGHT_FIX: Block 342533 exists but is not finalized (finalized: {}). No corruption present - no fix needed.",
                     block.finalized
                 ));
             }
             None => {
                 deps.api
-                    .debug("Block 342533 does not exist. No corruption present - no fix needed.");
+                    .debug("NEXT_HEIGHT_FIX: Block 342533 does not exist. No corruption present - no fix needed.");
             }
         }
     } else {
         deps.api.debug(&format!(
-            "NEXT_HEIGHT ({}) is not 342533. This migration only fixes the specific 342533 corruption - no action needed.", 
+            "NEXT_HEIGHT_FIX: NEXT_HEIGHT ({}) is not 342533. This migration only fixes the specific 342533 corruption - no action needed.", 
             current_next_height
         ));
     }
 
     deps.api
-        .debug("NEXT_HEIGHT corruption fix migration completed - no changes made");
+        .debug("NEXT_HEIGHT_FIX: Migration completed - no corruption detected, no fix needed");
     Ok(())
 }
 
