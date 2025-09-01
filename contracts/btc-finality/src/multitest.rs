@@ -490,8 +490,8 @@ fn finality_provider_power_query_works() {
 
 #[test]
 fn last_finalized_height_query_works() {
-    // Test the LastFinalizedHeight query which finds the highest block height
-    // that has been locally finalized (IndexedBlock.finalized = true) by finality providers
+    // Test the LastFinalizedHeight query which returns the NEXT_HEIGHT value
+    // (the height of the next block to be processed by tallying)
 
     // Setup test data for finality signature submission
     let (pk_hex, pub_rand, pubrand_signature) = get_public_randomness_commitment();
@@ -508,12 +508,12 @@ fn last_finalized_height_query_works() {
         .with_height(initial_height)
         .build();
 
-    // Initially, no blocks have been locally finalized by finality providers
+    // Initially, NEXT_HEIGHT is not set
     let last_finalized =
         suite.query_finality_contract::<Option<u64>>(FinalityQueryMsg::LastFinalizedHeight {});
     assert!(
         last_finalized.is_none(),
-        "Initially no blocks should be locally finalized"
+        "Initially NEXT_HEIGHT should not be set"
     );
 
     // Set up finality provider with voting power
@@ -537,10 +537,10 @@ fn last_finalized_height_query_works() {
         .next_block(&add_finality_signature.block_app_hash)
         .unwrap();
 
-    // Still no finalized blocks yet
+    // NEXT_HEIGHT still not set yet
     let last_finalized =
         suite.query_finality_contract::<Option<u64>>(FinalityQueryMsg::LastFinalizedHeight {});
-    assert!(last_finalized.is_none(), "No blocks finalized yet");
+    assert!(last_finalized.is_none(), "NEXT_HEIGHT not set yet");
 
     // Submit finality signature
     let submit_height = initial_height + 1;
@@ -564,13 +564,14 @@ fn last_finalized_height_query_works() {
         .call_end_block(&add_finality_signature.block_app_hash, submit_height)
         .unwrap();
 
-    // Now a block should be finalized
+    // Now NEXT_HEIGHT should be set to the next block to be processed
     let last_finalized =
         suite.query_finality_contract::<Option<u64>>(FinalityQueryMsg::LastFinalizedHeight {});
     assert_eq!(
         last_finalized,
-        Some(submit_height),
-        "Block at height {} should be finalized",
+        Some(submit_height + 1),
+        "NEXT_HEIGHT should be {} (next block after finalized block {})",
+        submit_height + 1,
         submit_height
     );
 
