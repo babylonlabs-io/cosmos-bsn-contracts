@@ -489,6 +489,30 @@ fn finality_provider_power_query_works() {
 }
 
 #[test]
+fn last_finalized_height_query_works() {
+    let initial_height = 100;
+    let suite = SuiteBuilder::new().with_height(initial_height).build();
+
+    // Query the last finalized height - should return the current finalized height
+    // from the babylon contract (mocked in the suite)
+    let last_finalized = suite.get_last_finalized_height();
+
+    // The exact value will depend on the mock setup, but it should be a valid height
+    // In the test environment, the babylon contract mock returns the current consumer height
+    assert!(
+        last_finalized > 0,
+        "Last finalized height should be greater than 0"
+    );
+
+    // The returned value should be consistent
+    let last_finalized_again = suite.get_last_finalized_height();
+    assert_eq!(
+        last_finalized, last_finalized_again,
+        "Query should return consistent results"
+    );
+}
+
+#[test]
 fn slashing_works() {
     // Read public randomness commitment test data
     let (pk_hex, pub_rand, pubrand_signature) = get_public_randomness_commitment();

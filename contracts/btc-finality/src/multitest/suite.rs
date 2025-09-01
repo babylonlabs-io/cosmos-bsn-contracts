@@ -514,4 +514,8 @@ impl Suite {
         )
         .power
     }
+
+    pub fn get_last_finalized_height(&self) -> u64 {
+        self.query_finality_contract::<u64>(FinalityQueryMsg::LastFinalizedHeight {})
+    }
 }
