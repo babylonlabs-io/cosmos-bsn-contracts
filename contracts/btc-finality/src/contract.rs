@@ -4,7 +4,7 @@ use crate::finality::{
     handle_unjail,
 };
 use crate::liveness::handle_liveness;
-use crate::migrations::migrate_config_v1_0_0_rc_0_to_v1_0_0_rc_1;
+use crate::migrations::{fix_next_height_corruption, migrate_config_v1_0_0_rc_0_to_v1_0_0_rc_1};
 use crate::msg::{ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg};
 use crate::power_dist_change::compute_active_finality_providers;
 use crate::state::config::{
@@ -165,6 +165,11 @@ pub fn migrate(deps: DepsMut, _env: Env, _msg: MigrateMsg) -> Result<Response, C
         "1.0.0-rc.0" => {
             // Migrate from v1.0.0-rc.0 to v1.0.0-rc.1
             migrate_config_v1_0_0_rc_0_to_v1_0_0_rc_1(deps)?;
+        }
+        "1.0.0-rc.1" => {
+            // Migrate from v1.0.0-rc.1 to v1.0.0-rc.2
+            // Apply emergency fix for corrupted NEXT_HEIGHT state
+            fix_next_height_corruption(deps)?;
         }
         _ => {
             // No migration needed
