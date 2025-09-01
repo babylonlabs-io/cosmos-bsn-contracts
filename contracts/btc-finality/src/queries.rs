@@ -8,6 +8,7 @@ use crate::state::finality::{
     get_last_signed_height, get_power_table_at_height, BLOCKS, EVIDENCES, FP_START_HEIGHT, JAIL,
     SIGNATURES,
 };
+use crate::state::public_randomness::get_last_finalized_height;
 use babylon_apis::finality_api::IndexedBlock;
 use cosmwasm_std::Order::{Ascending, Descending};
 use cosmwasm_std::{Deps, StdResult};
@@ -142,4 +143,8 @@ pub fn signing_info(
         last_signed_height,
         jailed_until,
     }))
+}
+
+pub fn last_finalized_height(deps: Deps) -> Result<u64, ContractError> {
+    get_last_finalized_height(&deps)
 }

@@ -297,6 +297,9 @@ pub enum QueryMsg {
     /// Returns the signing info of a finality provider if any.
     #[returns(Option<SigningInfoResponse>)]
     SigningInfo { btc_pk_hex: String },
+    /// Returns the last finalized height
+    #[returns(u64)]
+    LastFinalizedHeight {},
 }
 
 #[cw_serde]

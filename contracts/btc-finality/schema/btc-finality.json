@@ -686,6 +686,20 @@
           }
         },
         "additionalProperties": false
+      },
+      {
+        "description": "Returns the last finalized height",
+        "type": "object",
+        "required": [
+          "last_finalized_height"
+        ],
+        "properties": {
+          "last_finalized_height": {
+            "type": "object",
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
       }
     ]
   },
@@ -1122,6 +1136,13 @@
           "additionalProperties": false
         }
       }
+    },
+    "last_finalized_height": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "uint64",
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0.0
     },
     "last_pub_rand_commit": {
       "$schema": "http://json-schema.org/draft-07/schema#",

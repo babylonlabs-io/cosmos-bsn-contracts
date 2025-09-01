@@ -136,6 +136,9 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> Result<QueryResponse, Cont
                 Err(ContractError::BTCStakingNotActivated)
             }
         }
+        QueryMsg::LastFinalizedHeight {} => Ok(to_json_binary(
+            &queries::last_finalized_height(deps)?,
+        )?),
     }
 }
 
