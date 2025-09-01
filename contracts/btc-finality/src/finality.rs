@@ -281,7 +281,18 @@ pub fn handle_finality_signature(
     SIGNATURES.save(deps.storage, (height, &fp_btc_pk_hex), &signature)?;
 
     // Store the block height this finality provider has signed
-    FP_BLOCK_SIGNER.save(deps.storage, &fp_btc_pk_hex, &height)?;
+    // Only update if this is a more recent signature to avoid backfill regression
+    let current_last_signed = FP_BLOCK_SIGNER.may_load(deps.storage, &fp_btc_pk_hex)?;
+    match current_last_signed {
+        Some(existing_height) if existing_height >= height => {
+            // Don't update - we already have a more recent signature recorded
+            // This prevents backfill signatures from regressing the liveness tracking
+        }
+        _ => {
+            // Update with this height (either no existing record or this is more recent)
+            FP_BLOCK_SIGNER.save(deps.storage, &fp_btc_pk_hex, &height)?;
+        }
+    }
 
     // If this finality provider has signed the canonical block before, slash it via extracting its
     // secret key, and emit an event
