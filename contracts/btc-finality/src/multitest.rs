@@ -1,7 +1,7 @@
 pub mod suite;
 
 use crate::error::{ContractError, PubRandCommitError};
-use crate::msg::FinalitySignatureResponse;
+use crate::msg::{FinalitySignatureResponse, QueryMsg as FinalityQueryMsg};
 use crate::tests::gen_random_msg_commit_pub_rand;
 use babylon_apis::finality_api::IndexedBlock;
 use babylon_bindings_test::{
@@ -490,7 +490,10 @@ fn finality_provider_power_query_works() {
 
 #[test]
 fn last_finalized_height_query_works() {
-    // Read public randomness commitment test data
+    // Test the LastFinalizedHeight query which finds the highest block height
+    // that has been locally finalized (IndexedBlock.finalized = true) by finality providers
+
+    // Setup test data for finality signature submission
     let (pk_hex, pub_rand, pubrand_signature) = get_public_randomness_commitment();
     let pub_rand_one = get_pub_rand_value();
     // Read equivalent / consistent add finality signature test data
@@ -505,14 +508,15 @@ fn last_finalized_height_query_works() {
         .with_height(initial_height)
         .build();
 
-    // Initially, there should be no finalized blocks (NEXT_HEIGHT not set)
-    let last_finalized = suite.get_last_finalized_height();
+    // Initially, no blocks have been locally finalized by finality providers
+    let last_finalized =
+        suite.query_finality_contract::<Option<u64>>(FinalityQueryMsg::LastFinalizedHeight {});
     assert!(
         last_finalized.is_none(),
-        "Initially there should be no finalized blocks"
+        "Initially no blocks should be locally finalized"
     );
 
-    // Register finality provider and set up delegation
+    // Set up finality provider with voting power
     let new_fp = create_new_finality_provider(1);
     assert_eq!(new_fp.btc_pk_hex, pk_hex);
     suite
@@ -534,7 +538,8 @@ fn last_finalized_height_query_works() {
         .unwrap();
 
     // Still no finalized blocks yet
-    let last_finalized = suite.get_last_finalized_height();
+    let last_finalized =
+        suite.query_finality_contract::<Option<u64>>(FinalityQueryMsg::LastFinalizedHeight {});
     assert!(last_finalized.is_none(), "No blocks finalized yet");
 
     // Submit finality signature
@@ -560,7 +565,8 @@ fn last_finalized_height_query_works() {
         .unwrap();
 
     // Now a block should be finalized
-    let last_finalized = suite.get_last_finalized_height();
+    let last_finalized =
+        suite.query_finality_contract::<Option<u64>>(FinalityQueryMsg::LastFinalizedHeight {});
     assert_eq!(
         last_finalized,
         Some(submit_height),
@@ -576,7 +582,8 @@ fn last_finalized_height_query_works() {
     );
 
     // The returned value should be consistent
-    let last_finalized_again = suite.get_last_finalized_height();
+    let last_finalized_again =
+        suite.query_finality_contract::<Option<u64>>(FinalityQueryMsg::LastFinalizedHeight {});
     assert_eq!(
         last_finalized, last_finalized_again,
         "Query should return consistent results"
