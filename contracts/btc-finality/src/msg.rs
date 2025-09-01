@@ -298,7 +298,7 @@ pub enum QueryMsg {
     #[returns(Option<SigningInfoResponse>)]
     SigningInfo { btc_pk_hex: String },
     /// Returns the last finalized height
-    #[returns(u64)]
+    #[returns(Option<u64>)]
     LastFinalizedHeight {},
 }
 

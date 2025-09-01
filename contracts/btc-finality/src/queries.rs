@@ -6,9 +6,8 @@ use crate::msg::{
 };
 use crate::state::finality::{
     get_last_signed_height, get_power_table_at_height, BLOCKS, EVIDENCES, FP_START_HEIGHT, JAIL,
-    SIGNATURES,
+    NEXT_HEIGHT, SIGNATURES,
 };
-use crate::state::public_randomness::get_last_finalized_height;
 use babylon_apis::finality_api::IndexedBlock;
 use cosmwasm_std::Order::{Ascending, Descending};
 use cosmwasm_std::{Deps, StdResult};
@@ -145,6 +144,12 @@ pub fn signing_info(
     }))
 }
 
-pub fn last_finalized_height(deps: Deps) -> Result<u64, ContractError> {
-    get_last_finalized_height(&deps)
+pub fn last_finalized_height(deps: Deps) -> Result<Option<u64>, ContractError> {
+    // Use NEXT_HEIGHT to efficiently get the last finalized height
+    // When a block at height H is finalized, NEXT_HEIGHT is set to H+1
+    // So NEXT_HEIGHT - 1 is the last finalized height
+    match NEXT_HEIGHT.may_load(deps.storage)? {
+        Some(next_height) if next_height > 0 => Ok(Some(next_height - 1)),
+        _ => Ok(None), // No blocks have been finalized yet
+    }
 }

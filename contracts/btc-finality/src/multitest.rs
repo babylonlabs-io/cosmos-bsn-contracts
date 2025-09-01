@@ -490,18 +490,89 @@ fn finality_provider_power_query_works() {
 
 #[test]
 fn last_finalized_height_query_works() {
-    let initial_height = 100;
-    let suite = SuiteBuilder::new().with_height(initial_height).build();
+    // Read public randomness commitment test data
+    let (pk_hex, pub_rand, pubrand_signature) = get_public_randomness_commitment();
+    let pub_rand_one = get_pub_rand_value();
+    // Read equivalent / consistent add finality signature test data
+    let add_finality_signature = get_add_finality_sig();
+    let proof = add_finality_signature.proof.unwrap();
 
-    // Query the last finalized height - should return the current finalized height
-    // from the babylon contract (mocked in the suite)
+    let initial_height = pub_rand.start_height;
+    let initial_funds = &[coin(1_000_000_000_000, "TOKEN")];
+
+    let mut suite = SuiteBuilder::new()
+        .with_funds(initial_funds)
+        .with_height(initial_height)
+        .build();
+
+    // Initially, there should be no finalized blocks (NEXT_HEIGHT not set)
     let last_finalized = suite.get_last_finalized_height();
-
-    // The exact value will depend on the mock setup, but it should be a valid height
-    // In the test environment, the babylon contract mock returns the current consumer height
     assert!(
-        last_finalized > 0,
-        "Last finalized height should be greater than 0"
+        last_finalized.is_none(),
+        "Initially there should be no finalized blocks"
+    );
+
+    // Register finality provider and set up delegation
+    let new_fp = create_new_finality_provider(1);
+    assert_eq!(new_fp.btc_pk_hex, pk_hex);
+    suite
+        .register_finality_providers(&[new_fp.clone()])
+        .unwrap();
+
+    let mut del1 = get_derived_btc_delegation(1, &[1]);
+    del1.fp_btc_pk_list = vec![pk_hex.clone()];
+    suite.add_delegations(&[del1.clone()]).unwrap();
+
+    // Submit public randomness commitment
+    suite
+        .commit_public_randomness(&pk_hex, &pub_rand, &pubrand_signature)
+        .unwrap();
+
+    // Call next_block to advance height
+    suite
+        .next_block(&add_finality_signature.block_app_hash)
+        .unwrap();
+
+    // Still no finalized blocks yet
+    let last_finalized = suite.get_last_finalized_height();
+    assert!(last_finalized.is_none(), "No blocks finalized yet");
+
+    // Submit finality signature
+    let submit_height = initial_height + 1;
+    let finality_sig = add_finality_signature.finality_sig.to_vec();
+    suite
+        .submit_finality_signature(
+            &pk_hex,
+            submit_height,
+            &pub_rand_one,
+            &proof,
+            &add_finality_signature.block_app_hash,
+            &finality_sig,
+        )
+        .unwrap();
+
+    // Call begin and end block to trigger finalization
+    suite
+        .call_begin_block(&add_finality_signature.block_app_hash, submit_height)
+        .unwrap();
+    suite
+        .call_end_block(&add_finality_signature.block_app_hash, submit_height)
+        .unwrap();
+
+    // Now a block should be finalized
+    let last_finalized = suite.get_last_finalized_height();
+    assert_eq!(
+        last_finalized,
+        Some(submit_height),
+        "Block at height {} should be finalized",
+        submit_height
+    );
+
+    // Verify the block is actually finalized
+    let indexed_block = suite.get_indexed_block(submit_height);
+    assert!(
+        indexed_block.finalized,
+        "Block should be marked as finalized"
     );
 
     // The returned value should be consistent
