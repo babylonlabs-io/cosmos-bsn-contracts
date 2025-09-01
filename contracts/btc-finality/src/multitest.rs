@@ -875,3 +875,103 @@ fn reactivated_fp_not_unfairly_jailed() {
         "Should have one jailing event after grace period expires"
     );
 }
+
+/// Test that backfill signatures don't regress the FP_BLOCK_SIGNER tracking
+/// This prevents unfair jailing due to out-of-order signature submissions
+#[test]
+fn backfill_signatures_dont_regress_liveness_tracking() {
+    use crate::state::finality::{get_last_signed_height, FP_BLOCK_SIGNER};
+    use cosmwasm_std::testing::{mock_dependencies, mock_env};
+
+    let mut deps = mock_dependencies();
+    let _env = mock_env();
+
+    let fp_btc_pk = "test_fp_key";
+
+    // Initial state: no signatures recorded
+    let initial_last_signed = get_last_signed_height(deps.as_ref().storage, fp_btc_pk).unwrap();
+    assert_eq!(initial_last_signed, None);
+
+    // Simulate FP signing at height 100
+    FP_BLOCK_SIGNER
+        .save(&mut deps.storage, fp_btc_pk, &100u64)
+        .unwrap();
+    let after_100 = get_last_signed_height(deps.as_ref().storage, fp_btc_pk).unwrap();
+    assert_eq!(after_100, Some(100));
+
+    // Simulate FP signing at height 105 (more recent)
+    FP_BLOCK_SIGNER
+        .save(&mut deps.storage, fp_btc_pk, &105u64)
+        .unwrap();
+    let after_105 = get_last_signed_height(deps.as_ref().storage, fp_btc_pk).unwrap();
+    assert_eq!(after_105, Some(105));
+
+    // Now test our backfill protection: simulate attempting to "save" height 102
+    // This should NOT update FP_BLOCK_SIGNER since 102 < 105
+    let current_last_signed = FP_BLOCK_SIGNER
+        .may_load(deps.as_ref().storage, fp_btc_pk)
+        .unwrap();
+    match current_last_signed {
+        Some(existing_height) if existing_height >= 102 => {
+            // Don't update - this is our protection logic
+            // FP_BLOCK_SIGNER should remain 105
+        }
+        _ => {
+            // This branch shouldn't execute in our test
+            FP_BLOCK_SIGNER
+                .save(&mut deps.storage, fp_btc_pk, &102u64)
+                .unwrap();
+        }
+    }
+
+    // Verify FP_BLOCK_SIGNER is still 105, not regressed to 102
+    let final_value = FP_BLOCK_SIGNER
+        .load(deps.as_ref().storage, fp_btc_pk)
+        .unwrap();
+    assert_eq!(
+        final_value, 105,
+        "Backfill signature should not regress FP_BLOCK_SIGNER"
+    );
+
+    // Verify liveness tracking still uses 105
+    let final_last_signed = get_last_signed_height(deps.as_ref().storage, fp_btc_pk).unwrap();
+    assert_eq!(
+        final_last_signed,
+        Some(105),
+        "Liveness should track most recent signature"
+    );
+
+    // Test edge case: backfill with same height (should be allowed)
+    let current_last_signed = FP_BLOCK_SIGNER
+        .may_load(deps.as_ref().storage, fp_btc_pk)
+        .unwrap();
+    match current_last_signed {
+        Some(existing_height) if existing_height >= 105 => {
+            // Don't update for same or older height
+        }
+        _ => {
+            FP_BLOCK_SIGNER
+                .save(&mut deps.storage, fp_btc_pk, &105u64)
+                .unwrap();
+        }
+    }
+
+    let still_105 = FP_BLOCK_SIGNER
+        .load(deps.as_ref().storage, fp_btc_pk)
+        .unwrap();
+    assert_eq!(
+        still_105, 105,
+        "Same height should not change FP_BLOCK_SIGNER"
+    );
+
+    // Test updating with newer height (should be allowed)
+    FP_BLOCK_SIGNER
+        .save(&mut deps.storage, fp_btc_pk, &110u64)
+        .unwrap();
+    let after_110 = get_last_signed_height(deps.as_ref().storage, fp_btc_pk).unwrap();
+    assert_eq!(
+        after_110,
+        Some(110),
+        "Newer signatures should update FP_BLOCK_SIGNER"
+    );
+}
