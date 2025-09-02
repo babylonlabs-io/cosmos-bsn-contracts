@@ -2,17 +2,17 @@ use crate::error::ContractError;
 use crate::state::finality::{BLOCKS, NEXT_HEIGHT};
 use cosmwasm_std::DepsMut;
 
-/// Emergency migration to fix specific NEXT_HEIGHT corruption at block 342533
+/// Emergency migration to fix specific NEXT_HEIGHT corruption at block 343112
 ///
-/// This fixes a critical bug where NEXT_HEIGHT points to already finalized block 342533,
+/// This fixes a critical bug where NEXT_HEIGHT points to already finalized block 343112,
 /// causing all subsequent tallying operations to fail with FinalisedBlockWithFinalityProviderSet error.
 ///
 /// The fix is very specific and conservative:
-/// 1. ONLY fixes if NEXT_HEIGHT is exactly 342533
-/// 2. ONLY fixes if block 342533 is actually finalized
-/// 3. Sets NEXT_HEIGHT to 342534 to resume finalization
+/// 1. ONLY fixes if NEXT_HEIGHT is exactly 343112
+/// 2. ONLY fixes if block 343112 is actually finalized
+/// 3. Sets NEXT_HEIGHT to 343113 to resume finalization
 ///
-/// This targeted fix will immediately resume finalization for the 600,000+ blocks that have been stuck
+/// This targeted fix will immediately resume finalization for blocks that have been stuck
 /// since this specific corruption occurred.
 pub fn fix_next_height_corruption(deps: DepsMut) -> Result<(), ContractError> {
     deps.api
@@ -26,26 +26,25 @@ pub fn fix_next_height_corruption(deps: DepsMut) -> Result<(), ContractError> {
         current_next_height
     ));
 
-    // Check ONLY for the specific known corruption: NEXT_HEIGHT == 342533
-    if current_next_height == 342533 {
-        deps.api.debug("NEXT_HEIGHT_FIX: Detected NEXT_HEIGHT pointing to block 342533 - checking if this is the known corruption...");
+    // Check ONLY for the specific known corruption: NEXT_HEIGHT == 343112
+    if current_next_height == 343112 {
+        deps.api.debug("NEXT_HEIGHT_FIX: Detected NEXT_HEIGHT pointing to block 343112 - checking if this is the known corruption...");
 
-        // Verify that block 342533 is actually finalized (confirming the corruption)
-        match BLOCKS.may_load(deps.storage, 342533)? {
+        // Verify that the target block is actually finalized (confirming the corruption)
+        match BLOCKS.may_load(deps.storage, current_next_height)? {
             Some(block) if block.finalized => {
                 deps.api.debug(
-                    "NEXT_HEIGHT_FIX: CONFIRMED CORRUPTION: Block 342533 is finalized but NEXT_HEIGHT points to it!",
+                    "NEXT_HEIGHT_FIX: CONFIRMED CORRUPTION: Block 343112 is finalized but NEXT_HEIGHT points to it!",
                 );
                 deps.api.debug("NEXT_HEIGHT_FIX: Applying emergency fix...");
 
-                // Fix the corruption by setting NEXT_HEIGHT to 342534
-                NEXT_HEIGHT.save(deps.storage, &342534)?;
+                // Fix the corruption by setting NEXT_HEIGHT to 343113
+                NEXT_HEIGHT.save(deps.storage, &343113)?;
 
                 deps.api
-                    .debug("NEXT_HEIGHT_FIX: EMERGENCY FIX APPLIED: Corrected NEXT_HEIGHT from 342533 to 342534");
-                deps.api.debug(
-                    "NEXT_HEIGHT_FIX: This will resume finalization for 600,000+ stuck blocks",
-                );
+                    .debug("NEXT_HEIGHT_FIX: EMERGENCY FIX APPLIED: Corrected NEXT_HEIGHT from 343112 to 343113");
+                deps.api
+                    .debug("NEXT_HEIGHT_FIX: This will resume finalization for stuck blocks");
                 deps.api
                     .debug("NEXT_HEIGHT_FIX: Migration completed successfully - fix applied");
 
@@ -53,18 +52,18 @@ pub fn fix_next_height_corruption(deps: DepsMut) -> Result<(), ContractError> {
             }
             Some(block) => {
                 deps.api.debug(&format!(
-                    "NEXT_HEIGHT_FIX: Block 342533 exists but is not finalized (finalized: {}). No corruption present - no fix needed.",
+                    "NEXT_HEIGHT_FIX: Block 343112 exists but is not finalized (finalized: {}). No corruption present - no fix needed.",
                     block.finalized
                 ));
             }
             None => {
                 deps.api
-                    .debug("NEXT_HEIGHT_FIX: Block 342533 does not exist. No corruption present - no fix needed.");
+                    .debug("NEXT_HEIGHT_FIX: Block 343112 does not exist. No corruption present - no fix needed.");
             }
         }
     } else {
         deps.api.debug(&format!(
-            "NEXT_HEIGHT_FIX: NEXT_HEIGHT ({}) is not 342533. This migration only fixes the specific 342533 corruption - no action needed.", 
+            "NEXT_HEIGHT_FIX: NEXT_HEIGHT ({}) is not 343112. This migration only fixes the specific 343112 corruption - no action needed.", 
             current_next_height
         ));
     }
@@ -82,30 +81,30 @@ mod tests {
     use cosmwasm_std::testing::mock_dependencies;
 
     #[test]
-    fn test_fix_next_height_corruption_342533() {
+    fn test_fix_next_height_corruption_343112() {
         let mut deps = mock_dependencies();
 
-        // Set up the corrupted state: block 342533 is finalized but NEXT_HEIGHT points to it
+        // Set up the corrupted state: block 343112 is finalized but NEXT_HEIGHT points to it
         let finalized_block = IndexedBlock {
-            height: 342533,
-            app_hash: vec![1, 2, 3, 4],
+            height: 343112,
+            app_hash: vec![5, 6, 7, 8],
             finalized: true,
         };
         BLOCKS
-            .save(deps.as_mut().storage, 342533, &finalized_block)
+            .save(deps.as_mut().storage, 343112, &finalized_block)
             .unwrap();
-        NEXT_HEIGHT.save(deps.as_mut().storage, &342533).unwrap();
+        NEXT_HEIGHT.save(deps.as_mut().storage, &343112).unwrap();
 
         // Verify initial corrupted state
         let initial_next_height = NEXT_HEIGHT.load(deps.as_ref().storage).unwrap();
-        assert_eq!(initial_next_height, 342533);
+        assert_eq!(initial_next_height, 343112);
 
         // Run the fix
         fix_next_height_corruption(deps.as_mut()).unwrap();
 
         // Verify the fix worked
         let fixed_next_height = NEXT_HEIGHT.load(deps.as_ref().storage).unwrap();
-        assert_eq!(fixed_next_height, 342534);
+        assert_eq!(fixed_next_height, 343113);
     }
 
     #[test]
@@ -114,25 +113,25 @@ mod tests {
 
         // Set up a healthy state: NEXT_HEIGHT points to non-finalized block
         let non_finalized_block = IndexedBlock {
-            height: 342534,
+            height: 343113,
             app_hash: vec![1, 2, 3, 4],
             finalized: false,
         };
         BLOCKS
-            .save(deps.as_mut().storage, 342534, &non_finalized_block)
+            .save(deps.as_mut().storage, 343113, &non_finalized_block)
             .unwrap();
-        NEXT_HEIGHT.save(deps.as_mut().storage, &342534).unwrap();
+        NEXT_HEIGHT.save(deps.as_mut().storage, &343113).unwrap();
 
         // Verify initial healthy state
         let initial_next_height = NEXT_HEIGHT.load(deps.as_ref().storage).unwrap();
-        assert_eq!(initial_next_height, 342534);
+        assert_eq!(initial_next_height, 343113);
 
         // Run the fix
         fix_next_height_corruption(deps.as_mut()).unwrap();
 
         // Verify nothing changed (no corruption to fix)
         let unchanged_next_height = NEXT_HEIGHT.load(deps.as_ref().storage).unwrap();
-        assert_eq!(unchanged_next_height, 342534);
+        assert_eq!(unchanged_next_height, 343113);
     }
 
     #[test]
@@ -140,7 +139,7 @@ mod tests {
         let mut deps = mock_dependencies();
 
         // Set up a different corruption: NEXT_HEIGHT points to a different finalized block
-        // This migration should NOT fix this - only fixes the specific 342533 corruption
+        // This migration should NOT fix this - only fixes the specific 343112 corruption
         let finalized_block = IndexedBlock {
             height: 100000,
             app_hash: vec![1, 2, 3, 4],
@@ -162,7 +161,7 @@ mod tests {
         let unchanged_next_height = NEXT_HEIGHT.load(deps.as_ref().storage).unwrap();
         assert_eq!(
             unchanged_next_height, 100000,
-            "Migration should only fix 342533 corruption, not other corruptions"
+            "Migration should only fix 343112 corruption, not other corruptions"
         );
     }
 
@@ -184,11 +183,11 @@ mod tests {
         // Run the fix
         fix_next_height_corruption(deps.as_mut()).unwrap();
 
-        // Verify nothing changed - migration only targets 342533
+        // Verify nothing changed - migration only targets 343112
         let unchanged_next_height = NEXT_HEIGHT.load(deps.as_ref().storage).unwrap();
         assert_eq!(
             unchanged_next_height, 500000,
-            "Migration should not affect NEXT_HEIGHT when it's not 342533"
+            "Migration should not affect NEXT_HEIGHT when it's not 343112"
         );
     }
 }
