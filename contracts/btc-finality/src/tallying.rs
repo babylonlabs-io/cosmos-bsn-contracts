@@ -4,7 +4,7 @@ use crate::error::ContractError;
 use crate::state::finality::{get_power_table_at_height, BLOCKS, NEXT_HEIGHT, SIGNATURES};
 use babylon_apis::finality_api::IndexedBlock;
 use cosmwasm_std::Order::Ascending;
-use cosmwasm_std::{DepsMut, Env, Event, StdResult};
+use cosmwasm_std::{DepsMut, Env, Event, StdResult, Storage};
 use std::cmp::{max, min};
 use std::collections::{HashMap, HashSet};
 
