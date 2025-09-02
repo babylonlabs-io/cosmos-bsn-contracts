@@ -4,7 +4,7 @@ use crate::error::ContractError;
 use crate::state::finality::{get_power_table_at_height, BLOCKS, NEXT_HEIGHT, SIGNATURES};
 use babylon_apis::finality_api::IndexedBlock;
 use cosmwasm_std::Order::Ascending;
-use cosmwasm_std::{DepsMut, Env, Event, StdResult, Storage};
+use cosmwasm_std::{DepsMut, Env, Event, StdResult};
 use std::cmp::{max, min};
 use std::collections::{HashMap, HashSet};
 
@@ -192,6 +192,7 @@ mod tests {
     use super::*;
     use crate::state::finality::set_voting_power_table;
     use cosmwasm_std::testing::{mock_dependencies, mock_env};
+    use cosmwasm_std::Storage;
     use rand::rngs::StdRng;
     use rand::{Rng, SeedableRng};
     use std::collections::HashMap;
