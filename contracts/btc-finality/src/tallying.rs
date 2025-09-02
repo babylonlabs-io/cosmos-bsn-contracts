@@ -47,6 +47,11 @@ pub(crate) fn tally_blocks_with_max_finalized_blocks(
     let next_height = NEXT_HEIGHT.may_load(deps.storage)?.unwrap_or(0);
     let start_height = max(start_height, next_height);
 
+    deps.api.debug(&format!(
+        "TALLYING: Start - NEXT_HEIGHT: {}, start_height: {}, max_blocks: {}",
+        next_height, start_height, max_finalized_blocks
+    ));
+
     // Find all blocks that are non-finalised AND have a finality provider set since
     // max(activated_height, last_finalized_height + 1)
     // There are 4 different scenarios:
@@ -77,23 +82,41 @@ pub(crate) fn tally_blocks_with_max_finalized_blocks(
                     .collect::<StdResult<Vec<_>>>()?;
                 if tally(&fp_power_table, &voter_btc_pks) {
                     // If this block gets >2/3 votes, finalise it
+                    deps.api.debug(&format!(
+                        "TALLYING: Block {} finalizing, will update NEXT_HEIGHT to {}",
+                        h,
+                        h + 1
+                    ));
                     let ev = finalize_block(deps.storage, &mut indexed_block, &voter_btc_pks)?;
                     events.push(ev);
                 } else {
                     // If not, then this block and all subsequent blocks should not be finalised.
                     // Thus, we need to break here
+                    deps.api.debug(&format!(
+                        "TALLYING: Block {} insufficient votes, breaking",
+                        h
+                    ));
                     break;
                 }
             }
             (false, false) => {
                 // Does not have finality providers, non-finalised: not finalisable,
                 // Increment the next height to finalise and continue
+                deps.api.debug(&format!(
+                    "TALLYING: Block {} no FP, updating NEXT_HEIGHT to {}",
+                    h,
+                    indexed_block.height + 1
+                ));
                 NEXT_HEIGHT.save(deps.storage, &(indexed_block.height + 1))?;
                 continue;
             }
             (true, true) => {
                 // Has finality providers and the block is finalised.
                 // This can only be a programming error
+                deps.api.debug(&format!(
+                    "TALLYING: CORRUPTION! Block {} already finalized but NEXT_HEIGHT points to it",
+                    h
+                ));
                 return Err(ContractError::FinalisedBlockWithFinalityProviderSet(
                     indexed_block.height,
                 ));
@@ -107,6 +130,12 @@ pub(crate) fn tally_blocks_with_max_finalized_blocks(
         }
     }
 
+    let final_next_height = NEXT_HEIGHT.may_load(deps.storage)?.unwrap_or(0);
+    deps.api.debug(&format!(
+        "TALLYING: End - final NEXT_HEIGHT: {}, events: {}",
+        final_next_height,
+        events.len()
+    ));
     Ok(events)
 }
 
