@@ -164,7 +164,7 @@ fn finalize_block(
     let new_next_height = block.height + 1;
 
     deps.api.debug(&format!(
-        "FINALIZE: Block {} - updating NEXT_HEIGHT from {} to {}",
+        "TALLYING: Block {} - updating NEXT_HEIGHT from {} to {}",
         block.height, old_next_height, new_next_height
     ));
 
@@ -176,7 +176,7 @@ fn finalize_block(
     NEXT_HEIGHT.save(deps.storage, &new_next_height)?;
 
     deps.api.debug(&format!(
-        "FINALIZE: Block {} finalized! NEXT_HEIGHT now set to {}",
+        "TALLYING: Block {} finalized! NEXT_HEIGHT now set to {}",
         block.height, new_next_height
     ));
 
