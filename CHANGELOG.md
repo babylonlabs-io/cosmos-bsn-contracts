@@ -42,6 +42,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 - [#345](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/345) fix:
   jailing issue in liveness check
+- [#348](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/348) fix:
+  last finalized should return next_height -1
 
 ## [v1.0.0-rc.1](https://github.com/babylonlabs-io/cosmos-bsn-contracts/tree/v1.0.0-rc.1) (2025-08-22)
 
