@@ -145,10 +145,17 @@ pub fn signing_info(
 }
 
 pub fn last_finalized_height(deps: Deps) -> Result<Option<u64>, ContractError> {
-    // Return the NEXT_HEIGHT directly - the height of the next block to be processed
-    // If NEXT_HEIGHT doesn't exist, return None
+    // NEXT_HEIGHT represents the next block to be processed for finalization
+    // So the last finalized height is NEXT_HEIGHT - 1
     match NEXT_HEIGHT.may_load(deps.storage)? {
-        Some(next_height) => Ok(Some(next_height)),
-        None => Ok(None), // NEXT_HEIGHT not set yet
+        Some(next_height) => {
+            if next_height > 0 {
+                Ok(Some(next_height - 1))
+            } else {
+                // Edge case: NEXT_HEIGHT is 0, meaning no blocks have been finalized yet
+                Ok(None)
+            }
+        }
+        None => Ok(None), // NEXT_HEIGHT not set yet, no blocks processed
     }
 }
