@@ -4,7 +4,7 @@ use crate::error::ContractError;
 use crate::state::finality::{get_power_table_at_height, BLOCKS, NEXT_HEIGHT, SIGNATURES};
 use babylon_apis::finality_api::IndexedBlock;
 use cosmwasm_std::Order::Ascending;
-use cosmwasm_std::{DepsMut, Env, Event, StdResult, Storage};
+use cosmwasm_std::{DepsMut, Env, Event, StdResult};
 use std::cmp::{max, min};
 use std::collections::{HashMap, HashSet};
 
@@ -47,6 +47,11 @@ pub(crate) fn tally_blocks_with_max_finalized_blocks(
     let next_height = NEXT_HEIGHT.may_load(deps.storage)?.unwrap_or(0);
     let start_height = max(start_height, next_height);
 
+    deps.api.debug(&format!(
+        "TALLYING: Start - NEXT_HEIGHT: {}, start_height: {}, max_blocks: {}",
+        next_height, start_height, max_finalized_blocks
+    ));
+
     // Find all blocks that are non-finalised AND have a finality provider set since
     // max(activated_height, last_finalized_height + 1)
     // There are 4 different scenarios:
@@ -77,23 +82,41 @@ pub(crate) fn tally_blocks_with_max_finalized_blocks(
                     .collect::<StdResult<Vec<_>>>()?;
                 if tally(&fp_power_table, &voter_btc_pks) {
                     // If this block gets >2/3 votes, finalise it
-                    let ev = finalize_block(deps.storage, &mut indexed_block, &voter_btc_pks)?;
+                    deps.api.debug(&format!(
+                        "TALLYING: Block {} finalizing, will update NEXT_HEIGHT to {}",
+                        h,
+                        h + 1
+                    ));
+                    let ev = finalize_block(deps, &mut indexed_block, &voter_btc_pks)?;
                     events.push(ev);
                 } else {
                     // If not, then this block and all subsequent blocks should not be finalised.
                     // Thus, we need to break here
+                    deps.api.debug(&format!(
+                        "TALLYING: Block {} insufficient votes, breaking",
+                        h
+                    ));
                     break;
                 }
             }
             (false, false) => {
                 // Does not have finality providers, non-finalised: not finalisable,
                 // Increment the next height to finalise and continue
+                deps.api.debug(&format!(
+                    "TALLYING: Block {} no FP, updating NEXT_HEIGHT to {}",
+                    h,
+                    indexed_block.height + 1
+                ));
                 NEXT_HEIGHT.save(deps.storage, &(indexed_block.height + 1))?;
                 continue;
             }
             (true, true) => {
                 // Has finality providers and the block is finalised.
                 // This can only be a programming error
+                deps.api.debug(&format!(
+                    "TALLYING: CORRUPTION! Block {} already finalized but NEXT_HEIGHT points to it",
+                    h
+                ));
                 return Err(ContractError::FinalisedBlockWithFinalityProviderSet(
                     indexed_block.height,
                 ));
@@ -107,6 +130,12 @@ pub(crate) fn tally_blocks_with_max_finalized_blocks(
         }
     }
 
+    let final_next_height = NEXT_HEIGHT.may_load(deps.storage)?.unwrap_or(0);
+    deps.api.debug(&format!(
+        "TALLYING: End - final NEXT_HEIGHT: {}, events: {}",
+        final_next_height,
+        events.len()
+    ));
     Ok(events)
 }
 
@@ -126,16 +155,30 @@ fn tally(fp_power_table: &HashMap<String, u64>, voters: &[String]) -> bool {
 
 /// Sets a block to be finalised.
 fn finalize_block(
-    store: &mut dyn Storage,
+    deps: &mut DepsMut,
     block: &mut IndexedBlock,
     _voters: &[String],
 ) -> Result<Event, ContractError> {
+    // Get current NEXT_HEIGHT for logging
+    let old_next_height = NEXT_HEIGHT.may_load(deps.storage)?.unwrap_or(0);
+    let new_next_height = block.height + 1;
+
+    deps.api.debug(&format!(
+        "TALLYING: Block {} - updating NEXT_HEIGHT from {} to {}",
+        block.height, old_next_height, new_next_height
+    ));
+
     // Set block to be finalised
     block.finalized = true;
-    BLOCKS.save(store, block.height, block)?;
+    BLOCKS.save(deps.storage, block.height, block)?;
 
     // Set the next height to finalise as height+1
-    NEXT_HEIGHT.save(store, &(block.height + 1))?;
+    NEXT_HEIGHT.save(deps.storage, &new_next_height)?;
+
+    deps.api.debug(&format!(
+        "TALLYING: Block {} finalized! NEXT_HEIGHT now set to {}",
+        block.height, new_next_height
+    ));
 
     // Record the last finalized height metric
     let ev = Event::new("finalize_block")
@@ -149,6 +192,7 @@ mod tests {
     use super::*;
     use crate::state::finality::set_voting_power_table;
     use cosmwasm_std::testing::{mock_dependencies, mock_env};
+    use cosmwasm_std::Storage;
     use rand::rngs::StdRng;
     use rand::{Rng, SeedableRng};
     use std::collections::HashMap;
@@ -430,7 +474,7 @@ mod tests {
 
         let voters = vec!["fp1".to_string(), "fp2".to_string()];
 
-        let event = finalize_block(&mut deps.storage, &mut block, &voters).unwrap();
+        let event = finalize_block(&mut deps.as_mut(), &mut block, &voters).unwrap();
 
         assert!(BLOCKS.load(&deps.storage, 100).unwrap().finalized);
 

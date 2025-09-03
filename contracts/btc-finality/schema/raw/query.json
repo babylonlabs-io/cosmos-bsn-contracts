@@ -393,6 +393,20 @@
         }
       },
       "additionalProperties": false
+    },
+    {
+      "description": "Returns the last finalized height",
+      "type": "object",
+      "required": [
+        "last_finalized_height"
+      ],
+      "properties": {
+        "last_finalized_height": {
+          "type": "object",
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
     }
   ]
 }

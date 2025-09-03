@@ -6,7 +6,7 @@ use crate::msg::{
 };
 use crate::state::finality::{
     get_last_signed_height, get_power_table_at_height, BLOCKS, EVIDENCES, FP_START_HEIGHT, JAIL,
-    SIGNATURES,
+    NEXT_HEIGHT, SIGNATURES,
 };
 use babylon_apis::finality_api::IndexedBlock;
 use cosmwasm_std::Order::{Ascending, Descending};
@@ -142,4 +142,13 @@ pub fn signing_info(
         last_signed_height,
         jailed_until,
     }))
+}
+
+pub fn last_finalized_height(deps: Deps) -> Result<Option<u64>, ContractError> {
+    // Return the NEXT_HEIGHT directly - the height of the next block to be processed
+    // If NEXT_HEIGHT doesn't exist, return None
+    match NEXT_HEIGHT.may_load(deps.storage)? {
+        Some(next_height) => Ok(Some(next_height)),
+        None => Ok(None), // NEXT_HEIGHT not set yet
+    }
 }

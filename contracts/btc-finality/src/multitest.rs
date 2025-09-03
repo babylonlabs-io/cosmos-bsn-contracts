@@ -1,7 +1,7 @@
 pub mod suite;
 
 use crate::error::{ContractError, PubRandCommitError};
-use crate::msg::FinalitySignatureResponse;
+use crate::msg::{FinalitySignatureResponse, QueryMsg as FinalityQueryMsg};
 use crate::tests::gen_random_msg_commit_pub_rand;
 use babylon_apis::finality_api::IndexedBlock;
 use babylon_bindings_test::{
@@ -486,6 +486,109 @@ fn finality_provider_power_query_works() {
     let non_existent_pk = format!("02{}", "0".repeat(62));
     let power = suite.get_finality_provider_power(&non_existent_pk, height);
     assert_eq!(power, 0);
+}
+
+#[test]
+fn last_finalized_height_query_works() {
+    // Test the LastFinalizedHeight query which returns the NEXT_HEIGHT value
+    // (the height of the next block to be processed by tallying)
+
+    // Setup test data for finality signature submission
+    let (pk_hex, pub_rand, pubrand_signature) = get_public_randomness_commitment();
+    let pub_rand_one = get_pub_rand_value();
+    // Read equivalent / consistent add finality signature test data
+    let add_finality_signature = get_add_finality_sig();
+    let proof = add_finality_signature.proof.unwrap();
+
+    let initial_height = pub_rand.start_height;
+    let initial_funds = &[coin(1_000_000_000_000, "TOKEN")];
+
+    let mut suite = SuiteBuilder::new()
+        .with_funds(initial_funds)
+        .with_height(initial_height)
+        .build();
+
+    // Initially, NEXT_HEIGHT is not set
+    let last_finalized =
+        suite.query_finality_contract::<Option<u64>>(FinalityQueryMsg::LastFinalizedHeight {});
+    assert!(
+        last_finalized.is_none(),
+        "Initially NEXT_HEIGHT should not be set"
+    );
+
+    // Set up finality provider with voting power
+    let new_fp = create_new_finality_provider(1);
+    assert_eq!(new_fp.btc_pk_hex, pk_hex);
+    suite
+        .register_finality_providers(&[new_fp.clone()])
+        .unwrap();
+
+    let mut del1 = get_derived_btc_delegation(1, &[1]);
+    del1.fp_btc_pk_list = vec![pk_hex.clone()];
+    suite.add_delegations(&[del1.clone()]).unwrap();
+
+    // Submit public randomness commitment
+    suite
+        .commit_public_randomness(&pk_hex, &pub_rand, &pubrand_signature)
+        .unwrap();
+
+    // Call next_block to advance height
+    suite
+        .next_block(&add_finality_signature.block_app_hash)
+        .unwrap();
+
+    // NEXT_HEIGHT still not set yet
+    let last_finalized =
+        suite.query_finality_contract::<Option<u64>>(FinalityQueryMsg::LastFinalizedHeight {});
+    assert!(last_finalized.is_none(), "NEXT_HEIGHT not set yet");
+
+    // Submit finality signature
+    let submit_height = initial_height + 1;
+    let finality_sig = add_finality_signature.finality_sig.to_vec();
+    suite
+        .submit_finality_signature(
+            &pk_hex,
+            submit_height,
+            &pub_rand_one,
+            &proof,
+            &add_finality_signature.block_app_hash,
+            &finality_sig,
+        )
+        .unwrap();
+
+    // Call begin and end block to trigger finalization
+    suite
+        .call_begin_block(&add_finality_signature.block_app_hash, submit_height)
+        .unwrap();
+    suite
+        .call_end_block(&add_finality_signature.block_app_hash, submit_height)
+        .unwrap();
+
+    // Now NEXT_HEIGHT should be set to the next block to be processed
+    let last_finalized =
+        suite.query_finality_contract::<Option<u64>>(FinalityQueryMsg::LastFinalizedHeight {});
+    assert_eq!(
+        last_finalized,
+        Some(submit_height + 1),
+        "NEXT_HEIGHT should be {} (next block after finalized block {})",
+        submit_height + 1,
+        submit_height
+    );
+
+    // Verify the block is actually finalized
+    let indexed_block = suite.get_indexed_block(submit_height);
+    assert!(
+        indexed_block.finalized,
+        "Block should be marked as finalized"
+    );
+
+    // The returned value should be consistent
+    let last_finalized_again =
+        suite.query_finality_contract::<Option<u64>>(FinalityQueryMsg::LastFinalizedHeight {});
+    assert_eq!(
+        last_finalized, last_finalized_again,
+        "Query should return consistent results"
+    );
 }
 
 #[test]

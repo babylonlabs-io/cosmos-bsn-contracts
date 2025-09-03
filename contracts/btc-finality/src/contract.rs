@@ -136,6 +136,9 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> Result<QueryResponse, Cont
                 Err(ContractError::BTCStakingNotActivated)
             }
         }
+        QueryMsg::LastFinalizedHeight {} => {
+            Ok(to_json_binary(&queries::last_finalized_height(deps)?)?)
+        }
     }
 }
 
@@ -163,6 +166,7 @@ pub fn migrate(deps: DepsMut, _env: Env, _msg: MigrateMsg) -> Result<Response, C
             // Migrate from v1.0.0-rc.0 to v1.0.0-rc.1
             migrate_config_v1_0_0_rc_0_to_v1_0_0_rc_1(deps)?;
         }
+
         _ => {
             // No migration needed
         }
