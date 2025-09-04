@@ -11,8 +11,6 @@ use std::collections::{HashMap, HashSet};
 // Setting max amount of finalized blocks per EndBlock to 200 to cap processing time,
 // mirroring Babylon's `MaxFinalizedRewardedBlocksPerEndBlock`.
 // https://github.com/babylonlabs-io/babylon/blob/53d1a8e211f5c9d8b369397bde1f6cf05c7038ad/x/finality/types/constants.go#L7
-// The cost in CosmWasm is higher than in Go module. Setting this value to a higher
-// value like 1_000 can cause an out of gas issue as the default gas limit is 5M.
 const MAX_FINALIZED_REWARDED_BLOCKS_PER_END_BLOCK: u64 = 200;
 
 /// Tries to finalise all blocks that are non-finalised AND have a non-nil
