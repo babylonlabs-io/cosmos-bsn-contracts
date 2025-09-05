@@ -8,11 +8,10 @@ use cosmwasm_std::{DepsMut, Env, Event, StdResult};
 use std::cmp::{max, min};
 use std::collections::{HashMap, HashSet};
 
-// Setting max amount of finalized blocks per EndBlock to 1_000 to cap processing time,
+// Setting max amount of finalized blocks per EndBlock to 200 to cap processing time,
 // mirroring Babylon's `MaxFinalizedRewardedBlocksPerEndBlock`.
 // https://github.com/babylonlabs-io/babylon/blob/53d1a8e211f5c9d8b369397bde1f6cf05c7038ad/x/finality/types/constants.go#L7
-// Setting a smaller value here because the cost in CosmWasm is higher than in Go module.
-const MAX_FINALIZED_REWARDED_BLOCKS_PER_END_BLOCK: u64 = 1_000;
+const MAX_FINALIZED_REWARDED_BLOCKS_PER_END_BLOCK: u64 = 200;
 
 /// Tries to finalise all blocks that are non-finalised AND have a non-nil
 /// finality provider set, from the earliest to the latest.
