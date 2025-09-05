@@ -227,6 +227,25 @@ pub fn execute(
             },
         ),
         ExecuteMsg::Unjail { fp_pubkey_hex } => handle_unjail(deps, &env, &info, &fp_pubkey_hex),
+        ExecuteMsg::UpdateConfig {
+            max_active_finality_providers,
+            min_pub_rand,
+            reward_interval,
+            missed_blocks_window,
+            jail_duration,
+            finality_activation_height,
+            max_pub_rand_commit_offset,
+        } => handle_update_config(
+            deps,
+            info,
+            max_active_finality_providers,
+            min_pub_rand,
+            reward_interval,
+            missed_blocks_window,
+            jail_duration,
+            finality_activation_height,
+            max_pub_rand_commit_offset,
+        ),
     }
 }
 
@@ -255,6 +274,56 @@ fn handle_update_staking(
     let attributes = vec![
         attr("action", "update_btc_staking"),
         attr("staking", staking_addr),
+        attr("sender", info.sender),
+    ];
+    Ok(Response::new().add_attributes(attributes))
+}
+
+fn handle_update_config(
+    deps: DepsMut,
+    info: MessageInfo,
+    max_active_finality_providers: Option<u32>,
+    min_pub_rand: Option<u64>,
+    reward_interval: Option<u64>,
+    missed_blocks_window: Option<u64>,
+    jail_duration: Option<u64>,
+    finality_activation_height: Option<u64>,
+    max_pub_rand_commit_offset: Option<u64>,
+) -> Result<Response, ContractError> {
+    // Only admin can update config
+    if !ADMIN.is_admin(deps.as_ref(), &info.sender)? {
+        return Err(ContractError::Unauthorized {});
+    }
+
+    let mut cfg = CONFIG.load(deps.storage)?;
+
+    // Update only the fields that are provided (non-None values)
+    if let Some(max_active_finality_providers) = max_active_finality_providers {
+        cfg.max_active_finality_providers = max_active_finality_providers;
+    }
+    if let Some(min_pub_rand) = min_pub_rand {
+        cfg.min_pub_rand = min_pub_rand;
+    }
+    if let Some(reward_interval) = reward_interval {
+        cfg.reward_interval = reward_interval;
+    }
+    if let Some(missed_blocks_window) = missed_blocks_window {
+        cfg.missed_blocks_window = missed_blocks_window;
+    }
+    if let Some(jail_duration) = jail_duration {
+        cfg.jail_duration = jail_duration;
+    }
+    if let Some(finality_activation_height) = finality_activation_height {
+        cfg.finality_activation_height = finality_activation_height;
+    }
+    if let Some(max_pub_rand_commit_offset) = max_pub_rand_commit_offset {
+        cfg.max_pub_rand_commit_offset = max_pub_rand_commit_offset;
+    }
+
+    CONFIG.save(deps.storage, &cfg)?;
+
+    let attributes = vec![
+        attr("action", "update_config"),
         attr("sender", info.sender),
     ];
     Ok(Response::new().add_attributes(attributes))
@@ -536,5 +605,144 @@ pub(crate) mod tests {
                 _ => None,
             },
         );
+    }
+
+    #[test]
+    fn test_update_config_admin() {
+        let mut deps = mock_dependencies();
+        let init_admin = deps.api.addr_make(INIT_ADMIN);
+
+        // Create an InstantiateMsg with admin set
+        let msg = InstantiateMsg {
+            admin: Some(init_admin.to_string()),
+            ..Default::default()
+        };
+
+        let info = message_info(&deps.api.addr_make(CREATOR), &[]);
+        instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
+
+        // Test updating config as admin
+        let update_config_msg = ExecuteMsg::UpdateConfig {
+            max_active_finality_providers: Some(200),
+            min_pub_rand: Some(5),
+            reward_interval: Some(100),
+            missed_blocks_window: Some(500),
+            jail_duration: Some(172800), // 2 days
+            finality_activation_height: Some(10),
+            max_pub_rand_commit_offset: Some(2_000_000),
+        };
+
+        let admin_info = message_info(&init_admin, &[]);
+        let res = execute(
+            deps.as_mut(),
+            mock_env(),
+            admin_info,
+            update_config_msg,
+        ).unwrap();
+
+        // Verify the response
+        assert_eq!(res.attributes.len(), 2);
+        assert_eq!(res.attributes[0].key, "action");
+        assert_eq!(res.attributes[0].value, "update_config");
+        assert_eq!(res.attributes[1].key, "sender");
+        assert_eq!(res.attributes[1].value, init_admin.as_str());
+
+        // Verify the config was updated
+        let config = CONFIG.load(&deps.storage).unwrap();
+        assert_eq!(config.max_active_finality_providers, 200);
+        assert_eq!(config.min_pub_rand, 5);
+        assert_eq!(config.reward_interval, 100);
+        assert_eq!(config.missed_blocks_window, 500);
+        assert_eq!(config.jail_duration, 172800);
+        assert_eq!(config.finality_activation_height, 10);
+        assert_eq!(config.max_pub_rand_commit_offset, 2_000_000);
+    }
+
+    #[test]
+    fn test_update_config_unauthorized() {
+        let mut deps = mock_dependencies();
+        let init_admin = deps.api.addr_make(INIT_ADMIN);
+
+        // Create an InstantiateMsg with admin set
+        let msg = InstantiateMsg {
+            admin: Some(init_admin.to_string()),
+            ..Default::default()
+        };
+
+        let info = message_info(&deps.api.addr_make(CREATOR), &[]);
+        instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
+
+        // Test updating config as non-admin, non-babylon
+        let update_config_msg = ExecuteMsg::UpdateConfig {
+            max_active_finality_providers: Some(200),
+            min_pub_rand: None,
+            reward_interval: None,
+            missed_blocks_window: None,
+            jail_duration: None,
+            finality_activation_height: None,
+            max_pub_rand_commit_offset: None,
+        };
+
+        let unauthorized_info = message_info(&deps.api.addr_make("unauthorized"), &[]);
+        let err = execute(
+            deps.as_mut(),
+            mock_env(),
+            unauthorized_info,
+            update_config_msg,
+        ).unwrap_err();
+
+        // Verify the error
+        assert_eq!(err, ContractError::Unauthorized {});
+    }
+
+    #[test]
+    fn test_update_config_partial_update() {
+        let mut deps = mock_dependencies();
+        let init_admin = deps.api.addr_make(INIT_ADMIN);
+
+        // Create an InstantiateMsg with admin set
+        let msg = InstantiateMsg {
+            admin: Some(init_admin.to_string()),
+            ..Default::default()
+        };
+
+        let info = message_info(&deps.api.addr_make(CREATOR), &[]);
+        instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
+
+        // Get initial config
+        let initial_config = CONFIG.load(&deps.storage).unwrap();
+        let initial_min_pub_rand = initial_config.min_pub_rand;
+
+        // Test updating only some fields
+        let update_config_msg = ExecuteMsg::UpdateConfig {
+            max_active_finality_providers: Some(250),
+            min_pub_rand: None, // This should not be updated
+            reward_interval: Some(120),
+            missed_blocks_window: None, // This should not be updated
+            jail_duration: Some(259200), // 3 days
+            finality_activation_height: None, // This should not be updated
+            max_pub_rand_commit_offset: None, // This should not be updated
+        };
+
+        let admin_info = message_info(&init_admin, &[]);
+        let res = execute(
+            deps.as_mut(),
+            mock_env(),
+            admin_info,
+            update_config_msg,
+        ).unwrap();
+
+        // Verify the response
+        assert_eq!(res.attributes.len(), 2);
+
+        // Verify only the specified fields were updated
+        let config = CONFIG.load(&deps.storage).unwrap();
+        assert_eq!(config.max_active_finality_providers, 250); // Updated
+        assert_eq!(config.min_pub_rand, initial_min_pub_rand); // Not updated
+        assert_eq!(config.reward_interval, 120); // Updated
+        assert_eq!(config.missed_blocks_window, initial_config.missed_blocks_window); // Not updated
+        assert_eq!(config.jail_duration, 259200); // Updated
+        assert_eq!(config.finality_activation_height, initial_config.finality_activation_height); // Not updated
+        assert_eq!(config.max_pub_rand_commit_offset, initial_config.max_pub_rand_commit_offset); // Not updated
     }
 }
