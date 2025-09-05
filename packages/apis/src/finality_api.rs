@@ -67,6 +67,25 @@ pub enum ExecuteMsg {
         /// FP to unjail
         fp_pubkey_hex: String,
     },
+    /// Update the contract configuration.
+    /// Only admin can update the config.
+    /// All fields are optional - only non-empty ones will be updated.
+    UpdateConfig {
+        /// Maximum number of active finality providers in the BTC staking protocol.
+        max_active_finality_providers: Option<u32>,
+        /// Minimum amount of public randomness each public randomness commitment should commit.
+        min_pub_rand: Option<u64>,
+        /// Number of blocks that define the rewards distribution interval
+        reward_interval: Option<u64>,
+        /// Missed number of blocks an FP can be jailed for due to offline detection
+        missed_blocks_window: Option<u64>,
+        /// Minimum period of time in seconds that a finality provider remains jailed
+        jail_duration: Option<u64>,
+        /// Block height at which the finality module will start to accept finality voting
+        finality_activation_height: Option<u64>,
+        /// Maximum number of blocks into the future that a public randomness commitment start height can target
+        max_pub_rand_commit_offset: Option<u64>,
+    },
 }
 
 /// Represents the necessary metadata and finalization status of a block.
