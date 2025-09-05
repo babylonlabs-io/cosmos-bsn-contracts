@@ -322,10 +322,7 @@ fn handle_update_config(
 
     CONFIG.save(deps.storage, &cfg)?;
 
-    let attributes = vec![
-        attr("action", "update_config"),
-        attr("sender", info.sender),
-    ];
+    let attributes = vec![attr("action", "update_config"), attr("sender", info.sender)];
     Ok(Response::new().add_attributes(attributes))
 }
 
@@ -633,12 +630,7 @@ pub(crate) mod tests {
         };
 
         let admin_info = message_info(&init_admin, &[]);
-        let res = execute(
-            deps.as_mut(),
-            mock_env(),
-            admin_info,
-            update_config_msg,
-        ).unwrap();
+        let res = execute(deps.as_mut(), mock_env(), admin_info, update_config_msg).unwrap();
 
         // Verify the response
         assert_eq!(res.attributes.len(), 2);
@@ -689,7 +681,8 @@ pub(crate) mod tests {
             mock_env(),
             unauthorized_info,
             update_config_msg,
-        ).unwrap_err();
+        )
+        .unwrap_err();
 
         // Verify the error
         assert_eq!(err, ContractError::Unauthorized {});
@@ -718,19 +711,14 @@ pub(crate) mod tests {
             max_active_finality_providers: Some(250),
             min_pub_rand: None, // This should not be updated
             reward_interval: Some(120),
-            missed_blocks_window: None, // This should not be updated
-            jail_duration: Some(259200), // 3 days
+            missed_blocks_window: None,       // This should not be updated
+            jail_duration: Some(259200),      // 3 days
             finality_activation_height: None, // This should not be updated
             max_pub_rand_commit_offset: None, // This should not be updated
         };
 
         let admin_info = message_info(&init_admin, &[]);
-        let res = execute(
-            deps.as_mut(),
-            mock_env(),
-            admin_info,
-            update_config_msg,
-        ).unwrap();
+        let res = execute(deps.as_mut(), mock_env(), admin_info, update_config_msg).unwrap();
 
         // Verify the response
         assert_eq!(res.attributes.len(), 2);
@@ -740,9 +728,18 @@ pub(crate) mod tests {
         assert_eq!(config.max_active_finality_providers, 250); // Updated
         assert_eq!(config.min_pub_rand, initial_min_pub_rand); // Not updated
         assert_eq!(config.reward_interval, 120); // Updated
-        assert_eq!(config.missed_blocks_window, initial_config.missed_blocks_window); // Not updated
+        assert_eq!(
+            config.missed_blocks_window,
+            initial_config.missed_blocks_window
+        ); // Not updated
         assert_eq!(config.jail_duration, 259200); // Updated
-        assert_eq!(config.finality_activation_height, initial_config.finality_activation_height); // Not updated
-        assert_eq!(config.max_pub_rand_commit_offset, initial_config.max_pub_rand_commit_offset); // Not updated
+        assert_eq!(
+            config.finality_activation_height,
+            initial_config.finality_activation_height
+        ); // Not updated
+        assert_eq!(
+            config.max_pub_rand_commit_offset,
+            initial_config.max_pub_rand_commit_offset
+        ); // Not updated
     }
 }
