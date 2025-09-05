@@ -35,6 +35,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Improvements
 
+- [#350](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/350) finality: message handler for updating the config
 - [#346](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/346) chore:
   LastFinalizedHeight query
 
