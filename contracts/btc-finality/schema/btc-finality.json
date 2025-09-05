@@ -242,6 +242,85 @@
           }
         },
         "additionalProperties": false
+      },
+      {
+        "description": "Update the contract configuration. Only admin can update the config. All fields are optional - only non-empty ones will be updated.",
+        "type": "object",
+        "required": [
+          "update_config"
+        ],
+        "properties": {
+          "update_config": {
+            "type": "object",
+            "properties": {
+              "finality_activation_height": {
+                "description": "Block height at which the finality module will start to accept finality voting",
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "format": "uint64",
+                "minimum": 0.0
+              },
+              "jail_duration": {
+                "description": "Minimum period of time in seconds that a finality provider remains jailed",
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "format": "uint64",
+                "minimum": 0.0
+              },
+              "max_active_finality_providers": {
+                "description": "Maximum number of active finality providers in the BTC staking protocol.",
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "format": "uint32",
+                "minimum": 0.0
+              },
+              "max_pub_rand_commit_offset": {
+                "description": "Maximum number of blocks into the future that a public randomness commitment start height can target",
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "format": "uint64",
+                "minimum": 0.0
+              },
+              "min_pub_rand": {
+                "description": "Minimum amount of public randomness each public randomness commitment should commit.",
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "format": "uint64",
+                "minimum": 0.0
+              },
+              "missed_blocks_window": {
+                "description": "Missed number of blocks an FP can be jailed for due to offline detection",
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "format": "uint64",
+                "minimum": 0.0
+              },
+              "reward_interval": {
+                "description": "Number of blocks that define the rewards distribution interval",
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "format": "uint64",
+                "minimum": 0.0
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
       }
     ],
     "definitions": {
