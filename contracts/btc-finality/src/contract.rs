@@ -279,6 +279,7 @@ fn handle_update_staking(
     Ok(Response::new().add_attributes(attributes))
 }
 
+#[allow(clippy::too_many_arguments)]
 fn handle_update_config(
     deps: DepsMut,
     info: MessageInfo,
