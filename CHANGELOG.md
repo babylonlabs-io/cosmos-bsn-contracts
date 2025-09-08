@@ -41,6 +41,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ### Bug Fixes
 
+- [#349](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/349) bugfix:
+  out of gas on big batch
 - [#345](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/345) fix:
   jailing issue in liveness check
 - [#348](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/348) fix:
