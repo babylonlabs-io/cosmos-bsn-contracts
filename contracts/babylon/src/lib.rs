@@ -1,6 +1,6 @@
 use crate::error::ContractError;
-pub use crate::msg::contract::ExecuteMsg;
-use crate::msg::contract::{InstantiateMsg, MigrateMsg};
+pub use crate::msg::ExecuteMsg;
+use crate::msg::{InstantiateMsg, MigrateMsg};
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
@@ -35,7 +35,7 @@ pub fn reply(deps: DepsMut, env: Env, reply: Reply) -> Result<Response, Contract
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn query(deps: Deps, env: Env, msg: msg::contract::QueryMsg) -> Result<Binary, ContractError> {
+pub fn query(deps: Deps, env: Env, msg: msg::QueryMsg) -> Result<Binary, ContractError> {
     contract::query(deps, env, msg)
 }
 

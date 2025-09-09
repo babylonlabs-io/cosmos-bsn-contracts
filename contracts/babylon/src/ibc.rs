@@ -1,5 +1,5 @@
 use crate::error::ContractError;
-use crate::state::config::CONFIG;
+use crate::state::CONFIG;
 use babylon_apis::btc_staking_api::{
     ActiveBtcDelegation, NewFinalityProvider, UnbondedBtcDelegation,
 };
@@ -221,11 +221,7 @@ pub(crate) mod ibc_packet {
         btc_headers: &BtcHeaders,
     ) -> StdResult<IbcReceiveResponse> {
         // Submit headers to BTC light client
-        let msg = crate::utils::btc_light_client_executor::new_btc_headers_msg(
-            deps,
-            &btc_headers.headers,
-        )
-        .map_err(|e| {
+        let msg = crate::utils::new_btc_headers_msg(deps, &btc_headers.headers).map_err(|e| {
             let err = format!("CONTRACT: handle_btc_headers, failed to submit BTC headers: {e}");
             deps.api.debug(&err);
             StdError::generic_err(err)

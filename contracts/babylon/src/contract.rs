@@ -1,10 +1,8 @@
 use crate::error::ContractError;
 use crate::ibc::{get_ibc_packet_timeout, ibc_packet, IBC_TRANSFER_CHANNEL, IBC_ZC_CHANNEL};
-use crate::msg::contract::{ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg};
-use crate::msg::ibc::{CallbackMemo, FpRatio};
+use crate::msg::{CallbackMemo, ExecuteMsg, FpRatio, InstantiateMsg, MigrateMsg, QueryMsg};
 use crate::queries;
-use crate::state::config::{Config, CONFIG, DEFAULT_IBC_PACKET_TIMEOUT_DAYS};
-use crate::state::consumer_header_chain::CONSUMER_HEIGHT_LAST;
+use crate::state::{Config, CONFIG, CONSUMER_HEIGHT_LAST, DEFAULT_IBC_PACKET_TIMEOUT_DAYS};
 use babylon_apis::{btc_staking_api, finality_api, to_bech32_addr, to_module_canonical_addr};
 use cosmwasm_std::{
     to_json_binary, to_json_string, Addr, Decimal, Deps, DepsMut, Env, MessageInfo, QueryResponse,
@@ -51,10 +49,9 @@ pub fn instantiate(
 
     let mut res = Response::new().add_attribute("action", "instantiate");
 
-    // instantiate btc light client contract first
-    // It has to be before btc staking and finality contracts which depend on it
+    // Instantiate BTC light client contract first.
+    // It has to be before btc staking and finality contracts which depend on it.
     let init_btc_lc_msg = if let Some(btc_light_client_msg) = msg.btc_light_client_msg {
-        // If the message is provided, use it
         btc_light_client_msg
     } else {
         // If the message is not provided, use the values in the babylon contract
@@ -65,7 +62,6 @@ pub fn instantiate(
             admin: msg.admin.clone(),
         })?
     };
-    // Instantiate BTC light client contract
     let init_msg = WasmMsg::Instantiate {
         admin: msg.admin.clone(),
         code_id: msg.btc_light_client_code_id,
@@ -76,9 +72,8 @@ pub fn instantiate(
     let init_msg = SubMsg::reply_on_success(init_msg, REPLY_ID_INSTANTIATE_LIGHT_CLIENT);
     res = res.add_submessage(init_msg);
 
-    // instantiate btc staking contract
+    // Instantiate BTC staking contract.
     let init_btc_staking_msg = if let Some(btc_staking_msg) = msg.btc_staking_msg {
-        // If the message is provided, use it
         btc_staking_msg
     } else {
         // If the message is not provided, use the values in the babylon contract
@@ -86,7 +81,6 @@ pub fn instantiate(
             admin: msg.admin.clone(),
         })?
     };
-    // Instantiate BTC staking contract
     let init_msg = WasmMsg::Instantiate {
         admin: msg.admin.clone(),
         code_id: msg.btc_staking_code_id,
@@ -97,9 +91,8 @@ pub fn instantiate(
     let init_msg = SubMsg::reply_on_success(init_msg, REPLY_ID_INSTANTIATE_STAKING);
     res = res.add_submessage(init_msg);
 
-    // instantiate btc finality contract
+    // Instantiate BTC finality contract
     let init_btc_finality_msg = if let Some(btc_finality_msg) = msg.btc_finality_msg {
-        // If the message is provided, use it
         btc_finality_msg
     } else {
         // If the message is not provided, use the values in the babylon contract
@@ -109,7 +102,6 @@ pub fn instantiate(
             ..Default::default()
         })?
     };
-    // Instantiate BTC finality contract
     let init_msg = WasmMsg::Instantiate {
         admin: msg.admin,
         code_id: msg.btc_finality_code_id,
@@ -134,6 +126,7 @@ pub fn instantiate(
 
     // Initialize the last Consumer height to 0 to avoid not found error
     CONSUMER_HEIGHT_LAST.save(deps.storage, &0)?;
+
     // Mock the last Consumer height for multi-test
     #[cfg(any(test, all(feature = "library", not(target_arch = "wasm32"))))]
     {
@@ -434,7 +427,7 @@ pub fn execute(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::msg::contract::RewardInfo;
+    use crate::msg::RewardInfo;
     use babylon_test_utils::migration::MigrationTester;
     use bitcoin::block::Header as BlockHeader;
     use btc_light_client::msg::InstantiateMsg as BtcLightClientInstantiateMsg;

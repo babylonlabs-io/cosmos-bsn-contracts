@@ -1,9 +1,8 @@
-use crate::msg::contract::{InstantiateMsg, QueryMsg};
-use crate::msg::ibc::TransferInfoResponse;
+use crate::msg::{InstantiateMsg, QueryMsg, TransferInfoResponse};
 use crate::multitest::{
     BTC_FINALITY_CONTRACT_ADDR, BTC_LIGHT_CLIENT_CONTRACT_ADDR, BTC_STAKING_CONTRACT_ADDR,
 };
-use crate::state::config::Config;
+use crate::state::Config;
 use anyhow::Result as AnyResult;
 use babylon_bindings_test::BabylonApp;
 use btc_light_client::BitcoinNetwork;
