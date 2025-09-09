@@ -526,6 +526,7 @@ mod tests {
     use cosmwasm_std::{Binary, Uint128};
 
     const CREATOR: &str = "creator";
+    const INIT_ADMIN: &str = "initial_admin";
 
     #[test]
     fn test_deserialize_btc_header() {
@@ -845,5 +846,202 @@ mod tests {
                 _ => None,
             },
         );
+    }
+
+    #[test]
+    fn test_update_config_admin() {
+        let mut deps = mock_dependencies();
+        let init_admin = deps.api.addr_make(INIT_ADMIN);
+
+        // Create an InstantiateMsg with admin set
+        let msg = InstantiateMsg {
+            admin: Some(init_admin.to_string()),
+            ..InstantiateMsg::new_test()
+        };
+
+        let info = message_info(&deps.api.addr_make(CREATOR), &[]);
+        instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
+
+        // Test updating config as admin
+        let update_config_msg = ExecuteMsg::UpdateConfig {
+            btc_confirmation_depth: Some(10),
+            checkpoint_finalization_timeout: Some(20),
+            consumer_name: Some("updated-consumer".to_string()),
+            consumer_description: Some("updated-description".to_string()),
+            ibc_packet_timeout_days: Some(14),
+            destination_module: Some("updated-module".to_string()),
+        };
+
+        let admin_info = message_info(&init_admin, &[]);
+        let res = execute(deps.as_mut(), mock_env(), admin_info, update_config_msg).unwrap();
+
+        // Verify the response
+        assert_eq!(res.attributes.len(), 2);
+        assert_eq!(res.attributes[0].key, "action");
+        assert_eq!(res.attributes[0].value, "update_config");
+        assert_eq!(res.attributes[1].key, "sender");
+        assert_eq!(res.attributes[1].value, init_admin.as_str());
+
+        // Verify the config was updated
+        let config = CONFIG.load(&deps.storage).unwrap();
+        assert_eq!(config.btc_confirmation_depth, 10);
+        assert_eq!(config.checkpoint_finalization_timeout, 20);
+        assert_eq!(config.consumer_name, "updated-consumer");
+        assert_eq!(config.consumer_description, "updated-description");
+        assert_eq!(config.ibc_packet_timeout_days, 14);
+        assert_eq!(config.destination_module, "updated-module");
+    }
+
+    #[test]
+    fn test_update_config_unauthorized() {
+        let mut deps = mock_dependencies();
+        let init_admin = deps.api.addr_make(INIT_ADMIN);
+
+        // Create an InstantiateMsg with admin set
+        let msg = InstantiateMsg {
+            admin: Some(init_admin.to_string()),
+            ..InstantiateMsg::new_test()
+        };
+
+        let info = message_info(&deps.api.addr_make(CREATOR), &[]);
+        instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
+
+        // Test updating config as unauthorized user
+        let update_config_msg = ExecuteMsg::UpdateConfig {
+            btc_confirmation_depth: Some(10),
+            checkpoint_finalization_timeout: None,
+            consumer_name: None,
+            consumer_description: None,
+            ibc_packet_timeout_days: None,
+            destination_module: None,
+        };
+
+        let unauthorized_info = message_info(&deps.api.addr_make("unauthorized"), &[]);
+        let err = execute(
+            deps.as_mut(),
+            mock_env(),
+            unauthorized_info,
+            update_config_msg,
+        )
+        .unwrap_err();
+
+        // Verify the error
+        assert_eq!(err, ContractError::Unauthorized {});
+    }
+
+    #[test]
+    fn test_update_config_partial_update() {
+        let mut deps = mock_dependencies();
+        let init_admin = deps.api.addr_make(INIT_ADMIN);
+
+        // Create an InstantiateMsg with admin set
+        let msg = InstantiateMsg {
+            admin: Some(init_admin.to_string()),
+            ..InstantiateMsg::new_test()
+        };
+
+        let info = message_info(&deps.api.addr_make(CREATOR), &[]);
+        instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
+
+        // Get initial config
+        let initial_config = CONFIG.load(&deps.storage).unwrap();
+        let initial_consumer_name = initial_config.consumer_name.clone();
+        let initial_ibc_timeout = initial_config.ibc_packet_timeout_days;
+
+        // Test updating only some fields
+        let update_config_msg = ExecuteMsg::UpdateConfig {
+            btc_confirmation_depth: Some(15),
+            checkpoint_finalization_timeout: Some(25),
+            consumer_name: None, // This should not be updated
+            consumer_description: Some("partially-updated".to_string()),
+            ibc_packet_timeout_days: None, // This should not be updated
+            destination_module: Some("partial-module".to_string()),
+        };
+
+        let admin_info = message_info(&init_admin, &[]);
+        let res = execute(deps.as_mut(), mock_env(), admin_info, update_config_msg).unwrap();
+
+        // Verify the response
+        assert_eq!(res.attributes.len(), 2);
+
+        // Verify only the specified fields were updated
+        let config = CONFIG.load(&deps.storage).unwrap();
+        assert_eq!(config.btc_confirmation_depth, 15); // Updated
+        assert_eq!(config.checkpoint_finalization_timeout, 25); // Updated
+        assert_eq!(config.consumer_name, initial_consumer_name); // Not updated
+        assert_eq!(config.consumer_description, "partially-updated"); // Updated
+        assert_eq!(config.ibc_packet_timeout_days, initial_ibc_timeout); // Not updated
+        assert_eq!(config.destination_module, "partial-module"); // Updated
+    }
+
+    #[test]
+    fn test_update_config_validation() {
+        let mut deps = mock_dependencies();
+        let init_admin = deps.api.addr_make(INIT_ADMIN);
+
+        // Create an InstantiateMsg with admin set
+        let msg = InstantiateMsg {
+            admin: Some(init_admin.to_string()),
+            ..InstantiateMsg::new_test()
+        };
+
+        let info = message_info(&deps.api.addr_make(CREATOR), &[]);
+        instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
+
+        let admin_info = message_info(&init_admin, &[]);
+
+        // Test empty consumer name
+        let update_config_msg = ExecuteMsg::UpdateConfig {
+            btc_confirmation_depth: None,
+            checkpoint_finalization_timeout: None,
+            consumer_name: Some("".to_string()),
+            consumer_description: None,
+            ibc_packet_timeout_days: None,
+            destination_module: None,
+        };
+
+        let err = execute(
+            deps.as_mut(),
+            mock_env(),
+            admin_info.clone(),
+            update_config_msg,
+        )
+        .unwrap_err();
+
+        assert!(matches!(err, ContractError::InvalidConfig { .. }));
+
+        // Test empty consumer description
+        let update_config_msg = ExecuteMsg::UpdateConfig {
+            btc_confirmation_depth: None,
+            checkpoint_finalization_timeout: None,
+            consumer_name: None,
+            consumer_description: Some("   ".to_string()),
+            ibc_packet_timeout_days: None,
+            destination_module: None,
+        };
+
+        let err = execute(
+            deps.as_mut(),
+            mock_env(),
+            admin_info.clone(),
+            update_config_msg,
+        )
+        .unwrap_err();
+
+        assert!(matches!(err, ContractError::InvalidConfig { .. }));
+
+        // Test empty destination module
+        let update_config_msg = ExecuteMsg::UpdateConfig {
+            btc_confirmation_depth: None,
+            checkpoint_finalization_timeout: None,
+            consumer_name: None,
+            consumer_description: None,
+            ibc_packet_timeout_days: None,
+            destination_module: Some("".to_string()),
+        };
+
+        let err = execute(deps.as_mut(), mock_env(), admin_info, update_config_msg).unwrap_err();
+
+        assert!(matches!(err, ContractError::InvalidConfig { .. }));
     }
 }

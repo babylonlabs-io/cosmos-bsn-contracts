@@ -353,8 +353,11 @@ pub(crate) mod tests {
     use babylon_test_utils::migration::MigrationTester;
     use babylon_test_utils::{get_btc_lc_fork_headers, get_btc_lc_fork_msg, get_btc_lc_headers};
     use bitcoin::block::Header as BlockHeader;
-    use cosmwasm_std::testing::mock_dependencies;
+    use cosmwasm_std::testing::{message_info, mock_dependencies, mock_env};
     use cosmwasm_std::{from_json, Addr};
+
+    const CREATOR: &str = "creator";
+    const INIT_ADMIN: &str = "initial_admin";
 
     /// Initialze the contract state with given headers.
     pub(crate) fn init_contract(
@@ -708,5 +711,161 @@ pub(crate) mod tests {
                 _ => None,
             },
         );
+    }
+
+    #[test]
+    fn test_update_config_admin() {
+        let mut deps = mock_dependencies();
+        let init_admin = deps.api.addr_make(INIT_ADMIN);
+
+        // Create an InstantiateMsg with admin set
+        let msg = InstantiateMsg {
+            network: BitcoinNetwork::Regtest,
+            btc_confirmation_depth: 1,
+            checkpoint_finalization_timeout: 100,
+            admin: Some(init_admin.to_string()),
+        };
+
+        let info = message_info(&deps.api.addr_make(CREATOR), &[]);
+        instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
+
+        // Test updating config as admin
+        let update_config_msg = ExecuteMsg::UpdateConfig {
+            btc_confirmation_depth: Some(10),
+            checkpoint_finalization_timeout: Some(200),
+        };
+
+        let admin_info = message_info(&init_admin, &[]);
+        let res = execute(deps.as_mut(), mock_env(), admin_info, update_config_msg).unwrap();
+
+        // Verify the response
+        assert_eq!(res.attributes.len(), 2);
+        assert_eq!(res.attributes[0].key, "action");
+        assert_eq!(res.attributes[0].value, "update_config");
+        assert_eq!(res.attributes[1].key, "sender");
+        assert_eq!(res.attributes[1].value, init_admin.as_str());
+
+        // Verify the config was updated
+        let config = CONFIG.load(&deps.storage).unwrap();
+        assert_eq!(config.btc_confirmation_depth, 10);
+        assert_eq!(config.checkpoint_finalization_timeout, 200);
+    }
+
+    #[test]
+    fn test_update_config_unauthorized() {
+        let mut deps = mock_dependencies();
+        let init_admin = deps.api.addr_make(INIT_ADMIN);
+
+        // Create an InstantiateMsg with admin set
+        let msg = InstantiateMsg {
+            network: BitcoinNetwork::Regtest,
+            btc_confirmation_depth: 1,
+            checkpoint_finalization_timeout: 100,
+            admin: Some(init_admin.to_string()),
+        };
+
+        let info = message_info(&deps.api.addr_make(CREATOR), &[]);
+        instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
+
+        // Test updating config as unauthorized user
+        let update_config_msg = ExecuteMsg::UpdateConfig {
+            btc_confirmation_depth: Some(10),
+            checkpoint_finalization_timeout: None,
+        };
+
+        let unauthorized_info = message_info(&deps.api.addr_make("unauthorized"), &[]);
+        let err = execute(
+            deps.as_mut(),
+            mock_env(),
+            unauthorized_info,
+            update_config_msg,
+        )
+        .unwrap_err();
+
+        // Verify the error
+        assert_eq!(err, ContractError::Unauthorized("unauthorized".to_string()));
+    }
+
+    #[test]
+    fn test_update_config_partial_update() {
+        let mut deps = mock_dependencies();
+        let init_admin = deps.api.addr_make(INIT_ADMIN);
+
+        // Create an InstantiateMsg with admin set
+        let msg = InstantiateMsg {
+            network: BitcoinNetwork::Regtest,
+            btc_confirmation_depth: 5,
+            checkpoint_finalization_timeout: 150,
+            admin: Some(init_admin.to_string()),
+        };
+
+        let info = message_info(&deps.api.addr_make(CREATOR), &[]);
+        instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
+
+        // Get initial config
+        let initial_config = CONFIG.load(&deps.storage).unwrap();
+        let initial_timeout = initial_config.checkpoint_finalization_timeout;
+
+        // Test updating only one field
+        let update_config_msg = ExecuteMsg::UpdateConfig {
+            btc_confirmation_depth: Some(15),
+            checkpoint_finalization_timeout: None, // This should not be updated
+        };
+
+        let admin_info = message_info(&init_admin, &[]);
+        let res = execute(deps.as_mut(), mock_env(), admin_info, update_config_msg).unwrap();
+
+        // Verify the response
+        assert_eq!(res.attributes.len(), 2);
+
+        // Verify only the specified field was updated
+        let config = CONFIG.load(&deps.storage).unwrap();
+        assert_eq!(config.btc_confirmation_depth, 15); // Updated
+        assert_eq!(config.checkpoint_finalization_timeout, initial_timeout); // Not updated
+    }
+
+    #[test]
+    fn test_update_config_validation() {
+        let mut deps = mock_dependencies();
+        let init_admin = deps.api.addr_make(INIT_ADMIN);
+
+        // Create an InstantiateMsg with admin set
+        let msg = InstantiateMsg {
+            network: BitcoinNetwork::Regtest,
+            btc_confirmation_depth: 1,
+            checkpoint_finalization_timeout: 100,
+            admin: Some(init_admin.to_string()),
+        };
+
+        let info = message_info(&deps.api.addr_make(CREATOR), &[]);
+        instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
+
+        let admin_info = message_info(&init_admin, &[]);
+
+        // Test zero btc_confirmation_depth
+        let update_config_msg = ExecuteMsg::UpdateConfig {
+            btc_confirmation_depth: Some(0),
+            checkpoint_finalization_timeout: None,
+        };
+
+        let err = execute(
+            deps.as_mut(),
+            mock_env(),
+            admin_info.clone(),
+            update_config_msg,
+        )
+        .unwrap_err();
+
+        assert_eq!(err, ContractError::ZeroConfirmationDepth);
+
+        // Test zero checkpoint_finalization_timeout
+        let update_config_msg = ExecuteMsg::UpdateConfig {
+            btc_confirmation_depth: None,
+            checkpoint_finalization_timeout: Some(0),
+        };
+
+        let err = execute(deps.as_mut(), mock_env(), admin_info, update_config_msg).unwrap_err();
+
+        assert_eq!(err, ContractError::ZeroCheckpointFinalizationTimeout);
     }
 }
