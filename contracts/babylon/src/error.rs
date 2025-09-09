@@ -1,6 +1,7 @@
 use babylon_apis::error::StakingApiError;
 use btc_light_client::error::ContractError as BTCLightclientError;
 use cosmwasm_std::{StdError, Uint128};
+use cw_controllers::AdminError;
 use cw_utils::{ParseReplyError, PaymentError};
 use thiserror::Error;
 
@@ -8,6 +9,8 @@ use thiserror::Error;
 pub enum ContractError {
     #[error("{0}")]
     StdError(#[from] StdError),
+    #[error("{0}")]
+    Admin(#[from] AdminError),
     #[error("{0}")]
     ParseReply(#[from] ParseReplyError),
     #[error("Invalid reply id: {0}")]

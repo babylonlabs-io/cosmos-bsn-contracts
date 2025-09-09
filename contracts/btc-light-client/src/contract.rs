@@ -55,6 +55,15 @@ pub fn execute(
     msg: ExecuteMsg,
 ) -> Result<Response, ContractError> {
     match msg {
+        ExecuteMsg::UpdateConfig {
+            btc_confirmation_depth,
+            checkpoint_finalization_timeout,
+        } => handle_update_config(
+            deps,
+            info,
+            btc_confirmation_depth,
+            checkpoint_finalization_timeout,
+        ),
         ExecuteMsg::BtcHeaders {
             headers,
             first_work,
@@ -72,6 +81,42 @@ pub fn execute(
                 })
         }
     }
+}
+
+fn handle_update_config(
+    deps: DepsMut,
+    info: MessageInfo,
+    btc_confirmation_depth: Option<u32>,
+    checkpoint_finalization_timeout: Option<u32>,
+) -> Result<Response, ContractError> {
+    // Only admin can update config
+    if !ADMIN.is_admin(deps.as_ref(), &info.sender)? {
+        return Err(ContractError::Unauthorized(info.sender.to_string()));
+    }
+
+    let mut cfg = CONFIG.load(deps.storage)?;
+
+    // Update only the fields that are provided (non-None values)
+    if let Some(btc_confirmation_depth) = btc_confirmation_depth {
+        if btc_confirmation_depth == 0 {
+            return Err(ContractError::ZeroConfirmationDepth);
+        }
+        cfg.btc_confirmation_depth = btc_confirmation_depth;
+    }
+    if let Some(checkpoint_finalization_timeout) = checkpoint_finalization_timeout {
+        if checkpoint_finalization_timeout == 0 {
+            return Err(ContractError::ZeroCheckpointFinalizationTimeout);
+        }
+        cfg.checkpoint_finalization_timeout = checkpoint_finalization_timeout;
+    }
+
+    CONFIG.save(deps.storage, &cfg)?;
+
+    let attributes = vec![
+        cosmwasm_std::attr("action", "update_config"),
+        cosmwasm_std::attr("sender", info.sender),
+    ];
+    Ok(Response::new().add_attributes(attributes))
 }
 
 pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> Result<Binary, ContractError> {
@@ -362,6 +407,7 @@ pub(crate) mod tests {
         let resp: ExecuteMsg = from_json(testdata).unwrap();
         match resp {
             ExecuteMsg::BtcHeaders { headers, .. } => headers,
+            _ => panic!("Expected BtcHeaders message in test data"),
         }
     }
 

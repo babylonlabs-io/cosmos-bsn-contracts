@@ -97,6 +97,16 @@ pub struct MigrateMsg {}
 
 #[cw_serde]
 pub enum ExecuteMsg {
+    /// Update the configuration parameters
+    /// Only admin can update the config
+    UpdateConfig {
+        btc_confirmation_depth: Option<u32>,
+        checkpoint_finalization_timeout: Option<u32>,
+        consumer_name: Option<String>,
+        consumer_description: Option<String>,
+        ibc_packet_timeout_days: Option<u64>,
+        destination_module: Option<String>,
+    },
     /// Slashing event from the BTC staking contract.
     ///
     /// This will be forwarded over IBC to the Babylon side for propagation to other Consumers, and
@@ -121,6 +131,9 @@ pub enum QueryMsg {
     /// Returns the current configuration of the babylon-contract.
     #[returns(Config)]
     Config {},
+    /// Returns the current admin of the contract.
+    #[returns(cw_controllers::AdminResponse)]
+    Admin {},
     /// Returns the base Babylon epoch stored in the contract.
     #[returns(EpochResponse)]
     BabylonBaseEpoch {},

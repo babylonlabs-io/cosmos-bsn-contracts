@@ -1,5 +1,6 @@
 use bitcoin::Work;
 use cosmwasm_std::StdError;
+use cw_controllers::AdminError;
 use cw_utils::ParseReplyError;
 use hex::FromHexError;
 use std::str::Utf8Error;
@@ -20,6 +21,9 @@ pub enum InitHeadersError {
 pub enum ContractError {
     #[error("The given headers during initialization cannot be verified: {0:?}")]
     Init(#[from] InitHeadersError),
+
+    #[error("{0}")]
+    Admin(#[from] AdminError),
 
     #[error("BTC confirmation depth must be greater than 0")]
     ZeroConfirmationDepth,
