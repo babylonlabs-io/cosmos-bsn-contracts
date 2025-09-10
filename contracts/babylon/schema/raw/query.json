@@ -17,6 +17,20 @@
       "additionalProperties": false
     },
     {
+      "description": "Returns the current admin of the contract.",
+      "type": "object",
+      "required": [
+        "admin"
+      ],
+      "properties": {
+        "admin": {
+          "type": "object",
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
       "description": "Returns the base Babylon epoch stored in the contract.",
       "type": "object",
       "required": [

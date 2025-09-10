@@ -3,6 +3,64 @@
   "title": "ExecuteMsg",
   "oneOf": [
     {
+      "description": "Update the configuration parameters Only admin can update the config",
+      "type": "object",
+      "required": [
+        "update_config"
+      ],
+      "properties": {
+        "update_config": {
+          "type": "object",
+          "properties": {
+            "btc_confirmation_depth": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint32",
+              "minimum": 0.0
+            },
+            "checkpoint_finalization_timeout": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint32",
+              "minimum": 0.0
+            },
+            "consumer_description": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "consumer_name": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "destination_module": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "ibc_packet_timeout_days": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "uint64",
+              "minimum": 0.0
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
       "description": "Slashing event from the BTC staking contract.\n\nThis will be forwarded over IBC to the Babylon side for propagation to other Consumers, and Babylon itself",
       "type": "object",
       "required": [
