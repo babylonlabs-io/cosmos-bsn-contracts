@@ -707,6 +707,37 @@
         "additionalProperties": false
       },
       {
+        "description": "Returns the voting power of a given finality provider across multiple heights",
+        "type": "object",
+        "required": [
+          "finality_provider_power_batch"
+        ],
+        "properties": {
+          "finality_provider_power_batch": {
+            "type": "object",
+            "required": [
+              "btc_pk_hex",
+              "heights"
+            ],
+            "properties": {
+              "btc_pk_hex": {
+                "type": "string"
+              },
+              "heights": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "format": "uint64",
+                  "minimum": 0.0
+                }
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      },
+      {
         "description": "Returns the activated height of the BTC staking protocol",
         "type": "object",
         "required": [
@@ -1101,6 +1132,38 @@
           "type": "integer",
           "format": "uint64",
           "minimum": 0.0
+        }
+      },
+      "additionalProperties": false
+    },
+    "finality_provider_power_batch": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "FinalityProviderPowerBatchResponse",
+      "type": "object",
+      "required": [
+        "powers"
+      ],
+      "properties": {
+        "powers": {
+          "description": "Vector of (height, power) tuples",
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": [
+              {
+                "type": "integer",
+                "format": "uint64",
+                "minimum": 0.0
+              },
+              {
+                "type": "integer",
+                "format": "uint64",
+                "minimum": 0.0
+              }
+            ],
+            "maxItems": 2,
+            "minItems": 2
+          }
         }
       },
       "additionalProperties": false

@@ -335,6 +335,37 @@
       "additionalProperties": false
     },
     {
+      "description": "Returns the voting power of a given finality provider across multiple heights",
+      "type": "object",
+      "required": [
+        "finality_provider_power_batch"
+      ],
+      "properties": {
+        "finality_provider_power_batch": {
+          "type": "object",
+          "required": [
+            "btc_pk_hex",
+            "heights"
+          ],
+          "properties": {
+            "btc_pk_hex": {
+              "type": "string"
+            },
+            "heights": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "format": "uint64",
+                "minimum": 0.0
+              }
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    {
       "description": "Returns the activated height of the BTC staking protocol",
       "type": "object",
       "required": [
