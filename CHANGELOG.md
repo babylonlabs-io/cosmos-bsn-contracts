@@ -31,6 +31,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## [Unreleased](https://github.com/babylonlabs-io/cosmos-bsn-contracts/tree/HEAD)
 
+### Improvements
+
+- [#355](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/355) chore: adds batch fp power query
+
 [Full Changelog](https://github.com/babylonlabs-io/cosmos-bsn-contracts/compare/v1.0.0-rc.3...HEAD)
 
 ## [v1.0.0-rc.3](https://github.com/babylonlabs-io/cosmos-bsn-contracts/tree/v1.0.0-rc.3) (2024-09-09)
