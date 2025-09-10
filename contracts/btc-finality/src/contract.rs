@@ -124,9 +124,12 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> Result<QueryResponse, Cont
         QueryMsg::FinalityProviderPower { btc_pk_hex, height } => Ok(to_json_binary(
             &queries::finality_provider_power(deps, btc_pk_hex, height)?,
         )?),
-        QueryMsg::FinalityProviderPowerBatch { btc_pk_hex, heights } => Ok(to_json_binary(
-            &queries::finality_provider_power_batch(deps, btc_pk_hex, heights)?,
-        )?),
+        QueryMsg::FinalityProviderPowerBatch {
+            btc_pk_hex,
+            heights,
+        } => Ok(to_json_binary(&queries::finality_provider_power_batch(
+            deps, btc_pk_hex, heights,
+        )?)?),
         QueryMsg::Votes { height } => Ok(to_json_binary(&queries::votes(deps, height)?)?),
         QueryMsg::SigningInfo { btc_pk_hex } => {
             Ok(to_json_binary(&queries::signing_info(deps, btc_pk_hex)?)?)

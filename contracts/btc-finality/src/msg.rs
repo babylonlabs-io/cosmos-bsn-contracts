@@ -290,7 +290,10 @@ pub enum QueryMsg {
     FinalityProviderPower { btc_pk_hex: String, height: u64 },
     /// Returns the voting power of a given finality provider across multiple heights
     #[returns(FinalityProviderPowerBatchResponse)]
-    FinalityProviderPowerBatch { btc_pk_hex: String, heights: Vec<u64> },
+    FinalityProviderPowerBatch {
+        btc_pk_hex: String,
+        heights: Vec<u64>,
+    },
     /// Returns the activated height of the BTC staking protocol
     #[returns(u64)]
     ActivatedHeight {},

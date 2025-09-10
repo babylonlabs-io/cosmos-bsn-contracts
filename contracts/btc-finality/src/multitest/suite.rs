@@ -1,8 +1,8 @@
 use crate::error::ContractError;
 use crate::msg::{
-    ActiveFinalityProvidersResponse, EvidenceResponse, FinalityProviderPowerResponse,
-    FinalityProviderPowerBatchResponse, FinalitySignatureResponse, InstantiateMsg, JailedFinalityProvider,
-    JailedFinalityProvidersResponse, QueryMsg as FinalityQueryMsg,
+    ActiveFinalityProvidersResponse, EvidenceResponse, FinalityProviderPowerBatchResponse,
+    FinalityProviderPowerResponse, FinalitySignatureResponse, InstantiateMsg,
+    JailedFinalityProvider, JailedFinalityProvidersResponse, QueryMsg as FinalityQueryMsg,
 };
 use anyhow::Result as AnyResult;
 use babylon_apis::btc_staking_api::{ActiveBtcDelegation, FinalityProvider, NewFinalityProvider};
@@ -516,9 +516,9 @@ impl Suite {
     }
 
     pub fn get_finality_provider_power_batch(
-        &self, 
-        btc_pk_hex: &str, 
-        heights: Vec<u64>
+        &self,
+        btc_pk_hex: &str,
+        heights: Vec<u64>,
     ) -> Vec<(u64, u64)> {
         self.query_finality_contract::<FinalityProviderPowerBatchResponse>(
             FinalityQueryMsg::FinalityProviderPowerBatch {

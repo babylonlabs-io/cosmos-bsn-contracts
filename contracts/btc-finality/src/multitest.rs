@@ -526,10 +526,10 @@ fn finality_provider_power_batch_query_works() {
     // Query batch power for multiple heights
     let heights = vec![height1, height2, height3];
     let powers = suite.get_finality_provider_power_batch(&pk_hex, heights.clone());
-    
+
     // Verify we got results for all heights
     assert_eq!(powers.len(), 3);
-    
+
     // Verify the height-power pairs are correct
     assert_eq!(powers[0].0, height1);
     assert_eq!(powers[0].1, del1.total_sat);
@@ -537,7 +537,7 @@ fn finality_provider_power_batch_query_works() {
     assert_eq!(powers[1].1, del1.total_sat);
     assert_eq!(powers[2].0, height3);
     assert_eq!(powers[2].1, del1.total_sat);
-    
+
     // Verify batch query matches individual queries
     for (height, expected_power) in powers {
         let individual_power = suite.get_finality_provider_power(&pk_hex, height);
@@ -547,7 +547,7 @@ fn finality_provider_power_batch_query_works() {
     // Query for a non-existent FP should return 0 for all heights
     let non_existent_pk = format!("02{}", "0".repeat(62));
     let powers = suite.get_finality_provider_power_batch(&non_existent_pk, heights);
-    
+
     assert_eq!(powers.len(), 3);
     for (_, power) in powers {
         assert_eq!(power, 0);
@@ -556,7 +556,7 @@ fn finality_provider_power_batch_query_works() {
     // Test with mixed existing/non-existing heights
     let mixed_heights = vec![height1, height2 + 100, height3]; // height2 + 100 shouldn't exist
     let powers = suite.get_finality_provider_power_batch(&pk_hex, mixed_heights);
-    
+
     assert_eq!(powers.len(), 3);
     assert_eq!(powers[0].1, del1.total_sat); // height1 exists
     assert_eq!(powers[1].1, 0); // height2 + 100 doesn't exist

@@ -1,7 +1,7 @@
 use crate::error::ContractError;
 use crate::msg::{
     ActiveFinalityProvidersResponse, BlocksResponse, EvidenceResponse,
-    FinalityProviderPowerResponse, FinalityProviderPowerBatchResponse, FinalitySignatureResponse,
+    FinalityProviderPowerBatchResponse, FinalityProviderPowerResponse, FinalitySignatureResponse,
     JailedFinalityProvider, JailedFinalityProvidersResponse, SigningInfoResponse, VotesResponse,
 };
 use crate::state::finality::{
@@ -134,7 +134,7 @@ pub fn finality_provider_power_batch(
     }
 
     let mut powers = Vec::with_capacity(heights.len());
-    
+
     for height in heights {
         let power_table = get_power_table_at_height(deps.storage, height)?;
         let power = power_table.get(&btc_pk_hex).copied().unwrap_or(0);
@@ -214,8 +214,9 @@ mod tests {
 
         // Test successful batch query
         let heights = vec![100, 200, 300];
-        let result = finality_provider_power_batch(deps.as_ref(), btc_pk_hex.clone(), heights).unwrap();
-        
+        let result =
+            finality_provider_power_batch(deps.as_ref(), btc_pk_hex.clone(), heights).unwrap();
+
         assert_eq!(result.powers.len(), 3);
         assert_eq!(result.powers[0], (100, 1000));
         assert_eq!(result.powers[1], (200, 2000));
@@ -223,8 +224,10 @@ mod tests {
 
         // Test with missing height (should return 0 power)
         let heights_with_missing = vec![100, 150, 200];
-        let result = finality_provider_power_batch(deps.as_ref(), btc_pk_hex.clone(), heights_with_missing).unwrap();
-        
+        let result =
+            finality_provider_power_batch(deps.as_ref(), btc_pk_hex.clone(), heights_with_missing)
+                .unwrap();
+
         assert_eq!(result.powers.len(), 3);
         assert_eq!(result.powers[0], (100, 1000));
         assert_eq!(result.powers[1], (150, 0)); // Missing height
@@ -234,7 +237,7 @@ mod tests {
         let unknown_fp = "unknown_fp".to_string();
         let heights = vec![100, 200, 300];
         let result = finality_provider_power_batch(deps.as_ref(), unknown_fp, heights).unwrap();
-        
+
         assert_eq!(result.powers.len(), 3);
         assert_eq!(result.powers[0], (100, 0));
         assert_eq!(result.powers[1], (200, 0));
@@ -248,8 +251,9 @@ mod tests {
 
         // Test exceeding the limit
         let too_many_heights: Vec<u64> = (0..=MAX_HEIGHTS_LIMIT as u64).collect();
-        let result = finality_provider_power_batch(deps.as_ref(), btc_pk_hex.clone(), too_many_heights);
-        
+        let result =
+            finality_provider_power_batch(deps.as_ref(), btc_pk_hex.clone(), too_many_heights);
+
         match result {
             Err(ContractError::Std(std_err)) => {
                 let msg = std_err.to_string();
@@ -263,7 +267,7 @@ mod tests {
         // Test at the limit (should succeed)
         let max_heights: Vec<u64> = (0..MAX_HEIGHTS_LIMIT as u64).collect();
         let result = finality_provider_power_batch(deps.as_ref(), btc_pk_hex, max_heights);
-        
+
         assert!(result.is_ok());
         assert_eq!(result.unwrap().powers.len(), MAX_HEIGHTS_LIMIT);
     }
@@ -275,8 +279,9 @@ mod tests {
 
         // Test with empty heights vector
         let empty_heights = vec![];
-        let result = finality_provider_power_batch(deps.as_ref(), btc_pk_hex, empty_heights).unwrap();
-        
+        let result =
+            finality_provider_power_batch(deps.as_ref(), btc_pk_hex, empty_heights).unwrap();
+
         assert_eq!(result.powers.len(), 0);
     }
 }
