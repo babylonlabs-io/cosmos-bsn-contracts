@@ -288,6 +288,9 @@ pub enum QueryMsg {
     /// Returns the voting power of a given finality provider at a given height
     #[returns(FinalityProviderPowerResponse)]
     FinalityProviderPower { btc_pk_hex: String, height: u64 },
+    /// Returns the voting power of a given finality provider across multiple heights
+    #[returns(FinalityProviderPowerBatchResponse)]
+    FinalityProviderPowerBatch { btc_pk_hex: String, heights: Vec<u64> },
     /// Returns the activated height of the BTC staking protocol
     #[returns(u64)]
     ActivatedHeight {},
@@ -337,6 +340,12 @@ pub struct ActiveFinalityProvidersResponse {
 #[cw_serde]
 pub struct FinalityProviderPowerResponse {
     pub power: u64,
+}
+
+#[cw_serde]
+pub struct FinalityProviderPowerBatchResponse {
+    /// Vector of (height, power) tuples
+    pub powers: Vec<(u64, u64)>,
 }
 
 #[cw_serde]

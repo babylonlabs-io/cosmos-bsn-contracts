@@ -489,6 +489,85 @@ fn finality_provider_power_query_works() {
 }
 
 #[test]
+fn finality_provider_power_batch_query_works() {
+    // Read public randomness commitment test data
+    let (pk_hex, pub_rand, pubrand_signature) = get_public_randomness_commitment();
+
+    let initial_height = pub_rand.start_height;
+    let initial_funds = &[coin(1_000_000, "TOKEN")];
+
+    let mut suite = SuiteBuilder::new()
+        .with_height(initial_height)
+        .with_funds(initial_funds)
+        .build();
+
+    // Register a finality provider
+    let new_fp = create_new_finality_provider(1);
+    assert_eq!(new_fp.btc_pk_hex, pk_hex);
+
+    suite.register_finality_providers(&[new_fp]).unwrap();
+
+    // Add a delegation, so that the finality provider has some power
+    let mut del1 = get_derived_btc_delegation(1, &[1]);
+    del1.fp_btc_pk_list = vec![pk_hex.clone()];
+
+    suite.add_delegations(&[del1.clone()]).unwrap();
+
+    // Commit the public randomness
+    suite
+        .commit_public_randomness(&pk_hex, &pub_rand, &pubrand_signature)
+        .unwrap();
+
+    // Process multiple blocks to establish power at different heights
+    let height1 = suite.next_block("deadbeef01".as_bytes()).unwrap().height;
+    let height2 = suite.next_block("deadbeef02".as_bytes()).unwrap().height;
+    let height3 = suite.next_block("deadbeef03".as_bytes()).unwrap().height;
+
+    // Query batch power for multiple heights
+    let heights = vec![height1, height2, height3];
+    let powers = suite.get_finality_provider_power_batch(&pk_hex, heights.clone());
+    
+    // Verify we got results for all heights
+    assert_eq!(powers.len(), 3);
+    
+    // Verify the height-power pairs are correct
+    assert_eq!(powers[0].0, height1);
+    assert_eq!(powers[0].1, del1.total_sat);
+    assert_eq!(powers[1].0, height2);
+    assert_eq!(powers[1].1, del1.total_sat);
+    assert_eq!(powers[2].0, height3);
+    assert_eq!(powers[2].1, del1.total_sat);
+    
+    // Verify batch query matches individual queries
+    for (height, expected_power) in powers {
+        let individual_power = suite.get_finality_provider_power(&pk_hex, height);
+        assert_eq!(individual_power, expected_power);
+    }
+
+    // Query for a non-existent FP should return 0 for all heights
+    let non_existent_pk = format!("02{}", "0".repeat(62));
+    let powers = suite.get_finality_provider_power_batch(&non_existent_pk, heights);
+    
+    assert_eq!(powers.len(), 3);
+    for (_, power) in powers {
+        assert_eq!(power, 0);
+    }
+
+    // Test with mixed existing/non-existing heights
+    let mixed_heights = vec![height1, height2 + 100, height3]; // height2 + 100 shouldn't exist
+    let powers = suite.get_finality_provider_power_batch(&pk_hex, mixed_heights);
+    
+    assert_eq!(powers.len(), 3);
+    assert_eq!(powers[0].1, del1.total_sat); // height1 exists
+    assert_eq!(powers[1].1, 0); // height2 + 100 doesn't exist
+    assert_eq!(powers[2].1, del1.total_sat); // height3 exists
+
+    // Test empty heights array
+    let empty_powers = suite.get_finality_provider_power_batch(&pk_hex, vec![]);
+    assert_eq!(empty_powers.len(), 0);
+}
+
+#[test]
 fn last_finalized_height_query_works() {
     // Test the LastFinalizedHeight query which returns the height of the last finalized block
 

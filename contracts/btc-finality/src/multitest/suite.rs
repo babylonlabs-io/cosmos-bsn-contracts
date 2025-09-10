@@ -1,7 +1,7 @@
 use crate::error::ContractError;
 use crate::msg::{
     ActiveFinalityProvidersResponse, EvidenceResponse, FinalityProviderPowerResponse,
-    FinalitySignatureResponse, InstantiateMsg, JailedFinalityProvider,
+    FinalityProviderPowerBatchResponse, FinalitySignatureResponse, InstantiateMsg, JailedFinalityProvider,
     JailedFinalityProvidersResponse, QueryMsg as FinalityQueryMsg,
 };
 use anyhow::Result as AnyResult;
@@ -513,5 +513,19 @@ impl Suite {
             },
         )
         .power
+    }
+
+    pub fn get_finality_provider_power_batch(
+        &self, 
+        btc_pk_hex: &str, 
+        heights: Vec<u64>
+    ) -> Vec<(u64, u64)> {
+        self.query_finality_contract::<FinalityProviderPowerBatchResponse>(
+            FinalityQueryMsg::FinalityProviderPowerBatch {
+                btc_pk_hex: btc_pk_hex.to_string(),
+                heights,
+            },
+        )
+        .powers
     }
 }
