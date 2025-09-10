@@ -773,7 +773,8 @@ pub(crate) mod tests {
             checkpoint_finalization_timeout: None,
         };
 
-        let unauthorized_info = message_info(&deps.api.addr_make("unauthorized"), &[]);
+        let unauthorized_addr = deps.api.addr_make("unauthorized");
+        let unauthorized_info = message_info(&unauthorized_addr, &[]);
         let err = execute(
             deps.as_mut(),
             mock_env(),
@@ -783,7 +784,7 @@ pub(crate) mod tests {
         .unwrap_err();
 
         // Verify the error
-        assert_eq!(err, ContractError::Unauthorized("unauthorized".to_string()));
+        assert_eq!(err, ContractError::Unauthorized(unauthorized_addr.to_string()));
     }
 
     #[test]
