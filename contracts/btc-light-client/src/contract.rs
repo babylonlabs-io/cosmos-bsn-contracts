@@ -784,7 +784,10 @@ pub(crate) mod tests {
         .unwrap_err();
 
         // Verify the error
-        assert_eq!(err, ContractError::Unauthorized(unauthorized_addr.to_string()));
+        assert_eq!(
+            err,
+            ContractError::Unauthorized(unauthorized_addr.to_string())
+        );
     }
 
     #[test]
