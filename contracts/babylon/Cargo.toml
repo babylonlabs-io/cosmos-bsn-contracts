@@ -36,6 +36,7 @@ bitcoin          = { workspace = true }
 cosmwasm-schema  = { workspace = true }
 cosmwasm-std     = { workspace = true }
 cw2              = { workspace = true }
+cw-controllers   = { workspace = true }
 cw-storage-plus  = { workspace = true }
 cw-utils         = { workspace = true }
 hex              = { workspace = true }

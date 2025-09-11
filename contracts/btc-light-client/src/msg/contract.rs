@@ -34,6 +34,12 @@ impl InstantiateMsg {
 
 #[cw_serde]
 pub enum ExecuteMsg {
+    /// Update the configuration parameters
+    /// Only admin can update the config
+    UpdateConfig {
+        btc_confirmation_depth: Option<u32>,
+        checkpoint_finalization_timeout: Option<u32>,
+    },
     /// Submit new BTC headers to the light client.
     /// If not initialized, this will initialize the light client with
     /// the provided headers.

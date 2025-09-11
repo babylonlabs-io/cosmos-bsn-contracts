@@ -50,6 +50,38 @@
     "title": "ExecuteMsg",
     "oneOf": [
       {
+        "description": "Update the configuration parameters Only admin can update the config",
+        "type": "object",
+        "required": [
+          "update_config"
+        ],
+        "properties": {
+          "update_config": {
+            "type": "object",
+            "properties": {
+              "btc_confirmation_depth": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "format": "uint32",
+                "minimum": 0.0
+              },
+              "checkpoint_finalization_timeout": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "format": "uint32",
+                "minimum": 0.0
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      },
+      {
         "description": "Submit new BTC headers to the light client. If not initialized, this will initialize the light client with the provided headers. Otherwise, it will update the existing chain with the new headers",
         "type": "object",
         "required": [

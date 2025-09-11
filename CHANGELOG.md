@@ -37,6 +37,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 [Full Changelog](https://github.com/babylonlabs-io/cosmos-bsn-contracts/compare/v1.0.0-rc.3...HEAD)
 
+### Improvements
+
+- [#353](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/353) chore:
+  config update handlers
+
 ## [v1.0.0-rc.3](https://github.com/babylonlabs-io/cosmos-bsn-contracts/tree/v1.0.0-rc.3) (2024-09-09)
 
 [Full Changelog](https://github.com/babylonlabs-io/cosmos-bsn-contracts/compare/v1.0.0-rc.1...v1.0.0-rc.3)

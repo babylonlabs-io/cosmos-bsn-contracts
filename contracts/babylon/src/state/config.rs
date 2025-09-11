@@ -1,10 +1,13 @@
 use cosmwasm_schema::cw_serde;
 use cosmwasm_std::Addr;
+use cw_controllers::Admin;
 use cw_storage_plus::Item;
 
 pub const DEFAULT_IBC_PACKET_TIMEOUT_DAYS: u64 = 28; // 28 days
 
 pub(crate) const CONFIG: Item<Config> = Item::new("config");
+/// Storage for admin
+pub(crate) const ADMIN: Admin = Admin::new("admin");
 
 #[cw_serde]
 pub struct Config {
