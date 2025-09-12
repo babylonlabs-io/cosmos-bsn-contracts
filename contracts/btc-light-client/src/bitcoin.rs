@@ -104,10 +104,10 @@ pub fn verify_headers(
 }
 
 /// Validates Bitcoin proof-of-work for a given header
-/// This checks that:
+/// This mimics Babylon's ValidateBTCHeader function and checks that:
 /// 1. The target derived from header's bits field doesn't exceed the network's pow_limit
 /// 2. The header's hash satisfies the difficulty target (hash <= target)
-fn validate_proof_of_work(
+pub fn validate_btc_header(
     header: &bitcoin::block::Header,
     pow_limit: &bitcoin::Target,
 ) -> Result<(), HeaderError> {
@@ -130,15 +130,6 @@ fn validate_proof_of_work(
     }
 
     Ok(())
-}
-
-/// Validates a Bitcoin header with proof-of-work verification
-/// This mimics Babylon's ValidateBTCHeader function
-pub fn validate_btc_header(
-    header: &bitcoin::block::Header,
-    pow_limit: &bitcoin::Target,
-) -> Result<(), HeaderError> {
-    validate_proof_of_work(header, pow_limit)
 }
 
 /// Returns the total work of the given header.
