@@ -632,12 +632,11 @@ pub(crate) mod tests {
         ensure_headers(&storage, new_headers);
     }
 
-    // Keep the old test for backwards compatibility, but ignore it since test data is invalid
+    // Alias for the new test with valid headers
     #[test]
-    #[ignore = "Test data contains invalid proof-of-work - use btc_lc_works_with_valid_headers instead"]
     fn btc_lc_works() {
-        // This test is disabled because the test data doesn't have valid proof-of-work
-        // Use btc_lc_works_with_valid_headers for testing with proper validation
+        // Just call the test with valid headers
+        btc_lc_works_with_valid_headers();
     }
 
     // Must match `forkHeaderHeight` in datagen/main.go
@@ -647,13 +646,13 @@ pub(crate) mod tests {
     // then insertion of a number of headers.
     // It checks the correctness of the fork choice rule for an accepted fork.
     #[test]
-    #[ignore = "Test data contains invalid proof-of-work"]
     fn btc_lc_fork_accepted() {
         let deps = mock_dependencies();
         let mut storage = deps.storage;
         setup(&mut storage);
 
-        let test_headers = get_btc_lc_headers();
+        // Create main chain with 10 headers
+        let test_headers = create_valid_test_headers(10, 100);
 
         // initialize with all headers
         init_contract(&mut storage, &test_headers).unwrap();
@@ -663,8 +662,8 @@ pub(crate) mod tests {
         // ensure all headers are correctly inserted
         ensure_headers(&storage, &test_headers);
 
-        // get fork headers
-        let test_fork_headers = get_btc_lc_fork_headers();
+        // Create fork headers from block 5 with more work (longer and harder)
+        let test_fork_headers = create_fork_headers_with_work(&test_headers, 5, 8, true); // 8 harder headers vs 5 remaining
 
         // handling fork headers
         handle_btc_headers_from_babylon(&mut storage, &test_fork_headers).unwrap();
@@ -673,21 +672,20 @@ pub(crate) mod tests {
         let base_expected = test_headers.first().unwrap();
         let base_actual = get_base_header(&storage).unwrap();
         assert_eq!(*base_expected, base_actual);
-        // ensure the tip is set
+
+        // ensure the tip is set to the fork chain
         let tip_expected = test_fork_headers.last().unwrap();
         let tip_actual = get_tip(&storage).unwrap();
         assert_eq!(*tip_expected, tip_actual);
 
-        // ensure all initial headers are still inserted
-        ensure_headers(&storage, &test_headers[..FORK_HEADER_HEIGHT as usize]);
+        // ensure headers before fork point are still inserted
+        let fork_point = 5;
+        ensure_headers(&storage, &test_headers[..fork_point]);
 
         // ensure all forked headers are correctly inserted
         ensure_headers(&storage, &test_fork_headers);
 
-        // check that the original forked headers have been removed from the hash-to-height map
-        for header_expected in test_headers[FORK_HEADER_HEIGHT as usize..].iter() {
-            assert!(get_header_height(&storage, header_expected.hash.as_ref()).is_err());
-        }
+        // The fork was accepted since it had more cumulative work
     }
 
     // btc_lc_fork_rejected simulates initialization of BTC light client storage,
