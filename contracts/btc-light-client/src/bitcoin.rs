@@ -67,7 +67,7 @@ impl From<bitcoin::consensus::encode::Error> for HeaderError {
 /// Ref https://github.com/babylonlabs-io/babylon/blob/d3d81178dc38c172edaf5651c72b296bb9371a48/x/btclightclient/types/btc_light_client.go#L298
 pub fn verify_headers(
     _storage: &dyn Storage,
-    chain_params: &Params,
+    _chain_params: &Params,
     first_header: &BtcHeaderInfo,
     new_headers: &[BtcHeaderInfo],
 ) -> Result<(), HeaderError> {
