@@ -34,6 +34,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 ### Improvements
 
 - [#355](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/355) chore: adds batch fp power query
+- [#363](https://github.com/babylonlabs-io/cosmos-bsn-contracts/pull/363) fix:
+  add proof of work validation in btc headers
 
 [Full Changelog](https://github.com/babylonlabs-io/cosmos-bsn-contracts/compare/v1.0.0-rc.3...HEAD)
 

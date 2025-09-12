@@ -18,8 +18,8 @@ pub enum HeaderError {
     #[error("Header's target exceeds the chain's maximum difficulty limit")]
     TargetTooLarge,
 
-    #[error("Proof-of-work hash does not satisfy the claim difficulty: {0:?}")]
-    InvalidProofOfWork(bitcoin::block::ValidationError),
+    #[error("Proof-of-work hash does not satisfy the claim difficulty: {0}")]
+    InvalidProofOfWork(String),
 
     #[error("Header's difficulty bits mismatch: {{ got: {got:?}, expected: {expected:?} }}")]
     BadDifficultyBits { got: Target, expected: Target },
@@ -77,6 +77,9 @@ pub fn verify_headers(
         let prev_block_header = last_header.block_header()?;
         let block_header = new_header.block_header()?;
 
+        // Note: PoW validation is done earlier in contract.rs (matching Babylon's ante handler pattern)
+        // We only do chain connectivity and work validation here
+
         // Check whether the headers form a chain.
         if block_header.prev_blockhash != prev_block_header.block_hash() {
             return Err(HeaderError::PrevHashMismatch {
@@ -97,6 +100,35 @@ pub fn verify_headers(
         // this header is good, verify the next one
         last_header = new_header.clone();
     }
+    Ok(())
+}
+
+/// Validates Bitcoin proof-of-work for a given header
+/// This mimics Babylon's ValidateBTCHeader function and checks that:
+/// 1. The target derived from header's bits field doesn't exceed the network's pow_limit
+/// 2. The header's hash satisfies the difficulty target (hash <= target)
+pub fn validate_btc_header(
+    header: &bitcoin::block::Header,
+    pow_limit: &bitcoin::Target,
+) -> Result<(), HeaderError> {
+    // Get target from header's bits field
+    let target = header.target();
+
+    // Validate target doesn't exceed pow_limit (maximum allowed difficulty)
+    if target > *pow_limit {
+        return Err(HeaderError::TargetTooLarge);
+    }
+
+    // Calculate header hash and validate it meets target
+    let header_hash = header.block_hash();
+    let hash_target = bitcoin::Target::from_be_bytes(*header_hash.as_ref());
+
+    if hash_target > target {
+        return Err(HeaderError::InvalidProofOfWork(
+            "Header hash does not meet difficulty target".to_string(),
+        ));
+    }
+
     Ok(())
 }
 
