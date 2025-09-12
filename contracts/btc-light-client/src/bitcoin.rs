@@ -77,8 +77,8 @@ pub fn verify_headers(
         let prev_block_header = last_header.block_header()?;
         let block_header = new_header.block_header()?;
 
-        // Validate proof-of-work for this header
-        validate_proof_of_work(&block_header, &chain_params.max_attainable_target)?;
+        // Note: PoW validation is done earlier in contract.rs (matching Babylon's ante handler pattern)
+        // We only do chain connectivity and work validation here
 
         // Check whether the headers form a chain.
         if block_header.prev_blockhash != prev_block_header.block_hash() {

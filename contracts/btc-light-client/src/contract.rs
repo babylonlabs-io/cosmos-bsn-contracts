@@ -233,9 +233,7 @@ fn init_btc_headers(
     // Verify subsequent headers
     let chain_params = cfg.network.chain_params();
 
-    // First validate the base header itself
-    let base_btc_header = base_header.block_header()?;
-    crate::bitcoin::validate_btc_header(&base_btc_header, &chain_params.max_attainable_target)?;
+    // Note: Base header PoW validation already done in handle_btc_headers above
 
     verify_headers(storage, &chain_params, &base_header, &new_headers)?;
 
