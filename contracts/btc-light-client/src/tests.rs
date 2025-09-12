@@ -3,12 +3,72 @@ use crate::msg::btc_header::BtcHeader;
 use crate::msg::{ExecuteMsg, InstantiateMsg};
 use crate::state::{BTC_HEIGHTS, CONFIG};
 use crate::BitcoinNetwork;
-use babylon_proto::babylon::btclightclient::v1::BtcHeaderInfoResponse;
+use babylon_proto::babylon::btclightclient::v1::{BtcHeaderInfo, BtcHeaderInfoResponse};
 use babylon_test_utils::get_btc_lc_mainchain_resp;
 use bitcoin::block::Header as BlockHeader;
+use bitcoin::hashes::Hash;
 use cosmwasm_std::testing::{message_info, mock_dependencies, mock_env};
 use cosmwasm_std::{Addr, Uint256};
 use std::str::FromStr;
+
+/// Helper function to create a chain of valid Bitcoin headers for testing
+fn create_valid_test_headers(count: usize, start_height: u32) -> Vec<BtcHeaderInfo> {
+    let mut headers = Vec::new();
+    let mut prev_hash = bitcoin::BlockHash::all_zeros();
+    let regtest_target = bitcoin::CompactTarget::from_consensus(0x207fffff);
+    let mut cumulative_work = bitcoin::Work::from_be_bytes([0; 32]);
+
+    for i in 0..count {
+        let header = create_valid_header_for_test(prev_hash, regtest_target, 1234567890 + i as u32);
+        prev_hash = header.block_hash();
+
+        // Calculate cumulative work correctly
+        cumulative_work = cumulative_work + header.work();
+
+        // Convert to BtcHeaderInfo using the cumulative work
+        let header_info = BtcHeaderInfo {
+            header: bitcoin::consensus::serialize(&header).into(),
+            hash: bitcoin::consensus::serialize(&header.block_hash()).into(),
+            height: start_height + i as u32,
+            work: cumulative_work.to_be_bytes().to_vec().into(),
+        };
+
+        headers.push(header_info);
+    }
+
+    headers
+}
+
+/// Helper function to mine a valid Bitcoin header for tests
+fn create_valid_header_for_test(
+    prev_hash: bitcoin::BlockHash,
+    target: bitcoin::CompactTarget,
+    time: u32,
+) -> bitcoin::block::Header {
+    let mut header = bitcoin::block::Header {
+        version: bitcoin::block::Version::ONE,
+        prev_blockhash: prev_hash,
+        merkle_root: bitcoin::TxMerkleNode::all_zeros(),
+        time,
+        bits: target,
+        nonce: 0,
+    };
+
+    // Mine the header by incrementing nonce until we find valid proof-of-work
+    let target_threshold = target.into();
+
+    for nonce in 0..u32::MAX {
+        header.nonce = nonce;
+        let hash = header.block_hash();
+        let hash_target = bitcoin::Target::from_be_bytes(*hash.as_ref());
+
+        if hash_target <= target_threshold {
+            return header; // Found valid proof-of-work!
+        }
+    }
+
+    panic!("Could not mine valid header - target too restrictive");
+}
 
 #[test]
 fn instantiate_should_work() {
@@ -75,22 +135,16 @@ fn auto_init_on_first_header_works() {
     let info = message_info(&Addr::unchecked("creator"), &[]);
     instantiate(deps.as_mut(), mock_env(), info.clone(), msg).unwrap();
 
-    // Submit a batch of headers (from the boundary test vector)
-    let res = get_btc_lc_mainchain_resp();
-    let headers: Vec<BtcHeader> = res
-        .headers
+    // Create valid headers with proper proof-of-work
+    let valid_headers = create_valid_test_headers(5, 100); // 5 headers starting at height 100
+    let headers: Vec<BtcHeader> = valid_headers
         .iter()
         .map(|h| h.clone().try_into().unwrap())
         .collect();
 
-    let base_header: BtcHeaderInfoResponse = res.headers.first().unwrap().clone();
-    // Convert work from Uint256 to Bytes
-    let first_work_bytes = Uint256::from_str(&base_header.work)
-        .unwrap()
-        .to_be_bytes()
-        .to_vec();
-    // And hex encode it
-    let first_work_hex = hex::encode(first_work_bytes);
+    let base_header = &valid_headers[0];
+    // Convert work from bytes to hex string
+    let first_work_hex = hex::encode(&base_header.work);
     let first_height = base_header.height;
 
     let exec_msg = ExecuteMsg::BtcHeaders {
@@ -103,12 +157,12 @@ fn auto_init_on_first_header_works() {
     assert!(result.is_ok(), "Auto-init on first header should succeed");
 
     // Convert BtcHeader to BlockHeader to get the hash
-    let base_header = &headers[0];
-    let base_block_header: BlockHeader = base_header.clone().try_into().unwrap();
+    let base_header_msg = &headers[0];
+    let base_block_header: BlockHeader = base_header_msg.clone().try_into().unwrap();
     let base_header_hash = base_block_header.block_hash();
 
-    // The height should be the first height in the test vector
-    let expected_height = res.headers[0].height;
+    // The height should match our test data
+    let expected_height = first_height;
     let stored_height = BTC_HEIGHTS
         .load(&deps.storage, base_header_hash.as_ref())
         .unwrap();

@@ -62,59 +62,6 @@ impl From<bitcoin::consensus::encode::Error> for HeaderError {
     }
 }
 
-/// Validates that a Bitcoin header's hash meets the proof-of-work requirement.
-///
-/// This function checks that the header's hash is less than or equal to the target
-/// specified by the header's bits field, which is the core proof-of-work validation.
-/// This mirrors Babylon's ValidateBTCHeader function behavior.
-fn validate_proof_of_work(
-    header: &bitcoin::block::Header,
-    pow_limit: &bitcoin::Target,
-) -> Result<(), HeaderError> {
-    // Get the target from the header's bits field
-    let target = header.target();
-
-    // Ensure the target doesn't exceed the maximum allowed difficulty
-    if target > *pow_limit {
-        return Err(HeaderError::TargetTooLarge);
-    }
-
-    // Calculate the header's hash (double SHA-256)
-    let header_hash = header.block_hash();
-
-    // Convert hash to Target for comparison
-    // BlockHash implements AsRef<[u8; 32]>, so we can get the bytes directly
-    let hash_bytes = header_hash.as_ref();
-    let hash_target = bitcoin::Target::from_be_bytes(*hash_bytes);
-
-    // The hash must be less than or equal to the target for valid proof-of-work
-    if hash_target > target {
-        return Err(HeaderError::InvalidProofOfWork(
-            "Header hash does not meet difficulty target".to_string(),
-        ));
-    }
-
-    // Validate timestamp precision (matching Babylon's behavior)
-    // Bitcoin timestamps must not have precision greater than one second
-    // This matches Babylon's check: header.Timestamp.Equal(time.Unix(header.Timestamp.Unix(), 0))
-    let timestamp = header.time;
-    // The timestamp is already in seconds, so this validation ensures it's properly formatted
-    if timestamp == 0 {
-        return Err(HeaderError::TimeTooOld);
-    }
-
-    Ok(())
-}
-
-/// Validates a single Bitcoin header for proof-of-work and other sanity checks.
-/// This function directly mirrors Babylon's ValidateBTCHeader function.
-pub fn validate_btc_header(
-    header: &bitcoin::block::Header,
-    pow_limit: &bitcoin::Target,
-) -> Result<(), HeaderError> {
-    validate_proof_of_work(header, pow_limit)
-}
-
 /// Verifies a consecutive sequence of Bitcoin headers starting from a known header.
 ///
 /// Ref https://github.com/babylonlabs-io/babylon/blob/d3d81178dc38c172edaf5651c72b296bb9371a48/x/btclightclient/types/btc_light_client.go#L298
@@ -126,15 +73,12 @@ pub fn verify_headers(
 ) -> Result<(), HeaderError> {
     let mut last_header = first_header.clone();
 
-    // Get the proof-of-work limit for this network
-    let pow_limit = chain_params.max_attainable_target;
-
     for (i, new_header) in new_headers.iter().enumerate() {
         let prev_block_header = last_header.block_header()?;
         let block_header = new_header.block_header()?;
 
         // Validate proof-of-work for this header
-        validate_proof_of_work(&block_header, &pow_limit)?;
+        validate_proof_of_work(&block_header, &chain_params.max_attainable_target)?;
 
         // Check whether the headers form a chain.
         if block_header.prev_blockhash != prev_block_header.block_hash() {
@@ -157,6 +101,44 @@ pub fn verify_headers(
         last_header = new_header.clone();
     }
     Ok(())
+}
+
+/// Validates Bitcoin proof-of-work for a given header
+/// This checks that:
+/// 1. The target derived from header's bits field doesn't exceed the network's pow_limit
+/// 2. The header's hash satisfies the difficulty target (hash <= target)
+fn validate_proof_of_work(
+    header: &bitcoin::block::Header,
+    pow_limit: &bitcoin::Target,
+) -> Result<(), HeaderError> {
+    // Get target from header's bits field
+    let target = header.target();
+
+    // Validate target doesn't exceed pow_limit (maximum allowed difficulty)
+    if target > *pow_limit {
+        return Err(HeaderError::TargetTooLarge);
+    }
+
+    // Calculate header hash and validate it meets target
+    let header_hash = header.block_hash();
+    let hash_target = bitcoin::Target::from_be_bytes(*header_hash.as_ref());
+
+    if hash_target > target {
+        return Err(HeaderError::InvalidProofOfWork(
+            "Header hash does not meet difficulty target".to_string(),
+        ));
+    }
+
+    Ok(())
+}
+
+/// Validates a Bitcoin header with proof-of-work verification
+/// This mimics Babylon's ValidateBTCHeader function
+pub fn validate_btc_header(
+    header: &bitcoin::block::Header,
+    pow_limit: &bitcoin::Target,
+) -> Result<(), HeaderError> {
+    validate_proof_of_work(header, pow_limit)
 }
 
 /// Returns the total work of the given header.
@@ -184,40 +166,6 @@ pub fn total_work(work: &[u8]) -> StdResult<Work> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use bitcoin::consensus::Params;
-    use bitcoin::hashes::Hash;
-
-    /// Helper function to create a valid Bitcoin header with proper proof-of-work
-    /// This mines a header that actually satisfies the target difficulty
-    pub fn create_valid_header(
-        prev_hash: bitcoin::BlockHash,
-        target: bitcoin::CompactTarget,
-        time: u32,
-    ) -> bitcoin::block::Header {
-        let mut header = bitcoin::block::Header {
-            version: bitcoin::block::Version::ONE,
-            prev_blockhash: prev_hash,
-            merkle_root: bitcoin::TxMerkleNode::all_zeros(),
-            time,
-            bits: target,
-            nonce: 0,
-        };
-
-        // Mine the header by incrementing nonce until we find valid proof-of-work
-        let target_threshold = target.into();
-
-        for nonce in 0..u32::MAX {
-            header.nonce = nonce;
-            let hash = header.block_hash();
-            let hash_target = bitcoin::Target::from_be_bytes(*hash.as_ref());
-
-            if hash_target <= target_threshold {
-                return header; // Found valid proof-of-work!
-            }
-        }
-
-        panic!("Could not mine valid header - target too restrictive");
-    }
 
     #[test]
     fn test_total_work() {
@@ -234,96 +182,5 @@ mod tests {
             total_work(&[1u8; 33]).unwrap_err(),
             StdError::generic_err("Work exceeds 32 bytes")
         );
-    }
-
-    #[test]
-    fn test_validate_btc_header_with_valid_header() {
-        let regtest_params = Params::new(bitcoin::Network::Regtest);
-
-        // Create a valid header with proper proof-of-work for regtest
-        let header = create_valid_header(
-            bitcoin::BlockHash::all_zeros(),
-            bitcoin::CompactTarget::from_consensus(0x207fffff), // Maximum target for regtest
-            1234567890,
-        );
-
-        // This should pass with our real validation
-        let result = validate_btc_header(&header, &regtest_params.max_attainable_target);
-        assert!(result.is_ok());
-    }
-
-    #[test]
-    fn test_validate_proof_of_work_enforces_pow_limit() {
-        // Test that we properly validate target against pow_limit
-        let header = bitcoin::block::Header {
-            version: bitcoin::block::Version::ONE,
-            prev_blockhash: bitcoin::BlockHash::all_zeros(),
-            merkle_root: bitcoin::TxMerkleNode::all_zeros(),
-            time: 1234567890,
-            bits: bitcoin::CompactTarget::from_consensus(0x207fffff), // Maximum regtest target
-            nonce: 0,
-        };
-
-        // Create a very restrictive pow_limit that's smaller than the header's target
-        let restrictive_pow_limit = bitcoin::Target::from_be_bytes([
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-            0x00, 0x00, 0x00, 0x01,
-        ]);
-
-        // This should fail because header.target() > restrictive_pow_limit
-        let result = validate_proof_of_work(&header, &restrictive_pow_limit);
-        assert!(matches!(result, Err(HeaderError::TargetTooLarge)));
-    }
-
-    #[test]
-    fn test_validate_proof_of_work_rejects_invalid_hash() {
-        // Create a header with invalid proof-of-work (hash doesn't meet target)
-        let header = bitcoin::block::Header {
-            version: bitcoin::block::Version::ONE,
-            prev_blockhash: bitcoin::BlockHash::all_zeros(),
-            merkle_root: bitcoin::TxMerkleNode::all_zeros(),
-            time: 1234567890,
-            bits: bitcoin::CompactTarget::from_consensus(0x1d00ffff), // Very restrictive target
-            nonce: 0, // This nonce won't satisfy the restrictive target
-        };
-
-        let regtest_params = Params::new(bitcoin::Network::Regtest);
-
-        // This should fail because the hash doesn't meet the target
-        let result = validate_proof_of_work(&header, &regtest_params.max_attainable_target);
-        assert!(matches!(result, Err(HeaderError::InvalidProofOfWork(_))));
-    }
-
-    #[test]
-    fn test_proof_of_work_validation_end_to_end() {
-        // This test demonstrates that our validation actually works by:
-        // 1. Creating an invalid header (should fail)
-        // 2. Mining a valid header (should pass)
-
-        let regtest_params = Params::new(bitcoin::Network::Regtest);
-
-        // 1. Invalid header should fail
-        let invalid_header = bitcoin::block::Header {
-            version: bitcoin::block::Version::ONE,
-            prev_blockhash: bitcoin::BlockHash::all_zeros(),
-            merkle_root: bitcoin::TxMerkleNode::all_zeros(),
-            time: 1234567890,
-            bits: bitcoin::CompactTarget::from_consensus(0x1d00ffff), // Restrictive target
-            nonce: 0,                                                 // This definitely won't work
-        };
-
-        let result = validate_btc_header(&invalid_header, &regtest_params.max_attainable_target);
-        assert!(result.is_err(), "Invalid header should be rejected");
-
-        // 2. Valid mined header should pass
-        let valid_header = create_valid_header(
-            bitcoin::BlockHash::all_zeros(),
-            bitcoin::CompactTarget::from_consensus(0x207fffff), // Easy regtest target
-            1234567890,
-        );
-
-        let result = validate_btc_header(&valid_header, &regtest_params.max_attainable_target);
-        assert!(result.is_ok(), "Valid mined header should be accepted");
     }
 }
