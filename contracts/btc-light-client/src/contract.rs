@@ -583,10 +583,11 @@ pub(crate) mod tests {
         assert_eq!(*tip_expected, tip_actual);
     }
 
-    // btc_lc_works_with_valid_headers tests the BTC light client with properly mined headers
-    // This test demonstrates that proof-of-work validation works correctly
+    // btc_lc_works simulates initialisation of BTC light client storage, then insertion of
+    // a number of headers. It ensures that the correctness of initialisation/insertion upon
+    // a list of correct BTC headers with valid proof-of-work.
     #[test]
-    fn btc_lc_works_with_valid_headers() {
+    fn btc_lc_works() {
         let deps = mock_dependencies();
         let mut storage = deps.storage;
         let _w = setup(&mut storage);
@@ -630,13 +631,6 @@ pub(crate) mod tests {
         // Verify all headers are inserted correctly
         ensure_base_and_tip(&storage, &valid_headers);
         ensure_headers(&storage, new_headers);
-    }
-
-    // Alias for the new test with valid headers
-    #[test]
-    fn btc_lc_works() {
-        // Just call the test with valid headers
-        btc_lc_works_with_valid_headers();
     }
 
     // Must match `forkHeaderHeight` in datagen/main.go
