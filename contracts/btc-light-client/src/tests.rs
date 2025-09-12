@@ -3,13 +3,11 @@ use crate::msg::btc_header::BtcHeader;
 use crate::msg::{ExecuteMsg, InstantiateMsg};
 use crate::state::{BTC_HEIGHTS, CONFIG};
 use crate::BitcoinNetwork;
-use babylon_proto::babylon::btclightclient::v1::{BtcHeaderInfo, BtcHeaderInfoResponse};
-use babylon_test_utils::get_btc_lc_mainchain_resp;
+use babylon_proto::babylon::btclightclient::v1::BtcHeaderInfo;
 use bitcoin::block::Header as BlockHeader;
 use bitcoin::hashes::Hash;
 use cosmwasm_std::testing::{message_info, mock_dependencies, mock_env};
-use cosmwasm_std::{Addr, Uint256};
-use std::str::FromStr;
+use cosmwasm_std::Addr;
 
 /// Helper function to create a chain of valid Bitcoin headers for testing
 fn create_valid_test_headers(count: usize, start_height: u32) -> Vec<BtcHeaderInfo> {

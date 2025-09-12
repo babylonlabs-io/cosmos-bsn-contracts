@@ -356,16 +356,13 @@ pub(crate) fn handle_btc_headers_from_babylon(
 pub(crate) mod tests {
     use super::*;
     use crate::bitcoin::HeaderError;
-    use crate::state::{
-        get_base_header, get_header, get_header_height, BitcoinNetwork, Config, CONFIG,
-    };
+    use crate::state::{get_base_header, get_header, BitcoinNetwork, Config, CONFIG};
     use crate::ExecuteMsg;
     use babylon_test_utils::migration::MigrationTester;
-    use babylon_test_utils::{get_btc_lc_fork_headers, get_btc_lc_fork_msg, get_btc_lc_headers};
     use bitcoin::block::Header as BlockHeader;
     use bitcoin::hashes::Hash;
     use cosmwasm_std::testing::{message_info, mock_dependencies, mock_env};
-    use cosmwasm_std::{from_json, Addr};
+    use cosmwasm_std::Addr;
 
     const CREATOR: &str = "creator";
     const INIT_ADMIN: &str = "initial_admin";
@@ -540,15 +537,6 @@ pub(crate) mod tests {
         w
     }
 
-    fn get_fork_msg_test_headers() -> Vec<BtcHeader> {
-        let testdata = get_btc_lc_fork_msg();
-        let resp: ExecuteMsg = from_json(testdata).unwrap();
-        match resp {
-            ExecuteMsg::BtcHeaders { headers, .. } => headers,
-            _ => panic!("Expected BtcHeaders message in test data"),
-        }
-    }
-
     #[track_caller]
     fn ensure_headers(storage: &dyn Storage, headers: &[BtcHeaderInfo]) {
         for header_expected in headers {
@@ -630,9 +618,6 @@ pub(crate) mod tests {
         ensure_base_and_tip(&storage, &valid_headers);
         ensure_headers(&storage, new_headers);
     }
-
-    // Must match `forkHeaderHeight` in datagen/main.go
-    const FORK_HEADER_HEIGHT: u64 = 90;
 
     // btc_lc_fork_accepted simulates initialization of BTC light client storage,
     // then insertion of a number of headers.
